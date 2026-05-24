@@ -1,0 +1,9 @@
+The latex-parser has completed. The structured outline has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md`.
+
+**Summary of items extracted (13 total):**
+- 6 labeled equations (`eq:HN`, `eq:newton`, `eq:weak-eq`, `eq:vlasov`, `eq:char`, `eq:dobrushin`)
+- 1 assumption (`ass:W`)
+- 1 definition (empirical measure)
+- 1 proposition (`prop:weak`)
+- 2 corollaries (`cor:empirical-vlasov`, `cor:mfl`)
+- 2 theorems (`thm:vlasov-wp`, `thm:dobrushin`)

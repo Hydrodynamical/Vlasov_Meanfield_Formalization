@@ -1,0 +1,21 @@
+The Lean 4 skeleton has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean`.
+
+**28 declarations** covering all 13 tex-labels from the outline:
+
+| # | tex label | Key declarations |
+|---|-----------|-----------------|
+| 1 | `eq:HN` | `hamiltonianN` |
+| 2 | `eq:newton` | `IsNewtonSolution` |
+| 3 | `ass:W` | `class AssW` |
+| 4 | `def:empirical` | `empiricalMeasure`, `empiricalMeasureCurve` |
+| 5 | `prop:weak` | `convolveFunctionMeasure`, `spatialMarginal`, `weakEvolutionEmpiricalMeasure` |
+| 6 | `eq:weak-eq` | `WeakEvolutionEq` |
+| 7 | `cor:empirical-vlasov` | `empiricalMeasureSolvesVlasov` |
+| 8 | `eq:vlasov` | `IsVlasovSolution` |
+| 9 | `thm:vlasov-wp` | `HasFiniteFirstMoment`, `vlasovWellPosedness` |
+| 10 | `eq:char` | `IsCharacteristicFlow`, `vlasovSolutionViaPushforward` |
+| 11 | `thm:dobrushin` | `wasserstein1`, `dobrushin` |
+| 12 | `eq:dobrushin` | `DobrushinStabilityEstimate` |
+| 13 | `cor:mfl` | `meanFieldLimit` |
+
+Three `TODO(mathlib)` comments flag gaps where Mathlib lacks ready-made API (empirical measure constructor, function-measure convolution `∇W * ρ`, and Wasserstein-1 distance). All proofs are `by sorry`.

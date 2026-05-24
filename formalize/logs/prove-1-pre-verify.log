@@ -1,0 +1,17 @@
+The lean-verifier has completed. Here's the summary:
+
+**Build: SUCCESS** — 0 errors, 5 `sorry` warnings (proof bodies only)
+
+**Coverage: 13/13 items present** from `structure.md`
+
+| Status | Count | Items |
+|--------|-------|-------|
+| Fully proved | 8 | `hamiltonianN`, `IsNewtonSolution`, `AssW`, `empiricalMeasure*`, `WeakEvolutionEq`, `IsVlasovSolution`, `IsCharacteristicFlow*`, `DobrushinStabilityEstimate` |
+| Sorry (incomplete proofs) | 5 | `prop:weak`, `cor:empirical-vlasov`, `thm:vlasov-wp`, `thm:dobrushin`, `cor:mfl` |
+
+**Recommended next steps** (from `report.md`):
+1. Prove `weakEvolutionEmpiricalMeasure` (prop:weak, line 269) — unblocks the corollary immediately
+2. Prove `empiricalMeasureSolvesVlasov` (cor:empirical-vlasov, line 323) as follow-on
+3. Main blockers for remaining sorries: Wasserstein-1 API and measure-valued transport well-posedness are not yet unified in Mathlib
+
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.

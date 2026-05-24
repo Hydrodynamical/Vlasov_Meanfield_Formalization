@@ -1,0 +1,9 @@
+The sorry-prover was unable to discharge the target sorry (`cor:mfl → meanFieldLimit`) within the 8-iteration hard cap.
+
+**Summary:**
+- **Target:** `cor:mfl` (Mean Field Limit corollary)
+- **Blocker:** `ENNReal.Tendsto.const_mul` — Lean could not infer the constant `a` from context. Explicit annotation attempts either used the wrong `Or` branch or triggered a false positivity goal (`0 ≠ 0`).
+- **Sorry count:** unchanged (5 → 5)
+- **Log:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/prover-cycle-1.md`
+
+The file was reverted to its checkpointed state on failure.

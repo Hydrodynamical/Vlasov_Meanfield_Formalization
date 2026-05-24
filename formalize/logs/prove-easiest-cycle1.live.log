@@ -1,0 +1,61 @@
+
+=== prove-next cycle 1/1 ===
+--- refreshing report (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The lean-verifier has completed. Here's the summary:
+
+**Build:** Succeeded (8250 jobs, 0 errors)
+
+**Coverage:** 13/13 outline items present — nothing is missing or commented out.
+
+| Status | Count |
+|--------|-------|
+| Proved (no sorry) | 8 |
+| Stubbed with sorry | 5 |
+| Missing | 0 |
+
+**5 remaining `sorry`s:**
+
+| Declaration | TeX label | Line |
+|---|---|---|
+| `weakEvolutionEmpiricalMeasure` | prop:weak | 239 |
+| `empiricalMeasureSolvesVlasov` | cor:empirical-vlasov | 309 |
+| `vlasovWellPosedness` | thm:vlasov-wp | 372 |
+| `dobrushin` | thm:dobrushin | 481 |
+| `meanFieldLimit` | cor:mfl | 534 |
+
+The full report with recommended next steps is at `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+--- sorry-prover (cycle 1, mode: most-tractable) ---
+
+--- invoking subagent: sorry-prover (timeout 900s) ---
+./formalize.sh: line 138: 63487 Alarm clock: 14         perl -e 'alarm shift @ARGV; exec @ARGV or die "exec: $!"' "${seconds}" "${CLAUDE_BASE[@]}" -p "Use the Agent tool with subagent_type=\"${agent}\" to perform the following task, then exit.
+
+${prompt}" 2>&1
+     63488 Done                    | tee "${LOGS}/${log}"
+agent 'sorry-prover' exceeded 900s wall-clock budget (SIGALRM) — pipeline continuing
+--- prover-bak checkpoint still present; restoring (prover was killed before its own revert step) ---
+--- refreshing report after attempt (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The verification is complete. Here's the summary:
+
+**Build:** Success (only `sorry`-related warnings remain)
+
+**Coverage:** 13/13 outline items present
+
+| Status | Count | Items |
+|--------|-------|-------|
+| present-stubbed | 8 | definitions, equations, lemmas |
+| present-with-sorry | 5 | prop:weak, cor:empirical-vlasov, thm:vlasov-wp, thm:dobrushin, cor:mfl |
+| missing | 0 | — |
+
+The 5 `sorry` occurrences are all at theorem/proposition/corollary level (lines 239, 309, 372, 481, 534) — expected for skeleton formalizations. All definitions and structural declarations are fully elaborated.
+
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+
+Pipeline finished.
+  Outline:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
+  Lean file:  /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+  Report:     /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md
+  Logs:       /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/

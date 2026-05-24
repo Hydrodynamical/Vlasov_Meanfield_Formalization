@@ -1,0 +1,19 @@
+The lean-verifier has completed successfully. Here's the summary:
+
+**Build: SUCCESS** | **Coverage: 13/13 items** | **Sorries: 5**
+
+All 13 outline items from `structure.md` are present in the Lean file. The build completed cleanly with only sorry-related warnings.
+
+**Items with sorry proofs (5 total):**
+- `weakEvolutionEmpiricalMeasure` (prop:weak) — line 169
+- `empiricalMeasureSolvesVlasov` (cor:empirical-vlasov) — line 239
+- `vlasovWellPosedness` (thm:vlasov-wp) — line 302
+- `dobrushin` (thm:dobrushin) — line 411
+- `meanFieldLimit` (cor:mfl) — line 464
+
+**Recommended next steps (from report):**
+1. Prove `weakEvolutionEmpiricalMeasure` first — most tractable, uses standard Mathlib tools, and gates `empiricalMeasureSolvesVlasov`
+2. Prove `dobrushin` — needs a Lipschitz-convolution lemma then closes via Gronwall
+3. Leave `vlasovWellPosedness` and `meanFieldLimit` as sorry — the well-posedness theorem requires Banach fixed-point in measure space not yet in Mathlib
+
+The full report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.

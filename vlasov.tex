@@ -1,0 +1,235 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\V}{\mathbf{V}}
+\newcommand{\Z}{\mathbf{Z}}
+
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Lip}{Lip}
+
+\title{Derivation of the Vlasov Equation \\ from $N$-Particle Hamiltonian Dynamics}
+\author{Joseph K. Miller}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+Fix a dimension $d \ge 1$ and a pair potential $W : \R^d \to \R$. We consider $N$ identical
+particles of unit mass in $\R^d$ with positions $x_i(t) \in \R^d$ and velocities $v_i(t) \in \R^d$,
+interacting through $W$ in the mean-field scaling. The Hamiltonian on phase space
+$(\R^d \times \R^d)^N$ is
+\begin{equation}
+  H_N(\X, \V) \;=\; \sum_{i=1}^{N} \frac{|v_i|^2}{2}
+  \;+\; \frac{1}{N} \sum_{1 \le i < j \le N} W(x_i - x_j),
+  \label{eq:HN}
+\end{equation}
+where $\X = (x_1, \ldots, x_N)$ and $\V = (v_1, \ldots, v_N)$. The factor $1/N$ is the
+mean-field normalization, chosen so that the kinetic and interaction energies are of the
+same order as $N \to \infty$.
+
+The corresponding Hamilton equations are
+\begin{equation}
+  \dot{x}_i \;=\; v_i, \qquad
+  \dot{v}_i \;=\; -\frac{1}{N} \sum_{j \neq i} \nabla W(x_i - x_j),
+  \qquad i = 1, \ldots, N.
+  \label{eq:newton}
+\end{equation}
+
+\begin{assumption}\label{ass:W}
+The potential $W \in C^{1,1}(\R^d)$ is even, $W(-x) = W(x)$, with globally Lipschitz gradient:
+\[
+  L \;:=\; \Lip(\nabla W) \;=\; \sup_{x \neq y} \frac{|\nabla W(x) - \nabla W(y)|}{|x-y|} \;<\; \infty.
+\]
+\end{assumption}
+
+Under Assumption~\ref{ass:W}, the system \eqref{eq:newton} admits a unique global $C^1$ solution
+for every initial datum $(\X_0, \V_0)$, and the symmetric group $S_N$ acts on the solution by
+permutation of indices.
+
+\section{The Empirical Measure}
+
+\begin{definition}
+The \emph{empirical measure} associated to a configuration $\Z = (\X, \V) \in (\R^d \times \R^d)^N$
+is the probability measure on $\R^d \times \R^d$ defined by
+\[
+  \mu^N[\Z] \;:=\; \frac{1}{N} \sum_{i=1}^{N} \delta_{(x_i, v_i)}.
+\]
+For a solution $t \mapsto (\X(t), \V(t))$ of \eqref{eq:newton}, we write $\mu_t^N := \mu^N[\X(t), \V(t)]$.
+\end{definition}
+
+\begin{proposition}[Weak evolution of the empirical measure]\label{prop:weak}
+Let $(\X, \V) : [0,T] \to (\R^d \times \R^d)^N$ solve \eqref{eq:newton}, and let
+$\rho_t^N(x) := \int_{\R^d} \mu_t^N(dx, dv)$ denote the spatial marginal. Then for every
+$\varphi \in C_c^\infty(\R^d \times \R^d)$,
+\begin{equation}
+  \frac{d}{dt} \langle \mu_t^N, \varphi \rangle
+  \;=\; \big\langle \mu_t^N,\; v \cdot \nabla_x \varphi - (\nabla W * \rho_t^N) \cdot \nabla_v \varphi \big\rangle
+  \;+\; R_N(t),
+  \label{eq:weak-eq}
+\end{equation}
+where the remainder satisfies $|R_N(t)| \le \frac{1}{N} \|\nabla W\|_\infty \|\nabla_v \varphi\|_\infty$
+and vanishes identically when $\nabla W(0) = 0$ (in particular, under Assumption~\ref{ass:W}).
+\end{proposition}
+
+\begin{proof}
+Differentiating $\langle \mu_t^N, \varphi \rangle = \frac{1}{N} \sum_i \varphi(x_i, v_i)$ in $t$ and
+using \eqref{eq:newton},
+\[
+  \frac{d}{dt} \langle \mu_t^N, \varphi \rangle
+  \;=\; \frac{1}{N} \sum_{i=1}^{N} v_i \cdot \nabla_x \varphi(x_i, v_i)
+  \;-\; \frac{1}{N^2} \sum_{i=1}^{N} \sum_{j \neq i} \nabla W(x_i - x_j) \cdot \nabla_v \varphi(x_i, v_i).
+\]
+The first term equals $\langle \mu_t^N, v \cdot \nabla_x \varphi \rangle$. For the second,
+add and subtract the diagonal $i = j$:
+\[
+  \frac{1}{N^2} \sum_{i,j} \nabla W(x_i - x_j) \cdot \nabla_v \varphi(x_i, v_i)
+  \;-\; \frac{1}{N^2} \sum_i \nabla W(0) \cdot \nabla_v \varphi(x_i, v_i).
+\]
+The double sum is exactly $\int (\nabla W * \rho_t^N)(x) \cdot \nabla_v \varphi(x, v) \, d\mu_t^N(x,v)$,
+since $\rho_t^N = \frac{1}{N} \sum_i \delta_{x_i}$. Under Assumption~\ref{ass:W} the potential
+$W$ is even, hence $\nabla W(0) = 0$ and the diagonal term vanishes. In general it is bounded
+by $\frac{1}{N} \|\nabla W\|_\infty \|\nabla_v \varphi\|_\infty$.
+\end{proof}
+
+\begin{corollary}\label{cor:empirical-vlasov}
+Under Assumption~\ref{ass:W}, the empirical measure $\mu_t^N$ is a (distributional) solution
+to the nonlinear Vlasov equation \eqref{eq:vlasov} below, in the sense that it satisfies
+\eqref{eq:weak-eq} with $R_N \equiv 0$ for every $\varphi \in C_c^\infty(\R^d \times \R^d)$.
+\end{corollary}
+
+\section{The Vlasov Equation}
+
+Formally passing $N \to \infty$ in \eqref{eq:weak-eq} and assuming $\mu_t^N \to f_t$ weakly, we
+obtain the limit equation
+\begin{equation}
+  \boxed{\;\partial_t f \;+\; v \cdot \nabla_x f \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
+  \qquad \rho_t(x) = \int_{\R^d} f(t, x, v) \, dv.\;}
+  \label{eq:vlasov}
+\end{equation}
+This is the \emph{nonlinear Vlasov equation} associated to the pair potential $W$. We collect
+the basic well-posedness statement.
+
+\begin{theorem}[Existence and uniqueness for Vlasov]\label{thm:vlasov-wp}
+Let $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$ be a probability measure with finite first moment.
+Under Assumption~\ref{ass:W}, there exists a unique narrowly continuous family
+$t \mapsto f_t \in \mathcal{P}_1(\R^d \times \R^d)$ satisfying \eqref{eq:vlasov} in the
+distributional sense with $f_{|t=0} = f_0$.
+\end{theorem}
+
+Existence and uniqueness follow from the characteristic flow construction: define the mean-field
+ODE
+\begin{equation}
+  \dot{X}(t,z) = V(t,z), \qquad \dot{V}(t,z) = -(\nabla W * \rho_t)(X(t,z)),
+  \qquad (X,V)(0,z) = z,
+  \label{eq:char}
+\end{equation}
+with $\rho_t = (X(t,\cdot))_\# (\int f_0\, dv)$, and set $f_t = (X(t,\cdot), V(t,\cdot))_\# f_0$.
+The fixed-point argument for \eqref{eq:char} uses the Lipschitz hypothesis on $\nabla W$ and
+the Wasserstein-$1$ metric on probability measures.
+
+\section{The Mean-Field Limit: Dobrushin's Theorem}
+
+The empirical-measure framework reduces the mean-field limit to a stability statement for
+measure-valued solutions of \eqref{eq:vlasov}.
+
+\begin{theorem}[Dobrushin, 1979]\label{thm:dobrushin}
+Under Assumption~\ref{ass:W}, there exists a constant $C = C(L) > 0$ such that any two
+measure solutions $f_t, g_t \in \mathcal{P}_1(\R^d \times \R^d)$ of \eqref{eq:vlasov} satisfy
+\begin{equation}
+  W_1(f_t, g_t) \;\le\; e^{C t} \, W_1(f_0, g_0), \qquad t \ge 0,
+  \label{eq:dobrushin}
+\end{equation}
+where $W_1$ denotes the Wasserstein-$1$ distance.
+\end{theorem}
+
+\begin{corollary}[Mean-field limit]\label{cor:mfl}
+Let $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$, and let $(\X_0^N, \V_0^N)$ be initial data with
+empirical measure $\mu_0^N$ satisfying $W_1(\mu_0^N, f_0) \to 0$ as $N \to \infty$. Then,
+under Assumption~\ref{ass:W}, for every $T > 0$,
+\[
+  \sup_{t \in [0,T]} W_1(\mu_t^N, f_t) \;\le\; e^{CT} W_1(\mu_0^N, f_0) \;\xrightarrow[N \to \infty]{}\; 0.
+\]
+\end{corollary}
+
+\begin{proof}[Proof sketch of Theorem~\ref{thm:dobrushin}]
+Let $\pi_0$ be an optimal coupling of $f_0, g_0$ for $W_1$. Let $(X_f, V_f), (X_g, V_g)$ denote the
+characteristic flows \eqref{eq:char} associated to $f$ and $g$, respectively, and define
+$\pi_t := (X_f(t,\cdot), V_f(t,\cdot), X_g(t,\cdot), V_g(t,\cdot))_\# \pi_0$, viewed as a coupling
+of $f_t$ and $g_t$. Then
+\[
+  W_1(f_t, g_t) \;\le\; \int |X_f - X_g| + |V_f - V_g| \, d\pi_0.
+\]
+A Gronwall argument on the characteristic equations, using $\Lip(\nabla W) = L$ and the
+bound $|\nabla W * \rho - \nabla W * \sigma|_\infty \le L \, W_1(\rho, \sigma)$, gives
+the exponential estimate~\eqref{eq:dobrushin}.
+\end{proof}
+
+\section{Hamiltonian Structure of the Limit}
+
+The Vlasov equation \eqref{eq:vlasov} inherits a Hamiltonian structure from the $N$-particle
+system \eqref{eq:HN}. On the space of densities $f \in \mathcal{P}(\R^d \times \R^d)$,
+define the energy
+\[
+  \mathcal{H}[f] \;:=\; \int \frac{|v|^2}{2} f \, dx\, dv \;+\; \frac{1}{2}
+  \iint W(x - x') f(x, v) f(x', v') \, dx \, dv \, dx' \, dv',
+\]
+and the Lie--Poisson bracket
+\[
+  \{F, G\}[f] \;:=\; \int f \, \big\{ \tfrac{\delta F}{\delta f},\; \tfrac{\delta G}{\delta f} \big\}_{\mathrm{can}} \, dx\, dv,
+\]
+where $\{\cdot, \cdot\}_{\mathrm{can}}$ is the canonical Poisson bracket on $T^* \R^d$.
+Equation~\eqref{eq:vlasov} is then equivalent to
+\[
+  \partial_t f \;=\; \{f, \mathcal{H}\}.
+\]
+A rigorous treatment of this structure---identifying the bracket as the Lie--Poisson bracket
+on the dual of the Lie algebra of Hamiltonian vector fields and showing that it arises as
+the $N \to \infty$ limit of the canonical brackets on $(\R^d \times \R^d)^N$---is the subject
+of \cite{MNPRS}.
+
+\begin{thebibliography}{9}
+\bibitem{Dobrushin}
+R.\ L.\ Dobrushin, \emph{Vlasov equations}, Funct.\ Anal.\ Appl.\ \textbf{13} (1979), 115--123.
+
+\bibitem{Neunzert}
+H.\ Neunzert, \emph{An introduction to the nonlinear Boltzmann--Vlasov equation},
+in: Kinetic theories and the Boltzmann equation (Montecatini, 1981), Lecture Notes in Math.\
+\textbf{1048}, Springer, 1984.
+
+\bibitem{Spohn}
+H.\ Spohn, \emph{Large Scale Dynamics of Interacting Particles}, Springer, 1991.
+
+\bibitem{MNPRS}
+J.\ K.\ Miller, A.\ R.\ Nahmod, N.\ Pavlovi\'c, M.\ Rosenzweig, G.\ Staffilani,
+\emph{A Rigorous Derivation of the Hamiltonian Structure for the Vlasov Equation},
+Forum of Mathematics, Sigma \textbf{11} (2023), e77.
+
+\bibitem{Golse}
+F.\ Golse, \emph{On the dynamics of large particle systems in the mean field limit},
+in: Macroscopic and large scale phenomena: coarse graining, mean field limits and ergodicity,
+Lect.\ Notes Appl.\ Math.\ Mech.\ \textbf{3}, Springer, 2016, 1--144.
+\end{thebibliography}
+
+\end{document}

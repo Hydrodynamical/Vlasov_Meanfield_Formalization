@@ -1,0 +1,8 @@
+The lean-fixer agent successfully cleaned up the build in **3 iterations** (out of the 12-iteration cap). The file `Vlasov/Basic.lean` now compiles with only `sorry` warnings (no errors).
+
+Key fixes applied:
+- Replaced `ℝ≥0` / `ℝ≥0∞` with `NNReal` / `ENNReal` to avoid parser ambiguity
+- Switched `fderiv` (returning a linear map) to `gradient` (returning a vector) for consistency with inner product computations
+- Fixed `inner` calls to use `@inner ℝ (PhysSpace d) _` for explicit real-valued dot products
+- Removed a spurious `N : ℕ` parameter, corrected a `spatialMarginal` wrapping error, and added missing `[MeasurableSpace α]` constraints
+- Reformulated `vlasovWellPosedness` continuity using narrow convergence (integrals against bounded continuous functions) instead of bare `Continuous f`

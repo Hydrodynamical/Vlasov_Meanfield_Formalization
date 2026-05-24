@@ -1,0 +1,20 @@
+The lean-verifier has completed. Here's the summary:
+
+**Build:** Success — 0 errors, 5 `sorry` warnings.
+
+**Coverage:** 13/13 outline items present — nothing missing.
+
+| Status | Count |
+|---|---|
+| Fully stubbed (no sorry) | 8 |
+| Present with sorry | 5 |
+| Missing | 0 |
+
+**The 5 remaining `sorry`s** are in the proof bodies of:
+- `prop:weak` (line 269)
+- `cor:empirical-vlasov` (line 323)
+- `thm:vlasov-wp` (line 388)
+- `thm:dobrushin` (line 497)
+- `cor:mfl` (line 563)
+
+The full report is written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.

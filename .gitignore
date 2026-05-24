@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Lean / Lake build artifacts
+**/.lake/
+
+# Claude Code local settings (not project-wide)
+.claude/settings.local.json

@@ -1,0 +1,70 @@
+
+=== prove-next cycle 1/1 ===
+--- refreshing report (verifier) ---
+
+--- invoking subagent: lean-verifier ---
+The lean-verifier has completed. Here's the summary:
+
+**Build:** Successful (8,250 jobs, 0 errors, 6 sorry warnings)
+
+**Coverage:** 13/13 outline items present
+
+| Status | Count | Items |
+|--------|-------|-------|
+| present-stubbed | 7 | `hamiltonianN`, `IsNewtonSolution`, `AssW`, `empiricalMeasure*`, `WeakEvolutionEq`, `IsVlasovSolution`, `IsCharacteristicFlow*`, `DobrushinStabilityEstimate` |
+| present-with-sorry | 6 | `weakEvolutionEmpiricalMeasure`, `empiricalMeasureSolvesVlasov`, `vlasovWellPosedness`, `wasserstein1`, `dobrushin`, `meanFieldLimit` |
+
+**Recommended next steps** (from report):
+1. **Most tractable:** Prove `weakEvolutionEmpiricalMeasure` (prop:weak) — finite-sum calculus with `HasDerivAt`, no Wasserstein API needed
+2. **Biggest gap:** Implement `wasserstein1` placeholder — blocks both `dobrushin` and `meanFieldLimit`
+
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+--- sorry-prover (cycle 1) ---
+
+--- invoking subagent: sorry-prover ---
+The sorry-prover succeeded. Here's the summary:
+
+**Result: 1 sorry discharged (6 → 5 remaining)**
+
+**What was proved:** The `wasserstein1` definition (the second recommendation — the first was skipped as unfixable).
+
+**Change made** in `Vlasov/Basic.lean` around line 375:
+```lean
+-- Before:
+noncomputable def wasserstein1 ... := sorry
+
+-- After:
+noncomputable def wasserstein1 ... :=
+  ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f), ∫ x, f x ∂μ - ∫ x, f x ∂ν
+```
+
+This is the Kantorovich-Rubinstein dual formula for the Wasserstein-1 distance.
+
+**Note on the first recommendation** (`weakEvolutionEmpiricalMeasure`): It was skipped after 4 failed attempts. The theorem is likely false as stated — the universally quantified free parameter `R_N` breaks `HasDerivAt` uniqueness, making it unprovable without additional constraints.
+
+The build is clean (only sorry-related warnings remain). The log is at `formalize/logs/prover-cycle-1.md`.
+--- refreshing report after attempt (verifier) ---
+
+--- invoking subagent: lean-verifier ---
+The lean-verifier completed successfully. Here's a summary:
+
+**Build:** Passes cleanly (8250 jobs, 0 errors)
+
+**Coverage:** 13/13 outline items present in the Lean file
+
+**Sorry count:** 5 remaining sorrys in key theorems:
+- `weakEvolutionEmpiricalMeasure` (line 193)
+- `empiricalMeasureSolvesVlasov` (line 247)
+- `vlasovWellPosedness` (line 312)
+- `dobrushin` (line 410)
+- `meanFieldLimit` (line 475)
+
+**One fully proved lemma:** `empiricalMeasure_isProbabilityMeasure` compiles without sorry.
+
+The full coverage report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+
+Pipeline finished.
+  Outline:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
+  Lean file:  /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+  Report:     /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md
+  Logs:       /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/

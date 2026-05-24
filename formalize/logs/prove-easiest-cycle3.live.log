@@ -1,0 +1,63 @@
+
+=== prove-next cycle 1/1 ===
+--- refreshing report (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The lean-verifier has completed. Here's the summary:
+
+**Build: SUCCESS** — 0 errors, 5 `sorry` warnings (proof bodies only)
+
+**Coverage: 13/13 items present** from `structure.md`
+
+| Status | Count | Items |
+|--------|-------|-------|
+| Fully proved | 8 | `hamiltonianN`, `IsNewtonSolution`, `AssW`, `empiricalMeasure*`, `WeakEvolutionEq`, `IsVlasovSolution`, `IsCharacteristicFlow*`, `DobrushinStabilityEstimate` |
+| Sorry (incomplete proofs) | 5 | `prop:weak`, `cor:empirical-vlasov`, `thm:vlasov-wp`, `thm:dobrushin`, `cor:mfl` |
+
+**Recommended next steps** (from `report.md`):
+1. Prove `weakEvolutionEmpiricalMeasure` (prop:weak, line 269) — unblocks the corollary immediately
+2. Prove `empiricalMeasureSolvesVlasov` (cor:empirical-vlasov, line 323) as follow-on
+3. Main blockers for remaining sorries: Wasserstein-1 API and measure-valued transport well-posedness are not yet unified in Mathlib
+
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+--- sorry-prover (cycle 1, mode: most-tractable) ---
+
+--- invoking subagent: sorry-prover (timeout 900s, effort low) ---
+The sorry-prover was unable to discharge the target sorry (`cor:mfl → meanFieldLimit`) within the 8-iteration hard cap.
+
+**Summary:**
+- **Target:** `cor:mfl` (Mean Field Limit corollary)
+- **Blocker:** `ENNReal.Tendsto.const_mul` — Lean could not infer the constant `a` from context. Explicit annotation attempts either used the wrong `Or` branch or triggered a false positivity goal (`0 ≠ 0`).
+- **Sorry count:** unchanged (5 → 5)
+- **Log:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/prover-cycle-1.md`
+
+The file was reverted to its checkpointed state on failure.
+--- refreshing report after attempt (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The lean-verifier has completed. Here's the summary:
+
+**Build:** Success — 0 errors, 5 `sorry` warnings.
+
+**Coverage:** 13/13 outline items present — nothing missing.
+
+| Status | Count |
+|---|---|
+| Fully stubbed (no sorry) | 8 |
+| Present with sorry | 5 |
+| Missing | 0 |
+
+**The 5 remaining `sorry`s** are in the proof bodies of:
+- `prop:weak` (line 269)
+- `cor:empirical-vlasov` (line 323)
+- `thm:vlasov-wp` (line 388)
+- `thm:dobrushin` (line 497)
+- `cor:mfl` (line 563)
+
+The full report is written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+
+Pipeline finished.
+  Outline:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
+  Lean file:  /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+  Report:     /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md
+  Logs:       /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/
