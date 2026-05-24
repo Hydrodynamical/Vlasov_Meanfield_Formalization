@@ -302,11 +302,22 @@ lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
 
 /-- The remainder bound: for the diagonal correction `r = (1/N²) * Σᵢ ⟨gradW 0, gradVφ(zᵢ)⟩`,
 we have `|r| ≤ (1/N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)`, using
-`abs_inner_le_norm` on each summand and the fact that the sum has N terms. -/
+`abs_inner_le_norm` on each summand and the fact that the sum has N terms.
+
+The two `BddAbove` hypotheses are essential: `ciSup` over an unbounded
+function returns junk value 0 on `ℝ`, which would make the inequality
+false in the unbounded case. The .tex's `‖∇W‖_∞ ‖∇_v φ‖_∞` implicitly
+assumes L^∞ boundedness; making it explicit here keeps the lemma
+honest. (For `gradVφ`: it comes from `∇_v φ` of a smooth compactly
+supported `φ`, so the bound is a consequence of `HasCompactSupport`
+— but expressing that derivation requires Mathlib API that's awkward
+to assemble; easier to pass the bound as a hypothesis.) -/
 lemma diagonalCorrection_bound (N : ℕ) [NeZero N]
     (gradW : PhysSpace d → PhysSpace d)
     (X V : ℝ → Fin N → PhysSpace d)
     (gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradW_bdd : BddAbove (Set.range (fun x => ‖gradW x‖)))
+    (hgradVφ_bdd : BddAbove (Set.range (fun z => ‖gradVφ z‖)))
     (t : ℝ) :
     |(1 / (N : ℝ)^2) * ∑ i : Fin N,
         @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))| ≤
@@ -346,6 +357,13 @@ theorem weakEvolutionEmpiricalMeasure
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    -- L^∞ boundedness for ‖gradW‖ and ‖gradVφ‖, needed for the bound
+    -- conjunct's `ciSup` to be meaningful (without these, the sups on
+    -- the RHS collapse to junk value 0 on `ℝ`, making the bound vacuous
+    -- — and the helper `diagonalCorrection_bound` unprovable).  The
+    -- .tex's `‖∇W‖_∞ ‖∇_v φ‖_∞` implicitly assumes these.
+    (hgradW_bdd : BddAbove (Set.range (fun x => ‖gradW x‖)))
+    (hgradVφ_bdd : BddAbove (Set.range (fun z => ‖gradVφ z‖)))
     (t : ℝ) :
     -- existential witness for the remainder, with its explicit form
     -- exposed so downstream corollaries (e.g. `empiricalMeasureSolvesVlasov`)
@@ -381,7 +399,7 @@ theorem weakEvolutionEmpiricalMeasure
     -- after applying hcorr to split the velocity inner products.
     sorry
   · -- Bound: direct application of diagonalCorrection_bound.
-    exact diagonalCorrection_bound N gradW X V gradVφ t
+    exact diagonalCorrection_bound N gradW X V gradVφ hgradW_bdd hgradVφ_bdd t
 
 -- ---------------------------------------------------------------------------
 -- §6  Equation (Weak form of empirical-measure evolution)   (tex: eq:weak-eq)
@@ -433,14 +451,19 @@ theorem empiricalMeasureSolvesVlasov
     (hφ_compact : HasCompactSupport φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
-    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    -- Threaded through from `weakEvolutionEmpiricalMeasure`'s bound conjunct.
+    -- Not used in this corollary's body (we destructure the bound and
+    -- ignore it), but required by the signature of the prop:weak call.
+    (hgradW_bdd : BddAbove (Set.range (fun x => ‖gradW x‖)))
+    (hgradVφ_bdd : BddAbove (Set.range (fun z => ‖gradVφ z‖))) :
     WeakEvolutionEq gradW (empiricalMeasureCurve N X V) φ gradXφ gradVφ (fun _ => 0) := by
   -- WeakEvolutionEq unfolds to `∀ t, HasDerivAt ... (... + (fun _ => 0) t) t`.
   intro t
   -- Invoke prop:weak at this `t` and destructure the now-explicit witness.
   obtain ⟨r, hr_eq, hr_deriv, _hr_bound⟩ :=
     weakEvolutionEmpiricalMeasure N W gradW hgradW X V hSol φ
-      hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
+      hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ hgradW_bdd hgradVφ_bdd t
   -- Under [AssW W] we have gradW 0 = gradient W 0 = 0 (the latter via
   -- the even-implies-zero-gradient helper).
   have hgrad0 : gradW 0 = 0 := by
