@@ -218,6 +218,101 @@ noncomputable def spatialMarginal (μ : Measure (PhaseSpace d)) :
     Measure (PhysSpace d) :=
   Measure.map Prod.fst μ
 
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/weakEvolutionEmpiricalMeasure.json`. -/
+
+/-- The integral of a function φ against the empirical measure `empiricalMeasure N X V`
+equals `(1/N) * ∑ i, φ(X i, V i)`, by unfolding the weighted sum of Dirac masses. -/
+lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
+    (X V : Fin N → PhysSpace d)
+    (φ : PhaseSpace d → ℝ) :
+    ∫ z, φ z ∂(empiricalMeasure N X V) =
+      (1 / (N : ℝ)) * ∑ i : Fin N, φ (X i, V i) := by
+  simp only [empiricalMeasure]
+  rw [integral_smul_measure]
+  rw [integral_finset_sum_measure (fun i _ => integrable_dirac (by simp))]
+  simp [integral_dirac, ENNReal.toReal_div, ENNReal.toReal_natCast, smul_eq_mul]
+
+/-- For a smooth test function φ, the chain rule gives: the map `t ↦ φ(X t i, V t i)` has
+derivative `⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨a t i, gradVφ (X t i, V t i)⟩` at t,
+where `a t i` is the acceleration vector at particle i and time t.
+TODO(mathlib): `HasDerivAt.inner` combined with `HasFDerivAt.comp` for the chain rule
+through the smooth (ContDiff ℝ ⊤) test function φ on phase space. -/
+lemma hasDerivAt_phi_along_trajectory (N : ℕ)
+    (X V : ℝ → Fin N → PhysSpace d)
+    (hX : ∀ t i, HasDerivAt (fun t => X t i) (V t i) t)
+    (a : ℝ → Fin N → PhysSpace d)
+    (hV : ∀ t i, HasDerivAt (fun t => V t i) (a t i) t)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    (t : ℝ) (i : Fin N) :
+    HasDerivAt (fun s => φ (X s i, V s i))
+      (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) +
+       @inner ℝ (PhysSpace d) _ (a t i) (gradVφ (X t i, V t i))) t := by
+  sorry
+
+/-- The derivative of `t ↦ ∫ φ d(empiricalMeasureCurve N X V t)` equals the finite sum
+expression `(1/N) * Σᵢ [⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨aᵢ, gradVφ (X t i, V t i)⟩]`
+where `aᵢ = -(1/N) Σ_{j≠i} gradW(X t i - X t j)` is the Newton acceleration,
+obtained by combining `empiricalMeasure_integral_eq` and `hasDerivAt_phi_along_trajectory`
+with `HasDerivAt.sum` and `HasDerivAt.const_smul`. -/
+lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
+    (gradW : PhysSpace d → PhysSpace d)
+    (X V : ℝ → Fin N → PhysSpace d)
+    (hSol : IsNewtonSolution N gradW X V)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    (t : ℝ) :
+    HasDerivAt (fun s => ∫ z, φ z ∂(empiricalMeasureCurve N X V s))
+      ((1 / (N : ℝ)) * ∑ i : Fin N,
+        (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) +
+         @inner ℝ (PhysSpace d) _ (
+           -(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else 0)
+           (gradVφ (X t i, V t i)))) t := by
+  sorry
+
+/-- The remainder term `r` in the weak evolution identity equals
+`(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
+obtained when extending the Newton-equation sum `Σ_{j≠i}` to all `j` (the diagonal
+`j = i` summand contributes `gradW(X t i - X t i) = gradW 0`).
+TODO(mathlib): `Finset.sum_compl_add_sum` or `Finset.sum_ite` to split the sum. -/
+lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
+    (gradW : PhysSpace d → PhysSpace d)
+    (X V : ℝ → Fin N → PhysSpace d)
+    (gradVφ : PhaseSpace d → PhysSpace d)
+    (t : ℝ) :
+    (1 / (N : ℝ)) * ∑ i : Fin N,
+      @inner ℝ (PhysSpace d) _ (
+        -(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else 0)
+        (gradVφ (X t i, V t i))
+    = -(1 / (N : ℝ)) * ∑ i : Fin N,
+        @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW
+            (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i))
+          (gradVφ (X t i, V t i))
+      - (1 / (N : ℝ)^2) * ∑ i : Fin N,
+          @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i)) := by
+  sorry
+
+/-- The remainder bound: for the diagonal correction `r = (1/N²) * Σᵢ ⟨gradW 0, gradVφ(zᵢ)⟩`,
+we have `|r| ≤ (1/N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)`, using
+`abs_inner_le_norm` on each summand and the fact that the sum has N terms. -/
+lemma diagonalCorrection_bound (N : ℕ) [NeZero N]
+    (gradW : PhysSpace d → PhysSpace d)
+    (X V : ℝ → Fin N → PhysSpace d)
+    (gradVφ : PhaseSpace d → PhysSpace d)
+    (t : ℝ) :
+    |(1 / (N : ℝ)^2) * ∑ i : Fin N,
+        @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))| ≤
+      (1 / (N : ℝ)) * ⨆ x, ‖gradW x‖ * ⨆ z, ‖gradVφ z‖ := by
+  sorry
+
 /-- (tex: prop:weak)
 Weak evolution of the empirical measure.
 
@@ -252,8 +347,16 @@ theorem weakEvolutionEmpiricalMeasure
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
     (t : ℝ) :
-    -- existential witness for the remainder
+    -- existential witness for the remainder, with its explicit form
+    -- exposed so downstream corollaries (e.g. `empiricalMeasureSolvesVlasov`)
+    -- can compute it without re-deriving from scratch.  Concretely,
+    -- `r` is the diagonal correction term picked up when extending the
+    -- Newton-equation sum from `j ≠ i` to all `j` (the `j = i` summand
+    -- contributes `gradW 0`).
     ∃ r : ℝ,
+      -- explicit formula for the remainder
+      r = (1 / (N : ℝ)^2) * ∑ i : Fin N,
+            @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i)) ∧
       -- derivative identity at t
       HasDerivAt (fun s => ∫ z, φ z ∂(empiricalMeasureCurve N X V s)) (
         ∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
@@ -266,7 +369,19 @@ theorem weakEvolutionEmpiricalMeasure
       -- pointwise remainder bound
       ∧ |r| ≤ (1 / (N : ℝ)) *
           ⨆ x, ‖gradW x‖ * ⨆ z, ‖gradVφ z‖ := by
-  sorry
+  -- Provide the explicit diagonal correction as the remainder witness.
+  refine ⟨(1 / (N : ℝ)^2) * ∑ i : Fin N,
+      @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i)), rfl, ?_, ?_⟩
+  · -- HasDerivAt: use hasDerivAt_empiricalIntegral_sum and diagonalCorrection_eq
+    -- to relate the finite-sum derivative to the integral + remainder form.
+    have hderiv := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ
+      hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t
+    have hcorr := diagonalCorrection_eq N gradW X V gradVφ t
+    -- Rearrange: the derivative value from hderiv equals (integral term) + r
+    -- after applying hcorr to split the velocity inner products.
+    sorry
+  · -- Bound: direct application of diagonalCorrection_bound.
+    exact diagonalCorrection_bound N gradW X V gradVφ t
 
 -- ---------------------------------------------------------------------------
 -- §6  Equation (Weak form of empirical-measure evolution)   (tex: eq:weak-eq)
@@ -320,7 +435,25 @@ theorem empiricalMeasureSolvesVlasov
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
     WeakEvolutionEq gradW (empiricalMeasureCurve N X V) φ gradXφ gradVφ (fun _ => 0) := by
-  sorry
+  -- WeakEvolutionEq unfolds to `∀ t, HasDerivAt ... (... + (fun _ => 0) t) t`.
+  intro t
+  -- Invoke prop:weak at this `t` and destructure the now-explicit witness.
+  obtain ⟨r, hr_eq, hr_deriv, _hr_bound⟩ :=
+    weakEvolutionEmpiricalMeasure N W gradW hgradW X V hSol φ
+      hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
+  -- Under [AssW W] we have gradW 0 = gradient W 0 = 0 (the latter via
+  -- the even-implies-zero-gradient helper).
+  have hgrad0 : gradW 0 = 0 := by
+    rw [hgradW]; exact gradient_zero_of_even W
+  -- The explicit formula for `r` collapses to 0 once gradW 0 = 0:
+  -- each inner product becomes ⟨0, _⟩ = 0, the finite sum is 0, and
+  -- the leading scalar multiplication is 0.
+  have hr_zero : r = 0 := by
+    rw [hr_eq, hgrad0]
+    simp [inner_zero_left]
+  -- Substitute r = 0 into the HasDerivAt witness; the conclusion's
+  -- `(fun _ => 0) t` is definitionally 0.
+  simpa [hr_zero] using hr_deriv
 
 -- ---------------------------------------------------------------------------
 -- §8  Equation (Vlasov equation)   (tex: eq:vlasov)

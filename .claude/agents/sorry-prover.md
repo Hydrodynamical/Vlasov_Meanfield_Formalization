@@ -38,8 +38,29 @@ Skip rules:
 
 ### Mode B: `most-tractable`
 
-Read the report's "Sorry inventory" AND read each sorry's declaration in
-the Lean file. Score each candidate on these criteria (higher = better):
+**Plan-aware lookup (do this first).** Glob `formalize/plans/*.json` and
+parse each file with `jq`. Build an in-memory map keyed by Lean
+declaration name (the `name` field), mapping to the helper's
+`{ plan_file, difficulty, deps, mathlib_hints, one_line_math }`. Also
+record any `residual_glue` entries by their `branch_label` and
+parent name.
+
+When scoring candidates in Mode B, the plan lookup OVERRIDES the
+5-criterion rubric below:
+
+- **Helper in a plan**: if the candidate sorry's enclosing declaration
+  matches a `helpers[].name` in any plan, use
+  `score = 6 − plan_difficulty` (difficulty 1 → score 5, difficulty 5
+  → score 1). The decomposer has already estimated tractability; trust
+  it.
+- **Residual glue in a plan**: if the candidate sorry is the parent
+  theorem of a plan with a `residual_glue` field (and the sorry's line
+  matches `residual_glue.line`), score it as `4` and remember to use
+  the §4 fast path (see below) before entering the normal iteration
+  loop.
+- **Not in any plan**: fall through to the 5-criterion rubric below.
+
+The 5-criterion rubric (used only when plan-lookup yields nothing):
 
 1. **Statement size**: count hypothesis lines + conclusion lines. Prefer
    short (≤ 8 lines total).
@@ -58,9 +79,10 @@ the Lean file. Score each candidate on these criteria (higher = better):
    Wasserstein API.
 
 Pick the highest-scoring sorry. Briefly note the score breakdown in the
-attempt log so the user can audit your choice. If no candidate looks
-better than the verifier's #1, fall back to `top-recommendation` and say
-so in the log.
+attempt log so the user can audit your choice (including: did
+plan-lookup fire? which plan file? what was the helper's stored
+difficulty?). If no candidate looks better than the verifier's #1, fall
+back to `top-recommendation` and say so in the log.
 
 The 8-iteration cap and small-edit discipline (§4) apply regardless of
 which mode picked the target — `most-tractable` doesn't loosen the
@@ -84,6 +106,23 @@ Understand:
 - which section variables and typeclasses are in scope (look earlier in
   the file for `variable {...}` blocks)
 - the conclusion
+
+**If a plan applies to this target** (per the §0 plan-aware lookup):
+also Read the sidecar JSON file. The plan provides:
+- The helper graph (which other lemmas are available as black-box
+  references in your proof).
+- `mathlib_hints[]` for this specific helper or residual_glue (the
+  decomposer's best guess at which Mathlib lemmas you'll need).
+- `one_line_math`: the mathematical content the helper is supposed to
+  capture.
+- For residual_glue targets: `strategy` (free-form prose) and
+  `tactic_sketch` (machine-executable tactic block; used by the §4
+  fast path).
+
+This plan content is metadata you can use as context — but it isn't
+authoritative. If a Mathlib hint turns out to be a phantom lemma name,
+use grep to find the real one; if the strategy doesn't match the
+goal's actual shape, follow the goal not the prose.
 
 ## 3. Plan: find Mathlib building blocks
 
@@ -118,6 +157,32 @@ If you find yourself wanting to write more than ~3 lines of tactics in
 one go, instead introduce a sequence of `have h_n : <goal_type> := by sorry`
 placeholders for each intermediate goal, build to confirm the skeleton
 typechecks, then attack one `have` per subsequent iteration.
+
+### 4.−1  Residual-glue fast path (only if applicable)
+
+If the target is a `residual_glue` per a plan file (per §0's
+plan-aware lookup) AND the plan's `residual_glue.tactic_sketch` field
+is non-empty:
+
+1. Use ONE `Edit` call to replace the residual `sorry` with the
+   literal contents of `tactic_sketch` (preserve newlines and
+   indentation exactly; do not paraphrase or improvise).
+2. Run `cd <project root> && lake build 2>&1 | tail -60`.
+3. Classify:
+   - SUCCESS: build green AND target's sorry warning gone AND no new
+     sorry warnings elsewhere → log "fast path closed via plan's
+     tactic_sketch" and skip to §5. Genuine speedup: 1 edit + 1 build
+     instead of up to 8 iterations.
+   - FAILURE: revert the edit (restore the original `sorry`) and fall
+     through to §4.0 + §4.1 normal iteration. The plan's
+     `composition`, `strategy`, `tactic_sketch`, and `mathlib_hints`
+     remain available as context.
+
+If the plan has only the free-form `strategy` field but no
+`tactic_sketch`, skip the fast path entirely (no LLM-translation
+attempt) and go straight to §4.0. The fast path is only "fast" if
+it's machine-executable; translating prose to tactics belongs in the
+regular iteration loop.
 
 ### 4.0  Baseline
 

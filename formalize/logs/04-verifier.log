@@ -1,19 +1,88 @@
-The lean-verifier has completed successfully. Here's the summary:
+[system] init
+[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch the agent with the specified parameters.
+[Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
+[system] task_started
+[text]
+[rate-limit] {"status":"allowed","resetsAt":1779623400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779607200,"isUsingOverage":false}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
+→ ⚠ [8248/8250] Replayed Vlasov.Basic
+warning: Vlasov/Basic.lean:226:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:238:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:259:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:282:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:3
+→      1→# Outline of Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics
+     2→
+     3→## Notation
+     4→
+     5→- `\R` → `\mathbb{R}` — real numbers (`ℝ` in Lean / Mathlib)
+     6→- `\T` → `\mathbb{T}` — torus (defined but not used in the body)
+     7→- `\N` → `\mathbb{N}` — nat
+→      1→/-
+     2→Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
+     3→Generated from vlasov.tex.
+     4→All proofs are `sorry`; this file is a statement-only scaffold.
+     5→-/
+     6→
+     7→import Mathlib
+     8→
+     9→open scoped BigOperato
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/ 2>&1","description":"List decomposition plan sidecar files"}
+→ weakEvolutionEmpiricalMeasure.json
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"declaration uses \\`sorry\\`\"","description":"Extract all sorry warning lines with line numbers","timeout":300000}
+→ warning: Vlasov/Basic.lean:226:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:238:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:259:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:282:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:303:6: declaration uses `sorry`
+warni
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read the decomposition plan for weakEvolutionEmpiricalMeasure"}
+→ {
+  "schema_version": 1,
+  "generated_at": "2026-05-24T00:00:00Z",
+  "generated_by": "sorry-decomposer (backfilled from in-file plan at Basic.lean:221-261 produced on 2026-05-23)",
+  "parent": {
+    "name": "Vlasov.weakEvolutionEmpiricalMeasure",
+    "kind": "theorem",
+    "tex_label": "prop:weak",
 
-**Build: SUCCESS** | **Coverage: 13/13 items** | **Sorries: 5**
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -c \"declaration uses \\`sorry\\`\"","description":"Count sorry warnings","timeout":300000}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"^warning:\" | grep -v \"declaration uses\" | wc -l","description":"Count non-sorry warnings","timeout":300000}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -c \"^error:\"","description":"Count errors","timeout":300000}
+→ 8
+→        7
+→ 0
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-24\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
+→ Report written.
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
+→      1→# Formalization coverage report
+     2→
+     3→Generated: 2026-05-24
+     4→Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
+     5→Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+     6→
+     7→## Build status
+     8
+→ [{"type":"text","text":"The report is verified and written. Here is a summary of the findings:\n\n---\n\n**Report written to:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`\n\n**Key findings:**\n\n**Build:** success (8250 jobs, 0 errors, 8 sorry warnings, 7 other warnings)\
+The verifier completed successfully. Here's the summary:
 
-All 13 outline items from `structure.md` are present in the Lean file. The build completed cleanly with only sorry-related warnings.
+**Build:** Success (0 errors, 8 sorry warnings)
 
-**Items with sorry proofs (5 total):**
-- `weakEvolutionEmpiricalMeasure` (prop:weak) — line 169
-- `empiricalMeasureSolvesVlasov` (cor:empirical-vlasov) — line 239
-- `vlasovWellPosedness` (thm:vlasov-wp) — line 302
-- `dobrushin` (thm:dobrushin) — line 411
-- `meanFieldLimit` (cor:mfl) — line 464
+**Coverage:** 13/13 outline items present
 
-**Recommended next steps (from report):**
-1. Prove `weakEvolutionEmpiricalMeasure` first — most tractable, uses standard Mathlib tools, and gates `empiricalMeasureSolvesVlasov`
-2. Prove `dobrushin` — needs a Lipschitz-convolution lemma then closes via Gronwall
-3. Leave `vlasovWellPosedness` and `meanFieldLimit` as sorry — the well-posedness theorem requires Banach fixed-point in measure space not yet in Mathlib
+| Status | Count |
+|--------|-------|
+| Proved (no sorry) | 10 |
+| Present with sorry | 3 |
 
-The full report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+**The 3 sorry'd items:**
+- `prop:weak` (`weakEvolutionEmpiricalMeasure`) — decomposed into 5 helpers + glue, all sorry'd
+- `thm:vlasov-wp` (`vlasovWellPosedness`) — single sorry stub
+- `thm:dobrushin` (`dobrushin`) — single sorry stub
+
+**Recommended next steps:** Attack `prop:weak` helpers 1 and 2 first (lowest difficulty, no dependencies), then helpers 3–5, then the glue. The `thm:vlasov-wp` and `thm:dobrushin` stubs can be tackled independently.
+
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+[result] success duration=178477ms cost=$0.5277692500000001

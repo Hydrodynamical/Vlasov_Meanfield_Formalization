@@ -27,7 +27,7 @@ OUTLINE="${ROOT}/formalize/structure.md"
 REPORT="${ROOT}/formalize/report.md"
 LOGS="${ROOT}/formalize/logs"
 
-mkdir -p "${ROOT}/formalize" "${LOGS}"
+mkdir -p "${ROOT}/formalize" "${LOGS}" "${ROOT}/formalize/plans"
 
 # ---- argument parsing -------------------------------------------------------
 
@@ -35,6 +35,8 @@ STAGES="all"
 CLEAN=0
 PROVE_CYCLES=0
 PROVE_MODE="top-recommendation"
+DECOMPOSE_TARGET=""
+DECOMPOSE_MODE="explicit"
 while [ $# -gt 0 ]; do
   case "$1" in
     --stage)         STAGES="$2"; shift 2 ;;
@@ -54,33 +56,57 @@ while [ $# -gt 0 ]; do
       fi
       STAGES="prove"
       ;;
+    --decompose)
+      # `--decompose <name-or-tex-label>` → explicit mode, that specific target
+      # `--decompose` (no arg)            → largest-blocked mode, agent picks
+      # The `[[ ! "$2" =~ ^- ]]` pattern distinguishes a target name from another
+      # flag — safer than positive-integer matching for free-form names.
+      if [ $# -ge 2 ] && [[ ! "$2" =~ ^- ]]; then
+        DECOMPOSE_TARGET="$2"; DECOMPOSE_MODE="explicit"; shift 2
+      else
+        DECOMPOSE_TARGET=""; DECOMPOSE_MODE="largest-blocked"; shift
+      fi
+      STAGES="decompose"
+      ;;
+    --decompose=*)
+      DECOMPOSE_TARGET="${1#*=}"; DECOMPOSE_MODE="explicit"
+      STAGES="decompose"; shift
+      ;;
     -h|--help)
       cat <<EOF
 Usage: ./formalize.sh [--stage all|0|1|2|3|4] [--clean]
        ./formalize.sh --prove-next [N]
        ./formalize.sh --prove-easiest [N]
+       ./formalize.sh --decompose [target]
 
-  --stage N           Run only stage N (default: all). Comma-separate for
-                      multiple.
-  --clean             Remove ./Vlasov, ./formalize/structure.md,
-                      ./formalize/report.md before running.
-  --prove-next [N]    Run an automated proving cycle: verifier (refresh
-                      report) -> sorry-prover (target the report's TOP
-                      recommendation) -> verifier (refresh report).
-                      Repeat N times (default 1).
-  --prove-easiest [N] Same cycle as --prove-next, but the sorry-prover
-                      scans ALL open sorries and picks the one most likely
-                      to fit in its 8-iteration budget (shortest statement,
-                      no dep on other sorries, concrete conclusion).
-                      Use this when the top recommendation is too large
-                      and you'd rather take any sorry off the board.
-  -h, --help          Show this message.
+  --stage N            Run only stage N (default: all). Comma-separate for
+                       multiple.
+  --clean              Remove ./Vlasov, ./formalize/structure.md,
+                       ./formalize/report.md before running.
+  --prove-next [N]     Run an automated proving cycle: verifier (refresh
+                       report) -> sorry-prover (target the report's TOP
+                       recommendation) -> verifier (refresh report).
+                       Repeat N times (default 1).
+  --prove-easiest [N]  Same cycle as --prove-next, but the sorry-prover
+                       scans ALL open sorries and picks the one most likely
+                       to fit in its 8-iteration budget (shortest statement,
+                       no dep on other sorries, concrete conclusion).
+                       Use this when the top recommendation is too large
+                       and you'd rather take any sorry off the board.
+  --decompose [target] Decompose ONE oversized sorry'd theorem into 3-8
+                       helper sorries (sorry count INCREASES, on purpose).
+                       [target] is a Lean declaration name or tex-label;
+                       with no argument the largest blocked sorry from the
+                       report is picked. Auto-runs verifier afterward to
+                       refresh report.md. Use BEFORE --prove-next when the
+                       top recommendation is too big to attempt directly.
+  -h, --help           Show this message.
 
 Prerequisites:
   - elan / lake / lean (Lean 4.x toolchain)
   - claude (Claude Code CLI), authenticated
   - perl (for the timeout watchdog)
-  - .claude/agents/{latex-parser,lean-translator,lean-fixer,lean-verifier,sorry-prover}.md
+  - .claude/agents/{latex-parser,lean-translator,lean-fixer,lean-verifier,sorry-prover,sorry-decomposer}.md
 EOF
       exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
@@ -154,17 +180,71 @@ delegate() {
   # `rc` without aborting: the brace group inherits pipefail so `$?` is the
   # rightmost non-zero exit code, and the `|| rc=$?` short-circuit catches
   # it.  Plain `|| true` would zero out PIPESTATUS and lose the signal info.
-  local rc=0
+  #
+  # The pipeline has three stages giving us per-event visibility:
+  #
+  #   claude --output-format stream-json --verbose -p ...
+  #     ↓ (one JSONL event per line, flushed immediately)
+  #   tee LOG.jsonl                       # raw archive for replay
+  #     ↓
+  #   jq -rR --unbuffered '<filter>'      # render to human-readable
+  #     ↓
+  #   tee LOG                             # human-readable archive
+  #
+  # The streaming output mode is essential: `claude -p` in default mode
+  # buffers the entire session and only flushes when the assistant produces
+  # a final message, so SIGALRM-killed runs left zero-byte logs.  With
+  # stream-json, each Read/Edit/Bash tool call and each text chunk lands
+  # in the log as it happens.  `--verbose` is required when combining
+  # `--output-format stream-json` with `-p` (otherwise claude errors).
+  #
+  # The jq filter uses `-R` (read each line as a raw string) + `try fromjson
+  # catch null` so non-JSON lines (perl errors, the kernel's `Alarm clock`
+  # SIGALRM notice) pass through unchanged.  `--unbuffered` makes jq flush
+  # per line, preserving the streaming property.  Tool inputs/results are
+  # truncated at 300 chars in the rendered log; the LOG.jsonl sibling
+  # has full fidelity.
+  #
   # `${effort_args[@]+"${effort_args[@]}"}` is the "empty array safe under
   # set -u" expansion idiom — without it, an empty array trips `unbound
   # variable` on macOS bash 3.2 even though `local -a effort_args=()`
   # explicitly initialised it.
+  local rc=0
   { perl -e 'alarm shift @ARGV; exec @ARGV or die "exec: $!"' \
          "${seconds}" "${CLAUDE_BASE[@]}" \
+         --output-format stream-json --verbose \
          ${effort_args[@]+"${effort_args[@]}"} \
          -p "Use the Agent tool with subagent_type=\"${agent}\" to perform the following task, then exit.
 
-${prompt}" 2>&1 | tee "${LOGS}/${log}" ; } || rc=$?
+${prompt}" 2>&1 \
+      | tee "${LOGS}/${log}.jsonl" \
+      | jq -rR --unbuffered '
+          if (try fromjson catch null) | type == "object" then
+            fromjson
+            | if .type == "system" then "[system] " + (.subtype // "init")
+              elif .type == "rate_limit_event" then
+                "[rate-limit] " + (.rate_limit_info | tostring)
+              elif .type == "result" then
+                "[result] " + (.subtype // "")
+                + " duration=" + ((.duration_ms // 0)|tostring) + "ms"
+                + " cost=$" + ((.total_cost_usd // 0)|tostring)
+              elif .type == "assistant" then
+                ((.message.content // []) | map(
+                  if .type == "text" then .text
+                  elif .type == "thinking" then "[thinking] " + (.thinking | .[0:200])
+                  elif .type == "tool_use" then "[" + (.name // "?") + "] " + (.input | tostring | .[0:300])
+                  else "[" + (.type // "?") + "]" end
+                ) | join("\n"))
+              elif .type == "user" then
+                ((.message.content // []) | map(
+                  if .type == "tool_result" then "→ " + (.content | tostring | .[0:300])
+                  else "[" + (.type // "?") + "]" end
+                ) | join("\n"))
+              else "[" + (.type // "?") + "]" end
+          else
+            .
+          end' \
+      | tee "${LOGS}/${log}" ; } || rc=$?
   if [ "${rc}" -eq 142 ]; then
     echo "agent '${agent}' exceeded ${seconds}s wall-clock budget (SIGALRM) — pipeline continuing"
   elif [ "${rc}" -ne 0 ]; then
@@ -288,6 +368,60 @@ Checkpoint the file before editing and revert on failure." \
 
 Follow your system prompt exactly. Read-only on source files."
   done
+fi
+
+# ---- decompose cycle: sorry-decomposer -> verifier (refresh report) --------
+
+if [ "${STAGES}" = "decompose" ]; then
+  echo
+  echo "=== decompose (target: ${DECOMPOSE_TARGET:-<largest-blocked>}, mode: ${DECOMPOSE_MODE}) ==="
+
+  local_log="${LOGS}/decomposer-$(date +%Y%m%d-%H%M%S).md"
+
+  # The decomposer is invoked with default effort (NOT --effort low).  Unlike
+  # the prover (where `low` forces tool-call cadence over deliberation), the
+  # decomposer's task is the opposite: quality of the helper graph is a
+  # thinking task, and builds here are cheap (mostly elaborating sorry'd
+  # statements rather than searching for tactics).
+  delegate sorry-decomposer "decompose-decomposer.log" \
+"Decompose ONE oversized sorry'd theorem into 3-8 helper lemmas.
+
+  project root:    ${PROJECT}
+  lean file:       ${LEAN_FILE}
+  verifier report: ${REPORT}
+  attempt log:     ${local_log}
+  selection mode:  ${DECOMPOSE_MODE}
+  target:          ${DECOMPOSE_TARGET}
+
+Follow your system prompt exactly. In explicit mode, 'target' is a Lean
+declaration name OR a tex-label; resolve it against the report's Sorry
+inventory table. In largest-blocked mode, 'target' is empty — pick per
+§0 Mode B (score by statement size + deferral signals + dependency
+depth). Hard cap of 6 build iterations. Checkpoint the file before
+editing and revert on failure." \
+    900
+
+  # Safety net (mirrors the prover's checkpoint restore): if SIGALRM kills
+  # the decomposer mid-edit, its own revert never runs and the .decomposer-bak
+  # file is left behind.  Restore so the post-verifier sees a green baseline.
+  if [ -f "${LEAN_FILE}.decomposer-bak" ]; then
+    echo "--- decomposer-bak checkpoint still present; restoring (decomposer killed before its own revert step) ---"
+    mv "${LEAN_FILE}.decomposer-bak" "${LEAN_FILE}"
+  fi
+
+  # Refresh report so subsequent --prove-next/--prove-easiest sees the new
+  # helper sorries.  No chained prover invocation — the user reviews the
+  # decomposition graph before letting the prover swing at the new helpers.
+  echo "--- refreshing report after decomposition (verifier) ---"
+  delegate lean-verifier "decompose-post-verify.log" \
+"Verify the Lean formalization and write a coverage report.
+
+  project root: ${PROJECT}
+  lean file:    ${LEAN_FILE}
+  outline:      ${OUTLINE}
+  report:       ${REPORT}
+
+Follow your system prompt exactly. Read-only on source files."
 fi
 
 echo

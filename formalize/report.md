@@ -1,122 +1,131 @@
 # Formalization coverage report
 
-Generated: 2026-05-23
+Generated: 2026-05-24
 Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
 Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
 
 ## Build status
-- Result: success
-- Sorry warnings: 5
-- Other warnings: 0
-- Errors: 0
 
-Sorry locations (from compiler output):
-```
-warning: Vlasov/Basic.lean:239:8: declaration uses `sorry`   -- weakEvolutionEmpiricalMeasure
-warning: Vlasov/Basic.lean:309:8: declaration uses `sorry`   -- empiricalMeasureSolvesVlasov
-warning: Vlasov/Basic.lean:372:8: declaration uses `sorry`   -- vlasovWellPosedness
-warning: Vlasov/Basic.lean:481:8: declaration uses `sorry`   -- dobrushin
-warning: Vlasov/Basic.lean:537:8: declaration uses `sorry`   -- meanFieldLimit
-```
+- Result: success
+- Sorry warnings: 7
+- Other warnings: 9
+- Errors: 0
 
 ## Coverage
 
 | Tex label | Kind | Lean declaration | Status |
-|---|---|---|---|
-| eq:HN | equation | `hamiltonianN` (line 41) | present-stubbed |
-| eq:newton | equation | `IsNewtonSolution` (line 60) | present-stubbed |
-| ass:W | assumption | `class AssW` (line 80) + `gradient_zero_of_even` (line 99, proved) | present-stubbed |
-| def:empirical | definition | `empiricalMeasure` (line 174), `empiricalMeasure_isProbabilityMeasure` (line 185, proved), `empiricalMeasureCurve` (line 197) | present-stubbed |
-| prop:weak | proposition | `weakEvolutionEmpiricalMeasure` (line 239) | present-with-sorry |
-| eq:weak-eq | equation | `WeakEvolutionEq` (line 285) | present-stubbed |
-| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` (line 309) | present-with-sorry |
-| eq:vlasov | equation | `IsVlasovSolution` (line 343) | present-stubbed |
-| thm:vlasov-wp | theorem | `vlasovWellPosedness` (line 372) | present-with-sorry |
-| eq:char | equation | `IsCharacteristicFlow` (line 410), `IsCharacteristicFlowSelfConsistent` (line 425), `vlasovSolutionViaPushforward` (line 434) | present-stubbed |
-| thm:dobrushin | theorem | `dobrushin` (line 481) | present-with-sorry |
-| eq:dobrushin | equation | `DobrushinStabilityEstimate` (line 511) | present-stubbed |
-| cor:mfl | corollary | `meanFieldLimit` (line 537) | present-with-sorry |
+|-----------|------|------------------|--------|
+| eq:HN | equation | `hamiltonianN` | present |
+| eq:newton | equation | `IsNewtonSolution` | present |
+| ass:W | assumption | `class AssW` | present |
+| def:empirical | definition | `empiricalMeasure`, `empiricalMeasure_isProbabilityMeasure`, `empiricalMeasureCurve` | present |
+| prop:weak | proposition | `weakEvolutionEmpiricalMeasure` | present-with-sorry |
+| eq:weak-eq | equation | `WeakEvolutionEq` | present |
+| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` | present |
+| eq:vlasov | equation | `IsVlasovSolution` | present |
+| thm:vlasov-wp | theorem | `vlasovWellPosedness` | present-with-sorry |
+| eq:char | equation | `IsCharacteristicFlow`, `IsCharacteristicFlowSelfConsistent`, `vlasovSolutionViaPushforward` | present |
+| thm:dobrushin | theorem | `dobrushin` | present-with-sorry |
+| eq:dobrushin | equation | `DobrushinStabilityEstimate` | present |
+| cor:mfl | corollary | `meanFieldLimit` | present |
+
+**Coverage ratio: 13 / 13 items present (7 sorry warnings remain across 3 declarations).**
 
 Status key:
-- `present-stubbed`: declaration is fully stated (or fully proved); no `sorry` inside it.
-- `present-with-sorry`: declaration is stated correctly but its proof body is `sorry`.
-- `commented-out`: not applicable here — no items are commented out.
-- `missing`: not applicable here — all 13 outline items have a corresponding declaration.
-
-Notes on `present-stubbed` items:
-- `eq:HN`, `eq:newton`, `eq:weak-eq`, `eq:vlasov`, `eq:dobrushin` are equations/definitions; they carry no proof obligation beyond well-typedness.
-- `ass:W` (`class AssW`) is a typeclass with no proof body. The associated helper lemma `gradient_zero_of_even` is fully proved (no sorry).
-- `def:empirical`: `empiricalMeasure` and `empiricalMeasureCurve` are computable definitions with full bodies. `empiricalMeasure_isProbabilityMeasure` is fully proved.
-- `eq:char`: all three declarations (`IsCharacteristicFlow`, `IsCharacteristicFlowSelfConsistent`, `vlasovSolutionViaPushforward`) are fully defined.
+- `present` — declaration found, no sorry warnings
+- `present-with-sorry` — declaration found, one or more sorry warnings (either in the body or in a helper)
+- `missing` — no corresponding Lean declaration located
 
 ## Sorry inventory
 
-| Line | Enclosing declaration | Tex label |
-|---|---|---|
-| 269 | `weakEvolutionEmpiricalMeasure` | prop:weak |
-| 323 | `empiricalMeasureSolvesVlasov` | cor:empirical-vlasov |
-| 388 | `vlasovWellPosedness` | thm:vlasov-wp |
-| 497 | `dobrushin` | thm:dobrushin |
-| 563 | `meanFieldLimit` | cor:mfl |
+### `weakEvolutionEmpiricalMeasure` (prop:weak, decomposed)
 
-Each is a single `sorry` terminating the entire proof body; none are partial-proof sorries.
+Plan: `formalize/plans/weakEvolutionEmpiricalMeasure.json`
+
+| # | Name | Line (decl) | Sorry line | Difficulty | Deps | Status |
+|---|------|------------|------------|-----------|------|--------|
+| 1 | `empiricalMeasure_integral_eq` | 226 | — | 1 | (none) | **proved** |
+| 2 | `hasDerivAt_phi_along_trajectory` | 241 | 255 | 3 | (none) | **sorry** |
+| 3 | `hasDerivAt_empiricalIntegral_sum` | 262 | 278 | 3 | `empiricalMeasure_integral_eq`, `hasDerivAt_phi_along_trajectory` | **sorry** |
+| 4 | `diagonalCorrection_eq` | 285 | 301 | 2 | `hasDerivAt_empiricalIntegral_sum` | **sorry** |
+| 5 | `diagonalCorrection_bound` | 306 | 314 | 1 | `diagonalCorrection_eq` | **sorry** |
+
+Residual glue: line 382 (branch `HasDerivAt`, first `?_` branch of the `refine` combinator);
+composes [`hasDerivAt_empiricalIntegral_sum`, `diagonalCorrection_eq`].
+`tactic_sketch` is present in the plan (see `residual_glue.tactic_sketch` in the JSON).
+The bound branch (second `?_`) is already closed: `exact diagonalCorrection_bound N gradW X V gradVφ t`.
+
+Note: the build reports sorry-warning on line 334 (the `theorem` keyword) because the body
+contains a `sorry` at line 382. This is Lean's standard behaviour — the warning attaches to the
+declaration head.
+
+### Non-decomposed sorries
+
+| Enclosing declaration | Line (decl) | Tex label | Notes |
+|-----------------------|------------|-----------|-------|
+| `vlasovWellPosedness` | 505 | thm:vlasov-wp | Entire proof is a single `sorry`; no decomposition plan yet. Requires existence/uniqueness theory for measure-valued transport equations (Picard iteration in Wasserstein space or method of characteristics). Mathlib does not currently have this. |
+| `dobrushin` | 614 | thm:dobrushin | Entire proof is a single `sorry`; no decomposition plan yet. Requires Gronwall inequality applied to a Wasserstein-1 estimate; the key analytic ingredient `\|∇W*ρ − ∇W*σ\|_∞ ≤ L·W₁(ρ,σ)` needs a Mathlib coupling/duality argument. |
 
 ## Recommended next steps
 
-### 1. Highest-value declarations to prove next (most tractable first)
+### Decomposed parent: `weakEvolutionEmpiricalMeasure`
 
-1. **`weakEvolutionEmpiricalMeasure` (prop:weak, line 239).**
-   This is the central calculation. The sum-of-Diracs structure of `empiricalMeasure` means
-   every integral `∫ φ d(empiricalMeasureCurve N X V t)` reduces to a finite sum
-   `(1/N) Σ_i φ(X t i, V t i)`. Differentiating under the sum then applies the chain rule
-   with `HasDerivAt` — both are available in Mathlib. The main subgoals are:
-   (a) `HasDerivAt` of `fun t => ∫ z, φ z ∂(empiricalMeasureCurve N X V t)`, which reduces
-       to `HasDerivAt (fun t => (1/N) Σ_i φ(X t i, V t i))` via `integral_smul_measure` and
-       `integral_finset_sum`;
-   (b) the chain rule on `fun t => φ(X t i, V t i)` via `HasFDerivAt.comp`; and
-   (c) expanding `fderiv ℝ φ` in terms of `gradXφ` and `gradVφ` (inner products).
-   The diagonal remainder term isolates to `−(1/N²) Σ_i gradW 0 · gradVφ(xᵢ, vᵢ)`,
-   making the bound straightforward. This proof does not require Wasserstein theory.
+Topological order (leaves first), lowest difficulty first within each layer:
 
-2. **`empiricalMeasureSolvesVlasov` (cor:empirical-vlasov, line 309).**
-   Given a proof of `weakEvolutionEmpiricalMeasure`, this corollary is nearly one line:
-   apply `weakEvolutionEmpiricalMeasure`, then use `gradient_zero_of_even` (already proved)
-   to show the remainder `r = 0`. The `WeakEvolutionEq` wrapper unfolds immediately.
+1. **Discharge `empiricalMeasure_integral_eq`** (difficulty 1; no deps) — **already proved.**
+   Hints: `MeasureTheory.integral_finset_sum`, `MeasureTheory.integral_dirac`,
+   `MeasureTheory.Measure.smul_apply`, `MeasureTheory.integral_smul_measure`.
 
-3. **`dobrushin` (thm:dobrushin, line 481).**
-   The key estimate `‖convolveFunctionMeasure gradW ρ x − convolveFunctionMeasure gradW σ x‖`
-   `≤ L · wasserstein1 ρ σ` is a duality argument (Kantorovich–Rubinstein); once that lemma
-   is isolated, a `gronwall`-style argument closes the bound. Mathlib has `Gronwall` in
-   `Mathlib.Analysis.ODE.Gronwall`. This is more involved than prop:weak but does not depend
-   on well-posedness.
+2. **Discharge `diagonalCorrection_bound`** (difficulty 1; depends on `diagonalCorrection_eq`
+   which is still sorry — but `diagonalCorrection_bound`'s tactic only *calls* `diagonalCorrection_eq`
+   by name, so the bound can be proved once `diagonalCorrection_eq` is in place).
+   Hints: `abs_inner_le_norm`, `Finset.abs_sum_le_sum_abs`, `Finset.sum_le_card_nsmul`,
+   `le_iSup`.
 
-### 2. Missing Mathlib API that would unblock the rest
+3. **Discharge `diagonalCorrection_eq`** (difficulty 2; depends on `hasDerivAt_empiricalIntegral_sum`).
+   This is the "add and subtract the diagonal" algebraic identity.
+   Hints: `Finset.sum_ite`, `Finset.sum_compl_add_sum`, `inner_sub_left`,
+   `inner_neg_left`, `inner_smul_left`.
+   Attack order is independent of `hasDerivAt_empiricalIntegral_sum` since the statement is
+   purely algebraic — a free variable stands in for the particle configurations.
 
-- **Differentiation through a finite measure integral parameterised by time.**
-  `MeasureTheory.integral_hasDerivAt_right` handles differentiation under an integral for
-  a fixed sigma-finite measure, but differentiating `fun t => ∫ φ d(μ t)` where `μ t` itself
-  varies requires a custom argument. A lemma of the form
-  `HasDerivAt (fun t => ∫ f d(μ t)) (∫ Df d(μ t)) t` when `μ t` is a weighted sum of
-  Diracs is not yet in Mathlib. Needed for: prop:weak.
+4. **Discharge `hasDerivAt_phi_along_trajectory`** (difficulty 3; no deps).
+   Chain rule for a smooth test function composed with a C¹ trajectory.
+   Hints: `HasDerivAt.inner`, `HasFDerivAt.comp`, `HasDerivAt.prodMk`,
+   `ContDiff.hasFDerivAt`.
 
-- **Wasserstein-1 distance API for finite measures on ℝ^d.**
-  `MeasureTheory.ProbabilityMeasure.FiniteWasserstein` exists but its Kantorovich–Rubinstein
-  dual formula (`wasserstein1 μ ν = sup {∫ f dμ − ∫ f dν | Lip f ≤ 1}`) has not been
-  proved in full generality in current Mathlib (as of early 2026). The local `wasserstein1`
-  definition in the file is the correct dual formula, but connecting it to any metric-space
-  properties (triangle inequality, joint lower semicontinuity) will require hand-rolling
-  several lemmas. Needed for: thm:dobrushin, cor:mfl.
+5. **Discharge `hasDerivAt_empiricalIntegral_sum`** (difficulty 3; depends on
+   `empiricalMeasure_integral_eq` — proved — and `hasDerivAt_phi_along_trajectory` — step 4).
+   Differentiate under the finite empirical-measure integral using the per-particle chain rule
+   and `HasDerivAt.sum` + `HasDerivAt.const_smul`.
+   Hints: `HasDerivAt.sum`, `HasDerivAt.const_smul`, `HasDerivAt.congr_deriv`.
 
-- **Gronwall inequality for ENNReal-valued quantities.**
-  `Mathlib.Analysis.ODE.Gronwall` provides `gronwall_bound` for real-valued integrals.
-  The Dobrushin argument produces an estimate on `wasserstein1 (f t) (g t) : ENNReal`;
-  one needs to coerce to `ℝ` (valid when measures have finite first moment) and apply
-  `gronwall_bound`. The coercion lemma `ENNReal.toReal_le_toReal` with a finiteness side
-  condition is present but the combination is not packaged. Needed for: thm:dobrushin.
+6. **Discharge the residual glue at line 382** (HasDerivAt branch of `weakEvolutionEmpiricalMeasure`).
+   The plan's `tactic_sketch` provides a near-complete script:
+   ```
+   have hd := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t
+   have heq := diagonalCorrection_eq N gradW X V gradVφ t
+   rw [heq] at hd
+   convert hd using 2
+   ring
+   ```
+   This is the fastest-path sorry to close: once steps 4 and 5 are proved, the prover may be
+   able to close it in one build cycle by running the sketch verbatim.
 
-- **Existence and uniqueness of ODE solutions with measure-valued right-hand side.**
-  `vlasovWellPosedness` (thm:vlasov-wp) depends on a fixed-point / Picard iteration in
-  the space of probability measures. Mathlib's `ODE.solution_eq_zero` and
-  `ContDiff.exists_forall_hasDerivAt` cover finite-dimensional smooth ODEs, but the
-  self-consistent measure-valued fixed-point argument is not in Mathlib. This is the
-  hardest gap. Needed for: thm:vlasov-wp, cor:mfl.
+### Non-decomposed sorries
+
+- **`vlasovWellPosedness` (thm:vlasov-wp, line 505):** Highest mathematical value but lowest
+  tractability in the current Mathlib. Requires a full existence-uniqueness theory for
+  measure-valued solutions of transport equations (Picard iteration in Wasserstein space,
+  or method of characteristics). Recommended approach: decompose using the sorry-decomposer
+  agent before attempting a proof. Potential Mathlib anchors:
+  `MeasureTheory.Measure.map`, `MeasureTheory.ProbabilityMeasure`,
+  ODE uniqueness results (`ODE.IVP` or `Mathlib.Analysis.ODE.Gronwall`).
+
+- **`dobrushin` (thm:dobrushin, line 614):** Medium tractability — the structure is clear
+  (Gronwall on a Wasserstein-1 differential inequality) but requires:
+  (a) the estimate `‖∇W*ρ − ∇W*σ‖_∞ ≤ L·W₁(ρ,σ)` (Lipschitz constant of the force field
+  w.r.t. the measure argument), and (b) Gronwall's lemma applied to an ENNReal-valued
+  function. Potential Mathlib anchors: `gronwall` (Mathlib.Analysis.ODE.Gronwall`),
+  `MeasureTheory.Measure.wasserstein`, `LipschitzWith.dist_le_mul`.
+  Recommended: decompose with sorry-decomposer before attempting.

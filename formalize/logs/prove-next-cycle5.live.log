@@ -1,0 +1,53 @@
+
+=== prove-next cycle 1/1 ===
+--- refreshing report (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The verifier completed successfully. Here is the summary:
+
+**Build:** `lake build` passed (8250 jobs, zero errors)
+
+**Coverage:** 13/13 outline items accounted for
+
+**Sorry count:** 3 active `sorry`s remaining:
+1. `weakEvolutionEmpiricalMeasure` (line 277) — differentiation of the empirical-measure integral
+2. `vlasovWellPosedness` (line 414) — Picard-Lindelof in probability-measure spaces
+3. `dobrushin` (line 523) — Gronwall + Wasserstein-1 coupling estimate
+
+**Recommended next step:** Close `weakEvolutionEmpiricalMeasure` first — it's the most tractable and will unlock two other items automatically.
+
+The full report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+--- sorry-prover (cycle 1, mode: top-recommendation) ---
+
+--- invoking subagent: sorry-prover (timeout 900s, effort low) ---
+./formalize.sh: line 138: 69729 Alarm clock: 14         perl -e 'alarm shift @ARGV; exec @ARGV or die "exec: $!"' "${seconds}" "${CLAUDE_BASE[@]}" ${effort_args[@]+"${effort_args[@]}"} -p "Use the Agent tool with subagent_type=\"${agent}\" to perform the following task, then exit.
+
+${prompt}" 2>&1
+     69730 Done                    | tee "${LOGS}/${log}"
+agent 'sorry-prover' exceeded 900s wall-clock budget (SIGALRM) — pipeline continuing
+--- prover-bak checkpoint still present; restoring (prover was killed before its own revert step) ---
+--- refreshing report after attempt (verifier) ---
+
+--- invoking subagent: lean-verifier (timeout 600s) ---
+The lean-verifier agent completed successfully. Here's a summary:
+
+**Build: SUCCESS** — 8,250 jobs, 0 errors, 3 `sorry` warnings, 8 lint warnings.
+
+**Coverage: 13/13 outline items present**
+
+| Item | Status |
+|------|--------|
+| `eq:HN`, `eq:newton`, `ass:W`, `def:empirical`, `eq:weak-eq`, `eq:char`, `eq:dobrushin` | present-stubbed (sorry proofs) |
+| `prop:weak` (line 277) | present-with-sorry |
+| `cor:empirical-vlasov` | present-with-sorry (depends on prop:weak) |
+| `thm:vlasov-wp` (line 414) | present-with-sorry |
+| `thm:dobrushin` (line 523) | present-with-sorry |
+| `cor:mfl` | present-stubbed |
+
+The formalization skeleton is complete and compiles cleanly. The 3 remaining `sorry`s are in the four main theorem/corollary proofs (`prop:weak`, `cor:empirical-vlasov`, `thm:vlasov-wp`, `thm:dobrushin`). The full report is at `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+
+Pipeline finished.
+  Outline:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
+  Lean file:  /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+  Report:     /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md
+  Logs:       /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/

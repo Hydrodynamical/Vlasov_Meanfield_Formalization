@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-24T00:00:00Z",
+  "generated_by": "sorry-decomposer (backfilled from in-file plan at Basic.lean:221-261 produced on 2026-05-23)",
+  "parent": {
+    "name": "Vlasov.weakEvolutionEmpiricalMeasure",
+    "kind": "theorem",
+    "tex_label": "prop:weak",
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 331
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.empiricalMeasure_integral_eq",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 226,
+      "difficulty": 1,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasureTheory.integral_finset_sum",
+        "MeasureTheory.integral_dirac",
+        "MeasureTheory.Measure.smul_apply",
+        "MeasureTheory.integral_smul_measure"
+      ],
+      "one_line_math": "Integral of φ against (1/N) Σᵢ δ_{(Xᵢ,Vᵢ)} unfolds to (1/N) Σᵢ φ(Xᵢ,Vᵢ) by Dirac sum."
+    },
+    {
+      "name": "Vlasov.hasDerivAt_phi_along_trajectory",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 238,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "HasDerivAt.inner",
+        "HasFDerivAt.comp",
+        "HasDerivAt.prodMk",
+        "ContDiff.hasFDerivAt"
+      ],
+      "one_line_math": "For smooth φ, t ↦ φ(X t i, V t i) has derivative ⟨V t i, ∇ₓφ(zᵢ)⟩ + ⟨a t i, ∇ᵥφ(zᵢ)⟩ by the chain rule applied to the smooth test function composed with the particle trajectory. Acceleration `a` is a free parameter (not yet specialised to Newton)."
+    },
+    {
+      "name": "Vlasov.hasDerivAt_empiricalIntegral_sum",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 259,
+      "difficulty": 3,
+      "deps": [
+        "Vlasov.empiricalMeasure_integral_eq",
+        "Vlasov.hasDerivAt_phi_along_trajectory"
+      ],
+      "mathlib_hints": [
+        "HasDerivAt.sum",
+        "HasDerivAt.const_smul",
+        "HasDerivAt.congr_deriv"
+      ],
+      "one_line_math": "d/ds ∫ φ d(μ_s^N) equals the finite-sum derivative obtained by combining `empiricalMeasure_integral_eq` (to rewrite the integral as (1/N) Σᵢ φ(Xᵢ,Vᵢ)) with `hasDerivAt_phi_along_trajectory` (per-particle chain rule) and `HasDerivAt.sum`. Substitutes the Newton acceleration -(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ) for `a t i` here."
+    },
+    {
+      "name": "Vlasov.diagonalCorrection_eq",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 282,
+      "difficulty": 2,
+      "deps": [
+        "Vlasov.hasDerivAt_empiricalIntegral_sum"
+      ],
+      "mathlib_hints": [
+        "Finset.sum_ite",
+        "Finset.sum_compl_add_sum",
+        "inner_sub_left",
+        "inner_neg_left",
+        "inner_smul_left"
+      ],
+      "one_line_math": "Algebraic split: the per-particle force contribution (1/N) Σᵢ ⟨-(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ), ∇ᵥφᵢ⟩ rewrites as -(1/N) Σᵢ ⟨(∇W*ρ_t^N)(Xᵢ), ∇ᵥφᵢ⟩ − (1/N²) Σᵢ ⟨∇W(0), ∇ᵥφᵢ⟩, by extending the inner sum from Σ_{j≠i} to Σⱼ and subtracting the diagonal j=i contribution (which is ∇W(0)). This is the key 'add and subtract the diagonal' step."
+    },
+    {
+      "name": "Vlasov.diagonalCorrection_bound",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 303,
+      "difficulty": 1,
+      "deps": [
+        "Vlasov.diagonalCorrection_eq"
+      ],
+      "mathlib_hints": [
+        "abs_inner_le_norm",
+        "Finset.abs_sum_le_sum_abs",
+        "Finset.sum_le_card_nsmul",
+        "le_iSup"
+      ],
+      "one_line_math": "Pointwise bound on the diagonal correction: |(1/N²) Σᵢ ⟨∇W(0), ∇ᵥφ(zᵢ)⟩| ≤ (1/N) · sup_x ‖∇W(x)‖ · sup_z ‖∇ᵥφ(z)‖, via Cauchy-Schwarz on each summand and (1/N²) · N = 1/N counting."
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 379,
+    "branch_label": "HasDerivAt (first ?_ branch of the refine combinator)",
+    "composition": [
+      "Vlasov.hasDerivAt_empiricalIntegral_sum",
+      "Vlasov.diagonalCorrection_eq"
+    ],
+    "strategy": "Take hasDerivAt_empiricalIntegral_sum's RHS (the finite-sum derivative with explicit Newton acceleration substituted), rewrite the velocity-inner-products via diagonalCorrection_eq to split off the convolution-form integral plus the diagonal correction. Recognize the convolution form as the integral term appearing in the goal; r becomes the diagonal correction.",
+    "tactic_sketch": "have hd := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t\nhave heq := diagonalCorrection_eq N gradW X V gradVφ t\nrw [heq] at hd\nconvert hd using 2\nring"
+  }
+}
