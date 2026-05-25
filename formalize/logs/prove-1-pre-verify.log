@@ -3,7 +3,7 @@
 [Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779665400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779651600,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779708600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779703200,"isUsingOverage":false}
 [Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
@@ -28,52 +28,61 @@ consider restructuring your `variable` declarations so that the variables are no
      7→import Mathlib
      8→
      9→open scoped BigOperato
-[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/ 2>&1","description":"List plan JSON files"}
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/","description":"List plan sidecar files"}
 → weakEvolutionEmpiricalMeasure.json
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read the decomposition plan for weakEvolutionEmpiricalMeasure"}
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read the decomposition plan JSON for weakEvolutionEmpiricalMeasure"}
 → {
   "schema_version": 1,
-  "generated_at": "2026-05-24T00:00:00Z",
-  "generated_by": "sorry-decomposer (backfilled from in-file plan at Basic.lean:221-261 produced on 2026-05-23)",
-  "parent": {
-    "name": "Vlasov.weakEvolutionEmpiricalMeasure",
-    "kind": "theorem",
-    "tex_label": "prop:weak",
-
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"^(warning|error):\" | head -50","description":"Extract warning and error lines from build output","timeout":300000}
-→ warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
-warning: Vlasov/Basic.lean:234:24: This simp argument is unused:
-warning: Vlasov/Basic.lean:241:6: declaration uses `sorry`
-warning: Vlasov/Basic.lean:262:6: declarat
-[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-24\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
-→ Report written.
+  "generated_at": "2026-05-25T00:00:00Z",
+  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalCorrect
+[Bash] {"command":"grep -n \"sorry\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Find all sorry occurrences with line numbers"}
+→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
+221:/-! Decomposed by sorry-decomposer.
+321:  sorry
+351:  sorry
+379:  sorry
+403:  sorry
+481:    sorry
+625:  sorry
+734:  sorry
+800:  -- Skeleton from sorry-prover; finished manually.
+[Bash] {"command":"grep -c \"^warning:\" /dev/null; echo \"non-sorry warnings from build:\"; cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^warning:\" | grep -v \"uses \\`sorry\\`\" | wc -l","description":"Count non-sorry warnings from build","timeout":300000}
+→ 0
+non-sorry warnings from build:
+      14
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^warning:\" | grep \"uses \\`sorry\\`\" | wc -l","description":"Count sorry warnings","timeout":300000}
+→        7
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-25\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
+→ Report written successfully.
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
-     3→Generated: 2026-05-24
+     3→Generated: 2026-05-25
      4→Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
      5→Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
      6→
      7→## Build status
      8
-→ [{"type":"text","text":"The report is written. Here is a summary of what was found:\n\n---\n\n**verified: 13/13 items present, build: success**\n\nThe report is at `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`. Key findings:\n\n**Build status.** The project builds successful
-The verification is complete. Here's the summary:
+→ [{"type":"text","text":"The report is written and verified. Here is a summary of what was found.\n\n---\n\n**Summary of findings**\n\n**Report written to:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`\n\n**Build:** `success` (8250 jobs), 7 sorry warnings, 14 other warnings
+The verifier completed successfully. Here's the summary:
 
-**Build: SUCCESS** (8,250 jobs, 0 errors)
+**Build:** Success (8250 jobs, 0 errors, 7 sorry warnings)
 
-**Coverage: 13/13 outline items present**
+**Coverage: 13/13 outline items formalized**
 
-| Category | Count | Items |
-|---|---|---|
-| Fully proved | 9 | `eq:HN`, `eq:newton`, `ass:W`, `def:empirical`, `eq:weak-eq`, `eq:vlasov`, `eq:char`, `eq:dobrushin`, `cor:mfl` |
-| Present with sorry | 4 | `prop:weak`, `cor:empirical-vlasov`, `thm:vlasov-wp`, `thm:dobrushin` |
-| Missing | 0 | — |
+| Status | Items |
+|--------|-------|
+| Fully proved | 8 items (definitions, basic lemmas, mean-field limit) |
+| Sorry remaining | 4 items |
 
-**7 remaining sorries** break down as:
+**Remaining sorries:**
+- `weakEvolutionEmpiricalMeasure` (decomposed): 4 helpers + residual glue still sorry'd
+- `empiricalMeasureSolvesVlasov`: calls the sorry'd parent
+- `vlasovWellPosedness` (line 625): single top-level sorry
+- `dobrushin` (line 734): single top-level sorry
 
-- `prop:weak` — decomposed into 5 helpers; `empiricalMeasure_integral_eq` is **proved**, `hasDerivAt_phi_along_trajectory` is the **next leaf to attack**
-- `vlasovWellPosedness` and `dobrushin` — require Mathlib API not yet available (measure-valued ODE fixed-point theory, Wasserstein-1 Gronwall)
-- `meanFieldLimit` (`cor:mfl`) is **fully proved** (assumes a `DobrushinStabilityEstimate` hypothesis)
-
-Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
-[result] success duration=149915ms cost=$0.61640175
+**Recommended next steps** (per the updated `formalize/report.md`):
+1. Discharge the residual glue at line 481 using the tactic sketch in the plan
+2. Tackle `diagonalCorrection_bound` (no dependencies, pure estimation)
+3. Then address `hasDerivAt_empiricalIntegral_sum` and `convolveFunctionMeasure_empiricalSpatial_eq`
+[result] success duration=140220ms cost=$0.5493662500000001

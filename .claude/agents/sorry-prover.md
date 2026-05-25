@@ -78,11 +78,50 @@ The 5-criterion rubric (used only when plan-lookup yields nothing):
    tractable than one that requires building new measure-theoretic /
    Wasserstein API.
 
-Pick the highest-scoring sorry. Briefly note the score breakdown in the
-attempt log so the user can audit your choice (including: did
-plan-lookup fire? which plan file? what was the helper's stored
-difficulty?). If no candidate looks better than the verifier's #1, fall
-back to `top-recommendation` and say so in the log.
+Pick the highest-scoring sorry. Before picking, **emit a candidate
+table** to the attempt log enumerating every open sorry, the matching
+plan file (or `(none)`), the plan-aware score (or rubric score), and
+the resulting rank. The table is mandatory — it is the audit trail
+for the choice. Example:
+
+```
+| Sorry (decl name) | Plan | Difficulty | Score | Source |
+|-------------------|------|-----------|-------|--------|
+| hasDerivAt_phi_along_trajectory | weakEvolutionEmpiricalMeasure.json | 3 | 3 | plan-aware |
+| diagonalCorrection_eq | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware |
+| diagonalCorrection_bound | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware |
+| weakEvolutionEmpiricalMeasure (residual) | weakEvolutionEmpiricalMeasure.json | — | 4 | plan-aware-residual |
+| vlasovWellPosedness | (none) | — | 1 | rubric |
+| dobrushin | (none) | — | 1 | rubric |
+```
+
+Build the table by:
+1. Run `cd <project root> && lake build 2>&1 | grep -E 'declaration uses .sorry.'`
+   to enumerate every current `sorry` warning with its line. For each
+   line, identify the enclosing declaration name (Read ~5 lines of
+   context around the line).
+2. For each declaration, look it up in the plan map you built above:
+   - `helpers[]` match → `Source = plan-aware`, `Score = 6 − difficulty`.
+   - `residual_glue` match (declaration is a plan's `parent.name` AND
+     the sorry's line matches `residual_glue.line`) → `Source =
+     plan-aware-residual`, `Score = 4`.
+   - No match → `Source = rubric`, score via the 5-criterion rubric below.
+3. Sort the rows by descending Score; tie-break order:
+   1. `plan-aware-residual` ahead of `plan-aware` ahead of `rubric`
+      (the residual has a `tactic_sketch` fast path that closes in
+      one edit + one build when it works).
+   2. Within `plan-aware` helpers, prefer empty `deps[]` (leaf)
+      ahead of non-empty.
+   3. Within any remaining tie, ascending line number.
+4. Pick row #1 (the top after sort).
+
+**Do NOT short-circuit to `top-recommendation` based on report.md**.
+The verifier's "Recommended next steps" ordering is informational; in
+Mode B the prover is the authority on target choice. If your
+top-ranked candidate coincides with the verifier's #1, great — note
+that in the log; if not, pick your own and note the disagreement (a
+disagreement is signal that the verifier's recommendation order is
+stale or wrong, and is worth flagging to the human).
 
 The 8-iteration cap and small-edit discipline (§4) apply regardless of
 which mode picked the target — `most-tractable` doesn't loosen the
@@ -168,15 +207,44 @@ is non-empty:
    literal contents of `tactic_sketch` (preserve newlines and
    indentation exactly; do not paraphrase or improvise).
 2. Run `cd <project root> && lake build 2>&1 | tail -60`.
-3. Classify:
-   - SUCCESS: build green AND target's sorry warning gone AND no new
-     sorry warnings elsewhere → log "fast path closed via plan's
-     tactic_sketch" and skip to §5. Genuine speedup: 1 edit + 1 build
-     instead of up to 8 iterations.
-   - FAILURE: revert the edit (restore the original `sorry`) and fall
-     through to §4.0 + §4.1 normal iteration. The plan's
-     `composition`, `strategy`, `tactic_sketch`, and `mathlib_hints`
-     remain available as context.
+3. Classify the build outcome by exactly two cases (no third option):
+   - **SUCCESS** = build exits 0 AND the target's `sorry` warning is
+     gone AND no new `sorry` warnings appeared elsewhere. Log
+     "fast path closed via plan's tactic_sketch" and skip to §5.
+     Genuine speedup: 1 edit + 1 build instead of up to 8 iterations.
+   - **FAILURE** = anything else. This includes `error:` lines,
+     missing-required-tactic warnings, the target `sorry` warning
+     still on its line, or new `sorry` warnings on lines that didn't
+     have them before. Go to step 4 IMMEDIATELY.
+4. **Mandatory revert sequence on FAILURE.** Before any other tool
+   use, execute these commands exactly in order:
+   ```bash
+   cp <lean file>.prover-bak <lean file>
+   cd <project root> && lake build 2>&1 | grep -E 'error:|declaration uses .sorry.' | head -20
+   ```
+   The `cp` restores the file from the §1 checkpoint. The build
+   confirms the baseline is restored: the build must be error-free
+   and the target sorry warning must be back on its original line.
+   If either check fails, the checkpoint itself is broken — log
+   `result: failure` with reason "fast-path revert broke baseline"
+   and exit; do not attempt §4.0.
+
+   **Forbidden between fast-path FAILURE and the revert `cp`**: any
+   `Edit` call, any other `Bash` command (other than the revert
+   itself and its confirmation build), any attempt to "fix up" the
+   failed sketch in place. The fast path is one shot; piling
+   additional edits on a failed sketch wastes the iteration budget
+   and is the exact misbehaviour this rule prevents. If you find
+   yourself wanting to fix the sketch, that is a signal you have
+   already exited the fast path — revert first, then attack the
+   problem from §4.0 with a clean slate.
+5. After a successful revert, enter §4.0 with the target sorry
+   restored. The plan's `composition`, `strategy`,
+   `tactic_sketch`, and `mathlib_hints` remain available as
+   **context** for your normal iteration — but treat the sketch as
+   "the decomposer's first guess that didn't work", not as a
+   skeleton to repair edit-by-edit. The shape of the right proof
+   may be entirely different.
 
 If the plan has only the free-form `strategy` field but no
 `tactic_sketch`, skip the fast path entirely (no LLM-translation

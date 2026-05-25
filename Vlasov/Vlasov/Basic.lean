@@ -236,15 +236,26 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
 /-- For a smooth test function φ, the chain rule gives: the map `t ↦ φ(X t i, V t i)` has
 derivative `⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨a t i, gradVφ (X t i, V t i)⟩` at t,
 where `a t i` is the acceleration vector at particle i and time t.
-TODO(mathlib): `HasDerivAt.inner` combined with `HasFDerivAt.comp` for the chain rule
-through the smooth (ContDiff ℝ ⊤) test function φ on phase space. -/
+
+Signature refactored (Phase B of the 2026-05-25 plan): φ's Fréchet derivative is
+an INPUT hypothesis `hφ_fderiv` instead of being derived inside the helper.  This
+lifts the `ContDiff.hasFDerivAt + WithLp.toLp + gradient → toDual → toLinearMap`
+type-class friction up to the call site (where `ContDiff ℝ ⊤ φ` is already a
+hypothesis and the Fréchet derivative is a one-line `have`).  The body of this
+helper is then a straight composition:
+  · `HasDerivAt.prodMk hX hV` gives the curve derivative `t ↦ (X t i, V t i)`.
+  · `(hφ_fderiv (X t i, V t i)).comp_hasDerivAt` composes through φ.
+  · Unfolding `gradXφ`/`gradVφ` via `hgradXφ`/`hgradVφ` and rewriting the
+    Fréchet derivative's action via `inner_product` partial-derivative
+    identities gives the target inner-product form. -/
 lemma hasDerivAt_phi_along_trajectory (N : ℕ)
     (X V : ℝ → Fin N → PhysSpace d)
     (hX : ∀ t i, HasDerivAt (fun t => X t i) (V t i) t)
     (a : ℝ → Fin N → PhysSpace d)
     (hV : ∀ t i, HasDerivAt (fun t => V t i) (a t i) t)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (φ' : PhaseSpace d → (PhaseSpace d →L[ℝ] ℝ))
+    (hφ_fderiv : ∀ z, HasFDerivAt φ (φ' z) z)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
@@ -252,7 +263,39 @@ lemma hasDerivAt_phi_along_trajectory (N : ℕ)
     HasDerivAt (fun s => φ (X s i, V s i))
       (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) +
        @inner ℝ (PhysSpace d) _ (a t i) (gradVφ (X t i, V t i))) t := by
-  sorry
+  -- Step 1: curve derivative
+  have hcurve : HasDerivAt (fun s => (X s i, V s i)) (V t i, a t i) t :=
+    (hX t i).prodMk (hV t i)
+  -- Step 2: compose φ through the curve
+  have hcomp : HasDerivAt (fun s => φ (X s i, V s i))
+      ((φ' (X t i, V t i)) (V t i, a t i)) t :=
+    (hφ_fderiv (X t i, V t i)).comp_hasDerivAt t hcurve
+  -- Step 3: rewrite the derivative value
+  convert hcomp using 1
+  -- Step 4: show φ'(z)(V,a) = ⟨V, gradXφ z⟩ + ⟨a, gradVφ z⟩
+  set z := (X t i, V t i)
+  -- partial x: HasFDerivAt (fun x => φ(x, z.2)) (φ' z ∘L inl ℝ _ _) z.1
+  have hpX : HasFDerivAt (fun x => φ (x, z.2))
+      ((φ' z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))) z.1 :=
+    (hφ_fderiv z).comp z.1 (hasFDerivAt_prodMk_left z.1 z.2)
+  have hpV : HasFDerivAt (fun v => φ (z.1, v))
+      ((φ' z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))) z.2 :=
+    (hφ_fderiv z).comp z.2 (hasFDerivAt_prodMk_right z.1 z.2)
+  simp only [hgradXφ z, hgradVφ z]
+  -- inner(V, ∇f z.1) = fderiv f z.1 V via inner_gradient_right (real case: conj = id)
+  have hgX : @inner ℝ (PhysSpace d) _ (V t i) (gradient (fun x => φ (x, z.2)) z.1) =
+      fderiv ℝ (fun x => φ (x, z.2)) z.1 (V t i) := by
+    rw [inner_gradient_right hpX.differentiableAt]
+    simp [RCLike.conj_eq_iff_re, conj_trivial]
+  have hgV : @inner ℝ (PhysSpace d) _ (a t i) (gradient (fun v => φ (z.1, v)) z.2) =
+      fderiv ℝ (fun v => φ (z.1, v)) z.2 (a t i) := by
+    rw [inner_gradient_right hpV.differentiableAt]
+    simp [RCLike.conj_eq_iff_re, conj_trivial]
+  rw [hgX, hgV, hpX.fderiv, hpV.fderiv]
+  simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+        ContinuousLinearMap.inr_apply]
+  rw [← map_add]
+  simp [Prod.mk_add_mk]
 
 /-- The derivative of `t ↦ ∫ φ d(empiricalMeasureCurve N X V t)` equals the finite sum
 expression `(1/N) * Σᵢ [⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨aᵢ, gradVφ (X t i, V t i)⟩]`
@@ -277,11 +320,46 @@ lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
            (gradVφ (X t i, V t i)))) t := by
   sorry
 
+/-- Convolution of the kernel `gradW` against the spatial marginal of the
+empirical measure unfolds to the explicit finite sum
+`(1/N) • Σⱼ gradW(X t i − X t j)`.  This is the API-navigation step that
+separates the Measure-pushforward / Dirac-integration machinery from the
+algebraic "add and subtract the diagonal" step in `diagonalCorrection_eq`.
+
+Proof strategy (decomposer-supplied mathlib_hints, grep-validated against
+Mathlib 4.x at `.lake/packages/mathlib/`):
+  1. `empiricalMeasureCurve` and `empiricalMeasure` unfold to
+     `(1/N : ℝ≥0∞) • Σⱼ Measure.dirac (X t j, V t j)`.
+  2. `Measure.map_smul` (`MeasureTheory/Measure/Map.lean:127`) pushes
+     `Prod.fst` through the scalar.
+  3. `Measure.map_add` (`MeasureTheory/Measure/Map.lean:103`) + finset
+     induction distributes `Prod.fst` over the sum, giving
+     `(1/N : ℝ≥0∞) • Σⱼ Measure.dirac (X t j)`.
+  4. `convolveFunctionMeasure` unfolds to `∫ y, gradW(X t i − y) ∂ρ`.
+  5. `integral_smul_measure` (Bochner) extracts the `(1/N).toReal = 1/N`
+     scalar; `integral_finset_sum_measure` (`Integral/Bochner/Basic.lean:1018`)
+     distributes integration over the finite sum of Diracs;
+     `integral_dirac'` (`Integral/Bochner/Basic.lean:1131`) collapses each
+     summand to `gradW(X t i − X t j)`. -/
+lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW_meas : Measurable gradW)
+    (X V : ℝ → Fin N → PhysSpace d) (t : ℝ) (i : Fin N) :
+    convolveFunctionMeasure gradW
+        (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i) =
+      (1 / (N : ℝ)) • ∑ j : Fin N, gradW (X t i - X t j) := by
+  sorry
+
 /-- The remainder term `r` in the weak evolution identity equals
 `(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
 obtained when extending the Newton-equation sum `Σ_{j≠i}` to all `j` (the diagonal
 `j = i` summand contributes `gradW(X t i - X t i) = gradW 0`).
-TODO(mathlib): `Finset.sum_compl_add_sum` or `Finset.sum_ite` to split the sum. -/
+
+This lemma is pure inner-product algebra atop
+`convolveFunctionMeasure_empiricalSpatial_eq`: extend `Σ_{j≠i}` to `Σⱼ` via
+`Finset.sum_ite_ne` or `Finset.sum_compl_add_sum`, distribute the inner
+product with `inner_sub_left`/`inner_smul_left`, recognise the
+`(1/N) • Σⱼ gradW` factor as the convolveFunctionMeasure unfolding. -/
 lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
     (gradW : PhysSpace d → PhysSpace d)
     (X V : ℝ → Fin N → PhysSpace d)
@@ -296,7 +374,7 @@ lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
           (convolveFunctionMeasure gradW
             (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i))
           (gradVφ (X t i, V t i))
-      - (1 / (N : ℝ)^2) * ∑ i : Fin N,
+      + (1 / (N : ℝ)^2) * ∑ i : Fin N,
           @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i)) := by
   sorry
 
@@ -335,7 +413,10 @@ there is a real remainder r = R_N(t) such that
   d/dt ⟨μ_t^N, φ⟩ = ⟨μ_t^N, v · ∇_x φ − (∇W * ρ_t^N) · ∇_v φ⟩ + r,
 
 with |r| ≤ (1/N) ‖∇W‖_∞ ‖∇_v φ‖_∞.  Concretely, r is the diagonal correction
-−(1/N²) Σᵢ ∇W(0) · ∇_v φ(xᵢ, vᵢ).  Under Assumption ass:W (W even ⟹
++(1/N²) Σᵢ ∇W(0) · ∇_v φ(xᵢ, vᵢ).  (The positive sign arises because extending
+the Newton-equation sum Σ_{j≠i} to Σ_j subtracts the j=i term `gradW(0)`,
+which then gets multiplied by the outer `−(1/N)` acceleration coefficient,
+yielding `+(1/N²)·gradW(0)·gradVφ`.)  Under Assumption ass:W (W even ⟹
 ∇W(0) = 0) the diagonal vanishes and r = 0; that strengthening is the
 content of `empiricalMeasureSolvesVlasov` below.
 

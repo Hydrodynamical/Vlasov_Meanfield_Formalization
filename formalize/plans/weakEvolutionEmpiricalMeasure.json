@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-24T00:00:00Z",
-  "generated_by": "sorry-decomposer (backfilled from in-file plan at Basic.lean:221-261 produced on 2026-05-23)",
+  "generated_at": "2026-05-25T00:00:00Z",
+  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalCorrection_eq sign bug (was −, should be +); (B) refactor hasDerivAt_phi_along_trajectory to take Fréchet derivative φ' + hφ_fderiv as input hypotheses, dropping its difficulty from 3 to 1 by lifting the WithLp/ContDiff.hasFDerivAt friction up to call sites.",
   "parent": {
     "name": "Vlasov.weakEvolutionEmpiricalMeasure",
     "kind": "theorem",
     "tex_label": "prop:weak",
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 345
+    "line": 426
   },
   "helpers": [
     {
@@ -27,21 +27,19 @@
     {
       "name": "Vlasov.hasDerivAt_phi_along_trajectory",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 241,
-      "difficulty": 3,
+      "line": 251,
+      "difficulty": 1,
       "deps": [],
       "mathlib_hints": [
-        "HasDerivAt.inner",
-        "HasFDerivAt.comp",
-        "HasDerivAt.prodMk",
-        "ContDiff.hasFDerivAt"
+        "HasFDerivAt.comp_hasDerivAt",
+        "HasDerivAt.prodMk"
       ],
-      "one_line_math": "For smooth φ, t ↦ φ(X t i, V t i) has derivative ⟨V t i, ∇ₓφ(zᵢ)⟩ + ⟨a t i, ∇ᵥφ(zᵢ)⟩ by the chain rule applied to the smooth test function composed with the particle trajectory. Acceleration `a` is a free parameter (not yet specialised to Newton)."
+      "one_line_math": "For smooth φ, t ↦ φ(X t i, V t i) has derivative ⟨V t i, ∇ₓφ(zᵢ)⟩ + ⟨a t i, ∇ᵥφ(zᵢ)⟩ by the chain rule applied to the smooth test function composed with the particle trajectory. POST-PHASE-B: φ' and hφ_fderiv are now input hypotheses, so the body is just: `HasDerivAt.prodMk (hX t i) (hV t i)` for the curve derivative, then `(hφ_fderiv (X t i, V t i)).comp_hasDerivAt` for the composition, then rewrite the Fréchet-derivative's action on the (V t i, a t i) tangent vector via partial-derivative identities to match `⟨V_i, ∇ₓφ⟩ + ⟨a_i, ∇ᵥφ⟩`. The WithLp/ContDiff.hasFDerivAt friction has moved up to the call site."
     },
     {
       "name": "Vlasov.hasDerivAt_empiricalIntegral_sum",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 262,
+      "line": 305,
       "difficulty": 3,
       "deps": [
         "Vlasov.empiricalMeasure_integral_eq",
@@ -55,30 +53,44 @@
       "one_line_math": "d/ds ∫ φ d(μ_s^N) equals the finite-sum derivative obtained by combining `empiricalMeasure_integral_eq` (to rewrite the integral as (1/N) Σᵢ φ(Xᵢ,Vᵢ)) with `hasDerivAt_phi_along_trajectory` (per-particle chain rule) and `HasDerivAt.sum`. Substitutes the Newton acceleration -(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ) for `a t i` here."
     },
     {
+      "name": "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": 344,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasureTheory.Measure.map_smul",
+        "MeasureTheory.Measure.map_add",
+        "MeasureTheory.integral_smul_measure",
+        "MeasureTheory.integral_finset_sum_measure",
+        "MeasureTheory.integral_dirac'",
+        "MeasureTheory.Measure.sum_smul_dirac"
+      ],
+      "one_line_math": "Unfold `convolveFunctionMeasure gradW (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i)` to the explicit finite sum `(1/N) • Σⱼ gradW(X t i − X t j)`. This is the API-navigation step: a 5-lemma chain pushing `Prod.fst` and `(1/N)•` through a Finset-sum of Diracs and collapsing each integral-against-Dirac to a point evaluation. Hints are grep-validated against Mathlib 4 at .lake/packages/mathlib/MeasureTheory/."
+    },
+    {
       "name": "Vlasov.diagonalCorrection_eq",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 285,
-      "difficulty": 2,
+      "line": 363,
+      "difficulty": 1,
       "deps": [
-        "Vlasov.hasDerivAt_empiricalIntegral_sum"
+        "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq"
       ],
       "mathlib_hints": [
-        "Finset.sum_ite",
+        "Finset.sum_ite_ne",
         "Finset.sum_compl_add_sum",
         "inner_sub_left",
         "inner_neg_left",
         "inner_smul_left"
       ],
-      "one_line_math": "Algebraic split: the per-particle force contribution (1/N) Σᵢ ⟨-(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ), ∇ᵥφᵢ⟩ rewrites as -(1/N) Σᵢ ⟨(∇W*ρ_t^N)(Xᵢ), ∇ᵥφᵢ⟩ − (1/N²) Σᵢ ⟨∇W(0), ∇ᵥφᵢ⟩, by extending the inner sum from Σ_{j≠i} to Σⱼ and subtracting the diagonal j=i contribution (which is ∇W(0)). This is the key 'add and subtract the diagonal' step."
+      "one_line_math": "Pure inner-product algebra atop convolveFunctionMeasure_empiricalSpatial_eq: (1/N) Σᵢ ⟨-(1/N)•Σ_{j≠i} ∇W(Xᵢ-Xⱼ), ∇ᵥφᵢ⟩ = -(1/N) Σᵢ ⟨(∇W*ρ_t^N)(Xᵢ), ∇ᵥφᵢ⟩ + (1/N²) Σᵢ ⟨∇W(0), ∇ᵥφᵢ⟩. Method: extend Σ_{j≠i} to Σⱼ via Finset.sum_ite_ne (the j=i summand is gradW(0)), inner_sub_left distributes the inner over the subtraction, the leading −(1/N) acceleration coefficient flips the diagonal-term sign to +. NOTE: original statement had a sign bug (− instead of +) on the diagonal term; corrected in this revision after derivation review."
     },
     {
       "name": "Vlasov.diagonalCorrection_bound",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 315,
+      "line": 393,
       "difficulty": 2,
-      "deps": [
-        "Vlasov.diagonalCorrection_eq"
-      ],
+      "deps": [],
       "mathlib_hints": [
         "abs_inner_le_norm",
         "Finset.abs_sum_le_sum_abs",
@@ -86,18 +98,18 @@
         "le_ciSup",
         "Real.le_sSup"
       ],
-      "one_line_math": "Pointwise bound on the diagonal correction: |(1/N²) Σᵢ ⟨∇W(0), ∇ᵥφ(zᵢ)⟩| ≤ (1/N) · sup_x ‖∇W(x)‖ · sup_z ‖∇ᵥφ(z)‖, via Cauchy-Schwarz on each summand and (1/N²) · N = 1/N counting. **Requires** `BddAbove (range ‖gradW·‖)` and `BddAbove (range ‖gradVφ·‖)` — without these, the conditional supremum on ℝ returns junk value 0 and the bound is vacuous/false (a Lipschitz function need not be bounded; AssW gives Lipschitz, not L^∞)."
+      "one_line_math": "Pointwise bound on the diagonal correction: |(1/N²) Σᵢ ⟨∇W(0), ∇ᵥφ(zᵢ)⟩| ≤ (1/N) · sup_x ‖∇W(x)‖ · sup_z ‖∇ᵥφ(z)‖, via Cauchy-Schwarz on each summand and (1/N²)·N = 1/N counting. **Requires** `BddAbove (range ‖gradW·‖)` and `BddAbove (range ‖gradVφ·‖)` — without these, the conditional supremum on ℝ returns junk value 0. Absolute value on the bound makes the sign correction in diagonalCorrection_eq irrelevant here; deps[] cleared (not actually dependent on the equality form)."
     }
   ],
   "residual_glue": {
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 400,
+    "line": 481,
     "branch_label": "HasDerivAt (first ?_ branch of the refine combinator)",
     "composition": [
       "Vlasov.hasDerivAt_empiricalIntegral_sum",
       "Vlasov.diagonalCorrection_eq"
     ],
-    "strategy": "Take hasDerivAt_empiricalIntegral_sum's RHS (the finite-sum derivative with explicit Newton acceleration substituted), rewrite the velocity-inner-products via diagonalCorrection_eq to split off the convolution-form integral plus the diagonal correction. Recognize the convolution form as the integral term appearing in the goal; r becomes the diagonal correction.",
+    "strategy": "Take hasDerivAt_empiricalIntegral_sum's RHS (the finite-sum derivative with explicit Newton acceleration substituted), rewrite the velocity-inner-products via diagonalCorrection_eq to split off the convolution-form integral plus the (positive) diagonal correction. Recognize the convolution form as the integral term appearing in the goal; r becomes the diagonal correction. After the diagonalCorrection_eq sign fix, the residual's r-witness sign matches the parent's r literal at line 414, so the algebra should now close.",
     "tactic_sketch": "have hd := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t\nhave heq := diagonalCorrection_eq N gradW X V gradVφ t\nrw [heq] at hd\nconvert hd using 2\nring"
   }
 }

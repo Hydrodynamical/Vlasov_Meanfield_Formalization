@@ -68,3 +68,74 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
 - Iteration 2: tried `integral_finset_sum_measure` in simp set but it was unused (simp did not fire); `integral_smul_measure` in simp left a disjunctive goal `... ∨ N = 0`.
 - Iteration 3: switched to `rw` for both steps; `simp` finished with `integral_dirac` and arithmetic lemmas.
 
+## 2026-05-25T00:00:00Z · hasDerivAt_phi_along_trajectory · Vlasov.hasDerivAt_phi_along_trajectory
+
+**Result:** success
+**Iterations:** 4/8
+**Sorry count:** 8 → 7
+
+### Candidate table (Mode B)
+
+| Sorry (decl name) | Plan | Difficulty | Score | Source |
+|---|---|---|---|---|
+| `hasDerivAt_phi_along_trajectory` (line 251) | weakEvolutionEmpiricalMeasure.json | 1 | 5 | plan-aware |
+| `diagonalCorrection_eq` (line 331) | weakEvolutionEmpiricalMeasure.json | 1 | 5 | plan-aware (has sorry dep) |
+| `diagonalCorrection_bound` (line 361) | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware |
+| `weakEvolutionEmpiricalMeasure` residual glue (line 394) | weakEvolutionEmpiricalMeasure.json | — | 4 | plan-aware-residual |
+| `hasDerivAt_empiricalIntegral_sum` (line 273) | weakEvolutionEmpiricalMeasure.json | 3 | 3 | plan-aware |
+| `convolveFunctionMeasure_empiricalSpatial_eq` (line 312) | weakEvolutionEmpiricalMeasure.json | 3 | 3 | plan-aware |
+| `vlasovWellPosedness` (line 577) | (none) | — | 1 | rubric |
+| `dobrushin` (line 686) | (none) | — | 1 | rubric |
+
+Selected `hasDerivAt_phi_along_trajectory` (score 5, leaf, no deps). `diagonalCorrection_eq` also scores 5 but depends on `convolveFunctionMeasure_empiricalSpatial_eq` which is still sorry.
+
+### Final proof
+
+```lean
+  -- Step 1: curve derivative
+  have hcurve : HasDerivAt (fun s => (X s i, V s i)) (V t i, a t i) t :=
+    (hX t i).prodMk (hV t i)
+  -- Step 2: compose φ through the curve
+  have hcomp : HasDerivAt (fun s => φ (X s i, V s i))
+      ((φ' (X t i, V t i)) (V t i, a t i)) t :=
+    (hφ_fderiv (X t i, V t i)).comp_hasDerivAt t hcurve
+  -- Step 3: rewrite the derivative value
+  convert hcomp using 1
+  -- Step 4: show φ'(z)(V,a) = ⟨V, gradXφ z⟩ + ⟨a, gradVφ z⟩
+  set z := (X t i, V t i)
+  -- partial x: HasFDerivAt (fun x => φ(x, z.2)) (φ' z ∘L inl ℝ _ _) z.1
+  have hpX : HasFDerivAt (fun x => φ (x, z.2))
+      ((φ' z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))) z.1 :=
+    (hφ_fderiv z).comp z.1 (hasFDerivAt_prodMk_left z.1 z.2)
+  have hpV : HasFDerivAt (fun v => φ (z.1, v))
+      ((φ' z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))) z.2 :=
+    (hφ_fderiv z).comp z.2 (hasFDerivAt_prodMk_right z.1 z.2)
+  simp only [hgradXφ z, hgradVφ z]
+  have hgX : @inner ℝ (PhysSpace d) _ (V t i) (gradient (fun x => φ (x, z.2)) z.1) =
+      fderiv ℝ (fun x => φ (x, z.2)) z.1 (V t i) := by
+    rw [inner_gradient_right hpX.differentiableAt]
+    simp [RCLike.conj_eq_iff_re, conj_trivial]
+  have hgV : @inner ℝ (PhysSpace d) _ (a t i) (gradient (fun v => φ (z.1, v)) z.2) =
+      fderiv ℝ (fun v => φ (z.1, v)) z.2 (a t i) := by
+    rw [inner_gradient_right hpV.differentiableAt]
+    simp [RCLike.conj_eq_iff_re, conj_trivial]
+  rw [hgX, hgV, hpX.fderiv, hpV.fderiv]
+  simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+        ContinuousLinearMap.inr_apply]
+  rw [← map_add]
+  simp [Prod.mk_add_mk]
+```
+
+### Lookup trail
+- `HasDerivAt.prodMk` — standard Mathlib, FDeriv/Prod.lean
+- `HasFDerivAt.comp_hasDerivAt` — FDeriv/Comp.lean
+- `hasFDerivAt_prodMk_left`, `hasFDerivAt_prodMk_right` — FDeriv/Prod.lean
+- `inner_gradient_right` — Gradient/Basic.lean:278
+- `HasFDerivAt.fderiv` — standard
+- `ContinuousLinearMap.inl_apply`, `ContinuousLinearMap.inr_apply` — standard
+
+### What didn't work
+- iteration 1: `rw [hgradXφ z, hgradVφ z]` failed (pattern not found with `rw`, needed `simp only`)
+- iteration 2: `rw [← hpX.hasGradientAt.fderiv_apply]` failed (gradient form mismatch — `hasGradientAt` needs derivative in `toDual` form)
+- iteration 3: `rw [inner_gradient_right ...]` + `simp [conj_trivial]` succeeded for the inner product steps; final `simp [map_add]` failed
+- iteration 4: replaced with `rw [← map_add]; simp [Prod.mk_add_mk]` — succeeded

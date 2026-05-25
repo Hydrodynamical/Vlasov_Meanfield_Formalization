@@ -87,36 +87,56 @@ Procedure:
    ### `<parentName>` (<tex-label>, decomposed)
    Plan: `formalize/plans/<parent>.json`
 
-   | # | Name | Line | Difficulty | Deps | Status |
-   |---|------|------|-----------|------|--------|
-   | 1 | helperA | 226 | 1 | (none)        | sorry  |
-   | 2 | helperB | 238 | 3 | (none)        | sorry  |
-   | 3 | helperC | 259 | 3 | helperA, helperB | sorry  |
-   | 4 | helperD | 282 | 2 | helperC       | sorry  |
-   | 5 | helperE | 303 | 1 | helperD       | proved |
+   | # | Name | Line | Difficulty | Score | Deps | Status |
+   |---|------|------|-----------|-------|------|--------|
+   | 1 | helperA | 226 | 1 | 5 | (none)        | sorry  |
+   | 2 | helperB | 238 | 3 | 3 | (none)        | sorry  |
+   | 3 | helperC | 259 | 3 | 3 | helperA, helperB | sorry  |
+   | 4 | helperD | 282 | 2 | 4 | helperC       | sorry  |
+   | 5 | helperE | 303 | 1 | 5 | helperD       | proved |
 
-   Residual glue: line 379 (branch `<branch_label>`); composes
-   [helperC, helperD]. tactic_sketch present in plan.
+   `Score = 6 − Difficulty` for helpers; the residual glue row (below)
+   gets a fixed `Score = 4` matching the prover spec.
+
+   Residual glue: line 379 (branch `<branch_label>`); Score 4;
+   composes [helperC, helperD]. tactic_sketch present in plan.
    ```
 
    ## Recommended next steps
 
-   For decomposed parents: list helpers in topological order (leaves
-   first), lowest difficulty first within each topological layer.
-   Mention the plan's `mathlib_hints` for each helper to give the
-   prover concrete starting points.
+   For decomposed parents: list helpers in order of ascending plan
+   `difficulty` (lowest first = highest tractability score). Ties
+   broken by leaf-first (empty `deps[]` ahead of non-empty), then by
+   ascending line number. **Do NOT order by topological position
+   primarily** — in Lean a non-leaf helper can be proved independently
+   of its (sorried) deps because Lean treats sorry'd names as opaque
+   references. Topological position is shown in the helper table as
+   the `Deps` column for human context but does not drive
+   recommendation order. The `residual_glue`, when present and
+   non-null, is ranked alongside helpers at an effective difficulty of
+   2 (Score 4), matching the prover's hard-coded residual score in
+   sorry-prover.md §0; within a Score-4 tie, the residual glue ranks
+   ahead of difficulty-2 helpers because it has a machine-executable
+   `tactic_sketch` fast path. Skip helpers whose status is already
+   `proved`. Mention each helper's `mathlib_hints` in its
+   recommendation entry to give the prover concrete starting points.
 
    ```
-   1. Discharge `helperA` (difficulty 1; no deps;
-      hints: `integral_finset_sum`, `integral_dirac`).
-   2. Discharge `helperD` (difficulty 2; depends on helperC which is
-      still sorry — but helperD's tactic only invokes helperC by name,
-      so attack-order is independent).
-   3. ...
-   N. Discharge the residual glue at line 379 — has machine-executable
-      `tactic_sketch` in the plan; the prover's fast path may close it
-      in one build cycle.
+   1. Discharge the residual glue at line 379 (Score 4) — has
+      machine-executable `tactic_sketch` in the plan; the prover's
+      fast path may close it in one build cycle.
+   2. Discharge `helperD` (difficulty 2, Score 4; depends on helperC
+      which is still sorry — but helperD's tactic only invokes
+      helperC by name, so attack-order is independent;
+      hints: `inner_sub_left`, `Finset.sum_compl_add_sum`).
+   3. Discharge `helperB` (difficulty 3, Score 3; no deps;
+      hints: `HasDerivAt.inner`, `HasFDerivAt.comp`).
+   4. Discharge `helperC` (difficulty 3, Score 3; depends on helperA,
+      helperB — independent attack-order applies).
    ```
+
+   (helperA is omitted because its status is `proved`; helperE is
+   omitted for the same reason.)
 
    For non-decomposed sorries: the existing "highest-value /
    tractable / missing Mathlib API" bullet style.
