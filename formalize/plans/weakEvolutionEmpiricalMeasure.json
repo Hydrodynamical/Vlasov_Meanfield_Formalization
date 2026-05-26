@@ -7,7 +7,7 @@
     "kind": "theorem",
     "tex_label": "prop:weak",
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 529
+    "line": 557
   },
   "helpers": [
     {
@@ -56,7 +56,7 @@
     {
       "name": "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 344,
+      "line": 372,
       "difficulty": 3,
       "deps": [],
       "mathlib_hints": [
@@ -72,7 +72,7 @@
     {
       "name": "Vlasov.diagonalCorrection_eq",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 384,
+      "line": 412,
       "difficulty": 1,
       "deps": [
         "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq"
@@ -90,7 +90,7 @@
     {
       "name": "Vlasov.diagonalCorrection_bound",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 462,
+      "line": 490,
       "difficulty": 2,
       "deps": [],
       "mathlib_hints": [
@@ -106,7 +106,7 @@
   ],
   "residual_glue": {
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 591,
+    "line": 619,
     "branch_label": "HasDerivAt (first ?_ branch of the refine combinator)",
     "composition": [
       "Vlasov.hasDerivAt_empiricalIntegral_sum",

@@ -318,7 +318,35 @@ lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
          @inner ℝ (PhysSpace d) _ (
            -(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else 0)
            (gradVφ (X t i, V t i)))) t := by
-  sorry
+  -- Construct φ's Fréchet derivative witness from smoothness.
+  have hφ_diff : Differentiable ℝ φ := hφ_smooth.differentiable (by norm_num)
+  have hφ_fderiv : ∀ z, HasFDerivAt φ (fderiv ℝ φ z) z := fun z =>
+    hφ_diff.differentiableAt.hasFDerivAt
+  -- The Newton-acceleration function, packaged for hasDerivAt_phi_along_trajectory.
+  let acc : ℝ → Fin N → PhysSpace d := fun s i =>
+    -(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X s i - X s j) else 0
+  -- Rewrite the integral via empiricalMeasure_integral_eq (per-time-slice).
+  have hint : ∀ s : ℝ, ∫ z, φ z ∂(empiricalMeasureCurve N X V s) =
+      (1 / (N : ℝ)) * ∑ i : Fin N, φ (X s i, V s i) := fun s => by
+    simp only [empiricalMeasureCurve]
+    exact empiricalMeasure_integral_eq N (X s) (V s) φ
+  simp_rw [hint]
+  -- Differentiate (1/N) * Σᵢ φ(Xₛᵢ, Vₛᵢ) wrt s.  Establish the per-particle
+  -- derivative via hasDerivAt_phi_along_trajectory (using `acc` for the
+  -- Newton acceleration), combine termwise via HasDerivAt.sum, then pull
+  -- the (1/N) constant out via HasDerivAt.const_mul.
+  have h_each : ∀ i : Fin N,
+      HasDerivAt (fun s : ℝ => φ (X s i, V s i))
+        (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) +
+         @inner ℝ (PhysSpace d) _ (acc t i) (gradVφ (X t i, V t i))) t := fun i =>
+    hasDerivAt_phi_along_trajectory N X V hSol.1 acc hSol.2 φ
+      (fderiv ℝ φ) hφ_fderiv gradXφ gradVφ hgradXφ hgradVφ t i
+  have h_sum : HasDerivAt (fun s : ℝ => ∑ i : Fin N, φ (X s i, V s i))
+      (∑ i : Fin N,
+        (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) +
+         @inner ℝ (PhysSpace d) _ (acc t i) (gradVφ (X t i, V t i)))) t :=
+    HasDerivAt.fun_sum (fun i _ => h_each i)
+  exact h_sum.const_mul (1 / (N : ℝ))
 
 /-- Convolution of the kernel `gradW` against the spatial marginal of the
 empirical measure unfolds to the explicit finite sum
