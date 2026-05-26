@@ -937,7 +937,23 @@ lemma convolveLipschitz_norm_le_of_inner_forall
     (z : PhysSpace d) (C : ℝ)
     (h : ∀ v : PhysSpace d, ‖v‖ ≤ 1 → @inner ℝ (PhysSpace d) _ z v ≤ C) :
     ‖z‖ ≤ C := by
-  sorry
+  by_cases hz : z = 0
+  · -- z = 0 case: ‖0‖ = 0 ≤ C follows from h 0 (which gives ⟨0, 0⟩ = 0 ≤ C).
+    rw [hz, norm_zero]
+    have h0 := h 0 (by simp)
+    simpa using h0
+  · -- z ≠ 0 case: take v = z/‖z‖, which is a unit vector.
+    have hz_pos : 0 < ‖z‖ := norm_pos_iff.mpr hz
+    set v : PhysSpace d := (‖z‖⁻¹) • z with hv_def
+    have hv_norm : ‖v‖ = 1 := by
+      rw [hv_def, norm_smul, Real.norm_eq_abs,
+          abs_of_pos (inv_pos.mpr hz_pos), inv_mul_cancel₀ hz_pos.ne']
+    -- ⟨z, v⟩ = ‖z‖⁻¹ * ⟨z, z⟩ = ‖z‖⁻¹ * ‖z‖² = ‖z‖
+    have h_inner : @inner ℝ (PhysSpace d) _ z v = ‖z‖ := by
+      rw [hv_def, real_inner_smul_right, real_inner_self_eq_norm_mul_norm]
+      field_simp
+    rw [← h_inner]
+    exact h v hv_norm.le
 
 -- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
 -- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
@@ -1008,7 +1024,12 @@ lemma wassersteinGronwallCoupling_gronwall_le
     (hderiv : ∀ s ∈ Set.Ico 0 T, ∀ r : ℝ, C * h s < r →
         ∃ᶠ z in nhdsWithin s (Set.Ioi s), (z - s)⁻¹ * (h z - h s) < r) :
     ∀ t ∈ Set.Icc 0 T, h t ≤ δ * Real.exp (C * t) := by
-  sorry
+  intro t ht
+  have key := le_gronwallBound_of_liminf_deriv_right_le
+    (f := h) (f' := fun s => C * h s)
+    (δ := δ) (K := C) (ε := 0) (a := 0) (b := T)
+    hcont hderiv hinit (fun _ _ => by linarith) t ht
+  rwa [sub_zero, gronwallBound_ε0] at key
 
 /-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
 MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
@@ -1029,7 +1050,15 @@ lemma wassersteinGronwallCoupling_real_bound
     (t : ℝ) (ht : 0 ≤ t) :
     (wasserstein1 (f t) (g t)).toReal ≤
       (wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t) := by
-  sorry
+  have key := wassersteinGronwallCoupling_gronwall_le
+    (fun s => (wasserstein1 (f s) (g s)).toReal)
+    (wasserstein1 (f 0) (g 0)).toReal C t ht
+    (MathlibTODO_wassersteinGronwallCoupling_W1ContOn
+      gradW L hL f g hf hg hf_prob hg_prob t ht)
+    (le_refl _)
+    (MathlibTODO_wassersteinGronwallCoupling_derivBound
+      gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht)
+  exact key t (Set.right_mem_Icc.mpr ht)
 
 /-- For reals δ ≥ 0 and C > 0 and t ≥ 0, if r ≤ δ * Real.exp(C * t) then
 ENNReal.ofReal r ≤ ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ.
@@ -1080,11 +1109,11 @@ theorem MathlibTODO_wassersteinGronwallCoupling
   sorry -- residual: apply wassersteinGronwallCoupling_ofReal_le directly
 
 /-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
-This provides the Dobrushin constant independently of whether L = 0.
-TODO(mathlib): `lt_max_of_lt_right` and `le_max_left` are the key order lemmas. -/
+This provides the Dobrushin constant independently of whether L = 0. -/
 lemma dobrushin_C_choice (L : NNReal) :
     ∃ C : ℝ, 0 < C ∧ (L : ℝ) ≤ C := by
-  sorry
+  refine ⟨max (L : ℝ) 1, ?_, le_max_left _ _⟩
+  exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
 
 /-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
 on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.
@@ -1097,8 +1126,8 @@ lemma convolveDiff_norm_le
     (ρ σ : Measure (PhysSpace d))
     (x : PhysSpace d) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
-      (L : ℝ) * (wasserstein1 ρ σ).toReal := by
-  sorry
+      (L : ℝ) * (wasserstein1 ρ σ).toReal :=
+  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x
 
 /-- For C > 0 and 0 ≤ s ≤ t, we have
 ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
@@ -1106,7 +1135,8 @@ This is the monotonicity of the exponential bound in time. -/
 lemma wasserstein1_ofReal_exp_monotone
     (C : ℝ) (hC : 0 < C) (s t : ℝ) (hs : 0 ≤ s) (hst : s ≤ t) :
     ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)) := by
-  sorry
+  apply ENNReal.ofReal_le_ofReal
+  exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)
 
 /-- Given MathlibTODO_wassersteinGronwallCoupling and C = max(L,1) > 0 with (L : ℝ) ≤ C,
 for any two Vlasov solutions f and g, for all t ≥ 0 we have
@@ -1127,8 +1157,9 @@ lemma dobrushin_ennreal_bound
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
     ∀ t : ℝ, 0 ≤ t →
       wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  sorry
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) :=
+  fun t ht =>
+    MathlibTODO_wassersteinGronwallCoupling gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht
 
 /-- Package the bound and positivity of C into the existential conclusion of dobrushin:
 ∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).
@@ -1147,7 +1178,9 @@ lemma dobrushin_package_exists
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  sorry
+  obtain ⟨C, hC, hCL⟩ := dobrushin_C_choice L
+  exact ⟨C, hC,
+    dobrushin_ennreal_bound W gradW hgradW L hL f g hf hg hf_prob hg_prob C hC hCL⟩
 
 /-- (tex: thm:dobrushin)
 Dobrushin's stability theorem (1979).
@@ -1180,9 +1213,7 @@ theorem dobrushin
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
   -- close via dobrushin_package_exists, which composes dobrushin_C_choice
   -- and dobrushin_ennreal_bound (which itself invokes MathlibTODO_wassersteinGronwallCoupling)
-  obtain ⟨C, hC, hbound⟩ :=
-    dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
-  sorry -- residual: package (C, hC, hbound) into the ∃ C witness
+  exact dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
 
 -- ---------------------------------------------------------------------------
 -- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)
