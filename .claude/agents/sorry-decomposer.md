@@ -146,10 +146,27 @@ count of dropped names per helper (not the names themselves — those
 were guesses; a dropped one is just signal that the LLM made a
 hallucination, not actionable for downstream review).
 
-If the grep returns **one or more matches**, keep the name as-is.
+If the grep returns **one or more matches**, keep the name —
+**but preserve any namespace qualifier**. If the matched
+declaration sits inside a `namespace X` block in the Mathlib
+source file, the user-facing name is `X.<lemma>`, NOT bare
+`<lemma>`. To check, read ~30 lines upward from the match line
+looking for an unclosed `namespace X` (terminating `end X` cancels
+it). Use the fully-qualified name in `mathlib_hints[]`.
+
+  Example: `grep` returns
+  `Mathlib/Algebra/Order/BigOperators/Group/Finset.lean:287:theorem abs_sum_le_sum_abs ...`.
+  Reading upward shows the file has `namespace Finset` near the
+  top and no matching `end Finset` before line 287. So the
+  user-facing name is `Finset.abs_sum_le_sum_abs`, not
+  `abs_sum_le_sum_abs`. Writing the bare name into `mathlib_hints[]`
+  produces an `Unknown identifier` error when the prover tries to
+  use the hint — observed in a 2026-05-25 sketch-author run where
+  `abs_sum_le_sum_abs` failed to resolve, costing a fast-path cycle.
+
 Optionally suffix `(MeasureTheory/Measure/Map.lean:127)` style
 file:line in the hint string so the prover can jump directly to the
-signature — but if that's awkward, keep just the name.
+signature — but if that's awkward, keep just the qualified name.
 
 Rationale: the failure mode where the prover spends iterations
 hunting for `Measure.map_finset_sum` (which doesn't exist; needs
@@ -157,6 +174,32 @@ Finset induction with `map_add`) ate three Vlasov prover cycles in
 the May 24-25 session. Pre-flight validation eliminates this class
 of failure at zero marginal cost (the decomposer already has `Bash`
 + greps Mathlib for other purposes).
+
+### Type-aware variant substitution
+
+After dropping unvalidated names, scan the remaining `mathlib_hints[]`
+for generic `inner_smul_left` / `inner_smul_right` entries. For each
+such entry, check whether the helper's stated goal uses `@inner ℝ ...`
+(grep the helper's signature for `@inner ℝ`).
+
+If YES, attempt to substitute the `real_*` variant:
+  inner_smul_left   →  real_inner_smul_left
+  inner_smul_right  →  real_inner_smul_right
+  (`inner_neg_left` / `inner_neg_right` work fine for ℝ, no swap needed;
+   `inner_sub_left` / `inner_add_left` likewise.)
+
+Validate the substitution with a grep against
+`.lake/packages/mathlib/Mathlib/Analysis/InnerProductSpace/Basic.lean`
+(where the `real_*` variants live, e.g. `real_inner_smul_left` at line
+108). If found, replace the generic name in the hints array.
+
+This eliminates the failure mode where the prover applies the generic
+lemma, gets a `starRingEnd ℝ` wrapper in the goal, and `ring` fails to
+close (the root cause of the `diagonalCorrection_eq` Step-5 failures in
+the May 25 session — see Pattern 2 in §3.1.6 below).
+
+The substitution applies ONLY to `inner_smul_*`; other `inner_*` lemmas
+work uniformly across 𝕜 and don't need ℝ-specialised variants.
 
 ### 3.1.6 Draft `proof_sketch` when confident (optional but recommended)
 
@@ -204,6 +247,100 @@ Helpers whose proofs require search, case analysis, or
 non-deterministic tactic choice (e.g., `interval_cases`, `decide`,
 heavy `aesop`) should NOT have a `proof_sketch` — the deterministic
 nature of the fast path makes it a poor fit for search-heavy proofs.
+
+### Common patterns for Lean proof_sketch authoring
+
+A catalogue of recurring goal-shapes and their proven-correct tactic
+recipes. When the helper you're authoring matches a pattern below,
+prefer the snippet to LLM-improvised tactic chains: each pattern was
+extracted from a real session failure mode, so reaching for the
+catalogue first avoids re-discovering the recipe across multiple
+prover cycles.
+
+**Pattern 1 — if-then-else lifting through Σ**
+
+- *Trigger*: helper's goal involves
+  `∑ j, if P j then f j else 0` where the proof needs to relate this
+  conditional sum to an unconditional sum (typically `Σ_{all j} f j`
+  minus the violating-P contribution).
+- *Recipe*: introduce an `hsub` lemma converting the `ite` to a
+  subtraction via `funext + by_cases`; apply `simp_rw [hsub]`; close
+  with `Finset.sum_sub_distrib + Finset.sum_ite_eq'` followed by
+  `simp` to collapse the trivial branch.
+- *Snippet*:
+
+```
+have hsub : ∀ j : <Index>, (if P j then f j else (0 : <T>))
+    = f j - (if not(P j) then f j else (0 : <T>)) := fun j => by
+  by_cases hj : P j <;> simp [hj]
+simp_rw [hsub]
+rw [Finset.sum_sub_distrib, Finset.sum_ite_eq' Finset.univ <pivot>]
+simp
+```
+
+(Origin: `diagonalCorrection_eq`'s `hext` step needed
+`Σ j, (if j ≠ i then gradW _ else 0) = Σ j, gradW _ − gradW 0`.
+The prover tried `Finset.sum_ite` directly across four cycles; none
+landed.)
+
+**Pattern 2 — `real_inner_*` over generic `inner_*` for ℝ-valued inner products**
+
+- *Trigger*: helper's goal contains `@inner ℝ _ _ _ _` (real-valued
+  inner product) AND any of `inner_smul_left`, `inner_smul_right` are
+  in `mathlib_hints`.
+- *Recipe*: prefer the `real_*` variant. Generic `inner_smul_left`
+  produces `r† * ⟨x, y⟩` with a `starRingEnd ℝ` wrapper that `ring`
+  can't see through; `real_inner_smul_left` drops the wrapper for the
+  ℝ case.
+- *Snippet*:
+
+```
+-- WRONG (for ℝ inner product):  rw [inner_smul_left]  → leaves starRingEnd
+-- RIGHT:                         rw [real_inner_smul_left]
+-- Available pairs (Mathlib Analysis/InnerProductSpace/Basic.lean:108, 118):
+--   inner_smul_left  ↔  real_inner_smul_left
+--   inner_smul_right ↔  real_inner_smul_right
+--   (negation / add / sub work uniformly across 𝕜 — no real_ variant needed)
+```
+
+(Origin: `diagonalCorrection_eq`'s `hlhs_i` Step-3 failed under
+generic `inner_smul_left` because `ring` couldn't reconcile
+`starRingEnd ℝ ((↑N)⁻¹)` against plain `(↑N)⁻¹`. §3.1.5 also
+auto-substitutes when it can detect the goal type; this catalogue
+entry is the human-readable backup for when auto-substitution misses
+or doesn't trigger.)
+
+**Pattern 3 — bidirectional `Finset.mul_sum`**
+
+- *Trigger*: proof needs both `c * Σ f → Σ (c * f)` (distribute) AND
+  `Σ (c * f) → c * Σ f` (recombine) — typically when one side of an
+  equation has constants outside the sum and the other has them
+  inside, and the proof must canonicalise both to the same form
+  before `ring`.
+- *Recipe*: include both directions in a `simp only` list. Forward
+  is `Finset.mul_sum`; reverse is `← Finset.mul_sum`. Then `ring`
+  closes the scalar identity over the resulting opaque-sum terms.
+- *Snippet*:
+
+```
+-- Both sides are Σ-of-scalars but with constants on different sides:
+simp only [mul_sub, Finset.sum_sub_distrib, ← Finset.mul_sum]
+ring
+-- Or, when direction differs per-side, use `conv` blocks:
+conv_lhs => rw [Finset.mul_sum]     -- distribute into LHS sum
+conv_rhs => rw [← Finset.mul_sum]   -- pull constant out of RHS sum
+```
+
+(Origin: `diagonalCorrection_eq`'s Step-5 finisher.  Forward-only
+`rw [Finset.mul_sum]` left the RHS in a shape `ring` couldn't bridge.)
+
+---
+
+When a new failure mode is observed in production, append a fourth
+pattern here rather than letting the prover re-discover the recipe
+across multiple cycles. The patterns catalogue is the durable
+artefact of session learnings — every entry should reference its
+"Origin" failure so future maintainers see why the pattern matters.
 
 ### 3.2 Write the JSON sidecar
 

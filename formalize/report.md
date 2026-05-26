@@ -5,23 +5,21 @@ Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/struc
 Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
 
 ## Build status
-
 - Result: success
-- Sorry warnings: 6
+- Sorry warnings: 5
 - Other warnings: 16
 - Errors: 0
 
 ## Coverage
-
 | Tex label | Kind | Lean declaration | Status |
 |-----------|------|------------------|--------|
 | eq:HN | equation | `hamiltonianN` | present |
 | eq:newton | equation | `IsNewtonSolution` | present |
 | ass:W | assumption | `class AssW` | present |
-| def:empirical | definition | `empiricalMeasure`, `empiricalMeasure_isProbabilityMeasure`, `empiricalMeasureCurve` | present |
+| def:empirical | definition | `empiricalMeasure`, `empiricalMeasureCurve`, `empiricalMeasure_isProbabilityMeasure` | present |
 | prop:weak | proposition | `weakEvolutionEmpiricalMeasure` | present-with-sorry |
 | eq:weak-eq | equation | `WeakEvolutionEq` | present |
-| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` | present-with-sorry |
+| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` | present |
 | eq:vlasov | equation | `IsVlasovSolution` | present |
 | thm:vlasov-wp | theorem | `vlasovWellPosedness` | present-with-sorry |
 | eq:char | equation | `IsCharacteristicFlow`, `IsCharacteristicFlowSelfConsistent`, `vlasovSolutionViaPushforward` | present |
@@ -29,25 +27,16 @@ Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.
 | eq:dobrushin | equation | `DobrushinStabilityEstimate` | present |
 | cor:mfl | corollary | `meanFieldLimit` | present |
 
-Status key: `present` = fully proved, `present-with-sorry` = declared and structurally correct but
-contains at least one `sorry`, `commented-out` = skipped with TODO comment, `missing` = no
-corresponding declaration found.
+Status key: `present` = fully proved (no sorry); `present-with-sorry` = declared and type-correct but one or more proof obligations remain as `sorry`.
 
-Summary: 13/13 outline items are present; 4 items contain at least one sorry.
+**Summary: 13/13 outline items present. 10/13 fully proved, 3/13 present-with-sorry.**
 
 ---
 
 ## Sorry inventory
 
 ### `weakEvolutionEmpiricalMeasure` (prop:weak, decomposed)
-
 Plan: `formalize/plans/weakEvolutionEmpiricalMeasure.json`
-
-This theorem was decomposed by the sorry-decomposer agent.  The helper graph
-shows 6 helpers plus a residual-glue sorry inside the parent's body.
-
-Helper statuses are read directly from the build's sorry-warning lines (not
-from any stored field in the plan):
 
 | # | Name | Line | Difficulty | Score | Deps | Status |
 |---|------|------|------------|-------|------|--------|
@@ -55,95 +44,84 @@ from any stored field in the plan):
 | 2 | `hasDerivAt_phi_along_trajectory` | 251 | 1 | 5 | (none) | proved |
 | 3 | `hasDerivAt_empiricalIntegral_sum` | 305 | 3 | 3 | empiricalMeasure_integral_eq, hasDerivAt_phi_along_trajectory | sorry |
 | 4 | `convolveFunctionMeasure_empiricalSpatial_eq` | 344 | 3 | 3 | (none) | proved |
-| 5 | `diagonalCorrection_eq` | 384 | 1 | 5 | convolveFunctionMeasure_empiricalSpatial_eq | sorry |
-| 6 | `diagonalCorrection_bound` | 415 | 2 | 4 | (none) | sorry |
+| 5 | `diagonalCorrection_eq` | 384 | 1 | 5 | convolveFunctionMeasure_empiricalSpatial_eq | proved |
+| 6 | `diagonalCorrection_bound` | 462 | 2 | 4 | (none) | sorry |
 
-`Score = 6 - Difficulty`; the residual glue row (below) gets a fixed Score = 4.
+Score = 6 − Difficulty. The residual glue row below gets a fixed Score = 4.
 
-Residual glue: line 510 (branch `HasDerivAt (first ?_ branch of the refine combinator)`);
-Score 4; composes [hasDerivAt_empiricalIntegral_sum, diagonalCorrection_eq].
-tactic_sketch present in plan.
+Residual glue: line 557 (branch `HasDerivAt (first ?_ branch of the refine combinator)`); Score 4;
+composes [hasDerivAt_empiricalIntegral_sum, diagonalCorrection_eq]. tactic_sketch present in plan.
 
-Because the residual glue is inside `weakEvolutionEmpiricalMeasure`'s body, the
-build reports its sorry at the parent declaration line (448) rather than line 510.
-The actual sorry is the first `?_` branch of the `refine` at line 510.
+---
 
-### Other (non-decomposed) sorries — flat table
+### Non-decomposed sorries (flat table)
 
 | Declaration | Line | Tex label | Notes |
 |-------------|------|-----------|-------|
-| `vlasovWellPosedness` | 638 | thm:vlasov-wp | Full existence-uniqueness for Vlasov; requires Mathlib API for `𝒫_1` and narrow continuity not yet stable |
-| `dobrushin` | 747 | thm:dobrushin | Dobrushin stability theorem; requires Wasserstein-1 contraction + Gronwall; placeholder `wasserstein1` used |
-
-Note: `empiricalMeasureSolvesVlasov` (cor:empirical-vlasov) and `meanFieldLimit` (cor:mfl) carry
-no *new* sorries — they depend on `weakEvolutionEmpiricalMeasure` and `dobrushin` respectively
-and propagate those sorries transitively, but their own proof bodies are complete (they close
-under sorry'd hypotheses).  The build reports sorry warnings for cor:mfl via propagation
-only; the meanFieldLimit proof body itself is fully written.
+| `vlasovWellPosedness` | 685 | thm:vlasov-wp | Full existence-and-uniqueness for Vlasov; requires Mathlib API for narrowly continuous measure-valued flows |
+| `dobrushin` | 794 | thm:dobrushin | Dobrushin stability theorem; requires Gronwall inequality + Wasserstein-1 coupling argument |
 
 ---
 
 ## Recommended next steps
 
-The recommendations below are ordered by ascending difficulty (Score descending), with
-ties broken by leaf-first (empty deps ahead of non-empty), then ascending line number.
-Helpers 1, 2, and 4 are already proved and are omitted.
+### Decomposed parent: `weakEvolutionEmpiricalMeasure` (prop:weak)
 
-### Decomposed parent: `weakEvolutionEmpiricalMeasure`
+Ordering: ascending Score (highest tractability first), ties broken by leaf-first then ascending
+line number. Residual glue (Score 4, with machine-executable `tactic_sketch`) ranks ahead of
+difficulty-2 helpers at the same score. Helpers 1, 2, 4, 5 are already `proved` and are omitted.
 
-**1. Discharge the residual glue at line 510 (effective difficulty 2, Score 4).**
-   The plan supplies a machine-executable `tactic_sketch`; the prover's fast path
-   may close it in one build cycle:
+1. **Discharge the residual glue at line 557** (Score 4) — has a machine-executable `tactic_sketch`
+   in the plan; the prover's fast path may close it in one build cycle.
 
-   ```
-   have hd := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ hφ_smooth
-     gradXφ gradVφ hgradXφ hgradVφ t
+   Sketch from plan:
+   ```lean
+   have hd := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t
    have heq := diagonalCorrection_eq N gradW X V gradVφ t
    rw [heq] at hd
    convert hd using 2
    ring
    ```
+   Note: both `hasDerivAt_empiricalIntegral_sum` (the dep) and `diagonalCorrection_eq` are
+   invoked only by name; the residual glue is independently attackable even while helper 3 is
+   still sorry.
 
-   This glue composes `hasDerivAt_empiricalIntegral_sum` (currently sorry'd at line 305)
-   and `diagonalCorrection_eq` (currently sorry'd at line 384).  In Lean, sorry'd names
-   are treated as opaque references, so the residual glue can be attempted independently
-   of the helper statuses — Lean will accept the glue tactic once the types match, even
-   if the dependencies are still sorry'd.
+2. **Discharge `diagonalCorrection_bound`** (difficulty 2, Score 4; no deps;
+   hints: `abs_inner_le_norm`, `Finset.abs_sum_le_sum_abs`, `Finset.sum_le_card_nsmul`,
+   `le_ciSup`, `Real.le_sSup`).
 
-**2. Discharge `diagonalCorrection_eq` (helper 5; difficulty 1, Score 5; no blocking deps
-   since `convolveFunctionMeasure_empiricalSpatial_eq` is already proved).**
-   The plan supplies a proof sketch:
-
+   The plan supplies a full `proof_sketch`:
+   ```lean
+   have h_supW : ‖gradW 0‖ ≤ ⨆ x, ‖gradW x‖ := le_ciSup hgradW_bdd 0
+   have h_supV : ∀ i : Fin N, ‖gradVφ (X t i, V t i)‖ ≤ ⨆ z, ‖gradVφ z‖ := fun i =>
+     le_ciSup hgradVφ_bdd (X t i, V t i)
+   have h_term : ∀ i : Fin N,
+       ‖@inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))‖ ≤
+         (⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖ := fun i =>
+     (abs_inner_le_norm _ _).trans
+       (mul_le_mul h_supW (h_supV i) (norm_nonneg _)
+         (le_trans (norm_nonneg _) h_supW))
+   have h_sum : |∑ i : Fin N, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|
+       ≤ N * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖) := by
+     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+     rw [show (N : ℝ) = (Finset.univ.card : ℝ) by simp [Finset.card_univ]]
+     exact Finset.sum_le_card_nsmul _ _ _ (fun i _ => h_term i) |>.trans_eq (by simp [nsmul_eq_mul])
+   have hN_pos : 0 < (N : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
+   rw [abs_mul, abs_of_nonneg (by positivity)]
+   calc (1 / (N : ℝ)^2) * |∑ i, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|
+       ≤ (1 / (N : ℝ)^2) * (N * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖)) :=
+           mul_le_mul_of_nonneg_left h_sum (by positivity)
+     _ = (1 / (N : ℝ)) * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖) := by field_simp; ring
+     _ = (1 / (N : ℝ)) * (⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖ := by ring
    ```
-   have hconv : ∀ i : Fin N,
-       convolveFunctionMeasure gradW
-           (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i) =
-         (1 / (N : ℝ)) • ∑ j : Fin N, gradW (X t i - X t j) := fun i =>
-     convolveFunctionMeasure_empiricalSpatial_eq N gradW hgradW_meas X V t i
-   simp_rw [hconv]
-   have hext : ∀ i : Fin N,
-       (∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))
-       = (∑ j : Fin N, gradW (X t i - X t j)) - gradW 0 := ...
-   simp_rw [hext, inner_sub_left, inner_smul_left]
-   ring
-   ```
 
-   Mathlib hints: `Finset.sum_ite_ne`, `Finset.sum_compl_add_sum`, `inner_sub_left`,
-   `inner_neg_left`, `inner_smul_left`.
+3. **Discharge `hasDerivAt_empiricalIntegral_sum`** (difficulty 3, Score 3; depends on
+   `empiricalMeasure_integral_eq` and `hasDerivAt_phi_along_trajectory` — both already proved,
+   so all deps are satisfied; independent attack-order applies in any case;
+   hints: `HasDerivAt.sum`, `HasDerivAt.const_smul`, `HasDerivAt.congr_deriv`).
 
-**3. Discharge `diagonalCorrection_bound` (helper 6; difficulty 2, Score 4; no deps).**
-   The plan supplies a proof sketch using Cauchy-Schwarz per summand and N counting.
-   Mathlib hints: `abs_inner_le_norm`, `Finset.abs_sum_le_sum_abs`,
-   `Finset.sum_le_card_nsmul`, `le_ciSup`, `Real.le_sSup`.
-
-   The `BddAbove` hypotheses are already threaded through as parameters; the key
-   calculation is `(1/N²) * N = 1/N` after `Finset.sum_le_card_nsmul`.
-
-**4. Discharge `hasDerivAt_empiricalIntegral_sum` (helper 3; difficulty 3, Score 3;
-   deps: helpers 1 and 2, both proved).**
-   The plan supplies a proof sketch:
-
-   ```
+   Plan `proof_sketch`:
+   ```lean
    have hφ_fderiv : ∀ z, HasFDerivAt φ (fderiv ℝ φ z) z := fun z =>
      (hφ_smooth.differentiable (by norm_num)).differentiableAt.hasFDerivAt
    simp_rw [fun s => empiricalMeasure_integral_eq N (X s) (V s) φ]
@@ -152,30 +130,31 @@ Helpers 1, 2, and 4 are already proved and are omitted.
      hasDerivAt_phi_along_trajectory N X V hSol.1 _ hSol.2 φ
        (fderiv ℝ φ) hφ_fderiv gradXφ gradVφ hgradXφ hgradVφ t i
    ```
-
-   Mathlib hints: `HasDerivAt.sum`, `HasDerivAt.const_smul`, `HasDerivAt.congr_deriv`.
-   Note: `hSol.1` and `hSol.2` split the conjunction in `IsNewtonSolution`; the proof
-   sketch omits `hgradW_meas` (it is not needed for this helper — measurability is only
-   needed by `diagonalCorrection_eq`).
+   Note: `simp_rw` with a function rewriting `s` may need `show` or `conv` adjustment if
+   Lean's elaborator cannot unify the `s` binder; try `fun s => show (1 / N) * ∑ i, φ ...`
+   as an intermediate step.
 
 ### Non-decomposed sorries
 
-**5. Discharge `vlasovWellPosedness` (thm:vlasov-wp; difficulty: high).**
-   Full measure-valued well-posedness for the nonlinear Vlasov equation requires a
-   Picard iteration or a fixed-point argument in the space of narrowly continuous
-   probability-measure curves.  The Mathlib API for Wasserstein / narrow topology is
-   still developing.  Suggested approach: prove existence via the characteristic-flow
-   fixed-point construction encoded in `IsCharacteristicFlow` +
-   `IsCharacteristicFlowSelfConsistent`; use the Dobrushin estimate for uniqueness.
-   This is a major formalization effort; decompose further before attempting.
+4. **`vlasovWellPosedness`** (thm:vlasov-wp, line 685, Score 1 / very hard) —
+   Requires constructing a unique narrowly-continuous measure-valued solution to a
+   nonlinear transport equation. The standard approach (via Dobrushin/characteristic
+   flow + Banach fixed-point in W_1) is self-referential with `dobrushin` below.
+   Mathlib does not yet have a narrowly-continuous flow theorem in this generality.
+   Recommended approach: introduce an `IsNarrowlyContinuous` predicate (or use
+   `MeasureTheory.ProbabilityMeasure` topology), then assert existence via sorry-stubbing
+   a Picard iteration; uniqueness follows from `dobrushin` once that is proved.
+   This sorry is high-difficulty and likely requires new Mathlib API.
 
-**6. Discharge `dobrushin` (thm:dobrushin; difficulty: high).**
-   The Dobrushin 1979 stability theorem requires:
-   - A Gronwall lemma applied to `d/dt W_1(f_t, g_t) ≤ C · W_1(f_t, g_t)`.
-   - The key estimate `‖∇W * ρ − ∇W * σ‖_∞ ≤ L · W_1(ρ, σ)` (Lipschitz
-     continuity of the convolution operator in Wasserstein distance).
-   - Coupling of two characteristic flows and tracking their separation.
-   The local `wasserstein1` definition (KR dual formula, ENNReal-valued) may need
-   lemmas establishing its basic properties (triangle inequality, symmetry, etc.)
-   before the main estimate can be stated and proved.  Consider decomposing this
-   theorem into sub-helpers before attacking it directly.
+5. **`dobrushin`** (thm:dobrushin, line 794, Score 1 / very hard) —
+   The Dobrushin exponential stability estimate. Requires:
+   (a) A Gronwall inequality for measure-valued flows (available in Mathlib as
+   `gronwall_bound` for scalar ODEs; the measure version is non-trivial);
+   (b) The key Lipschitz estimate `‖∇W * ρ − ∇W * σ‖_∞ ≤ L · W_1(ρ, σ)` (provable
+   from `LipschitzWith L gradW` and the Kantorovich–Rubinstein duality);
+   (c) The coupling argument via characteristic flows (requires `IsCharacteristicFlow`
+   and `IsCharacteristicFlowSelfConsistent` instances).
+   Suggested first step: prove the key Lipschitz estimate for the convolution as a
+   standalone lemma, then connect it to the Gronwall framework.
+   Mathlib hints: `MeasureTheory.Measure.lipschitz_convolution_of_lipschitz`,
+   `gronwall_bound`, `ENNReal.ofReal_le_ofReal`, `Real.exp_le_exp`.

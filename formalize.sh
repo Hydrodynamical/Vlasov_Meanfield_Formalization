@@ -72,12 +72,28 @@ while [ $# -gt 0 ]; do
       DECOMPOSE_TARGET="${1#*=}"; DECOMPOSE_MODE="explicit"
       STAGES="decompose"; shift
       ;;
+    --sketch)
+      # `--sketch <helper-name>` — author/refresh proof_sketch for ONE helper.
+      # The helper name is mandatory; we resolve it to the plan JSON via grep.
+      if [ $# -ge 2 ] && [[ ! "$2" =~ ^- ]]; then
+        SKETCH_TARGET="$2"; shift 2
+      else
+        echo "ERROR: --sketch requires a helper name (e.g. Vlasov.diagonalCorrection_bound)" >&2
+        exit 1
+      fi
+      STAGES="sketch"
+      ;;
+    --sketch=*)
+      SKETCH_TARGET="${1#*=}"
+      STAGES="sketch"; shift
+      ;;
     -h|--help)
       cat <<EOF
 Usage: ./formalize.sh [--stage all|0|1|2|3|4] [--clean]
        ./formalize.sh --prove-next [N]
        ./formalize.sh --prove-easiest [N]
        ./formalize.sh --decompose [target]
+       ./formalize.sh --sketch <helper-name>
 
   --stage N            Run only stage N (default: all). Comma-separate for
                        multiple.
@@ -100,6 +116,15 @@ Usage: ./formalize.sh [--stage all|0|1|2|3|4] [--clean]
                        report is picked. Auto-runs verifier afterward to
                        refresh report.md. Use BEFORE --prove-next when the
                        top recommendation is too big to attempt directly.
+  --sketch <helper>    Draft (or refresh) the 'proof_sketch' field of ONE
+                       helper in formalize/plans/*.json. Reads the helper's
+                       Lean signature, grep-validates mathlib_hints, applies
+                       any matching patterns from sorry-decomposer.md
+                       section 3.1.6, writes a multi-line tactic block back
+                       into the plan JSON. Does NOT edit the Lean file.
+                       <helper> is the fully-qualified helper name (e.g.
+                       Vlasov.diagonalCorrection_bound) and must already
+                       appear in some plan's helpers[].
   -h, --help           Show this message.
 
 Prerequisites:
@@ -422,6 +447,57 @@ editing and revert on failure." \
   report:       ${REPORT}
 
 Follow your system prompt exactly. Read-only on source files."
+fi
+
+# ---- sketch cycle: sketch-author writes one helper's proof_sketch -----------
+
+if [ "${STAGES}" = "sketch" ]; then
+  echo
+  echo "=== sketch (target: ${SKETCH_TARGET}) ==="
+
+  # Resolve the helper to its plan file via a quick grep across plans/.
+  # `|| true` neutralises set -e + pipefail when grep finds no match (which
+  # is the very case we want the explicit -z check below to handle).
+  PLAN_FILE=$(grep -l "\"name\": \"${SKETCH_TARGET}\"" "${ROOT}/formalize/plans/"*.json 2>/dev/null | head -1 || true)
+  if [ -z "${PLAN_FILE}" ]; then
+    echo "ERROR: helper '${SKETCH_TARGET}' not found in any plan under ${ROOT}/formalize/plans/" >&2
+    echo "       (search pattern: \"name\": \"${SKETCH_TARGET}\")" >&2
+    exit 1
+  fi
+
+  local_log="${LOGS}/sketch-author-$(date +%Y%m%d-%H%M%S).md"
+
+  # Timeout 600s + effort=low: sketch authoring is bounded (one helper, no
+  # Lean iteration), but a 300s budget proved tight in the first run when
+  # the agent went into exploratory Mathlib grep mode. `effort=low`
+  # discourages long extended-thinking phases (same rationale as the prover
+  # — forces tool-call cadence over deliberation). No safety net needed:
+  # the agent only edits the plan JSON (validated via jq in its §5).
+  delegate sketch-author "sketch-author.log" \
+"Draft (or refresh) the proof_sketch for one helper.
+
+  project root:    ${PROJECT}
+  lean file:       ${LEAN_FILE}
+  plan JSON:       ${PLAN_FILE}
+  helper name:     ${SKETCH_TARGET}
+  attempt log:     ${local_log}
+
+Follow your system prompt exactly.  Single-responsibility: read the
+helper's signature in the Lean file, grep-validate the existing
+mathlib_hints (do NOT search Mathlib for additional names), consult
+the patterns catalogue in sorry-decomposer.md §3.1.6, draft a
+proof_sketch from those validated hints + boilerplate, write it
+back to the plan JSON.  Do NOT edit the Lean file.  If the
+validated hints are insufficient to author a confident sketch,
+exit cleanly with result=skipped (a bad sketch is worse than no
+sketch)." \
+    600 low
+
+  echo
+  echo "Sketch authoring finished."
+  echo "  Plan file:  ${PLAN_FILE}"
+  echo "  Agent log:  ${LOGS}/sketch-author.log"
+  echo "  Attempt:    ${local_log}"
 fi
 
 echo

@@ -210,6 +210,20 @@ which is the only signal that tells you whether you're on track. A
 previous run failed exactly this way: 40 minutes of model thinking, zero
 builds, ~200 lines of broken proof attempt that had to be reverted.
 
+**Lean idiom catalogue**: when iterating on a helper, before reaching
+for raw `simp` / `ring` / `nlinarith` on a stuck goal, consult the
+patterns catalogue in `.claude/agents/sorry-decomposer.md §3.1.6`
+("Common patterns for Lean proof_sketch authoring"). The same
+patterns that help the decomposer DRAFT sketches also help the
+prover RECOGNISE goal-shapes and pick the right tactic chain.
+Pattern triggers map directly to common §4.1 stuck-states — e.g.
+`ring` failing on a goal that contains `@inner ℝ ...` is almost
+always Pattern 2 (you applied generic `inner_smul_left` instead of
+`real_inner_smul_left`, and the `starRingEnd ℝ` wrapper blocks
+`ring`). The catalogue is updated each time a new failure mode
+surfaces, so it is the most current record of "things that ate
+prover cycles in the past".
+
 If you find yourself wanting to write more than ~3 lines of tactics in
 one go, instead introduce a sequence of `have h_n : <goal_type> := by sorry`
 placeholders for each intermediate goal, build to confirm the skeleton
