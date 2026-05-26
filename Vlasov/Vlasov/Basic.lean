@@ -976,7 +976,7 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
     (δ : ℝ) (hδ : 0 ≤ δ) (C t : ℝ) :
     ENNReal.ofReal (δ * Real.exp (C * t)) =
       ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
-  sorry
+  rw [ENNReal.ofReal_mul hδ, mul_comm]
 
 /-- Lift the real-valued Gronwall bound to ENNReal:
 wasserstein1 (f t) (g t) ≤ ENNReal.ofReal(Real.exp(C * t)) * wasserstein1 (f 0) (g 0).

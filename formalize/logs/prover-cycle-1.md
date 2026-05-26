@@ -139,3 +139,44 @@ Selected `hasDerivAt_phi_along_trajectory` (score 5, leaf, no deps). `diagonalCo
 - iteration 2: `rw [← hpX.hasGradientAt.fderiv_apply]` failed (gradient form mismatch — `hasGradientAt` needs derivative in `toDual` form)
 - iteration 3: `rw [inner_gradient_right ...]` + `simp [conj_trivial]` succeeded for the inner product steps; final `simp [map_add]` failed
 - iteration 4: replaced with `rw [← map_add]; simp [Prod.mk_add_mk]` — succeeded
+## 2026-05-25T00:00:00Z · wassersteinGronwallCoupling_ennreal_mul_comm · Vlasov.wassersteinGronwallCoupling_ennreal_mul_comm
+
+**Result:** success
+**Iterations:** 2/8 (1 fast-path attempt + 1 iteration)
+**Sorry count:** 12 → 11
+
+### Candidate table
+
+| Sorry (decl name) | Plan | Difficulty | Score | Source | Sketch? |
+|-------------------|------|-----------|-------|--------|---------|
+| `wassersteinGronwallCoupling_ennreal_mul_comm` | MathlibTODO_wassersteinGronwallCoupling.json | 1 | 5 | plan-aware | Y |
+| `wasserstein1_ofReal_exp_monotone` | dobrushin.json | 1 | 5 | plan-aware | Y |
+| `wassersteinGronwallCoupling_gronwall_le` | MathlibTODO_wassersteinGronwallCoupling.json | 2 | 4 | plan-aware | N |
+| `wassersteinGronwallCoupling_ofReal_le` | MathlibTODO_wassersteinGronwallCoupling.json | 2 | 4 | plan-aware | N |
+| `dobrushin_C_choice` | dobrushin.json | 2 | 4 | plan-aware | N |
+| `dobrushin_package_exists` | dobrushin.json | 2 | 4 | plan-aware | Y |
+| MathlibTODO_wassersteinGronwallCoupling residual | MathlibTODO_wassersteinGronwallCoupling.json | - | 4 | plan-aware-residual | Y |
+| dobrushin residual | dobrushin.json | - | 4 | plan-aware-residual | Y |
+| `wassersteinGronwallCoupling_real_bound` | MathlibTODO_wassersteinGronwallCoupling.json | 3 | 3 | plan-aware | N |
+| `convolveDiff_norm_le` | dobrushin.json | 4 | 2 | plan-aware | N |
+| `dobrushin_ennreal_bound` | dobrushin.json | 4 | 2 | plan-aware | N |
+| `vlasovWellPosedness` | (none) | - | 1 | rubric | N |
+
+Top pick: `wassersteinGronwallCoupling_ennreal_mul_comm` (Score 5, Sketch Y, line 975).
+
+### Final proof
+
+```lean
+lemma wassersteinGronwallCoupling_ennreal_mul_comm
+    (δ : ℝ) (hδ : 0 ≤ δ) (C t : ℝ) :
+    ENNReal.ofReal (δ * Real.exp (C * t)) =
+      ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
+  rw [ENNReal.ofReal_mul hδ, mul_comm]
+```
+
+### Lookup trail
+- `ENNReal.ofReal_mul` — `.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:297`
+
+### What didn't work
+- fast path: sketch had `mul_comm` as last line as a term, not a tactic — Lean reports "unknown tactic". Reverted.
+- iteration 1: `rw [ENNReal.ofReal_mul hδ, mul_comm]` — SUCCESS
