@@ -892,7 +892,73 @@ lemma wasserstein1_lt_top_of_finite_moment
     (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrable (fun y => ‖y‖) ν) :
     wasserstein1 μ ν < ⊤ := by
-  sorry
+  -- Bound: sup over 1-Lip φ of ∫φd(μ-ν) ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, which is finite.
+  set M : ℝ := ∫ y, ‖y‖ ∂μ + ∫ y, ‖y‖ ∂ν with hM_def
+  suffices h : wasserstein1 μ ν ≤ ENNReal.ofReal M from
+    h.trans_lt ENNReal.ofReal_lt_top
+  refine iSup_le fun φ => iSup_le fun hφ => ?_
+  apply ENNReal.ofReal_le_ofReal
+  -- Pointwise: |φ y - φ 0| ≤ ‖y‖ (1-Lipschitz)
+  have hψ_bound : ∀ y, |φ y - φ 0| ≤ ‖y‖ := fun y => by
+    have h_lip := hφ.dist_le_mul y 0
+    rw [Real.dist_eq, dist_zero_right, NNReal.coe_one, one_mul] at h_lip
+    exact h_lip
+  -- φ is integrable on both μ and ν (bounded a.e. by integrable |φ 0| + ‖y‖)
+  have hφ_cont : Continuous φ := hφ.continuous
+  have hφ_meas_μ : AEStronglyMeasurable φ μ := hφ_cont.aestronglyMeasurable
+  have hφ_meas_ν : AEStronglyMeasurable φ ν := hφ_cont.aestronglyMeasurable
+  have h_bound_abs : ∀ y, |φ y| ≤ |φ 0| + ‖y‖ := fun y => by
+    calc |φ y| = |(φ y - φ 0) + φ 0| := by ring_nf
+      _ ≤ |φ y - φ 0| + |φ 0| := abs_add_le _ _
+      _ ≤ ‖y‖ + |φ 0| := by linarith [hψ_bound y]
+      _ = |φ 0| + ‖y‖ := by ring
+  have h_dom_μ : Integrable (fun y => |φ 0| + ‖y‖) μ :=
+    (integrable_const _).add hμ
+  have h_dom_ν : Integrable (fun y => |φ 0| + ‖y‖) ν :=
+    (integrable_const _).add hν
+  have hφ_int_μ : Integrable φ μ :=
+    h_dom_μ.mono hφ_meas_μ (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) (norm_nonneg _))]
+      exact h_bound_abs y)
+  have hφ_int_ν : Integrable φ ν :=
+    h_dom_ν.mono hφ_meas_ν (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) (norm_nonneg _))]
+      exact h_bound_abs y)
+  -- ∫(φ y - φ 0) dμ = ∫φ dμ - φ 0  (since μ is a probability measure)
+  have h_int_μ_const : ∫ _ : E, φ 0 ∂μ = φ 0 := by
+    simp [integral_const, measure_univ]
+  have h_int_ν_const : ∫ _ : E, φ 0 ∂ν = φ 0 := by
+    simp [integral_const, measure_univ]
+  have h_int_μ_sub : ∫ y, (φ y - φ 0) ∂μ = ∫ y, φ y ∂μ - φ 0 := by
+    rw [integral_sub hφ_int_μ (integrable_const _), h_int_μ_const]
+  have h_int_ν_sub : ∫ y, (φ y - φ 0) ∂ν = ∫ y, φ y ∂ν - φ 0 := by
+    rw [integral_sub hφ_int_ν (integrable_const _), h_int_ν_const]
+  -- ∫φ dμ - ∫φ dν = ∫(φ - φ 0)dμ - ∫(φ - φ 0)dν  (constants cancel)
+  have h_diff_eq : ∫ y, φ y ∂μ - ∫ y, φ y ∂ν =
+      ∫ y, (φ y - φ 0) ∂μ - ∫ y, (φ y - φ 0) ∂ν := by
+    rw [h_int_μ_sub, h_int_ν_sub]; ring
+  rw [h_diff_eq]
+  -- Bound each side: ∫(φ-φ 0)dμ ≤ ∫‖y‖dμ and -∫(φ-φ 0)dν ≤ ∫‖y‖dν
+  have hψ_int_μ : Integrable (fun y => φ y - φ 0) μ :=
+    hφ_int_μ.sub (integrable_const _)
+  have hψ_int_ν : Integrable (fun y => φ y - φ 0) ν :=
+    hφ_int_ν.sub (integrable_const _)
+  have h_bound_μ : ∫ y, (φ y - φ 0) ∂μ ≤ ∫ y, ‖y‖ ∂μ := by
+    calc ∫ y, (φ y - φ 0) ∂μ
+        ≤ ∫ y, |φ y - φ 0| ∂μ :=
+          integral_mono_ae hψ_int_μ hψ_int_μ.abs (Filter.Eventually.of_forall fun _ => le_abs_self _)
+      _ ≤ ∫ y, ‖y‖ ∂μ :=
+          integral_mono_ae hψ_int_μ.abs hμ (Filter.Eventually.of_forall hψ_bound)
+  have h_bound_ν : -∫ y, (φ y - φ 0) ∂ν ≤ ∫ y, ‖y‖ ∂ν := by
+    rw [← integral_neg]
+    calc ∫ y, -(φ y - φ 0) ∂ν
+        ≤ ∫ y, |φ y - φ 0| ∂ν :=
+          integral_mono_ae hψ_int_ν.neg hψ_int_ν.abs (Filter.Eventually.of_forall fun y => neg_le_abs _)
+      _ ≤ ∫ y, ‖y‖ ∂ν :=
+          integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
+  linarith
 
 /-- Convenience corollary: under the same hypotheses, `wasserstein1 μ ν ≠ ⊤`. -/
 lemma wasserstein1_ne_top_of_finite_moment
