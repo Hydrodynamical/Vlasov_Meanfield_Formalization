@@ -1,9 +1,9 @@
 [system] init
-[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch the agent with the specified parameters.
+[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch that agent with the appropriate parameters.
 [Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779708600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779703200,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779755400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779754200,"isUsingOverage":false}
 [Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
@@ -30,30 +30,13 @@ consider restructuring your `variable` declarations so that the variables are no
      9→open scoped BigOperato
 [Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/","description":"List plan sidecar files"}
 → weakEvolutionEmpiricalMeasure.json
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read the decomposition plan JSON for weakEvolutionEmpiricalMeasure"}
-→ {
-  "schema_version": 1,
-  "generated_at": "2026-05-25T00:00:00Z",
-  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalCorrect
-[Bash] {"command":"grep -n \"sorry\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Find all sorry occurrences with line numbers"}
-→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
-221:/-! Decomposed by sorry-decomposer.
-321:  sorry
-351:  sorry
-379:  sorry
-403:  sorry
-481:    sorry
-625:  sorry
-734:  sorry
-800:  -- Skeleton from sorry-prover; finished manually.
-[Bash] {"command":"grep -c \"^warning:\" /dev/null; echo \"non-sorry warnings from build:\"; cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^warning:\" | grep -v \"uses \\`sorry\\`\" | wc -l","description":"Count non-sorry warnings from build","timeout":300000}
-→ 0
-non-sorry warnings from build:
-      14
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^warning:\" | grep \"uses \\`sorry\\`\" | wc -l","description":"Count sorry warnings","timeout":300000}
-→        7
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json"}
+→      1→{
+     2→  "schema_version": 1,
+     3→  "generated_at": "2026-05-25T00:00:00Z",
+     4→  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure alge
 [Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-25\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
-→ Report written successfully.
+→ 
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
@@ -63,26 +46,26 @@ non-sorry warnings from build:
      6→
      7→## Build status
      8
-→ [{"type":"text","text":"The report is written and verified. Here is a summary of what was found.\n\n---\n\n**Summary of findings**\n\n**Report written to:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`\n\n**Build:** `success` (8250 jobs), 7 sorry warnings, 14 other warnings
+[rate-limit] {"status":"allowed","resetsAt":1779755400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779754800,"isUsingOverage":false}
+→ [{"type":"text","text":"The report is written correctly. Here is a summary of findings:\n\n---\n\n**verified: 13/13 items present, build: success**\n\nThe report was written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`. Key findings:\n\n**Build:** success, 0 errors, 6 so
 The verifier completed successfully. Here's the summary:
 
-**Build:** Success (8250 jobs, 0 errors, 7 sorry warnings)
+**Build:** ✓ success, 0 errors, 6 sorry warnings
 
-**Coverage: 13/13 outline items formalized**
+**Coverage: 13/13 outline items covered**
+- 9 items fully proved
+- 4 items present with sorries (`prop:weak`, `cor:empirical-vlasov`, `thm:vlasov-wp`, `thm:dobrushin`)
+- 0 missing
 
-| Status | Items |
-|--------|-------|
-| Fully proved | 8 items (definitions, basic lemmas, mean-field limit) |
-| Sorry remaining | 4 items |
+**6 remaining sorries:**
+1. `hasDerivAt_empiricalIntegral_sum` (line 305, difficulty 3) — helper lemma
+2. `diagonalCorrection_eq` (line 384, difficulty 1) — helper lemma, fully scripted
+3. `diagonalCorrection_bound` (line 415, difficulty 2) — helper lemma, fully scripted
+4. Residual glue (line 510) — tactic sketch available in plan
+5. `vlasovWellPosedness` (line 638) — needs substantial Mathlib infrastructure
+6. `dobrushin` (line 747) — needs substantial Mathlib infrastructure
 
-**Remaining sorries:**
-- `weakEvolutionEmpiricalMeasure` (decomposed): 4 helpers + residual glue still sorry'd
-- `empiricalMeasureSolvesVlasov`: calls the sorry'd parent
-- `vlasovWellPosedness` (line 625): single top-level sorry
-- `dobrushin` (line 734): single top-level sorry
+**Recommended attack order:** residual glue → `diagonalCorrection_eq` → `diagonalCorrection_bound` → `hasDerivAt_empiricalIntegral_sum` → decompose `vlasovWellPosedness`/`dobrushin`.
 
-**Recommended next steps** (per the updated `formalize/report.md`):
-1. Discharge the residual glue at line 481 using the tactic sketch in the plan
-2. Tackle `diagonalCorrection_bound` (no dependencies, pure estimation)
-3. Then address `hasDerivAt_empiricalIntegral_sum` and `convolveFunctionMeasure_empiricalSpatial_eq`
-[result] success duration=140220ms cost=$0.5493662500000001
+Report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+[result] success duration=107489ms cost=$0.5634550000000002

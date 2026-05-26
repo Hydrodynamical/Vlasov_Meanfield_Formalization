@@ -85,15 +85,20 @@ the resulting rank. The table is mandatory — it is the audit trail
 for the choice. Example:
 
 ```
-| Sorry (decl name) | Plan | Difficulty | Score | Source |
-|-------------------|------|-----------|-------|--------|
-| hasDerivAt_phi_along_trajectory | weakEvolutionEmpiricalMeasure.json | 3 | 3 | plan-aware |
-| diagonalCorrection_eq | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware |
-| diagonalCorrection_bound | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware |
-| weakEvolutionEmpiricalMeasure (residual) | weakEvolutionEmpiricalMeasure.json | — | 4 | plan-aware-residual |
-| vlasovWellPosedness | (none) | — | 1 | rubric |
-| dobrushin | (none) | — | 1 | rubric |
+| Sorry (decl name) | Plan | Difficulty | Score | Source | Sketch? |
+|-------------------|------|-----------|-------|--------|---------|
+| hasDerivAt_phi_along_trajectory | weakEvolutionEmpiricalMeasure.json | 3 | 3 | plan-aware | N |
+| diagonalCorrection_eq | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware | Y |
+| diagonalCorrection_bound | weakEvolutionEmpiricalMeasure.json | 2 | 4 | plan-aware | Y |
+| weakEvolutionEmpiricalMeasure (residual) | weakEvolutionEmpiricalMeasure.json | — | 4 | plan-aware-residual | Y |
+| vlasovWellPosedness | (none) | — | 1 | rubric | N |
+| dobrushin | (none) | — | 1 | rubric | N |
 ```
+
+The `Sketch?` column is `Y` when the plan supplies a non-empty
+`proof_sketch` (for helpers) or `tactic_sketch` (for residual_glue).
+A `Y` sketch triggers the §4.−1 sketch fast-path before normal
+iteration; an `N` sketch goes straight to §4.0.
 
 Build the table by:
 1. Run `cd <project root> && lake build 2>&1 | grep -E 'declaration uses .sorry.'`
@@ -101,18 +106,25 @@ Build the table by:
    line, identify the enclosing declaration name (Read ~5 lines of
    context around the line).
 2. For each declaration, look it up in the plan map you built above:
-   - `helpers[]` match → `Source = plan-aware`, `Score = 6 − difficulty`.
+   - `helpers[]` match → `Source = plan-aware`, `Score = 6 − difficulty`,
+     `Sketch = Y` iff that helper's `proof_sketch` field is present
+     and non-empty.
    - `residual_glue` match (declaration is a plan's `parent.name` AND
      the sorry's line matches `residual_glue.line`) → `Source =
-     plan-aware-residual`, `Score = 4`.
-   - No match → `Source = rubric`, score via the 5-criterion rubric below.
+     plan-aware-residual`, `Score = 4`, `Sketch = Y` iff
+     `residual_glue.tactic_sketch` is present and non-empty.
+   - No match → `Source = rubric`, score via the 5-criterion rubric
+     below, `Sketch = N` (rubric-scored sorries never have sketches).
 3. Sort the rows by descending Score; tie-break order:
    1. `plan-aware-residual` ahead of `plan-aware` ahead of `rubric`
       (the residual has a `tactic_sketch` fast path that closes in
       one edit + one build when it works).
-   2. Within `plan-aware` helpers, prefer empty `deps[]` (leaf)
-      ahead of non-empty.
-   3. Within any remaining tie, ascending line number.
+   2. Within `plan-aware` helpers, prefer `Sketch = Y` ahead of
+      `Sketch = N` (sketch-having helpers can also exercise the
+      §4.−1 fast path).
+   3. Within `plan-aware` helpers tied on sketch presence, prefer
+      empty `deps[]` (leaf) ahead of non-empty.
+   4. Within any remaining tie, ascending line number.
 4. Pick row #1 (the top after sort).
 
 **Do NOT short-circuit to `top-recommendation` based on report.md**.
@@ -155,8 +167,14 @@ also Read the sidecar JSON file. The plan provides:
 - `one_line_math`: the mathematical content the helper is supposed to
   capture.
 - For residual_glue targets: `strategy` (free-form prose) and
-  `tactic_sketch` (machine-executable tactic block; used by the §4
-  fast path).
+  `tactic_sketch` (machine-executable tactic block; used by the
+  §4.−1 fast path).
+- For helper targets: optional `proof_sketch` field
+  (machine-executable tactic block; used by the §4.−1 fast path in
+  exactly the same way `tactic_sketch` is used for residuals).
+  Absent ⇒ no fast path for this helper; the prover goes straight to
+  §4.0 iteration. Present ⇒ try verbatim in one Edit before falling
+  back to iteration on failure.
 
 This plan content is metadata you can use as context — but it isn't
 authoritative. If a Mathlib hint turns out to be a phantom lemma name,
@@ -197,21 +215,30 @@ one go, instead introduce a sequence of `have h_n : <goal_type> := by sorry`
 placeholders for each intermediate goal, build to confirm the skeleton
 typechecks, then attack one `have` per subsequent iteration.
 
-### 4.−1  Residual-glue fast path (only if applicable)
+### 4.−1  Sketch fast path (only if applicable)
 
-If the target is a `residual_glue` per a plan file (per §0's
-plan-aware lookup) AND the plan's `residual_glue.tactic_sketch` field
-is non-empty:
+If the target's §0 candidate-table row has `Sketch = Y` — that is, the
+plan supplies one of:
+- `residual_glue.tactic_sketch` (when the target is a parent's
+  residual glue line), OR
+- `helpers[i].proof_sketch` (when the target is a plan helper) — a
+  helper-level sketch field analogous to `tactic_sketch`, holding the
+  decomposer's best-guess machine-executable proof body for that
+  helper
 
-1. Use ONE `Edit` call to replace the residual `sorry` with the
-   literal contents of `tactic_sketch` (preserve newlines and
+then trigger the fast path. Call the chosen field `<sketch>` in
+what follows; the semantics are identical regardless of source.
+
+1. Use ONE `Edit` call to replace the target `sorry` with the
+   literal contents of `<sketch>` (preserve newlines and
    indentation exactly; do not paraphrase or improvise).
 2. Run `cd <project root> && lake build 2>&1 | tail -60`.
 3. Classify the build outcome by exactly two cases (no third option):
    - **SUCCESS** = build exits 0 AND the target's `sorry` warning is
      gone AND no new `sorry` warnings appeared elsewhere. Log
-     "fast path closed via plan's tactic_sketch" and skip to §5.
-     Genuine speedup: 1 edit + 1 build instead of up to 8 iterations.
+     "fast path closed via plan's `<sketch-field-name>`" (name the
+     specific field that fired) and skip to §5. Genuine speedup:
+     1 edit + 1 build instead of up to 8 iterations.
    - **FAILURE** = anything else. This includes `error:` lines,
      missing-required-tactic warnings, the target `sorry` warning
      still on its line, or new `sorry` warnings on lines that didn't
@@ -239,18 +266,17 @@ is non-empty:
    already exited the fast path — revert first, then attack the
    problem from §4.0 with a clean slate.
 5. After a successful revert, enter §4.0 with the target sorry
-   restored. The plan's `composition`, `strategy`,
-   `tactic_sketch`, and `mathlib_hints` remain available as
-   **context** for your normal iteration — but treat the sketch as
-   "the decomposer's first guess that didn't work", not as a
-   skeleton to repair edit-by-edit. The shape of the right proof
-   may be entirely different.
+   restored. The plan's `composition`, `strategy`, `<sketch>`, and
+   `mathlib_hints` remain available as **context** for your normal
+   iteration — but treat the sketch as "the decomposer's first guess
+   that didn't work", not as a skeleton to repair edit-by-edit. The
+   shape of the right proof may be entirely different.
 
 If the plan has only the free-form `strategy` field but no
-`tactic_sketch`, skip the fast path entirely (no LLM-translation
-attempt) and go straight to §4.0. The fast path is only "fast" if
-it's machine-executable; translating prose to tactics belongs in the
-regular iteration loop.
+`<sketch>` (i.e., `Sketch = N` in the §0 table), skip the fast path
+entirely (no LLM-translation attempt) and go straight to §4.0. The
+fast path is only "fast" if it's machine-executable; translating
+prose to tactics belongs in the regular iteration loop.
 
 ### 4.0  Baseline
 

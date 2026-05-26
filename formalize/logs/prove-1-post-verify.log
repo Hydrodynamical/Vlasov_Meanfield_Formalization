@@ -1,12 +1,13 @@
 [system] init
-[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch the agent with the specified parameters.
+[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch the agent with the appropriate parameters.
 [Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779708600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779702600,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779773400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779755400,"isUsingOverage":false}
 [Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/","description":"List plan sidecar files"}
 → ⚠ [8248/8250] Replayed Vlasov.Basic
 warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
   [NeZero d]
@@ -19,6 +20,7 @@ consider restructuring your `variable` declarations so that the variables are no
      5→- `\R` → `\mathbb{R}` — real numbers (`ℝ` in Lean / Mathlib)
      6→- `\T` → `\mathbb{T}` — torus (defined but not used in the body)
      7→- `\N` → `\mathbb{N}` — nat
+→ weakEvolutionEmpiricalMeasure.json
 →      1→/-
      2→Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
      3→Generated from vlasov.tex.
@@ -28,32 +30,23 @@ consider restructuring your `variable` declarations so that the variables are no
      7→import Mathlib
      8→
      9→open scoped BigOperato
-[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/","description":"List all plan JSON files"}
-→ weakEvolutionEmpiricalMeasure.json
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read the decomposition plan for weakEvolutionEmpiricalMeasure"}
-→ {
-  "schema_version": 1,
-  "generated_at": "2026-05-25T00:00:00Z",
-  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalCorrect
-[Bash] {"command":"grep -n \"sorry\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head -30","description":"Find all sorry lines with exact numbers"}
-→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
-221:/-! Decomposed by sorry-decomposer.
-321:  sorry
-351:  sorry
-379:  sorry
-403:  sorry
-481:    sorry
-625:  sorry
-734:  sorry
-800:  -- Skeleton from sorry-prover; finished manually.
-[Bash] {"command":"grep -n \"^lemma\\|^theorem\\|^def\\|^noncomputable def\\|^class\\|^abbrev\\|^omit\\|sorry\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head -60","description":"Map declaration names to line numbers and identify which declaration each sorry falls inside"}
-→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
-24:abbrev PhysSpace (d : ℕ) := EuclideanSpace ℝ (Fin d)
-27:abbrev PhaseSpace (d : ℕ) := PhysSpace d × PhysSpace d
-41:noncomputable def hamiltonianN (N : ℕ) (W : PhysSpace d → ℝ)
-60:def IsNewtonSolution (N : ℕ) (gradW : PhysSpace d → P
-[Bash] {"command":"cat << 'REPORT_EOF' > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md\n# Formalization coverage report\n\nGenerated: 2026-05-25\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
-→ Report written.
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json"}
+→      1→{
+     2→  "schema_version": 1,
+     3→  "generated_at": "2026-05-25T00:00:00Z",
+     4→  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure alge
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"warning:|error:\" | grep -v \"linter\" | head -50","description":"Extract sorry and error warnings from build","timeout":30000}
+→ warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
+warning: Vlasov/Basic.lean:234:24: This simp argument is unused:
+warning: Vlasov/Basic.lean:251:0: automatically included section variable(s) unused in theorem `Vlaso
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -c \"declaration uses \\`sorry\\`\"","description":"Count sorry warnings","timeout":30000}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^error:\" | wc -l","description":"Count errors","timeout":30000}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"warning:\" | wc -l","description":"Count total warnings","timeout":30000}
+→ 6
+→        0
+→       22
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-25\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
+→ Report written successfully.
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
@@ -63,23 +56,24 @@ consider restructuring your `variable` declarations so that the variables are no
      6→
      7→## Build status
      8
-→ [{"type":"text","text":"The report is complete and verified. Here is a summary of the findings:\n\n---\n\n**Build result: success (8250 jobs). 7 sorry warnings, 0 errors.**\n\n**Report written to:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`\n\n**Coverage summary (13/13 o
-The lean-verifier completed successfully. Here's the summary:
+→ [{"type":"text","text":"The report is written and verified. Here is a summary of findings:\n\n---\n\n**Report written to:** `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`\n\n**Build:** success — 6 sorry warnings, 16 other warnings, 0 errors.\n\n**Coverage:** 13/13 outline ite
+The lean-verifier has completed. Here's the summary:
 
-**Build: success** (8250 jobs, 7 sorry warnings, 0 errors)
+**Build:** Success — 0 errors, 6 sorry warnings remaining.
 
-**Coverage: 13/13 outline items present**
+**Coverage:** 13/13 outline items present.
 
-| Category | Count |
-|----------|-------|
-| Fully proved (no sorry) | 8 items |
-| Present with sorry | 5 items |
-| Missing | 0 items |
+**Sorry status:**
+- 3 helpers **proved**: `empiricalMeasure_integral_eq`, `hasDerivAt_phi_along_trajectory`, `convolveFunctionMeasure_empiricalSpatial_eq`
+- 3 helpers still **sorry**: `hasDerivAt_empiricalIntegral_sum`, `diagonalCorrection_eq`, `diagonalCorrection_bound`
+- Parent glue (`weakEvolutionEmpiricalMeasure`) still **sorry**
+- `vlasovWellPosedness` and `dobrushin` sorry (propagated from dependencies)
 
-**7 open sorries:**
-- 4 helpers in the `weakEvolutionEmpiricalMeasure` decomposition (`hasDerivAt_empiricalIntegral_sum`, `convolveFunctionMeasure_empiricalSpatial_eq`, `diagonalCorrection_eq`, `diagonalCorrection_bound`)
-- 1 residual glue in `weakEvolutionEmpiricalMeasure` itself
-- 2 deep standalone stubs: `vlasovWellPosedness` and `dobrushin`
+**Recommended next targets** (by tractability):
+1. Residual glue at line 510 (has a machine-executable tactic sketch in the plan)
+2. `diagonalCorrection_eq` (difficulty 1, dep already proved)
+3. `diagonalCorrection_bound` (difficulty 2, no deps)
+4. `hasDerivAt_empiricalIntegral_sum` (difficulty 3, all deps proved)
 
-Full report written to `formalize/report.md`.
-[result] success duration=112475ms cost=$0.5978065000000001
+Full report written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
+[result] success duration=142133ms cost=$0.5800565000000001

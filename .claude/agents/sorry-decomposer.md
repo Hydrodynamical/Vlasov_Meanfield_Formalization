@@ -102,10 +102,14 @@ Identify 3–8 helper lemmas. For each, decide:
 - Dependencies (other helpers this one needs to call). Helper graph
   must be a DAG.
 - Mathlib hints: 2–6 lemma/definition names you expect to use.
-  Hallucinated names are caught by the prover at proof time; just be
-  reasonable.
+  **These are grep-validated in §3.1.5 below before being written to
+  the JSON; hallucinated names are dropped silently** so the prover
+  doesn't waste iterations hunting for phantom lemmas.
 - `one_line_math`: 1–2 sentence summary readable by both humans and
   LLMs.
+- (Optional) `proof_sketch` — see §3.1.6 below. When you can name
+  the exact 3–8 Mathlib lemmas in the right order for this helper's
+  proof, draft the sketch. Otherwise leave it absent / null.
 
 If the target's combinator needs a final composition step the prover
 can't do by composing helpers alone (the "residual glue"):
@@ -119,6 +123,87 @@ can't do by composing helpers alone (the "residual glue"):
   forbids `exact`, `rfl`, `simp` etc. in `Basic.lean`, but the JSON
   sidecar is NOT `Basic.lean` — you CAN write closing tactics here
   (they are hints for the prover, not part of the file's proof state).
+
+### 3.1.5 Grep-validate every `mathlib_hints` entry (mandatory)
+
+Before writing the JSON sidecar in §3.2, validate every candidate
+lemma name in every helper's `mathlib_hints[]` against the local
+Mathlib source. For each candidate name `<name>`, run:
+
+```bash
+grep -rnE "^(theorem|lemma|def|abbrev|class|structure|instance) <name>\b|^protected (theorem|lemma) <name>\b|^@\[[a-zA-Z_, ]*\]\s*\n(theorem|lemma) <name>\b" \
+    .lake/packages/mathlib/Mathlib/<expected-subdir>/ 2>/dev/null | head -3
+```
+
+(Use the most specific subdirectory you can — `MeasureTheory/Measure/`
+for measure-theoretic lemmas, `Analysis/Calculus/` for derivatives,
+etc. Scoping speeds the grep significantly and is reliable: Mathlib's
+file layout maps closely to the math domain.)
+
+If the grep returns **zero matches**, drop the name from the helper's
+`mathlib_hints[]` array silently. The attempt log (§6) records the
+count of dropped names per helper (not the names themselves — those
+were guesses; a dropped one is just signal that the LLM made a
+hallucination, not actionable for downstream review).
+
+If the grep returns **one or more matches**, keep the name as-is.
+Optionally suffix `(MeasureTheory/Measure/Map.lean:127)` style
+file:line in the hint string so the prover can jump directly to the
+signature — but if that's awkward, keep just the name.
+
+Rationale: the failure mode where the prover spends iterations
+hunting for `Measure.map_finset_sum` (which doesn't exist; needs
+Finset induction with `map_add`) ate three Vlasov prover cycles in
+the May 24-25 session. Pre-flight validation eliminates this class
+of failure at zero marginal cost (the decomposer already has `Bash`
++ greps Mathlib for other purposes).
+
+### 3.1.6 Draft `proof_sketch` when confident (optional but recommended)
+
+For each helper whose proof shape is a deterministic chain of the
+(now-validated) `mathlib_hints` plus boilerplate (unfolds, `rw`s, a
+final `simp` for cleanup), draft a `proof_sketch` — a multi-line
+tactic block holding your best-guess machine-executable proof body.
+Include measurability witnesses as `have` blocks at the top when
+the integration / measure lemmas need them.
+
+Example shape (from the May 25 Vlasov session, hand-written for
+`convolveFunctionMeasure_empiricalSpatial_eq`):
+
+```
+have hmeas_y : Measurable (fun y => gradW (X t i - y)) :=
+  hgradW_meas.comp (measurable_const.sub measurable_id)
+have hsm_y : StronglyMeasurable _ := hmeas_y.stronglyMeasurable
+have hmeas_z : Measurable (fun z : PhaseSpace d => gradW (X t i - z.1)) :=
+  hgradW_meas.comp (measurable_const.sub measurable_fst)
+have hsm_z : StronglyMeasurable _ := hmeas_z.stronglyMeasurable
+unfold convolveFunctionMeasure spatialMarginal empiricalMeasureCurve empiricalMeasure
+rw [integral_map measurable_fst.aemeasurable hsm_y.aestronglyMeasurable]
+rw [integral_smul_measure]
+rw [integral_finset_sum_measure (fun j _ => integrable_dirac' hsm_z (by simp [enorm_lt_top]))]
+simp only [integral_dirac' _ _ hsm_z]
+simp [ENNReal.toReal_div, ENNReal.toReal_natCast]
+```
+
+A sketch is "good enough" when:
+- The Mathlib lemma chain is fully named (all `rw`s reference
+  validated `mathlib_hints` entries).
+- Measurability / integrability side conditions have explicit
+  witnesses (`hmeas_y`, `hsm_y`, etc.).
+- The final cleanup tactic (`simp`, `ring`, `linarith`) is the last
+  step and is reasonable for the goal's expected shape.
+
+**Don't sandbox-test the sketch.** The prover's §4.−1 revert
+machinery handles wrong sketches cheaply (~15s lost vs. minutes
+saved when the sketch is right). Confidence threshold for drafting:
+"I can name the exact 3–8 Mathlib lemmas in the right order" = draft
+it. If you can't name them, leave `proof_sketch` absent / null and
+the prover falls back to §4.1 iteration as today.
+
+Helpers whose proofs require search, case analysis, or
+non-deterministic tactic choice (e.g., `interval_cases`, `decide`,
+heavy `aesop`) should NOT have a `proof_sketch` — the deterministic
+nature of the fast path makes it a poor fit for search-heavy proofs.
 
 ### 3.2 Write the JSON sidecar
 
@@ -150,7 +235,11 @@ Schema (v1):
       "difficulty": <1-5>,
       "deps": ["<other helper name>", ...],
       "mathlib_hints": ["<lemma name>", ...],
-      "one_line_math": "<one or two sentences>"
+      "one_line_math": "<one or two sentences>",
+      "proof_sketch": "<multi-line tactic block, newlines preserved; or omit/null>"
+        // optional; when present, the prover's §4.−1 sketch fast-path
+        // tries this verbatim before falling back to §4.0 iteration.
+        // Mirrors the semantics of residual_glue.tactic_sketch below.
     }
     // ... 3 to 8 helpers, topologically ordered (leaves first)
   ],

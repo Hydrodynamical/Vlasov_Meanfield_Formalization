@@ -348,7 +348,28 @@ lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
     convolveFunctionMeasure gradW
         (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i) =
       (1 / (N : ℝ)) • ∑ j : Fin N, gradW (X t i - X t j) := by
-  sorry
+  -- Measurability witnesses
+  have hmeas_y : Measurable (fun y : PhysSpace d => gradW (X t i - y)) :=
+    hgradW_meas.comp (measurable_const.sub measurable_id)
+  have hsm_y : StronglyMeasurable (fun y : PhysSpace d => gradW (X t i - y)) :=
+    hmeas_y.stronglyMeasurable
+  have hmeas_z : Measurable (fun z : PhaseSpace d => gradW (X t i - z.1)) :=
+    hgradW_meas.comp (measurable_const.sub measurable_fst)
+  have hsm_z : StronglyMeasurable (fun z : PhaseSpace d => gradW (X t i - z.1)) :=
+    hmeas_z.stronglyMeasurable
+  -- Unfold the layered definitions.
+  unfold convolveFunctionMeasure spatialMarginal empiricalMeasureCurve empiricalMeasure
+  -- Convert integration against the pushforward (Prod.fst) to integration on the product.
+  rw [integral_map measurable_fst.aemeasurable hsm_y.aestronglyMeasurable]
+  -- Pull out the (1 / N : ℝ≥0∞) scalar.
+  rw [integral_smul_measure]
+  -- Distribute integration over the finite sum of Dirac measures.
+  rw [integral_finset_sum_measure (fun j _ =>
+        integrable_dirac' hsm_z (by simp [enorm_lt_top]))]
+  -- Each Dirac integral collapses to the function value at the centre.
+  simp only [integral_dirac' _ _ hsm_z]
+  -- Normalize (1/(N:ℝ≥0∞)).toReal = 1/(N:ℝ); the .1 projection collapses on pairs.
+  simp [ENNReal.toReal_div, ENNReal.toReal_natCast]
 
 /-- The remainder term `r` in the weak evolution identity equals
 `(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
@@ -362,6 +383,7 @@ product with `inner_sub_left`/`inner_smul_left`, recognise the
 `(1/N) • Σⱼ gradW` factor as the convolveFunctionMeasure unfolding. -/
 lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
     (gradW : PhysSpace d → PhysSpace d)
+    (hgradW_meas : Measurable gradW)
     (X V : ℝ → Fin N → PhysSpace d)
     (gradVφ : PhaseSpace d → PhysSpace d)
     (t : ℝ) :
@@ -376,7 +398,54 @@ lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
           (gradVφ (X t i, V t i))
       + (1 / (N : ℝ)^2) * ∑ i : Fin N,
           @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i)) := by
-  sorry
+  -- Step 1: unfold the convolution form on the RHS using the proved helper.
+  have hconv : ∀ i : Fin N,
+      convolveFunctionMeasure gradW
+        (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i)
+      = (1 / (N : ℝ)) • ∑ j : Fin N, gradW (X t i - X t j) := fun i =>
+    convolveFunctionMeasure_empiricalSpatial_eq N gradW hgradW_meas X V t i
+  -- Step 2: extend the LHS's `Σ_{j≠i}` (via the ite/0 pattern) to `Σ_j − gradW 0`.
+  have hext : ∀ i : Fin N,
+      (∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))
+      = (∑ j : Fin N, gradW (X t i - X t j)) - gradW 0 := by
+    intro i
+    have hsub : ∀ j : Fin N,
+        (if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))
+        = gradW (X t i - X t j)
+          - (if j = i then gradW (X t i - X t j) else (0 : PhysSpace d)) := fun j => by
+      by_cases hj : j = i <;> simp [hj]
+    simp_rw [hsub]
+    rw [Finset.sum_sub_distrib, Finset.sum_ite_eq' Finset.univ i]
+    simp
+  -- Step 3: rewrite each per-i LHS inner product into scalar form.
+  -- Use `real_inner_smul_left` (not generic `inner_smul_left`) to avoid a
+  -- `starRingEnd ℝ` wrapper on the scalar that `ring` can't see through.
+  have hlhs_i : ∀ i : Fin N,
+      @inner ℝ (PhysSpace d) _
+        (-(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))
+        (gradVφ (X t i, V t i))
+      = -(1 / (N : ℝ)) *
+          (@inner ℝ (PhysSpace d) _ (∑ j : Fin N, gradW (X t i - X t j)) (gradVφ (X t i, V t i))
+           - @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))) := by
+    intro i
+    rw [hext i, real_inner_smul_left, inner_sub_left]
+  -- Step 4: rewrite each per-i RHS conv-term into scalar form.
+  have hrhs_i : ∀ i : Fin N,
+      @inner ℝ (PhysSpace d) _
+        (convolveFunctionMeasure gradW
+          (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i))
+        (gradVφ (X t i, V t i))
+      = (1 / (N : ℝ)) * @inner ℝ (PhysSpace d) _
+          (∑ j : Fin N, gradW (X t i - X t j)) (gradVφ (X t i, V t i)) := by
+    intro i
+    rw [hconv i, real_inner_smul_left]
+  -- Step 5: substitute both rewrites and reduce to a ring identity on two abbreviated sums.
+  simp_rw [hlhs_i, hrhs_i]
+  -- Distribute the per-summand subtraction (mul_sub then sum_sub_distrib),
+  -- pull constants outside via reverse Finset.mul_sum, then abbreviate.
+  simp only [mul_sub, Finset.sum_sub_distrib, ← Finset.mul_sum]
+  -- Goal is now an equation in two structural sums; ring closes the scalar identity.
+  ring
 
 /-- The remainder bound: for the diagonal correction `r = (1/N²) * Σᵢ ⟨gradW 0, gradVφ(zᵢ)⟩`,
 we have `|r| ≤ (1/N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)`, using
@@ -475,7 +544,14 @@ theorem weakEvolutionEmpiricalMeasure
     -- to relate the finite-sum derivative to the integral + remainder form.
     have hderiv := hasDerivAt_empiricalIntegral_sum N gradW X V hSol φ
       hφ_smooth gradXφ gradVφ hgradXφ hgradVφ t
-    have hcorr := diagonalCorrection_eq N gradW X V gradVφ t
+    -- Derive Measurable gradW from AssW W (Lipschitz fderiv ⇒ continuous gradient ⇒ measurable).
+    have hgradW_meas : Measurable gradW := by
+      have hext : gradW = fun x => gradient W x := funext hgradW
+      rw [hext]
+      obtain ⟨_, hLip⟩ := (inferInstance : AssW W).lipschitzGrad
+      exact ((InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+        hLip.continuous).measurable
+    have hcorr := diagonalCorrection_eq N gradW hgradW_meas X V gradVφ t
     -- Rearrange: the derivative value from hderiv equals (integral term) + r
     -- after applying hcorr to split the velocity inner products.
     sorry

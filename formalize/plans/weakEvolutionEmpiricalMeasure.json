@@ -7,7 +7,7 @@
     "kind": "theorem",
     "tex_label": "prop:weak",
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 426
+    "line": 495
   },
   "helpers": [
     {
@@ -50,7 +50,8 @@
         "HasDerivAt.const_smul",
         "HasDerivAt.congr_deriv"
       ],
-      "one_line_math": "d/ds ∫ φ d(μ_s^N) equals the finite-sum derivative obtained by combining `empiricalMeasure_integral_eq` (to rewrite the integral as (1/N) Σᵢ φ(Xᵢ,Vᵢ)) with `hasDerivAt_phi_along_trajectory` (per-particle chain rule) and `HasDerivAt.sum`. Substitutes the Newton acceleration -(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ) for `a t i` here."
+      "one_line_math": "d/ds ∫ φ d(μ_s^N) equals the finite-sum derivative obtained by combining `empiricalMeasure_integral_eq` (to rewrite the integral as (1/N) Σᵢ φ(Xᵢ,Vᵢ)) with `hasDerivAt_phi_along_trajectory` (per-particle chain rule) and `HasDerivAt.sum`. Substitutes the Newton acceleration -(1/N) Σ_{j≠i} ∇W(Xᵢ-Xⱼ) for `a t i` here.",
+      "proof_sketch": "have hφ_fderiv : ∀ z, HasFDerivAt φ (fderiv ℝ φ z) z := fun z =>\n  (hφ_smooth.differentiable (by norm_num)).differentiableAt.hasFDerivAt\nsimp_rw [fun s => empiricalMeasure_integral_eq N (X s) (V s) φ]\nrefine HasDerivAt.const_mul _ ?_\nexact HasDerivAt.sum fun i _ =>\n  hasDerivAt_phi_along_trajectory N X V hSol.1 _ hSol.2 φ\n    (fderiv ℝ φ) hφ_fderiv gradXφ gradVφ hgradXφ hgradVφ t i"
     },
     {
       "name": "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq",
@@ -71,7 +72,7 @@
     {
       "name": "Vlasov.diagonalCorrection_eq",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 363,
+      "line": 384,
       "difficulty": 1,
       "deps": [
         "Vlasov.convolveFunctionMeasure_empiricalSpatial_eq"
@@ -83,12 +84,13 @@
         "inner_neg_left",
         "inner_smul_left"
       ],
-      "one_line_math": "Pure inner-product algebra atop convolveFunctionMeasure_empiricalSpatial_eq: (1/N) Σᵢ ⟨-(1/N)•Σ_{j≠i} ∇W(Xᵢ-Xⱼ), ∇ᵥφᵢ⟩ = -(1/N) Σᵢ ⟨(∇W*ρ_t^N)(Xᵢ), ∇ᵥφᵢ⟩ + (1/N²) Σᵢ ⟨∇W(0), ∇ᵥφᵢ⟩. Method: extend Σ_{j≠i} to Σⱼ via Finset.sum_ite_ne (the j=i summand is gradW(0)), inner_sub_left distributes the inner over the subtraction, the leading −(1/N) acceleration coefficient flips the diagonal-term sign to +. NOTE: original statement had a sign bug (− instead of +) on the diagonal term; corrected in this revision after derivation review."
+      "one_line_math": "Pure inner-product algebra atop convolveFunctionMeasure_empiricalSpatial_eq: (1/N) Σᵢ ⟨-(1/N)•Σ_{j≠i} ∇W(Xᵢ-Xⱼ), ∇ᵥφᵢ⟩ = -(1/N) Σᵢ ⟨(∇W*ρ_t^N)(Xᵢ), ∇ᵥφᵢ⟩ + (1/N²) Σᵢ ⟨∇W(0), ∇ᵥφᵢ⟩. Method: extend Σ_{j≠i} to Σⱼ via Finset.sum_ite_ne (the j=i summand is gradW(0)), inner_sub_left distributes the inner over the subtraction, the leading −(1/N) acceleration coefficient flips the diagonal-term sign to +. NOTE: original statement had a sign bug (− instead of +) on the diagonal term; corrected in this revision after derivation review.",
+      "proof_sketch": "have hconv : ∀ i : Fin N,\n    convolveFunctionMeasure gradW\n        (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i) =\n      (1 / (N : ℝ)) • ∑ j : Fin N, gradW (X t i - X t j) := fun i =>\n  convolveFunctionMeasure_empiricalSpatial_eq N gradW hgradW_meas X V t i\nsimp_rw [hconv]\nhave hext : ∀ i : Fin N,\n    (∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))\n    = (∑ j : Fin N, gradW (X t i - X t j)) - gradW 0 := by\n  intro i\n  have hsub : ∀ j : Fin N, (if j ≠ i then gradW (X t i - X t j) else (0 : PhysSpace d))\n      = gradW (X t i - X t j) - (if j = i then gradW (X t i - X t j) else 0) := fun j => by\n    by_cases hj : j = i <;> simp [hj]\n  simp_rw [hsub]\n  rw [Finset.sum_sub_distrib, Finset.sum_ite_eq' Finset.univ i]\n  simp\nsimp_rw [hext, inner_sub_left, inner_smul_left]\nring"
     },
     {
       "name": "Vlasov.diagonalCorrection_bound",
       "file": "Vlasov/Vlasov/Basic.lean",
-      "line": 393,
+      "line": 462,
       "difficulty": 2,
       "deps": [],
       "mathlib_hints": [
@@ -98,12 +100,13 @@
         "le_ciSup",
         "Real.le_sSup"
       ],
-      "one_line_math": "Pointwise bound on the diagonal correction: |(1/N²) Σᵢ ⟨∇W(0), ∇ᵥφ(zᵢ)⟩| ≤ (1/N) · sup_x ‖∇W(x)‖ · sup_z ‖∇ᵥφ(z)‖, via Cauchy-Schwarz on each summand and (1/N²)·N = 1/N counting. **Requires** `BddAbove (range ‖gradW·‖)` and `BddAbove (range ‖gradVφ·‖)` — without these, the conditional supremum on ℝ returns junk value 0. Absolute value on the bound makes the sign correction in diagonalCorrection_eq irrelevant here; deps[] cleared (not actually dependent on the equality form)."
+      "one_line_math": "Pointwise bound on the diagonal correction: |(1/N²) Σᵢ ⟨∇W(0), ∇ᵥφ(zᵢ)⟩| ≤ (1/N) · sup_x ‖∇W(x)‖ · sup_z ‖∇ᵥφ(z)‖, via Cauchy-Schwarz on each summand and (1/N²)·N = 1/N counting. **Requires** `BddAbove (range ‖gradW·‖)` and `BddAbove (range ‖gradVφ·‖)` — without these, the conditional supremum on ℝ returns junk value 0. Absolute value on the bound makes the sign correction in diagonalCorrection_eq irrelevant here; deps[] cleared (not actually dependent on the equality form).",
+      "proof_sketch": "have h_supW : ‖gradW 0‖ ≤ ⨆ x, ‖gradW x‖ := le_ciSup hgradW_bdd 0\nhave h_supV : ∀ i : Fin N, ‖gradVφ (X t i, V t i)‖ ≤ ⨆ z, ‖gradVφ z‖ := fun i =>\n  le_ciSup hgradVφ_bdd (X t i, V t i)\nhave h_term : ∀ i : Fin N,\n    ‖@inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))‖ ≤\n      (⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖ := fun i =>\n  (abs_inner_le_norm _ _).trans\n    (mul_le_mul h_supW (h_supV i) (norm_nonneg _)\n      (le_trans (norm_nonneg _) h_supW))\nhave h_sum : |∑ i : Fin N, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|\n    ≤ N * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖) := by\n  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_\n  rw [show (N : ℝ) = (Finset.univ.card : ℝ) by simp [Finset.card_univ]]\n  exact Finset.sum_le_card_nsmul _ _ _ (fun i _ => h_term i) |>.trans_eq (by simp [nsmul_eq_mul])\nhave hN_pos : 0 < (N : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)\nrw [abs_mul, abs_of_nonneg (by positivity)]\ncalc (1 / (N : ℝ)^2) * |∑ i, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|\n    ≤ (1 / (N : ℝ)^2) * (N * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖)) := by\n      exact mul_le_mul_of_nonneg_left h_sum (by positivity)\n  _ = (1 / (N : ℝ)) * ((⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖) := by\n      field_simp\n      ring\n  _ = (1 / (N : ℝ)) * (⨆ x, ‖gradW x‖) * ⨆ z, ‖gradVφ z‖ := by ring"
     }
   ],
   "residual_glue": {
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 481,
+    "line": 557,
     "branch_label": "HasDerivAt (first ?_ branch of the refine combinator)",
     "composition": [
       "Vlasov.hasDerivAt_empiricalIntegral_sum",
