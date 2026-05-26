@@ -72,6 +72,22 @@ while [ $# -gt 0 ]; do
       DECOMPOSE_TARGET="${1#*=}"; DECOMPOSE_MODE="explicit"
       STAGES="decompose"; shift
       ;;
+    --decompose-gap)
+      # `--decompose-gap <name-or-tex-label>` — like --decompose, but the
+      # target is expected to need Mathlib API that doesn't exist.  Agent
+      # produces sorry'd helpers AND named axiom MathlibTODO_* declarations.
+      if [ $# -ge 2 ] && [[ ! "$2" =~ ^- ]]; then
+        DECOMPOSE_TARGET="$2"; DECOMPOSE_MODE="gap"; shift 2
+      else
+        echo "ERROR: --decompose-gap requires a target name (e.g. Vlasov.vlasovWellPosedness)" >&2
+        exit 1
+      fi
+      STAGES="decompose"
+      ;;
+    --decompose-gap=*)
+      DECOMPOSE_TARGET="${1#*=}"; DECOMPOSE_MODE="gap"
+      STAGES="decompose"; shift
+      ;;
     --sketch)
       # `--sketch <helper-name>` — author/refresh proof_sketch for ONE helper.
       # The helper name is mandatory; we resolve it to the plan JSON via grep.
@@ -116,6 +132,13 @@ Usage: ./formalize.sh [--stage all|0|1|2|3|4] [--clean]
                        report is picked. Auto-runs verifier afterward to
                        refresh report.md. Use BEFORE --prove-next when the
                        top recommendation is too big to attempt directly.
+  --decompose-gap <t>  Like --decompose, but expects the target to need
+                       Mathlib API that doesn't yet exist. Decomposer
+                       produces both sorry'd constructive helpers AND
+                       named 'axiom MathlibTODO_*' declarations for the
+                       gaps. Use for theorems flagged as 'needs Mathlib
+                       API not yet available' in the verifier report
+                       (e.g., vlasovWellPosedness, dobrushin).
   --sketch <helper>    Draft (or refresh) the 'proof_sketch' field of ONE
                        helper in formalize/plans/*.json. Reads the helper's
                        Lean signature, grep-validates mathlib_hints, applies

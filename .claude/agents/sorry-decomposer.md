@@ -448,6 +448,17 @@ Schema (v1):
     }
     // ... 3 to 8 helpers, topologically ordered (leaves first)
   ],
+  "axioms": [                   // optional; present iff gap mode (§3.4)
+    {
+      "name": "MathlibTODO_<descriptive_snake_case>",
+      "file": "<path>",
+      "line": <integer>,
+      "statement_summary": "<one line summarising what the axiom asserts>",
+      "tracked_at": "<Mathlib issue URL, or empty string>",
+      "one_line_math": "<the mathematical content the gap represents>"
+    }
+    // ... 1 to ~3 axioms, one per genuine Mathlib gap
+  ],
   "residual_glue": {            // nullable; omit if no residual sorry
     "file": "<path>",
     "line": <integer>,
@@ -462,6 +473,13 @@ Schema (v1):
 **No `status` field anywhere** — status (proved / sorry / residual)
 is computed at read time by the verifier from current build warnings.
 Storing it would create staleness as helpers get proved.
+
+**`axioms[]` is optional and gap-mode-only.** In standard mode
+(`explicit` or `largest-blocked`), do NOT include the field. In gap
+mode (per §3.4), it MUST be present and non-empty. The verifier will
+later use this distinction to report axiom count separately from
+sorry count (deferred; the current verifier treats `axiom` decls as
+proved, which is correct from Lean's perspective).
 
 ### 3.3 Insert the 2-line pointer in the Lean file
 
@@ -484,6 +502,73 @@ why in the attempt log (§6).
 typed channel that downstream agents can lookup-parse; survives Lean
 file reformatting; scales to hierarchical decompositions; and keeps
 the Lean source file focused on Lean content.)
+
+## 3.4 Mathlib-gap targets (selection mode: `gap`)
+
+When invoked with `selection mode: gap` (via the driver flag
+`--decompose-gap <target>`), you decompose a target whose proof
+genuinely depends on Mathlib API that doesn't yet exist — examples:
+Picard / contraction-mapping fixed point for measure-valued ODEs;
+Wasserstein-1 Gronwall; any "missing infrastructure" theorem. Output
+differs from standard mode in three ways:
+
+1. **Both top-level: helpers AND axioms.** Alongside the usual
+   `helpers[]` (sorry'd lemmas for constructive parts of the proof),
+   produce one or more `axiom MathlibTODO_<name>` declarations
+   capturing the missing API. The Lean source file gets, in this
+   order, immediately before the parent theorem:
+     - the 2-line pointer (§3.3)
+     - the axiom declarations
+     - the helper lemmas (sorry'd, with docstrings)
+     - the parent theorem with its rewritten scaffold body
+       (which invokes both axioms and sorry'd helpers).
+
+2. **Naming convention: `MathlibTODO_<descriptive_snake_case>`.**
+   Examples: `MathlibTODO_measureFlowPicard`,
+   `MathlibTODO_wassersteinGronwall`. The `MathlibTODO_` prefix lets
+   a future contributor `grep '^axiom MathlibTODO_' Vlasov/Vlasov/Basic.lean`
+   to enumerate every trust commitment in one pass, and signals to
+   readers of the file that this declaration is a debt to be repaid
+   (replaced with a real Mathlib lemma or local proof) later.
+
+3. **Schema addition: `axioms[]` in the plan JSON.** See §3.2 for
+   the field definition. Each entry records the axiom's name, line
+   in the Lean file, a one-line statement summary, an optional
+   Mathlib-issue URL where the API is being tracked upstream, and
+   a one-line math description (analogous to helpers' `one_line_math`).
+   The `axioms[]` field MUST be present and non-empty in gap mode,
+   and MUST be absent in standard mode.
+
+The parent's body in gap mode composes both kinds of leaf:
+  - **axiom-backed pieces**: invoke the axiom by name; no sorry
+    needed for the axiom's contribution (the axiom IS the proof).
+  - **helper-backed pieces**: invoke the sorry'd helper; leaves
+    a leaf `sorry` for the prover to close later via standard
+    `--prove-easiest` cycles.
+
+The §4.2 scaffold-only contract still applies, with the addendum in
+§4.2 below: the parent body MAY name an axiom (using `exact
+MathlibTODO_X <args>` or `obtain ⟨...⟩ := MathlibTODO_X <args>`) so
+long as that axiom's existence is recorded in the plan JSON's
+`axioms[]` array. The scaffold-vs-content separation is about WHO
+writes Lean tactics (decomposer = structure, prover = content), not
+about WHICH symbols can be invoked — axioms are blessed names.
+
+**Hard rule: do NOT produce axioms in standard mode.** A gap-mode
+decomposition of a target that turns out to be constructively
+provable is a worse failure than running standard mode and finding
+the prover can't close — easier to add axioms later than to retire
+them once they're in the trust base. If the driver passed
+`selection mode: explicit` or `largest-blocked`, the `axioms[]`
+field MUST be absent from the JSON and no `axiom` declaration may
+appear in the Lean output.
+
+**Minimality**: emit the smallest set of axioms that captures the
+gap. If a proof needs three Mathlib lemmas that don't exist, prefer
+one axiom whose statement combines all three rather than three
+separate axioms — fewer trust commitments. Counter-balance: keep
+each axiom's statement readable; if combining would produce a
+50-line existential, split.
 
 ## 4. Edit loop (hard cap: 6 iterations, where an iteration = one edit + one build)
 
@@ -570,6 +655,22 @@ or composition that closes it (the prover uses this as context).
 WRITES.  Combinators that already exist with proof content
 (grandfathered from before this spec version) are NOT reverted —
 treat them as immutable.
+
+**Gap-mode addendum** (when `selection mode: gap`, per §3.4): the
+parent body MAY invoke `axiom MathlibTODO_<name>` declarations the
+decomposer emits immediately before the helper block.  Concretely,
+constructs like `exact MathlibTODO_X <args>` or
+`obtain ⟨...⟩ := MathlibTODO_X <args>` are blessed for axiom
+invocations — they LOOK syntactically like proof-closing tactics
+forbidden by §4.2, but they're closing against a NAMED TRUST
+COMMITMENT recorded in the plan JSON's `axioms[]` array, not against
+the decomposer's tactic-writing capacity.  The §5 sorry-count
+invariant is preserved: gap-mode decompositions still leave ≥ 1
+sorry in the parent body (for the constructive helpers that the
+prover will close later); axioms close their own branches by
+virtue of being axioms.  Helpers (the `lemma <name> ... := by sorry`
+declarations) are NEVER blessed for axiom-style closure — only
+top-level `axiom MathlibTODO_*` decls are.
 
 Build. Iterate on the scaffold until it typechecks. The §5
 sorry-count invariant (parent body has ≥ 1 sorry) is what's actually
@@ -676,6 +777,17 @@ digraph decomposition {
   "helper2" -> "helper3";
 }
 ```
+
+### Mathlib-gap axioms (gap mode only)
+| Name | Statement summary | Tracked at |
+|------|-------------------|------------|
+| MathlibTODO_<name1> | <one-line summary> | <Mathlib issue URL or "(none yet)"> |
+| MathlibTODO_<name2> | ... | ... |
+
+(Omit this section entirely in standard mode.  A human reviewing the
+attempt log sees all trust commitments for this decomposition at a
+glance; the JSON sidecar's `axioms[]` is the structured source of
+truth.)
 
 ### Target's new proof
 ```lean
