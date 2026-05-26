@@ -7,7 +7,7 @@
     "kind": "theorem",
     "tex_label": "prop:weak",
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 495
+    "line": 529
   },
   "helpers": [
     {
@@ -106,7 +106,7 @@
   ],
   "residual_glue": {
     "file": "Vlasov/Vlasov/Basic.lean",
-    "line": 557,
+    "line": 591,
     "branch_label": "HasDerivAt (first ?_ branch of the refine combinator)",
     "composition": [
       "Vlasov.hasDerivAt_empiricalIntegral_sum",

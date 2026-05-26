@@ -469,7 +469,41 @@ lemma diagonalCorrection_bound (N : ℕ) [NeZero N]
     |(1 / (N : ℝ)^2) * ∑ i : Fin N,
         @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))| ≤
       (1 / (N : ℝ)) * ⨆ x, ‖gradW x‖ * ⨆ z, ‖gradVφ z‖ := by
-  sorry
+  -- Positivity facts.
+  have hN_pos : 0 < (N : ℝ) := Nat.cast_pos.mpr (NeZero.pos N)
+  have h_sW : 0 ≤ ⨆ x, ‖gradW x‖ := le_trans (norm_nonneg _) (le_ciSup hgradW_bdd 0)
+  have h_sV : 0 ≤ ⨆ z, ‖gradVφ z‖ := le_trans (norm_nonneg _)
+    (le_ciSup hgradVφ_bdd ((X t ⟨0, NeZero.pos N⟩), V t ⟨0, NeZero.pos N⟩))
+  -- Per-summand bound: Cauchy-Schwarz + sup bounds.
+  have h_term : ∀ i : Fin N,
+      |@inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))| ≤
+        (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖) := fun i =>
+    (abs_real_inner_le_norm _ _).trans
+      (mul_le_mul (le_ciSup hgradW_bdd 0) (le_ciSup hgradVφ_bdd _)
+        (norm_nonneg _) h_sW)
+  -- Sum bound: |Σ| ≤ Σ|·| ≤ N * sup·sup.
+  have h_sum : |∑ i : Fin N, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|
+      ≤ (N : ℝ) * ((⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)) := by
+    calc |∑ i : Fin N, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|
+        ≤ ∑ i : Fin N, |@inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ _i : Fin N, (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖) :=
+          Finset.sum_le_sum (fun i _ => h_term i)
+      _ = (N : ℝ) * ((⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)) := by
+          rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  -- The RHS's `⨆ x, ‖gradW x‖ * ⨆ z, ‖gradVφ z‖` parses with the x-lambda
+  -- extending over the whole `‖gradW x‖ * ⨆ z, ‖gradVφ z‖` body.  Since
+  -- `⨆ z, ‖gradVφ z‖` is x-independent and nonneg, we can pull it out via
+  -- `Real.iSup_mul_of_nonneg`.
+  rw [show (⨆ x, ‖gradW x‖ * ⨆ z, ‖gradVφ z‖) = (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖) from
+    (Real.iSup_mul_of_nonneg h_sV _).symm]
+  -- Finish with absolute-value + ring arithmetic.
+  rw [abs_mul, abs_of_nonneg (by positivity)]
+  calc (1 / (N : ℝ) ^ 2) * |∑ i : Fin N, @inner ℝ (PhysSpace d) _ (gradW 0) (gradVφ (X t i, V t i))|
+      ≤ (1 / (N : ℝ) ^ 2) * ((N : ℝ) * ((⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖))) :=
+        mul_le_mul_of_nonneg_left h_sum (by positivity)
+    _ = (1 / (N : ℝ)) * ((⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)) := by
+        field_simp
 
 /-- (tex: prop:weak)
 Weak evolution of the empirical measure.
