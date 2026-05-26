@@ -877,6 +877,32 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
   ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f),
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
 
+/-- For probability measures μ, ν on a normed space `E` with finite first moments
+(i.e. `Integrable (fun y => ‖y‖) μ` and same for ν), the Wasserstein-1 distance
+is finite: `wasserstein1 μ ν < ⊤`.
+
+Proof sketch:  For any 1-Lipschitz `φ : E → ℝ`, set `ψ y := φ y - φ 0`.  Then
+|ψ(y)| ≤ ‖y‖ by 1-Lipschitz-ness, and ∫φdμ − ∫φdν = ∫ψdμ − ∫ψdν (the constants
+φ(0)·μ(univ) = φ(0)·ν(univ) cancel since both are probability measures).
+So ∫φdμ − ∫φdν ≤ ∫|ψ|dμ + ∫|ψ|dν ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, finite.
+Taking sup over 1-Lip φ: `wasserstein1 μ ν ≤ ENNReal.ofReal M < ⊤`. -/
+lemma wasserstein1_lt_top_of_finite_moment
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
+    [BorelSpace E]
+    (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrable (fun y => ‖y‖) ν) :
+    wasserstein1 μ ν < ⊤ := by
+  sorry
+
+/-- Convenience corollary: under the same hypotheses, `wasserstein1 μ ν ≠ ⊤`. -/
+lemma wasserstein1_ne_top_of_finite_moment
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
+    [BorelSpace E]
+    (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrable (fun y => ‖y‖) ν) :
+    wasserstein1 μ ν ≠ ⊤ :=
+  (wasserstein1_lt_top_of_finite_moment μ ν hμ hν).ne
+
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/dobrushin.json`. -/
 
@@ -955,9 +981,21 @@ supremum of integral differences over 1-Lipschitz test functions, together with
 `ENNReal.toReal_iSup` and `ENNReal.ofReal_toReal` to convert between ENNReal and ℝ. -/
 lemma convolveLipschitz_KR_le
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
-    (ρ σ : Measure α) (φ : α → ℝ) (hφ : LipschitzWith 1 φ) :
+    (ρ σ : Measure α) (φ : α → ℝ) (hφ : LipschitzWith 1 φ)
+    (hW : wasserstein1 ρ σ ≠ ⊤) :
     ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ ≤ (wasserstein1 ρ σ).toReal := by
-  sorry
+  -- By definition, ENNReal.ofReal (∫φdρ − ∫φdσ) ≤ wasserstein1 ρ σ.
+  have h_sup : ENNReal.ofReal (∫ y, φ y ∂ρ - ∫ y, φ y ∂σ) ≤ wasserstein1 ρ σ := by
+    refine le_iSup₂ (α := ENNReal) (f := fun f _ =>
+      ENNReal.ofReal (∫ x, f x ∂ρ - ∫ x, f x ∂σ)) φ hφ
+  -- Convert to .toReal preserving the inequality.
+  by_cases h_pos : 0 ≤ ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ
+  · -- positive case: ENNReal.ofReal x .toReal = x
+    have := (ENNReal.toReal_le_toReal ENNReal.ofReal_ne_top hW).mpr h_sup
+    rwa [ENNReal.toReal_ofReal h_pos] at this
+  · -- negative case: LHS < 0 ≤ wasserstein1.toReal
+    push_neg at h_pos
+    exact h_pos.le.trans ENNReal.toReal_nonneg
 
 /-- For any `v : PhysSpace d` with `‖v‖ ≤ 1`, the real inner product
 `⟨(∇W∗ρ)(x) − (∇W∗σ)(x), v⟩` is bounded by `(L : ℝ) * (wasserstein1 ρ σ).toReal`.
@@ -971,7 +1009,8 @@ lemma convolveLipschitz_inner_bound
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
-    (x : PhysSpace d) :
+    (x : PhysSpace d)
+    (hW : wasserstein1 ρ σ ≠ ⊤) :
     ∀ v : PhysSpace d, ‖v‖ ≤ 1 →
       @inner ℝ (PhysSpace d) _ (convolveFunctionMeasure gradW ρ x -
         convolveFunctionMeasure gradW σ x) v ≤
@@ -1014,10 +1053,16 @@ theorem MathlibTODO_convolveLipschitzEstimate
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
-    (x : PhysSpace d) :
+    (x : PhysSpace d)
+    (hW : wasserstein1 ρ σ ≠ ⊤) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal := by
-  sorry
+  -- Compose: from convolveLipschitz_inner_bound (for all unit v, ⟨z, v⟩ ≤ M)
+  --          and convolveLipschitz_norm_le_of_inner_forall (then ‖z‖ ≤ M).
+  exact convolveLipschitz_norm_le_of_inner_forall
+    (convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x)
+    ((L : ℝ) * (wasserstein1 ρ σ).toReal)
+    (convolveLipschitz_inner_bound gradW L hL ρ σ x hW)
 
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
@@ -1135,10 +1180,36 @@ lemma wassersteinGronwallCoupling_ofReal_le
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (t : ℝ) (ht : 0 ≤ t) :
+    (t : ℝ) (ht : 0 ≤ t)
+    (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
     wasserstein1 (f t) (g t) ≤
       ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  sorry
+  -- real bound
+  have h_real := wassersteinGronwallCoupling_real_bound gradW L hL f g hf hg
+    hf_prob hg_prob C hC hCL t ht
+  -- (wasserstein1 (f 0) (g 0)).toReal ≥ 0
+  have h_t_real_nonneg : 0 ≤ (wasserstein1 (f t) (g t)).toReal := ENNReal.toReal_nonneg
+  have h_0_real_nonneg : 0 ≤ (wasserstein1 (f 0) (g 0)).toReal := ENNReal.toReal_nonneg
+  have h_exp_pos : 0 < Real.exp (C * t) := Real.exp_pos _
+  -- Lift h_real to ENNReal: ofReal preserves ≤
+  have h_ofReal : ENNReal.ofReal ((wasserstein1 (f t) (g t)).toReal) ≤
+      ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t)) :=
+    ENNReal.ofReal_le_ofReal h_real
+  -- LHS = wasserstein1 (f t) (g t) since hW_t (finite)
+  rw [ENNReal.ofReal_toReal hW_t] at h_ofReal
+  -- RHS = ENNReal.ofReal(W₁(f 0)(g 0).toReal) * ENNReal.ofReal(exp(C*t))
+  --     = mul of two ofReals (using ENNReal.ofReal_mul)
+  rw [ENNReal.ofReal_mul h_0_real_nonneg, mul_comm] at h_ofReal
+  -- Now h_ofReal : wasserstein1 (f t) (g t) ≤
+  --   ENNReal.ofReal(exp(C*t)) * ENNReal.ofReal(W₁(f 0)(g 0).toReal)
+  -- ENNReal.ofReal(x.toReal) ≤ x always (by ofReal_toReal_le)
+  have h_lift : ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal) ≤
+      wasserstein1 (f 0) (g 0) := ENNReal.ofReal_toReal_le
+  calc wasserstein1 (f t) (g t)
+      ≤ ENNReal.ofReal (Real.exp (C * t)) *
+          ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal) := h_ofReal
+    _ ≤ ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+        gcongr
 
 -- The original Mathlib gap axiom, now expressed as a theorem.
 -- The proof scaffold uses the sub-axioms and the four helper lemmas above.
@@ -1152,12 +1223,11 @@ theorem MathlibTODO_wassersteinGronwallCoupling
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (t : ℝ) (ht : 0 ≤ t) :
+    (t : ℝ) (ht : 0 ≤ t)
+    (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
     wasserstein1 (f t) (g t) ≤
-      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  -- close via wassersteinGronwallCoupling_ofReal_le (which invokes the real-valued
-  -- Gronwall bound + the ENNReal conversion steps)
-  sorry -- residual: apply wassersteinGronwallCoupling_ofReal_le directly
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) :=
+  wassersteinGronwallCoupling_ofReal_le gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht hW_t
 
 /-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
 This provides the Dobrushin constant independently of whether L = 0. -/
@@ -1175,10 +1245,11 @@ lemma convolveDiff_norm_le
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
-    (x : PhysSpace d) :
+    (x : PhysSpace d)
+    (hW : wasserstein1 ρ σ ≠ ⊤) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal :=
-  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x
+  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x hW
 
 /-- For C > 0 and 0 ≤ s ≤ t, we have
 ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
@@ -1208,9 +1279,15 @@ lemma dobrushin_ennreal_bound
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
     ∀ t : ℝ, 0 ≤ t →
       wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) :=
-  fun t ht =>
-    MathlibTODO_wassersteinGronwallCoupling gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+  intro t ht
+  -- Derive hW_t : wasserstein1 (f t) (g t) ≠ ⊤ from finite first moments
+  haveI : IsProbabilityMeasure (f t) := (hf_prob t).1
+  haveI : IsProbabilityMeasure (g t) := (hg_prob t).1
+  have hW_t : wasserstein1 (f t) (g t) ≠ ⊤ :=
+    wasserstein1_ne_top_of_finite_moment (f t) (g t) (hf_prob t).2 (hg_prob t).2
+  exact MathlibTODO_wassersteinGronwallCoupling gradW L hL f g hf hg hf_prob hg_prob
+    C hC hCL t ht hW_t
 
 /-- Package the bound and positivity of C into the existential conclusion of dobrushin:
 ∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).
