@@ -1,16 +1,17 @@
 [system] init
-[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch the agent with the specified parameters.
+[thinking] The user wants me to use the lean-verifier agent to verify the Lean formalization and write a coverage report. Let me launch that agent with the specified parameters.
 [Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779831600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779823200,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779831600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779829200,"isUsingOverage":false}
 [Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/ 2>/dev/null && echo \"---\" || echo \"no plans dir\"","description":"List decomposition plan sidecar files"}
 → ⚠ [8248/8250] Replayed Vlasov.Basic
 warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
   [NeZero d]
 consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
  
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
 →      1→# Outline of Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics
      2→
      3→## Notation
@@ -18,9 +19,23 @@ consider restructuring your `variable` declarations so that the variables are no
      5→- `\R` → `\mathbb{R}` — real numbers (`ℝ` in Lean / Mathlib)
      6→- `\T` → `\mathbb{T}` — torus (defined but not used in the body)
      7→- `\N` → `\mathbb{N}` — nat
+→ MathlibTODO_convolveLipschitzEstimate.json
+MathlibTODO_wassersteinGronwallCoupling.json
+dobrushin.json
+weakEvolutionEmpiricalMeasure.json
+---
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
-→ File content (32447 tokens) exceeds maximum allowed tokens (25000). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1,"limit":500}
+→ File content (34506 tokens) exceeds maximum allowed tokens (25000). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json","description":"Read dobrushin decomposition plan"}
+→ <tool_use_error>Sibling tool call errored</tool_use_error>
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read weakEvolutionEmpiricalMeasure decomposition plan"}
+→ <tool_use_error>Sibling tool call errored</tool_use_error>
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_convolveLipschitzEstimate.json","description":"Read MathlibTODO_convolveLipschitzEstimate decomposition plan"}
+→ <tool_use_error>Sibling tool call errored</tool_use_error>
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json","description":"Read MathlibTODO_wassersteinGronwallCoupling decomposition plan"}
+→ <tool_use_error>Sibling tool call errored</tool_use_error>
+[rate-limit] {"status":"allowed","resetsAt":1779831600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779829800,"isUsingOverage":false}
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1,"limit":400}
 →      1→/-
      2→Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
      3→Generated from vlasov.tex.
@@ -30,121 +45,102 @@ consider restructuring your `variable` declarations so that the variables are no
      7→import Mathlib
      8→
      9→open scoped BigOperato
-[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/ 2>/dev/null && echo \"---\" || echo \"no plans dir\"","description":"List decomposition plan sidecars"}
-→ MathlibTODO_convolveLipschitzEstimate.json
-MathlibTODO_wassersteinGronwallCoupling.json
-dobrushin.json
-weakEvolutionEmpiricalMeasure.json
----
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":500,"limit":500}
-→    500→  -- Positivity facts.
-   501→  have hN_pos : 0 < (N : ℝ) := Nat.cast_pos.mpr (NeZero.pos N)
-   502→  have h_sW : 0 ≤ ⨆ x, ‖gradW x‖ := le_trans (norm_nonneg _) (le_ciSup hgradW_bdd 0)
-   503→  have h_sV : 0 ≤ ⨆ z, ‖gradVφ z‖ := le_trans (norm_nonneg _)
-   504→    (le_ciSup hgradVφ_bdd ((X t 
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json | python3 -m json.tool 2>&1 | head -150","description":"Parse weakEvolutionEmpiricalMeasure decomposition plan"}
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json","description":"Read dobrushin decomposition plan"}
 → {
-    "schema_version": 1,
-    "generated_at": "2026-05-25T00:00:00Z",
-    "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalC
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json | python3 -m json.tool 2>&1 | head -150","description":"Parse dobrushin decomposition plan"}
+  "schema_version": 1,
+  "generated_at": "2026-05-25T22:15:32Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.dobrushin",
+    "kind": "theorem",
+    "tex_label": "thm:dobrushin",
+    "file": "Vlasov/Basic.lean",
+    "line": 997
+  },
+  "helpers": [
+    {
+      "name": "Vl
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json","description":"Read weakEvolutionEmpiricalMeasure decomposition plan"}
 → {
-    "schema_version": 1,
-    "generated_at": "2026-05-25T22:15:32Z",
-    "generated_by": "sorry-decomposer",
-    "parent": {
-        "name": "Vlasov.dobrushin",
-        "kind": "theorem",
-        "tex_label": "thm:dobrushin",
-        "file": "Vlasov/Basic.lean",
-        "line": 997
-    },
-    "hel
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1000,"limit":500}
-→   1000→/-- For any `v : PhysSpace d` with `‖v‖ ≤ 1`, the real inner product
-  1001→`⟨(∇W∗ρ)(x) − (∇W∗σ)(x), v⟩` is bounded by `(L : ℝ) * (wasserstein1 ρ σ).toReal`.
-  1002→Proof: unfold `convolveFunctionMeasure` to expose `∫ gradW(x−y) dρ` and `∫ gradW(x−y) dσ`;
-  1003→commute the inner product `⟨·,
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_convolveLipschitzEstimate.json | python3 -m json.tool 2>&1 | head -150","description":"Parse MathlibTODO_convolveLipschitzEstimate decomposition plan"}
+  "schema_version": 1,
+  "generated_at": "2026-05-25T00:00:00Z",
+  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure algebra; (A) fix diagonalCorrect
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_convolveLipschitzEstimate.json","description":"Read MathlibTODO_convolveLipschitzEstimate plan"}
 → {
-    "schema_version": 1,
-    "generated_at": "2026-05-26T00:20:00Z",
-    "generated_by": "sorry-decomposer",
-    "parent": {
-        "name": "Vlasov.MathlibTODO_convolveLipschitzEstimate",
-        "kind": "theorem",
-        "tex_label": "",
-        "file": "Vlasov/Vlasov/Basic.lean",
-        "line
-[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json | python3 -m json.tool 2>&1 | head -150","description":"Parse MathlibTODO_wassersteinGronwallCoupling decomposition plan"}
+  "schema_version": 1,
+  "generated_at": "2026-05-26T00:20:00Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.MathlibTODO_convolveLipschitzEstimate",
+    "kind": "theorem",
+    "tex_label": "",
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 886
+  },
+  "helpers": [
+ 
+[Bash] {"command":"cat /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json","description":"Read MathlibTODO_wassersteinGronwallCoupling plan"}
 → {
-    "schema_version": 1,
-    "generated_at": "2026-05-25T23:17:47Z",
-    "generated_by": "sorry-decomposer",
-    "parent": {
-        "name": "Vlasov.MathlibTODO_wassersteinGronwallCoupling",
-        "kind": "axiom",
-        "tex_label": "",
-        "file": "Vlasov/Basic.lean",
-        "line": 1003
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"declaration uses \\`sorry\\`|warning:|error:\" | head -60","description":"Extract sorry warnings and error lines from build"}
-→ warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
-warning: Vlasov/Basic.lean:234:24: This simp argument is unused:
-warning: Vlasov/Basic.lean:251:0: automatically included section variable(s) unused in theorem `Vlaso
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":780,"limit":10}
-→    780→Under Assumption ass:W, there exists a unique narrowly continuous curve
-   781→t ↦ f_t ∈ 𝒫_1(ℝ^d × ℝ^d) satisfying eq:vlasov in the distributional sense
-   782→with f_{t=0} = f_0.
-   783→-/
-   784→theorem vlasovWellPosedness
-   785→    (W : PhysSpace d → ℝ) [AssW W]
-   786→    (gradW : PhysSp
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":885,"limit":10}
-→    885→|ψ(y)| ≤ ‖y‖ by 1-Lipschitz-ness, and ∫φdμ − ∫φdν = ∫ψdμ − ∫ψdν (the constants
-   886→φ(0)·μ(univ) = φ(0)·ν(univ) cancel since both are probability measures).
-   887→So ∫φdμ − ∫φdν ≤ ∫|ψ|dμ + ∫|ψ|dν ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, finite.
-   888→Taking sup over 1-Lip φ: `wasserstein1 μ ν ≤ ENNReal.of
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1003,"limit":10}
-→   1003→commute the inner product `⟨·, v⟩` (a continuous linear map) through each integral via
-  1004→`ContinuousLinearMap.integral_comp_comm`; then the integrand function
-  1005→`y ↦ ⟨gradW(x−y), v⟩` has Lipschitz constant `L * ‖v‖` ≤ `L` (from `convolveLipschitz_inner_lipschitz`),
-  1006→so `(1/L) 
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1070,"limit":10}
-→   1070→-- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling:
-  1071→-- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
-  1072→-- Requires: Wasserstein distance continuity under narrowly-continuous measure flows
-  1073→-- (not in Mathlib's stable API for measure-valued 
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1089,"limit":10}
-→   1089→-- Requires: characteristic flow coupling argument (pairing ODE solutions via common
-  1090→-- initial label) + W₁ triangle inequality under measure pushforward.
-  1091→-- Neither the measure-valued Picard theorem nor the W₁ pushforward contraction
-  1092→-- is in Mathlib's stable API.
-  1093
-[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORTEOF'\n# Formalization coverage report\n\nGenerated: 2026-05-26\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Projec
+  "schema_version": 1,
+  "generated_at": "2026-05-25T23:17:47Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.MathlibTODO_wassersteinGronwallCoupling",
+    "kind": "axiom",
+    "tex_label": "",
+    "file": "Vlasov/Basic.lean",
+    "line": 1003
+  },
+  "helpers": [
+    {
+ 
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":400,"limit":400}
+→    400→  simp [ENNReal.toReal_div, ENNReal.toReal_natCast]
+   401→
+   402→/-- The remainder term `r` in the weak evolution identity equals
+   403→`(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
+   404→obtained when extending the Newton-equation sum `Σ_{j≠i}` to all `j`
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":800,"limit":400}
+→    800→  sorry
+   801→
+   802→-- ---------------------------------------------------------------------------
+   803→-- §10  Equation (Characteristic / mean-field ODE)   (tex: eq:char)
+   804→-- ---------------------------------------------------------------------------
+   805→
+   806→-- TODO(mathlib
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1196,"limit":350}
+→   1196→/-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
+  1197→MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
+  1198→`wassersteinGronwallCoupling_gronwall_le` to conclude:
+  1199→  (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"declaration uses \\`sorry\\`\"","description":"Extract all sorry warning lines","timeout":60000}
+→ warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1073:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1140:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1159:8: declaration uses `sorry`
+[Bash] {"command":"date -u +\"%Y-%m-%dT%H:%M:%SZ\"","description":"Get current ISO timestamp"}
+→ 2026-05-26T21:06:20Z
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-26T21:06:20Z\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Cl
 → Report written.
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
-     3→Generated: 2026-05-26
+     3→Generated: 2026-05-26T21:06:20Z
      4→Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
      5→Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
      6→
-     7→## Build status
-     8
-→ [{"type":"text","text":"The report is written and verified. Here is a summary of what was found:\n\n**verified: 13/13 items present, build: success**\n\n---\n\n**Build:** Success (8250 jobs). 5 sorry warnings, 23 other warnings, 0 errors.\n\n**Coverage table (all 13 outline items present):**\n\n| Te
-The verification completed successfully. Here's the summary:
+     7→## Build sta
+→ [{"type":"text","text":"The report is written. Here is a summary of the findings:\n\n---\n\n**Build and coverage summary**\n\nBuild: success (8250 jobs). Sorry warnings: 4. Other warnings: 23. Errors: 0.\n\nCoverage: **13/13 outline items present**. All 13 items from `/Users/jkmiller/Documents/Claud
+The verifier has completed. Here's the summary:
 
-**Build: SUCCESS** (8250 jobs, 0 errors, 5 sorry warnings)
+**Build: SUCCESS** | **Coverage: 13/13** | **Sorries: 4**
 
-**Coverage: 13/13 outline items present**
+All 13 outline items are present in `Basic.lean`. The 4 remaining sorries:
 
-Two items have `sorry`:
-- `vlasovWellPosedness` — genuine Mathlib gap (measure-valued ODE Picard)
-- `dobrushin` — transitively depends on 2 `MathlibTODO_*` coupling placeholders + 2 tractable sub-lemmas
+1. **`vlasovWellPosedness`** (line 784) — direct sorry, blocked on Mathlib measure-valued ODE theory
+2. **`convolveLipschitz_inner_bound`** (line 1073) — **best next target** (score 3): all prerequisites proved, concrete tactic sketch available
+3. **`MathlibTODO_wassersteinGronwallCoupling_W1ContOn`** (line 1140) — genuine Mathlib gap
+4. **`MathlibTODO_wassersteinGronwallCoupling_derivBound`** (line 1159) — genuine Mathlib gap
 
-The tractable sorry targets (most promising for `sorry-prover`) are:
-1. `wasserstein1_lt_top_of_finite_moment` (line 889)
-2. `convolveLipschitz_inner_bound` (line 1007)
-
-Full report written to `formalize/report.md`.
-[result] success duration=140400ms cost=$0.9531822500000002
+The `dobrushin` and `meanFieldLimit` theorems are logically sorry-dependent via items 3–4, but Lean doesn't re-flag them at the declaration level. Report written to `formalize/report.md`.
+[result] success duration=218243ms cost=$1.1309782499999999

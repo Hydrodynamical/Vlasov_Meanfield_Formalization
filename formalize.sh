@@ -391,7 +391,7 @@ Follow your system prompt exactly. Read-only on source files."
 Follow your system prompt exactly. The selection mode tells you which sorry
 to target (see §0 of your system prompt). Hard cap of 8 build iterations.
 Checkpoint the file before editing and revert on failure." \
-      900 low
+      1800 low
 
     # 2b. Safety net: if the prover was killed mid-edit (e.g. SIGALRM from the
     # watchdog), the agent never reached its own revert step.  The checkpoint

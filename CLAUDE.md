@@ -84,7 +84,7 @@ not name-churn.
 
 **Tuning options when this becomes the bottleneck**:
 - Longer per-target timeout in `formalize.sh delegate()`
-  (currently 600s default).
+  (currently 900s for prover; default for `delegate` is 600s).
 - Pre-supplied `proof_sketch` in the plan JSON — sketch fast
   path (§4.−1) skips much of the discovery work.
 - Smaller helper lemmas via decomposer — each helper has its
@@ -93,6 +93,46 @@ not name-churn.
 The wall-clock bottleneck is a strictly better problem than the
 name-churn-reverts-everything bottleneck — it represents the
 prover making careful progress, just not finishing in time.
+
+**But**: doubling the timeout (900s → 1800s) on `convolveLipschitz_inner_bound`
+did NOT lead to closure (2026-05-26 third run). The prover hit
+the §4 ITERATION cap (8 edits + 8 builds) before running out of
+seconds. So the relevant bottleneck shifts as you tune: once
+wall-clock is no longer the gate, the next ceiling is the
+iteration cap. Pushing past it requires either (a) raising the
+cap, (b) smaller helpers via decomposer, or (c) hand-proof.
+
+### L5. The hard rule must specify the grep TARGET, not just the verb
+
+**Failure mode**: even with "GREP BEFORE YOU CITE" hoisted to
+Hard rules, the prover sometimes greps the LOCAL Lean file for a
+name instead of the Mathlib install. The local grep finds the
+prover's own bad references (it just wrote `apply wasserstein1_comm`
+and now greps for `wasserstein1_comm` in the same file), returns
+"yes I have it!", and the prover proceeds. Vacuous validation.
+
+**Empirical confirmation**: the 2026-05-26 third run on
+`convolveLipschitz_inner_bound`. The prover hallucinated
+`wasserstein1_comm` (not in Mathlib; not in our project), wrote
+`apply wasserstein1_comm`, then ran
+`grep -rn 'wasserstein1_comm\b' /…/Basic.lean` and found its own
+prior writes. The hard rule was satisfied syntactically (a grep
+was done before the next edit), but the SEMANTICS — "confirm
+the name exists in the upstream library" — was violated.
+
+**Fix needed in the spec**: the hard rule's grep example must
+include the explicit Mathlib install path
+(`.lake/packages/mathlib/Mathlib/`) and reject local-only
+greps. Suggested wording: "the grep MUST target a path
+matching `.lake/packages/mathlib/Mathlib/…`; greppping the
+project's own Lean file does not count."
+
+**Generalisation**: precision in the example matters as much
+as the prose. Models follow the example shape more than the
+prose mandate. If the example shows
+`grep -rn '…' .lake/packages/mathlib/…`, the model uses that
+target. If the example is loose, the model uses whatever
+target seems convenient — including the same file it's editing.
 
 ## Vlasov-specific design choices
 

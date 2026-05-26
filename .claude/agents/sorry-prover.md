@@ -539,6 +539,20 @@ already moved it back).
   path. A name that already passed §3.5 preflight does NOT need
   re-validation; a name you just thought of from memory ALWAYS does.
 
+  **The grep MUST target `.lake/packages/mathlib/Mathlib/...`** — i.e.
+  the Mathlib install, NOT the project's own Lean file. Grepping
+  `Vlasov/Basic.lean` for a name does NOT count as validation: you'll
+  find your own (potentially bad) writes and the grep becomes
+  vacuous. The 2026-05-26 third re-prove on
+  `convolveLipschitz_inner_bound` failed exactly this way: the
+  prover wrote `apply wasserstein1_comm` (which is not in Mathlib
+  and not in our project), then "validated" by grepping
+  `Vlasov/Basic.lean` where it found its own prior writes. The build
+  failed with `Unknown identifier`. To pass validation, the grep
+  output must include at least one line whose path matches
+  `.lake/packages/mathlib/Mathlib/.+\.lean:` — a project-file match
+  does not satisfy the rule.
+
   **Concrete example, mandatory format.** Suppose you want to write
   `apply NNReal.eq_zero_or_pos`. Before writing the edit, run:
 
