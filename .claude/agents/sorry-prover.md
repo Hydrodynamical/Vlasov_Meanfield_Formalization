@@ -391,14 +391,23 @@ a. **Smallest viable edit.** Make exactly ONE of:
    single edit. If a refactor would require more, split it into multiple
    iterations.
 
-a′. **In-loop name-grounding (mandatory).** Before committing the edit:
-   for every Mathlib lemma name cited in the edit that is **not already
-   in the validated hints set** from §3.5, grep-validate it first using
-   the same grep (`grep -rnE "^(theorem|lemma|...) <name>\b ..."`). The
-   heuristic for "Mathlib lemma name" is: any dotted identifier whose
-   root is **not** a local hypothesis from the current goal context
+a′. **In-loop name-grounding (HARD RULE — see "Hard rules" block below).**
+   Before committing the edit: for every Mathlib lemma name cited in
+   the edit that is **not already in the validated hints set** from
+   §3.5, grep-validate it first using the same grep
+   (`grep -rnE "^(theorem|lemma|...) <name>\b ..."`). The heuristic
+   for "Mathlib lemma name" is: any dotted identifier whose root is
+   **not** a local hypothesis from the current goal context
    (e.g. `Filter.Eventually.of_forall` qualifies; `hμ.add` does not —
    `hμ` is a local hypothesis).
+
+   This is **not optional**. See the "GREP BEFORE YOU CITE" entry in
+   the Hard rules block at the bottom of this spec for the
+   enforcement mandate and the concrete grep example.  The 2026-05-26
+   re-prove experiment showed that without hard-rule framing, the
+   model treats this as aspirational and proceeds with un-grepped
+   names. The rule is hoisted alongside "never weaken the statement"
+   for that reason.
 
    - If the grep returns **zero matches**: do NOT write the tactic.
      Pick a different lemma or a different tactic shape. Count the
@@ -522,6 +531,48 @@ already moved it back).
     proved with no sorries of their own
 - **Do not modify** `lakefile.toml`, `lakefile.lean`, `lean-toolchain`,
   the verifier report, or `formalize/structure.md`.
+- **GREP BEFORE YOU CITE.** Before writing ANY Mathlib lemma name in
+  the Lean file — in `exact`, `apply`, `rw [...]`, `simp only [...]`,
+  `refine`, or as a `have h := NAME` — you MUST first run the grep
+  from §3.5 to confirm the name exists in the local Mathlib install.
+  This applies in every iteration of §4, including the sketch fast
+  path. A name that already passed §3.5 preflight does NOT need
+  re-validation; a name you just thought of from memory ALWAYS does.
+
+  **Concrete example, mandatory format.** Suppose you want to write
+  `apply NNReal.eq_zero_or_pos`. Before writing the edit, run:
+
+  ```bash
+  grep -rnE "^(theorem|lemma|def|abbrev) NNReal\.eq_zero_or_pos\b|^(theorem|lemma) eq_zero_or_pos\b" \
+      /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/ 2>/dev/null | head -3
+  ```
+
+  If the grep returns ZERO matches: **do not write the edit**. The
+  tactic would error with `Unknown constant NNReal.eq_zero_or_pos`,
+  consuming a wasted iteration. Instead, broaden the grep
+  (try `eq_zero_or_pos` without the namespace, try a nearby
+  directory, try a related name) until you find the real lemma —
+  THEN write the edit.
+
+  **Why this is a hard rule, not a soft suggestion.** The 2026-05-26
+  re-prove experiment confirmed that when this discipline is only
+  embedded as iteration-loop step (a′), the model treats it as
+  aspirational and proceeds to write un-grepped names anyway. The
+  build then fails with `Unknown constant`, the iteration is wasted,
+  and the safety net eventually reverts the entire attempt.
+  Hoisting the rule here makes it as forcing as "never weaken the
+  statement" — a constraint that gates every edit, not a polite
+  suggestion buried in §4.
+
+  **Enforcement at attempt-log time.** Step 5 / §6: count the
+  iterations where you wrote a Mathlib citation. For each
+  iteration, verify the §6 attempt log records a `grep:` entry
+  immediately preceding the corresponding `Edit`. Iterations
+  missing this entry are flagged as discipline failures (the
+  `rejected N in-loop citation(s)` counter in §6 catches them
+  implicitly when the citation later fails build, but the
+  preceding grep entry is the canonical signal that the rule
+  was followed).
 
 ## End-of-run report (print this block, then exit)
 
