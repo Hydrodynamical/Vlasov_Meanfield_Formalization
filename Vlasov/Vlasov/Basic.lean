@@ -616,7 +616,44 @@ theorem weakEvolutionEmpiricalMeasure
     have hcorr := diagonalCorrection_eq N gradW hgradW_meas X V gradVφ t
     -- Rearrange: the derivative value from hderiv equals (integral term) + r
     -- after applying hcorr to split the velocity inner products.
-    sorry
+    refine hderiv.congr_deriv ?_
+    -- Convert the integral on the goal's RHS into a finite sum so we can
+    -- match against hderiv's value plus hcorr.
+    have hint : (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                  @inner ℝ (PhysSpace d) _
+                    (convolveFunctionMeasure gradW
+                      (spatialMarginal (empiricalMeasureCurve N X V t)) z.1)
+                    (gradVφ z))
+                ∂(empiricalMeasureCurve N X V t)) =
+        (1 / (N : ℝ)) * ∑ i : Fin N,
+          (@inner ℝ (PhysSpace d) _ (V t i) (gradXφ (X t i, V t i)) -
+           @inner ℝ (PhysSpace d) _
+             (convolveFunctionMeasure gradW
+               (spatialMarginal (empiricalMeasureCurve N X V t)) (X t i))
+             (gradVφ (X t i, V t i))) := by
+      simp only [empiricalMeasureCurve]
+      exact empiricalMeasure_integral_eq N (X t) (V t)
+        (fun z => @inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                  @inner ℝ (PhysSpace d) _
+                    (convolveFunctionMeasure gradW
+                      (spatialMarginal (empiricalMeasureCurve N X V t)) z.1)
+                    (gradVφ z))
+    rw [hint]
+    -- Goal: D(t) = (1/N) * Σᵢ (Aᵢ - Cᵢ) + r
+    -- where D(t) = (1/N) * Σᵢ (Aᵢ + Bᵢ),
+    --   Aᵢ = ⟨V t i, gradXφ (X t i, V t i)⟩,
+    --   Bᵢ = ⟨-(1/N) • Σⱼ≠ᵢ gradW(Xᵢ-Xⱼ), gradVφᵢ⟩,
+    --   Cᵢ = ⟨conv_i, gradVφᵢ⟩,
+    --   r  = (1/N²) * Σᵢ ⟨gradW 0, gradVφᵢ⟩.
+    -- hcorr says: (1/N) * Σᵢ Bᵢ = -(1/N) * Σᵢ Cᵢ + r.
+    -- So (1/N) * Σ (A+B) = (1/N) Σ A + (1/N) Σ B
+    --                   = (1/N) Σ A − (1/N) Σ C + r       [by hcorr]
+    --                   = (1/N) Σ (A − C) + r              [recombine]
+    -- Distribute Σ over (+) and (−) on both sides (keeping (1/N) outside),
+    -- then split (1/N) * (sum + sum) into (1/N)*sum + (1/N)*sum.  hcorr fits
+    -- the resulting linear identity directly.
+    rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, mul_add, mul_sub]
+    linarith [hcorr]
   · -- Bound: direct application of diagonalCorrection_bound.
     exact diagonalCorrection_bound N gradW X V gradVφ hgradW_bdd hgradVφ_bdd t
 
