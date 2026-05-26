@@ -210,6 +210,71 @@ Scope to relevant subdirectories — much faster than global search:
 Once located, read the signature with `sed -n '<line>p' <file>` (or the
 `Read` tool with `offset` and `limit`).
 
+## 3.5. Pre-flight: validate Mathlib lemma names
+
+Before any tactic is written, validate the names you intend to use.
+This catches **Mathlib name churn** — lemmas you "remember" that have
+been renamed, deleted, or never existed under the form you wrote.
+Mathlib name churn was the proximate cause of the
+`wasserstein1_lt_top_of_finite_moment` (2026-05-26) failure: two
+prover cycles burned on `Filter.eventually_of_forall` (renamed to
+`Filter.Eventually.of_forall`) and `Integrable.add_const` (never
+existed; the right form is `(integrable_const _).add hμ`) before the
+safety net reverted the entire attempt.
+
+See `sorry-decomposer.md` §3.1.5 for the canonical grep syntax and
+namespace-resolution discipline; this section applies the same rules
+at prover time.
+
+### 3.5.1  Validate plan-provided hints
+
+If a plan applies to this target (loaded in §2 via the `mathlib_hints`
+lookup), iterate over its `mathlib_hints[]` and grep-validate each
+entry:
+
+```
+grep -rnE "^(theorem|lemma|def|abbrev|class|structure|instance) <name>\b|^protected (theorem|lemma) <name>\b" \
+    .lake/packages/mathlib/Mathlib/<expected-subdir>/ 2>/dev/null | head -3
+```
+
+Scope to the most specific subdirectory you can; `MeasureTheory/`,
+`Analysis/Calculus/`, etc., from the same list as §3.
+
+- **Zero matches**: drop the name from the working hints set
+  silently. **Count** the drops for the attempt log (§6) — do
+  not log the names themselves (they were guesses, and a dropped
+  one is just signal that the LLM made a hallucination, not
+  actionable for downstream review).
+- **One or more matches**: keep the name. **Preserve any namespace
+  qualifier**: if the matched declaration sits inside a
+  `namespace X` block, the user-facing name is `X.<lemma>`, not
+  bare `<lemma>`. To check, read ~30 lines upward from the
+  match looking for an unclosed `namespace X` (a matching
+  `end X` cancels it). Use the fully-qualified name.
+
+### 3.5.2  Validate sketch lemmas
+
+If the plan supplies a `proof_sketch` or `tactic_sketch`, scan the
+sketch for dotted identifiers (heuristic: tokens matching
+`[A-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+` — capitalised first segment,
+at least one dotted suffix — captures `Filter.Eventually.of_forall`,
+`ENNReal.ofReal_le_ofReal`, etc.). For each, run the same grep.
+
+If **any** lemma in the sketch resolves to zero matches: **abort the
+sketch fast path** (§4.−1) for this target. Log the failed name(s)
+in the attempt log — in this case the names ARE actionable, they
+tell the user (and the decomposer's next run) which Mathlib rename
+broke the sketch.
+
+### 3.5.3  Why pre-flight here and not later
+
+The decomposer and sketch-author already validate `mathlib_hints[]`
+at the time the plan is written. But Mathlib evolves: the gap between
+decomposition time and prover time can include a `lake update`, and
+the names that validated then may not validate now. Re-validating at
+prover time is cheap (one grep per hint, typically < 10 hints) and
+catches drift before paying the cost of a wasted iteration.
+
 ## 4. Attempt loop (hard cap: 8 iterations, where an iteration = one edit + one build)
 
 **Critical anti-pattern**: do **not** attempt to construct a complete
@@ -326,6 +391,35 @@ a. **Smallest viable edit.** Make exactly ONE of:
    single edit. If a refactor would require more, split it into multiple
    iterations.
 
+a′. **In-loop name-grounding (mandatory).** Before committing the edit:
+   for every Mathlib lemma name cited in the edit that is **not already
+   in the validated hints set** from §3.5, grep-validate it first using
+   the same grep (`grep -rnE "^(theorem|lemma|...) <name>\b ..."`). The
+   heuristic for "Mathlib lemma name" is: any dotted identifier whose
+   root is **not** a local hypothesis from the current goal context
+   (e.g. `Filter.Eventually.of_forall` qualifies; `hμ.add` does not —
+   `hμ` is a local hypothesis).
+
+   - If the grep returns **zero matches**: do NOT write the tactic.
+     Pick a different lemma or a different tactic shape. Count the
+     rejected name for the §6 attempt log.
+   - If the grep returns **one or more matches**: the name is sound;
+     add it to the validated hints set so subsequent iterations don't
+     re-grep it.
+
+   **Why this is in the iteration loop** (not just §3.5): the
+   pre-flight in §3.5 only validates what was already in the plan's
+   `mathlib_hints[]`. During iteration, the prover frequently invents
+   *new* lemma names from memory — and that memory is exactly where
+   Mathlib churn produces hallucinations. The May 26
+   `wasserstein1_lt_top_of_finite_moment` failure was caused by
+   in-iteration citations of `Filter.eventually_of_forall` and
+   `Integrable.add_const` — neither was in the plan; both were
+   prover guesses; both would have been caught by this step. The
+   marginal cost is one grep per cited Mathlib lemma per iteration
+   (~5-10 greps per session); the cost-vs-benefit is heavily in
+   favour of greppping.
+
 b. **Immediate build.** Run `cd <project root> && lake build 2>&1 | tail -80`.
    No two edits without a build in between — that rule is non-negotiable.
 
@@ -372,6 +466,7 @@ Append to the log path:
 **Result:** success | failure | skipped
 **Iterations:** <n>/8
 **Sorry count:** <before> → <after>
+**Pre-flight (§3.5):** dropped K hint(s); validated M sketch lemma(s); rejected N in-loop citation(s)
 
 ### Final proof (on success)
 ```lean
@@ -382,6 +477,15 @@ Append to the log path:
 - `Measure.smul_apply` — `.lake/packages/mathlib/.../MeasureSpace.lean:878`
 - `ENNReal.div_mul_cancel` — `.lake/packages/mathlib/.../Inv.lean:175`
 - ...
+
+### Pre-flight rejections (in-loop)
+- `Filter.eventually_of_forall` — zero matches; tried instead `Filter.Eventually.of_forall`
+- `Integrable.add_const` — zero matches; fell back to `(integrable_const _).add hμ`
+- ...
+
+(Names of dropped *hints* are NOT logged — they were guesses, not
+actionable. Names of *in-loop* rejections ARE logged because they
+flag systematic Mathlib renames that hint future runs.)
 
 ### What didn't work (on failure)
 - iteration 1: <one-line summary>
