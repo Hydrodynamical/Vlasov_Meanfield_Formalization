@@ -334,9 +334,77 @@ conv_rhs => rw [← Finset.mul_sum]   -- pull constant out of RHS sum
 (Origin: `diagonalCorrection_eq`'s Step-5 finisher.  Forward-only
 `rw [Finset.mul_sum]` left the RHS in a shape `ring` couldn't bridge.)
 
+**Pattern 4 — `HasDerivAt.fun_sum` vs `HasDerivAt.sum`**
+
+- *Trigger*: helper proves `HasDerivAt (fun y ↦ ∑ i ∈ s, A i y) ...`
+  — the function-of-Σ form, common after `simp_rw` distributes an
+  integral into a finite sum (e.g.,
+  `simp_rw [empiricalMeasure_integral_eq]`).
+- *Recipe*: use `HasDerivAt.fun_sum`, NOT `HasDerivAt.sum`. Both
+  exist in Mathlib (`Calculus/Deriv/Add.lean:218` and `:214`
+  respectively).  `.sum` produces `HasDerivAt (∑ i ∈ s, A i) ...`
+  (the Σ-of-functions form, where each `A i : ℝ → β` is summed as a
+  function-valued sum); `.fun_sum` produces `HasDerivAt (fun y ↦ ∑ i ∈ s, A i y) ...`
+  (the function-of-Σ form, where the sum happens pointwise inside
+  the body).  Picking the wrong one yields a type-mismatch error
+  with mismatched outer shapes.
+- *Snippet*:
+
+```
+-- WRONG (when the goal has fun-form Σ): produces Σ-of-functions,
+-- type-mismatch with the goal's outer fun-form
+-- exact HasDerivAt.sum (fun i _ => h_each i)
+-- RIGHT: matches the goal's fun-form Σ
+exact HasDerivAt.fun_sum (fun i _ => h_each i)
+```
+
+(Origin: `hasDerivAt_empiricalIntegral_sum`'s iter-2 type
+mismatch.  After `simp_rw [hint]` rewrote the integral into a
+fun-form `∑ i, φ (X s i, V s i)`, applying `.sum` produced a
+HasDerivAt over `∑ i ∈ s, fun s => ...` instead of `fun s => ∑ i, ...`.)
+
+**Pattern 5 — Sum-distribute-then-linarith for linear identities in finite sums**
+
+- *Trigger*: equation between two scalar expressions of the form
+  `c * ∑ i, (f i ± g i)` (with constants outside the sum) plus a
+  hypothesis `h` that's a linear combination of similar
+  `c * ∑ i, ...` shapes.  Typical context: composing two helper
+  lemmas in a residual-glue proof, where the helpers' RHSs combine
+  by basic linear algebra.
+- *Recipe*: split the sums first while keeping the constants
+  outside, then distribute the constants via `mul_add`/`mul_sub`,
+  then `linarith` with the hypothesis.  Concretely:
+  `rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, mul_add, mul_sub]; linarith [h]`.
+  This produces an identity in atomic `c * ∑ i, X i` subterms;
+  linarith treats each as an opaque variable and closes the
+  linear arithmetic.
+- *Anti-pattern*: `simp only [Finset.mul_sum, ...]; linarith [h]`
+  pulls `c` INSIDE the sum, producing `∑ i, c * X i` shapes.  If
+  `h` is in outside-form (the usual case for hand-derived
+  hypotheses), `linarith` can't unify the differently-shaped
+  sums — Pattern 3 ("bidirectional Finset.mul_sum") is the
+  alternative when you genuinely need both directions, but for
+  linarith-style closures keeping `c` outside is much more robust.
+- *Snippet*:
+
+```
+-- WRONG: pulls c inside, breaks linarith's pattern matching with hcorr
+-- simp only [Finset.mul_sum, mul_add, mul_sub, ← Finset.sum_add_distrib,
+--            ← Finset.sum_sub_distrib]
+-- linarith [hcorr]
+-- RIGHT: keep c outside, expose atomic c * ∑ X subterms
+rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, mul_add, mul_sub]
+linarith [hcorr]
+```
+
+(Origin: `weakEvolutionEmpiricalMeasure`'s residual-glue iter-2
+proof.  Iter 1 used `simp only [Finset.mul_sum, ...]` and
+`linarith` failed on the resulting mismatched-shape sums; iter 2
+swapped to the recipe above and closed instantly.)
+
 ---
 
-When a new failure mode is observed in production, append a fourth
+When a new failure mode is observed in production, append a sixth
 pattern here rather than letting the prover re-discover the recipe
 across multiple cycles. The patterns catalogue is the durable
 artefact of session learnings — every entry should reference its
