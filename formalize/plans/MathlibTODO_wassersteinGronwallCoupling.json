@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-25T23:17:47Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.MathlibTODO_wassersteinGronwallCoupling",
+    "kind": "axiom",
+    "tex_label": "",
+    "file": "Vlasov/Basic.lean",
+    "line": 1003
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.wassersteinGronwallCoupling_gronwall_le",
+      "file": "Vlasov/Basic.lean",
+      "line": 942,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "le_gronwallBound_of_liminf_deriv_right_le",
+        "gronwallBound_ε0",
+        "gronwallBound_x0"
+      ],
+      "one_line_math": "For a continuous function h on [0, T] with h(0) ≤ δ and right-derivative liminf bounded by C * h(s) everywhere on [0, T), Gronwall's inequality gives h(t) ≤ δ * exp(C * t) for all t ∈ [0, T]. This is a clean wrapper around Mathlib's le_gronwallBound_of_liminf_deriv_right_le with ε = 0.",
+      "proof_sketch": null
+    },
+    {
+      "name": "Vlasov.wassersteinGronwallCoupling_real_bound",
+      "file": "Vlasov/Basic.lean",
+      "line": 957,
+      "difficulty": 3,
+      "deps": [
+        "Vlasov.wassersteinGronwallCoupling_gronwall_le"
+      ],
+      "mathlib_hints": [
+        "le_gronwallBound_of_liminf_deriv_right_le",
+        "gronwallBound_ε0"
+      ],
+      "one_line_math": "Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper to conclude (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g 0)).toReal * Real.exp(C * t) for t ≥ 0.",
+      "proof_sketch": null
+    },
+    {
+      "name": "Vlasov.wassersteinGronwallCoupling_ennreal_mul_comm",
+      "file": "Vlasov/Basic.lean",
+      "line": 975,
+      "difficulty": 1,
+      "deps": [],
+      "mathlib_hints": [
+        "ENNReal.ofReal_mul",
+        "ENNReal.ofReal_le_ofReal",
+        "mul_comm"
+      ],
+      "one_line_math": "For reals δ ≥ 0, the ENNReal equality ENNReal.ofReal (δ * exp(C * t)) = ENNReal.ofReal(exp(C * t)) * ENNReal.ofReal δ follows from ENNReal.ofReal_mul and mul_comm.",
+      "proof_sketch": "rw [mul_comm δ (Real.exp (C * t))]\nrw [ENNReal.ofReal_mul (Real.exp_pos (C * t)).le]\nmul_comm"
+    },
+    {
+      "name": "Vlasov.wassersteinGronwallCoupling_ofReal_le",
+      "file": "Vlasov/Basic.lean",
+      "line": 986,
+      "difficulty": 2,
+      "deps": [
+        "Vlasov.wassersteinGronwallCoupling_real_bound",
+        "Vlasov.wassersteinGronwallCoupling_ennreal_mul_comm"
+      ],
+      "mathlib_hints": [
+        "ENNReal.ofReal_le_ofReal",
+        "ENNReal.ofReal_toReal_le",
+        "mul_le_mul_of_nonneg_left"
+      ],
+      "one_line_math": "Lift the real-valued bound (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g 0)).toReal * exp(C*t) to the ENNReal inequality wasserstein1 (f t) (g t) ≤ ENNReal.ofReal(exp(C*t)) * wasserstein1 (f 0) (g 0), using ENNReal.ofReal_toReal_le to pass from ofReal(toReal(x)) back to x.",
+      "proof_sketch": null
+    }
+  ],
+  "axioms": [
+    {
+      "name": "MathlibTODO_wassersteinGronwallCoupling_W1ContOn",
+      "file": "Vlasov/Basic.lean",
+      "line": 902,
+      "statement_summary": "For two Vlasov solutions f and g with L-Lipschitz gradW and finite first moments, the map t ↦ (wasserstein1 (f t) (g t)).toReal is ContinuousOn every [0, T]. Requires Wasserstein distance continuity along measure-valued ODE flows.",
+      "tracked_at": "",
+      "one_line_math": "The Wasserstein-1 distance (as a real number via toReal) between two Vlasov solution curves is continuous in time; this follows from narrow continuity of Vlasov solutions (itself not in Mathlib's stable API)."
+    },
+    {
+      "name": "MathlibTODO_wassersteinGronwallCoupling_derivBound",
+      "file": "Vlasov/Basic.lean",
+      "line": 920,
+      "statement_summary": "For two Vlasov solutions f and g with L-Lipschitz gradW and C ≥ L > 0, the right-derivative liminf of t ↦ (wasserstein1 (f t) (g t)).toReal is bounded by C * (wasserstein1 (f t) (g t)).toReal at every t ≥ 0. Requires the characteristic flow coupling argument and W₁ triangle inequality under pushforward.",
+      "tracked_at": "",
+      "one_line_math": "The characteristic flow coupling (pairing particles of f and g via the same initial label) produces a joint transport plan whose cost grows at rate ≤ C * W₁(f_t, g_t), yielding the differential inequality d/dt W₁(f_t,g_t) ≤ C * W₁(f_t,g_t). This is the core Dobrushin estimate and requires measure-valued ODE Picard theory + W₁ triangle inequality under pushforward, neither of which is in Mathlib."
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Basic.lean",
+    "line": 1003,
+    "branch_label": "main body of MathlibTODO_wassersteinGronwallCoupling; delegate to wassersteinGronwallCoupling_ofReal_le",
+    "composition": [
+      "wassersteinGronwallCoupling_ofReal_le"
+    ],
+    "strategy": "Apply wassersteinGronwallCoupling_ofReal_le directly: it already has the full ENNReal form wasserstein1 (f t) (g t) ≤ ENNReal.ofReal(exp(C*t)) * wasserstein1 (f 0) (g 0). The parent theorem body simply delegates to this helper once it is proved.",
+    "tactic_sketch": "exact wassersteinGronwallCoupling_ofReal_le gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht"
+  }
+}

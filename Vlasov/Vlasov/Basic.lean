@@ -892,12 +892,98 @@ axiom MathlibTODO_convolveLipschitzEstimate
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal
 
--- Mathlib gap: Gronwall-based exponential W₁ growth bound via
--- characteristic-flow coupling of two Vlasov solutions.
--- Requires measure-valued ODE existence + uniqueness + Wasserstein-1
--- triangle inequality under pushforward, none of which are in Mathlib's
--- stable API.
-axiom MathlibTODO_wassersteinGronwallCoupling
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
+
+-- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling:
+-- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
+-- Requires: Wasserstein distance continuity under narrowly-continuous measure flows
+-- (not in Mathlib's stable API for measure-valued ODEs on PhaseSpace).
+axiom MathlibTODO_wassersteinGronwallCoupling_W1ContOn
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (T : ℝ) (hT : 0 ≤ T) :
+    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T)
+
+-- Sub-axiom 2 of MathlibTODO_wassersteinGronwallCoupling:
+-- Right-derivative Gronwall bound for the Wasserstein-1 coupling.
+-- Requires: characteristic flow coupling argument (pairing ODE solutions via common
+-- initial label) + W₁ triangle inequality under measure pushforward.
+-- Neither the measure-valued Picard theorem nor the W₁ pushforward contraction
+-- is in Mathlib's stable API.
+axiom MathlibTODO_wassersteinGronwallCoupling_derivBound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (T : ℝ) (hT : 0 ≤ T) :
+    ∀ s ∈ Set.Ico 0 T,
+      ∀ r : ℝ, C * (wasserstein1 (f s) (g s)).toReal < r →
+        ∃ᶠ z in nhdsWithin s (Set.Ioi s),
+          (z - s)⁻¹ * ((wasserstein1 (f z) (g z)).toReal -
+            (wasserstein1 (f s) (g s)).toReal) < r
+
+/-- For a continuous function h : ℝ → ℝ on [0, T] with h(0) ≤ δ and with
+right-derivative liminf bounded by C * h(s) for all s ∈ [0, T),
+Gronwall's inequality gives h(t) ≤ δ * Real.exp(C * t) for all t ∈ [0, T].
+This wraps Mathlib's `le_gronwallBound_of_liminf_deriv_right_le` with ε = 0
+and then simplifies via `gronwallBound_ε0`. -/
+lemma wassersteinGronwallCoupling_gronwall_le
+    (h : ℝ → ℝ) (δ C T : ℝ) (hT : 0 ≤ T)
+    (hcont : ContinuousOn h (Set.Icc 0 T))
+    (hinit : h 0 ≤ δ)
+    (hderiv : ∀ s ∈ Set.Ico 0 T, ∀ r : ℝ, C * h s < r →
+        ∃ᶠ z in nhdsWithin s (Set.Ioi s), (z - s)⁻¹ * (h z - h s) < r) :
+    ∀ t ∈ Set.Icc 0 T, h t ≤ δ * Real.exp (C * t) := by
+  sorry
+
+/-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
+MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
+`wassersteinGronwallCoupling_gronwall_le` to conclude:
+  (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g 0)).toReal * Real.exp(C * t)
+for all t ≥ 0.
+TODO(mathlib): depends on sub-axioms for measure-valued ODE continuity and coupling. -/
+lemma wassersteinGronwallCoupling_real_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (wasserstein1 (f t) (g t)).toReal ≤
+      (wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t) := by
+  sorry
+
+/-- For reals δ ≥ 0 and C > 0 and t ≥ 0, if r ≤ δ * Real.exp(C * t) then
+ENNReal.ofReal r ≤ ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ.
+Uses ENNReal.ofReal_mul and mul_comm to reorder the product. -/
+lemma wassersteinGronwallCoupling_ennreal_mul_comm
+    (δ : ℝ) (hδ : 0 ≤ δ) (C t : ℝ) :
+    ENNReal.ofReal (δ * Real.exp (C * t)) =
+      ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
+  sorry
+
+/-- Lift the real-valued Gronwall bound to ENNReal:
+wasserstein1 (f t) (g t) ≤ ENNReal.ofReal(Real.exp(C * t)) * wasserstein1 (f 0) (g 0).
+Uses wassersteinGronwallCoupling_real_bound + wassersteinGronwallCoupling_ennreal_mul_comm
++ ENNReal.ofReal_toReal_le (to pass from ENNReal.ofReal(x.toReal) ≤ x).
+TODO(mathlib): depends on wassersteinGronwallCoupling_real_bound (sub-axiom-backed). -/
+lemma wassersteinGronwallCoupling_ofReal_le
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -909,7 +995,27 @@ axiom MathlibTODO_wassersteinGronwallCoupling
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t) :
     wasserstein1 (f t) (g t) ≤
-      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+  sorry
+
+-- The original Mathlib gap axiom, now expressed as a theorem.
+-- The proof scaffold uses the sub-axioms and the four helper lemmas above.
+theorem MathlibTODO_wassersteinGronwallCoupling
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (t : ℝ) (ht : 0 ≤ t) :
+    wasserstein1 (f t) (g t) ≤
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+  -- close via wassersteinGronwallCoupling_ofReal_le (which invokes the real-valued
+  -- Gronwall bound + the ENNReal conversion steps)
+  sorry -- residual: apply wassersteinGronwallCoupling_ofReal_le directly
 
 /-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
 This provides the Dobrushin constant independently of whether L = 0.

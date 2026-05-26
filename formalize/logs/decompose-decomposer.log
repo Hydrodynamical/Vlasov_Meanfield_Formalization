@@ -1,9 +1,9 @@
 [system] init
-[thinking] The user wants me to use the sorry-decomposer agent to decompose an oversized sorry'd theorem in a Lean 4/Mathlib project. Let me launch the agent with the appropriate details.
-[Agent] {"subagent_type":"sorry-decomposer","description":"Decompose Vlasov.dobrushin theorem","prompt":"Decompose ONE oversized sorry'd theorem into 3-8 helper lemmas.\n\n  project root:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:       /Users/jkmiller/Documents/Claude/Projects
+[thinking] The user wants me to use the sorry-decomposer agent to decompose a specific theorem in the Lean file. Let me launch the agent with the appropriate context.
+[Agent] {"description":"Decompose MathlibTODO_wassersteinGronwallCoupling","subagent_type":"sorry-decomposer","prompt":"Decompose ONE oversized sorry'd theorem into 3-8 helper lemmas.\n\n  project root:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:       /Users/jkmiller/Documents/
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779791400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779774000,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779791400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779776400,"isUsingOverage":false}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
@@ -13,20 +13,93 @@
      6→
      7→## Build status
      8
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
-→ <persisted-output>
-Output too large (55.1KB). Full output saved to: /Users/jkmiller/.claude/projects/-Users-jkmiller-Documents-Claude-Projects-Vlasov/bf472382-98d6-4461-9eb7-625943b2dee4/tool-results/toolu_014NunDpcHLgJbP1ZjBPR1NR.txt
-
-Preview (first 2KB):
-     1→/-
-     2→Formalization skeleton for
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":850,"limit":120}
-→    850→
-   851→-- ---------------------------------------------------------------------------
-   852→-- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)
-   853→-- ---------------------------------------------------------------------------
-   854→
-   855→-- TODO(mathlib): Wasserstein-1 distance 
+[Bash] {"command":"grep -n \"MathlibTODO_wassersteinGronwallCoupling\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Find the target declaration in the Lean file"}
+→ 900:axiom MathlibTODO_wassersteinGronwallCoupling
+943:/-- Given MathlibTODO_wassersteinGronwallCoupling and C = max(L,1) > 0 with (L : ℝ) ≤ C,
+947:Lipschitz estimate used in the Gronwall argument via MathlibTODO_wassersteinGronwallCoupling).
+948:TODO(mathlib): depends on `MathlibTODO_wassersteinGron
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":860,"limit":120}
+→    860→/-- Wasserstein-1 distance between two measures on a (pseudo)metric space,
+   861→defined via the Kantorovich–Rubinstein dual formula
+   862→
+   863→  W₁(μ, ν) = sup { ∫ f dμ − ∫ f dν | f : 1-Lipschitz, f : α → ℝ }.
+   864→
+   865→Returns `ℝ≥0∞` so that unbounded suprema (e.g. when a measure 
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":750,"limit":115}
+→    750→We encode this as the distributional statement: for every φ ∈ C_c^∞(ℝ^d × ℝ^d)
+   751→the map t ↦ ∫ φ df_t satisfies
+   752→
+   753→  d/dt ∫ φ df_t = ∫ [v · ∇_x φ − (∇W * ρ_t)(x) · ∇_v φ] df_t.
+   754→-/
+   755→def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+   756→    (f : ℝ → Measu
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":895,"limit":30}
+→    895→-- Mathlib gap: Gronwall-based exponential W₁ growth bound via
+   896→-- characteristic-flow coupling of two Vlasov solutions.
+   897→-- Requires measure-valued ODE existence + uniqueness + Wasserstein-1
+   898→-- triangle inequality under pushforward, none of which are in Mathlib's
+   899→--
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1,"limit":80}
+→      1→/-
+     2→Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
+     3→Generated from vlasov.tex.
+     4→All proofs are `sorry`; this file is a statement-only scaffold.
+     5→-/
+     6→
+     7→import Mathlib
+     8→
+     9→open scoped BigOperato
+[Bash] {"command":"grep -rn \"gronwallBound\\|gronwall\\|GronwallBound\\|Gronwall\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/ 2>/dev/null | head -20","description":"Search for Gronwall-related lemmas in Mathlib ODE analysis"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/PicardLindelof.lean:62:  and related theorems in `Mathlib/Analysis/ODE/Gronwall.lean`.
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean
+[Bash] {"command":"grep -rn \"^theorem\\|^lemma\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean 2>/dev/null | head -30","description":"List theorems/lemmas in Gronwall.lean"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:46:theorem gronwallBound_K0 (δ ε : ℝ) : gronwallBound δ 0 ε = fun x => δ + ε * x :=
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gr
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean","offset":111,"limit":60}
+→    111→theorem le_gronwallBound_of_liminf_deriv_right_le {f f' : ℝ → ℝ} {δ K ε : ℝ} {a b : ℝ}
+   112→    (hf : ContinuousOn f (Icc a b))
+   113→    (hf' : ∀ x ∈ Ico a b, ∀ r, f' x < r → ∃ᶠ z in 𝓝[>] x, (z - x)⁻¹ * (f z - f x) < r)
+   114→    (ha : f a ≤ δ) (bound : ∀ x ∈ Ico a b, f' x ≤ K * f x + ε)
+[Bash] {"command":"grep -rn \"^theorem\\|^lemma\\|^def\\|^noncomputable def\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Measure/Wasserstein.lean 2>/dev/null | head -30","description":"Look for Wasserstein measure lemmas in Mathlib"}
+→ 
+[Bash] {"command":"find /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib -name \"Wasserstein*\" 2>/dev/null | head -10","description":"Find Wasserstein files in Mathlib"}
+→ 
+[Bash] {"command":"grep -rn \"wasserstein\\|Wasserstein\\|W1\\|W_1\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Measure/ 2>/dev/null | head -20","description":"Search for Wasserstein in MeasureTheory.Measure"}
+→ 
+[Bash] {"command":"grep -rn \"wasserstein\\|Wasserstein\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | grep \"^.*\\.lean:\" | head -20","description":"Search all Mathlib for Wasserstein"}
+[Bash] {"command":"grep -rn \"gronwallBound_ε0\\|gronwallBound_K0\\|gronwallBound_x0\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean 2>/dev/null","description":"List gronwallBound specialization lemmas"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:46:theorem gronwallBound_K0 (δ ε : ℝ) : gronwallBound δ 0 ε = fun x => δ + ε * x :=
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gr
+→ 
+[Bash] {"command":"grep -rn \"^theorem\\|^lemma\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean 2>/dev/null | tail -20","description":"List remaining Gronwall lemmas"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:66:theorem hasDerivAt_gronwallBound_shift (δ K ε x a : ℝ) :
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:71:theorem g
+[Bash] {"command":"grep -rn \"ENNReal.ofReal_mul\\|ENNReal.ofReal_le_ofReal\\|ENNReal.ofReal_exp\\|ENNReal.mul_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/Algebra/Order/LiminfLimsup.lean 2>/dev/null | head -5","description":"Check ENNReal arithme
+→ 
+[Bash] {"command":"grep -rn \"^theorem ENNReal.ofReal_mul\\|^lemma ENNReal.ofReal_mul\\|^theorem ofReal_mul\\|^lemma ofReal_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/Algebra/Order/LiminfLimsup.lean /Users/jkmiller/Documents/Claude/Projects/Vlasov/
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:297:theorem ofReal_mul {p q : ℝ} (hp : 0 ≤ p) :
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:301:theorem ofReal_mul' {p q : ℝ
+[Bash] {"command":"grep -rn \"ofReal_mul\\|ofReal_le_ofReal\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/ 2>/dev/null | head -20","description":"Search for ENNReal.ofReal lemmas in Data/ENNReal"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Operations.lean:451:  · rw [ofReal_of_nonpos (sub_nonpos_of_le h), tsub_eq_zero_of_le (ofReal_le_ofReal h)]
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean","offset":130,"limit":30}
+→    130→theorem toReal_pos_iff : 0 < a.toReal ↔ 0 < a ∧ a < ∞ :=
+   131→  NNReal.coe_pos.trans toNNReal_pos_iff
+   132→
+   133→theorem toReal_pos {a : ℝ≥0∞} (ha₀ : a ≠ 0) (ha_top : a ≠ ∞) : 0 < a.toReal :=
+   134→  toReal_pos_iff.mpr ⟨bot_lt_iff_ne_bot.mpr ha₀, lt_top_iff_ne_top.mpr ha_top⟩
+   135→
+ 
+[Bash] {"command":"grep -rn \"^theorem Measure.map_pushforward\\|^lemma Measure.map_pushforward\\|pushforward_wasserstein\\|wasserstein_pushforward\\|Measure.map.*Wasserstein\\|W1.*pushforward\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10",
+→ 
+[Bash] {"command":"grep -n \"^namespace\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean | head -10","description":"Check namespace for ENNReal.Real.lean"}
+→ 35:namespace ENNReal
+395:namespace Mathlib.Meta.Positivity
+[Bash] {"command":"grep -rn \"^lemma gronwallBound_ε0\\|^theorem gronwallBound_ε0\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean","description":"Check gronwallBound_ε0 namespace"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:77:theorem gronwallBound_ε0 (δ K x : ℝ) : gronwallBound δ K 0 x = δ * exp (K * x) := by
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/OD
+[Bash] {"command":"grep -n \"^namespace\\|^end\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean | head -20","description":"Check ODE Gronwall.lean namespaces"}
+→ 
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json"}
 →      1→{
      2→  "schema_version": 1,
@@ -37,269 +110,116 @@ Preview (first 2KB):
      7→    "kind": "theorem",
      8→    "tex_label": "thm:dobrushin",
      9→    "file": "Vlasov/Basic.lea
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":700,"limit":160}
-→    700→    (W : PhysSpace d → ℝ) [hW : AssW W]
-   701→    (gradW : PhysSpace d → PhysSpace d)
-   702→    (hgradW : ∀ x, gradW x = gradient W x)
-   703→    (X V : ℝ → Fin N → PhysSpace d)
-   704→    (hSol : IsNewtonSolution N gradW X V)
-   705→    (φ : PhaseSpace d → ℝ)
-   706→    (hφ_smooth : ContDi
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":100,"limit":200}
-→    100→    gradient W 0 = 0 := by
-   101→  -- Step A: the claim that the gradient at 0 equals its own negation.
-   102→  suffices h : gradient W 0 = -gradient W 0 by
-   103→    -- x = -x in a ℝ-vector space ⟹ x = 0.
-   104→    have h2 : gradient W 0 + gradient W 0 = 0 := by
-   105→      nth_rewrite 
-[Bash] {"command":"cp /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.decomposer-bak","description":"Checkpoint the Lean file before editing"}
+[Bash] {"command":"cp /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.decomposer-bak && echo \"Checkpoint created\"","description":"Checkpoint the Lean file before editing"}
+→ Checkpoint created
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":893,"limit":22}
+→    893→      (L : ℝ) * (wasserstein1 ρ σ).toReal
+   894→
+   895→-- Mathlib gap: Gronwall-based exponential W₁ growth bound via
+   896→-- characteristic-flow coupling of two Vlasov solutions.
+   897→-- Requires measure-valued ODE existence + uniqueness + Wasserstein-1
+   898→-- triangle inequality un
+[Bash] {"command":"grep -rn \"^theorem le_gronwallBound_of_liminf_deriv_right_le\\|^theorem norm_le_gronwallBound\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean 2>/dev/null | head -5","description":"Validate Gronwall lemma names"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:111:theorem le_gronwallBound_of_liminf_deriv_right_le {f f' : ℝ → ℝ} {δ K ε : ℝ} {a b : ℝ}
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis
+[Bash] {"command":"grep -rn \"^theorem ENNReal.ofReal_mul\\|^lemma ENNReal.ofReal_mul\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean 2>/dev/null | head -5","description":"Validate ENNReal.ofReal_mul"}
 → 
-[Bash] {"command":"grep -nE 'sorry$|by sorry$|:= sorry$' /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Snapshot current sorry lines (§4.0)"}
-→ 800:  sorry
-909:  sorry
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rnE \"^(theorem|lemma|def|abbrev|class|structure|instance) (max_pos|le_max_right|le_max_left)\\b|^protected (theorem|lemma) (max_pos|le_max_right|le_max_left)\\b\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10",
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rnE \"^(theorem|lemma|def|abbrev|class|structure|instance) (NNReal\\.coe_nonneg|ENNReal\\.ofReal_le_ofReal|Real\\.exp_le_exp|mul_le_mul_of_nonneg_left)\\b|^protected (theorem|lemma) (NNReal\\.coe_nonneg|ENNReal\\.ofReal_
+[Bash] {"command":"grep -rn \"^theorem ofReal_mul\\|^lemma ofReal_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean 2>/dev/null | head -5","description":"Check bare name for ofReal_mul in ENNReal namespace"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:297:theorem ofReal_mul {p q : ℝ} (hp : 0 ≤ p) :
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:301:theorem ofReal_mul' {p q : ℝ
+[Bash] {"command":"grep -rn \"^theorem gronwallBound_ε0\\b\\|^lemma gronwallBound_ε0\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean | head -5","description":"Validate gronwallBound_ε0"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:77:theorem gronwallBound_ε0 (δ K x : ℝ) : gronwallBound δ K 0 x = δ * exp (K * x) := by
+[Bash] {"command":"grep -rn \"^theorem ENNReal.mul_le_mul\\|^lemma ENNReal.mul_le_mul\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/ 2>/dev/null | head -5","description":"Validate ENNReal.mul_le_mul"}
 → 
-→ .lake/packages/mathlib/Mathlib/Tactic/GCongr/Core.lean:66:theorem mul_le_mul_of_nonneg_left [Mul α] [Zero α] [Preorder α] [PosMulMono α]
-.lake/packages/mathlib/Mathlib/Algebra/Order/GroupWithZero/Unbundled/Defs.lean:224:theorem mul_le_mul_of_nonneg_left [PosMulMono α] (hbc : b ≤ c) (ha : 0 ≤ a) : a 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rnE \"^(theorem|lemma|def|abbrev) (max_pos|le_max_right|le_max_left)\\b\" .lake/packages/mathlib/Mathlib/Order/ 2>/dev/null | head -10","description":"Search for max_pos, le_max_right, le_max_left in Order directory"}
+[Bash] {"command":"grep -rn \"^theorem mul_le_mul\\|^lemma mul_le_mul\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Operations.lean 2>/dev/null | head -10","description":"Check ENNReal mul_le_mul in operations file"}
 → 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rnE \"^(theorem|lemma|def|abbrev) (ENNReal\\.ofReal_le_ofReal|ENNReal\\.ofReal_mul)\\b\" .lake/packages/mathlib/Mathlib/Topology/Algebra/Order/ 2>/dev/null | head -5 && grep -rnE \"^(theorem|lemma|def|abbrev) (Real\\.exp
+[Bash] {"command":"grep -rn \"mul_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Operations.lean 2>/dev/null | head -10","description":"Find mul_le_mul in ENNReal.Operations"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Operations.lean:80:protected lemma mul_le_mul_iff_right (h0 : a ≠ 0) (hinf : a ≠ ∞) : a * b ≤ a * c ↔ b ≤ c :=
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Da
+[Bash] {"command":"grep -rn \"^theorem Real.exp_le_exp\\|^lemma Real.exp_le_exp\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/ExpDeriv.lean 2>/dev/null | head -5","description":"Validate Real.exp_le_exp"}
 → 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"lemma max_pos\\|theorem max_pos\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Search for max_pos lemma broadly"}
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"lemma le_max_right\\|theorem le_max_right\\|lemma le_max_left\\|theorem le_max_left\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Search for le_max_right and le_max_left broadly"}
+[Bash] {"command":"grep -rn \"^theorem exp_le_exp\\|^lemma exp_le_exp\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Exp.lean 2>/dev/null | head -5","description":"Find Real.exp_le_exp in Exp.lean"}
 → 
-→ 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"max_pos\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Search for max_pos broadly"}
-→ 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"ENNReal.ofReal_le_ofReal\\|Real.exp_le_exp\\|ENNReal.ofReal_mul\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10","description":"Validate ENNReal and Real hints by searching entire Mathlib"}
-→ .lake/packages/mathlib/Mathlib/Topology/EMetricSpace/BoundedVariation.lean:245:  rw [← ENNReal.ofReal_le_ofReal_iff ENNReal.toReal_nonneg, ENNReal.ofReal_toReal h, ← edist_dist]
-.lake/packages/mathlib/Mathlib/Topology/EMetricSpace/BoundedVariation.lean:932:      apply ENNReal.ofReal_le_ofReal
-.lake/
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"theorem ENNReal.ofReal_le_ofReal\\b\\|lemma ENNReal.ofReal_le_ofReal\\b\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find ENNReal.ofReal_le_ofReal declaration"}
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"theorem Real.exp_le_exp\\b\\|lemma Real.exp_le_exp\\b\" .lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find Real.exp_le_exp declaration"}
-→ 
-→ 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && grep -rn \"ofReal_le_ofReal\" .lake/packages/mathlib/Mathlib/Data/Real/ENNReal.lean 2>/dev/null | head -5 || grep -rn \"ofReal_le_ofReal\" .lake/packages/mathlib/Mathlib/Topology/Algebra/Order/LiminfLimsup.lean 2>/dev/null | h
-→ 
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && find .lake/packages/mathlib/Mathlib -name \"*.lean\" | xargs grep -l \"ofReal_le_ofReal\" 2>/dev/null | head -5","description":"Find files containing ofReal_le_ofReal"}
-→ 
-[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10","description":"Check if Mathlib is present in .lake"}
-→ Algebra
-AlgebraicGeometry
-AlgebraicTopology
-Analysis
-CategoryTheory
-Combinatorics
-Computability
-Condensed
-Control
-Data
-[Bash] {"command":"find /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib -name \"ENNReal.lean\" 2>/dev/null | head -5","description":"Find ENNReal.lean file"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/Filter/ENNReal.lean
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/Algebra/InfiniteSum/ENNReal.lean
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.l
-[Bash] {"command":"find /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib -name \"*.lean\" -path \"*/Data/ENNReal*\" 2>/dev/null | head -10","description":"Find ENNReal data files"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Lemmas.lean
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Holder.lean
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathl
-[Bash] {"command":"grep -n \"ofReal_le_ofReal\\|ofReal_mul\\|ofReal_le\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean 2>/dev/null | head -20","description":"Find ofReal_le_ofReal in ENNReal/Real.lean"}
-→ 137:theorem ofReal_le_ofReal {p q : ℝ} (h : p ≤ q) : ENNReal.ofReal p ≤ ENNReal.ofReal q := by
-140:lemma ofReal_mono : Monotone ENNReal.ofReal := fun _ _ ↦ ENNReal.ofReal_le_ofReal
-142:theorem ofReal_le_of_le_toReal {a : ℝ} {b : ℝ≥0∞} (h : a ≤ ENNReal.toReal b) :
-144:  (ofReal_le_ofReal h).trans ofR
-[Bash] {"command":"grep -n \"exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Exp.lean 2>/dev/null | head -10","description":"Find exp_le_exp in Exp.lean"}
-→ 142:  have hya : ‖cexp y‖ ≤ Real.exp a := by simpa only [norm_exp, Real.exp_le_exp]
-[Bash] {"command":"grep -n \"exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/ExpDeriv.lean 2>/dev/null | head -10","description":"Find exp_le_exp declaration specifically"}
-→ 
-[Bash] {"command":"grep -rn \"theorem Real.exp_le_exp\\|lemma Real.exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find Real.exp_le_exp declaration"}
-→ 
-[Bash] {"command":"grep -rn \"exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/ 2>/dev/null | head -10","description":"Search exp_le_exp in SpecialFunctions"}
+[Bash] {"command":"grep -rn \"exp_le_exp\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Exp.lean 2>/dev/null | head -10","description":"Find exp_le_exp lemma name"}
 → /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Exp.lean:142:  have hya : ‖cexp y‖ ≤ Real.exp a := by simpa only [norm_exp, Real.exp_le_exp]
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysi
-[Bash] {"command":"grep -rn \"^theorem Real.exp_le_exp\\|^lemma Real.exp_le_exp\\|exp_le_exp.*iff\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Exp.lean 2>/dev/null | head -10","description":"Find exp_le_exp in Exp.lean"}
-→ 
-[Bash] {"command":"grep -rn \"exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/Real/ 2>/dev/null | head -10","description":"Search exp_le_exp in Data/Real"}
-→ 
-[Bash] {"command":"grep -rn \"theorem exp_le_exp\\|lemma exp_le_exp\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | grep -v \"EReal\\|CExp\\|cexp\\|norm_exp\" | head -10","description":"Find the Real.exp_le_exp theorem declaration"}
-[rate-limit] {"status":"allowed","resetsAt":1779791400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779774600,"isUsingOverage":false}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean:309:theorem exp_le_exp_of_le {x y : ℝ} (h : x ≤ y) : exp x ≤ exp y := exp_monotone h
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysi
-[Bash] {"command":"grep -n \"namespace\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean 2>/dev/null | head -10","description":"Check namespace for exp_le_exp"}
-→ 33:namespace Complex
-70:namespace Real
-88:namespace Complex
-198:namespace Real
-348:namespace Complex
-527:namespace Real
-676:namespace Mathlib.Meta.Positivity
-690:namespace Complex
-[Bash] {"command":"grep -n \"^namespace\\|^end\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean 2>/dev/null | head -30","description":"Check namespace structure around exp_le_exp at line 316"}
-→ 33:namespace Complex
-66:end
-68:end Complex
-70:namespace Real
-84:end
-86:end Real
-88:namespace Complex
-196:end Complex
-198:namespace Real
-346:end Real
-348:namespace Complex
-525:end Complex
-527:namespace Real
-674:end Real
-676:namespace Mathlib.Meta.Positivity
-688:end Mathlib.Meta.Positivity
-690:namespa
-[Bash] {"command":"grep -n \"max_pos\\|le_max_right\\|le_max_left\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/MinMax.lean 2>/dev/null | head -15","description":"Find max_pos, le_max_right, le_max_left in MinMax.lean"}
-→ 58:theorem max_le_max_left (c) (h : a ≤ b) : max c a ≤ max c b := sup_le_sup_left h c
-61:theorem max_le_max_right (c) (h : a ≤ b) : max a c ≤ max b c := sup_le_sup_right h c
-73:  h.trans_le (le_max_left b c)
-77:  h.trans_le (le_max_right b c)
-88:  le_trans (min_le_left a b) (le_max_left a b)
-162:  l
-[Bash] {"command":"grep -rn \"lemma max_pos\\|theorem max_pos\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Algebra/ 2>/dev/null | head -5","description":"Find max_pos in Algebra"}
-→ 
-[Bash] {"command":"grep -rn \"max_pos\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | grep \"theorem\\|lemma\" | head -10","description":"Find max_pos broadly"}
-→ 
-[Bash] {"command":"grep -rn \"max_pos\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10","description":"Find max_pos broadly in all files"}
-→ 
-[Bash] {"command":"grep -rn \"lt_max\\|pos_of_max\\|zero_lt_max\\|max_pos\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/ 2>/dev/null | head -10","description":"Find lemmas for proving max is positive"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/MinMax.lean:50:theorem lt_max_iff : a < max b c ↔ a < b ∨ a < c :=
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/MinMax.lean:72:theorem lt_max_of_lt_left (h : a
-[Bash] {"command":"grep -rn \"NNReal.coe_nonneg\\|NNReal.coe_pos\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/ 2>/dev/null | head -10","description":"Find NNReal.coe_nonneg and related"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/Basic.lean:159:  exact Real.iInf_mul_of_nonneg (NNReal.coe_nonneg _) _
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/Basic.lean:166:  exact Real.mul
-[Bash] {"command":"grep -n \"theorem NNReal.coe_nonneg\\|lemma NNReal.coe_nonneg\\|@\\[simp\\].*coe_nonneg\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/Defs.lean 2>/dev/null | head -5","description":"Find NNReal.coe_nonneg declaration"}
-→ 
-[Bash] {"command":"grep -n \"coe_nonneg\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/Defs.lean 2>/dev/null | head -5","description":"Find coe_nonneg in NNReal/Defs.lean"}
-→ 150:@[bound] theorem coe_nonneg (r : ℝ≥0) : (0 : ℝ) ≤ r := r.2
-661:    simp only [(hp.trans_le r.coe_nonneg).not_ge, toNNReal_eq_zero.2 hp.le, hr.not_ge]
-990:    | _ => pure (.nonnegative q(NNReal.coe_nonneg $a))
-[Bash] {"command":"grep -rn \"theorem iSup_le\\|lemma iSup_le\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/ 2>/dev/null | head -5","description":"Find iSup_le declaration"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/PartialSups.lean:267:theorem iSup_le_iSup_of_partialSups_le_partialSups {f g : ι → α}
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/CompleteLattice/Basic.lean:2
-[Bash] {"command":"grep -rn \"theorem le_iSup\\|lemma le_iSup\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/ 2>/dev/null | head -5","description":"Find le_iSup declaration"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/CompleteLattice/Lemmas.lean:176:theorem le_iSup_inf_iSup (f g : ι → α) : ⨆ i, f i ⊓ g i ≤ (⨆ i, f i) ⊓ ⨆ i, g i :=
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order
-[Bash] {"command":"grep -rn \"theorem MeasureTheory.integral_sub\\|lemma MeasureTheory.integral_sub\\|theorem integral_sub\\|lemma integral_sub\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Integral/ 2>/dev/null | head -5","description":"Find integra
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Integral/Average.lean:419:theorem integral_sub_average (μ : Measure α) [IsFiniteMeasure μ] (f : α → E) :
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Measure
-[Bash] {"command":"grep -rn \"norm_integral_le_integral_norm\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/ 2>/dev/null | head -5","description":"Find norm_integral_le_integral_norm"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Function/ConvergenceInDistribution.lean:200:    _ ≤ ∫ a, ‖F (Y n a) - F (X n a)‖ ∂μ'' := norm_integral_le_integral_norm _
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathli
-[Bash] {"command":"grep -rn \"theorem norm_integral_le_integral_norm\\|lemma norm_integral_le_integral_norm\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/ 2>/dev/null | head -5","description":"Find norm_integral_le_integral_norm declaration"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/MeasureTheory/Integral/IntervalIntegral/Basic.lean:728:theorem norm_integral_le_integral_norm_uIoc : ‖∫ x in a..b, f x ∂μ‖ ≤ ∫ x in Ι a b, ‖f x‖ ∂μ :=
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/
-[Bash] {"command":"grep -rn \"theorem LipschitzWith.dist_le_mul\\|lemma LipschitzWith.dist_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find LipschitzWith.dist_le_mul declaration"}
-→ 
-[Bash] {"command":"grep -rn \"theorem LipschitzWith.dist_le_mul\\|lemma LipschitzWith.dist_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find LipschitzWith.dist_le_mul"}
-→ 
-[Bash] {"command":"grep -rn \"dist_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | grep \"Lipschitz\" | head -10","description":"Find LipschitzWith distance bound lemma"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/ContinuousMap/Bounded/Basic.lean:387:  LipschitzWith.of_dist_le_mul fun f g =>
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/EMetricSpace/Lipschitz.lean:1
-[Bash] {"command":"grep -n \"theorem dist_le_mul\\|lemma dist_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/EMetricSpace/Lipschitz.lean 2>/dev/null | head -10","description":"Find dist_le_mul in Lipschitz.lean"}
-→ 
-[Bash] {"command":"grep -rn \"dist_le_mul\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/MetricSpace/ 2>/dev/null | head -10","description":"Find dist_le_mul in MetricSpace"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/MetricSpace/Completion.lean:184:  LipschitzWith.of_dist_le_mul fun x y => induction_on₂ x y
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Topology/MetricSpace/Comp
-[Bash] {"command":"grep -n \"le_max_right\\|le_max_left\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/MinMax.lean 2>/dev/null | head -10","description":"Find le_max_right and le_max_left"}
-→ 58:theorem max_le_max_left (c) (h : a ≤ b) : max c a ≤ max c b := sup_le_sup_left h c
-61:theorem max_le_max_right (c) (h : a ≤ b) : max a c ≤ max b c := sup_le_sup_right h c
-73:  h.trans_le (le_max_left b c)
-77:  h.trans_le (le_max_right b c)
-88:  le_trans (min_le_left a b) (le_max_left a b)
-162:  l
-[Bash] {"command":"grep -rn \"theorem le_max_right\\|lemma le_max_right\\|theorem le_max_left\\|lemma le_max_left\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Find le_max_right and le_max_left declarations"}
-→ 
-[Bash] {"command":"grep -rn \"le_max_right\\|le_max_left\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Init/ 2>/dev/null | head -5","description":"Check if le_max_right is in Init"}
-→ 
-[Bash] {"command":"grep -rn \"alias.*le_max_right\\|alias.*le_max_left\\|le_max_right :=\\|le_max_left :=\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10","description":"Find le_max_right and le_max_left as aliases"}
-→ 
-[Bash] {"command":"grep -rn \"le_max_left\\|le_max_right\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/Defs/ 2>/dev/null | head -10","description":"Search for le_max_left in Order/Defs"}
-→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/Defs/LinearOrder.lean:142:@[to_dual le_max_left]
-/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/Defs/LinearOrder.lean:147:@[to_dual le_max_right]
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/Defs/LinearOrder.lean","offset":138,"limit":15}
-→    138→@[to_dual existing min_def]
-   139→theorem max_def' (a b : α) : max a b = if b ≤ a then a else b := by
-   140→  obtain h | h | h := lt_trichotomy a b <;> simp [le_of_lt, not_le_of_gt, h, max_def]
-   141→
-   142→@[to_dual le_max_left]
-   143→lemma min_le_left (a b : α) : min a b ≤ a := by
-   1
-[Bash] {"command":"grep -n \"lt_max_of_lt_right\\|lt_max_of_lt_left\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Order/MinMax.lean 2>/dev/null | head -5","description":"Verify lt_max_of_lt_right exists"}
-→ 72:theorem lt_max_of_lt_left (h : a < b) : a < max b c :=
-76:theorem lt_max_of_lt_right (h : a < c) : a < max b c :=
-130:  max_lt (lt_max_of_lt_left h₁) (lt_max_of_lt_right h₂)
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":848,"limit":70}
-→    848→    (f₀ : Measure (PhaseSpace d)) (t : ℝ) : Measure (PhaseSpace d) :=
-   849→  Measure.map (fun z => (charX t z, charV t z)) f₀
-   850→
-   851→-- ---------------------------------------------------------------------------
-   852→-- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)
-   853→
-[Edit] {"replace_all":false,"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","old_string":"/-- (tex: thm:dobrushin)\nDobrushin's stability theorem (1979).\n\nUnder Assumption ass:W, there exists a constant C = C(L) > 0 such that for any\ntwo measure-valued solutions f
-→ The file /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean has been updated successfully.
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -40","description":"Build to verify skeleton typechecks (iteration 1)","timeout":300000}
-→ consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
-  omit [NeZero d] in theorem ...
-
-Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
-warning: Vlasov/Basic.lean:567:5: unused variable `hφ_compact`
-
-Not
-[Bash] {"command":"grep -nE 'sorry$|by sorry$|:= sorry$| sorry ' /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Check current sorry lines after edit"}
+[Bash] {"command":"grep -rn \"^theorem exp_le_exp\\|^lemma exp_le_exp\\b\\|Real.exp_le_exp\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/ 2>/dev/null | grep \"theorem\\|lemma\" | head -5","description":"Find exp_le_exp declaration"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Log/ERealExp.lean:91:lemma exp_le_exp {a b : EReal} (h : a ≤ b) : exp a ≤ exp b := by simpa
+[Bash] {"command":"grep -rn \"theorem Real.exp_le_exp\\|lemma Real.exp_le_exp\\|theorem exp_le_exp\\b\\|lemma exp_le_exp\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -10","description":"Search all Mathlib for exp_le_exp"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean:316:theorem exp_le_exp {x y : ℝ} : exp x ≤ exp y ↔ x ≤ y :=
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Log/ER
+[Bash] {"command":"grep -rn \"^namespace\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean | head -5","description":"Check namespace for Complex.Exponential.lean exp_le_exp"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean:33:namespace Complex
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean:70:namespace Real
+/Users/jkmiller/Doc
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/Complex/Exponential.lean","offset":305,"limit":30}
+→    305→theorem exp_monotone : Monotone exp :=
+   306→  exp_strictMono.monotone
+   307→
+   308→@[bound] -- temporary lemma for the `bound` tactic
+   309→theorem exp_le_exp_of_le {x y : ℝ} (h : x ≤ y) : exp x ≤ exp y := exp_monotone h
+   310→
+   311→@[simp]
+   312→theorem exp_lt_exp {x y : ℝ} : exp x 
+[Bash] {"command":"grep -nE 'sorry$|by sorry$|:= sorry$' /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Snapshot current sorry lines"}
 → 800:  sorry
 919:  sorry
 933:  sorry
 941:  sorry
 963:  sorry
 982:  sorry
-1017:  sorry -- residual: package (C, hC, hbound) into the ∃ C witness
-[Bash] {"command":"grep -n \"dobrushin_C_choice\\|convolveDiff_norm_le\\|wasserstein1_ofReal_exp_monotone\\|dobrushin_ennreal_bound\\|dobrushin_package_exists\\|MathlibTODO_convolveLipschitz\\|MathlibTODO_wassersteinGronwall\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head
-→ 886:axiom MathlibTODO_convolveLipschitzEstimate
-900:axiom MathlibTODO_wassersteinGronwallCoupling
-917:lemma dobrushin_C_choice (L : NNReal) :
-925:TODO(mathlib): depends on `MathlibTODO_convolveLipschitzEstimate` Mathlib gap. -/
-926:lemma convolveDiff_norm_le
-938:lemma wasserstein1_ofReal_exp_monoton
-[Bash] {"command":"grep -c \"dobrushin_C_choice\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean\ngrep -c \"convolveDiff_norm_le\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean\ngrep -c \"wasserstein1_ofReal_exp_monotone\" /Users/jkmiller/Documents/Cla
-→ 4
-2
-1
-3
-3
-[Bash] {"command":"grep -n \"Decomposed by sorry-decomposer\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Verify 2-line pointer exists"}
-→ 221:/-! Decomposed by sorry-decomposer.
+[Bash] {"command":"grep -nE '\\bsorry\\b' /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head -20","description":"Full sorry search in the file"}
+→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
+221:/-! Decomposed by sorry-decomposer.
+800:  sorry
 880:/-! Decomposed by sorry-decomposer.
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":878,"limit":5}
-→    878→    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
-   879→
-   880→/-! Decomposed by sorry-decomposer.
-   881→    See `formalize/plans/dobrushin.json`. -/
-   882→
-
-<system-reminder>
-Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide ana
-[Bash] {"command":"grep -n \"lemma dobrushin_C_choice\\|lemma convolveDiff_norm_le\\|lemma wasserstein1_ofReal_exp_monotone\\|lemma dobrushin_ennreal_bound\\|lemma dobrushin_package_exists\\|^theorem dobrushin\\|^axiom MathlibTODO_conv\\|^axiom MathlibTODO_wass\" /Users/jkmiller/Documents/Claude/Projects/V
-→ 886:axiom MathlibTODO_convolveLipschitzEstimate
-900:axiom MathlibTODO_wassersteinGronwallCoupling
-917:lemma dobrushin_C_choice (L : NNReal) :
-926:lemma convolveDiff_norm_le
-938:lemma wasserstein1_ofReal_exp_monotone
-949:lemma dobrushin_ennreal_bound
-968:lemma dobrushin_package_exists
-997:theorem dob
-[Edit] {"replace_all":false,"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json","old_string":"{\n  \"schema_version\": 1,\n  \"generated_at\": \"2026-05-25T22:15:32Z\",\n  \"generated_by\": \"sorry-decomposer\",\n  \"parent\": {\n    \"name\": \"Vlasov.dobrushin\",
-→ The file /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json has been updated successfully.
-[Bash] {"command":"jq '.schema_version == 1 and (.helpers | length) == 5 and (.axioms | length) == 2' formalize/plans/dobrushin.json","description":"Validate JSON sidecar (§5.8)"}
-→ true
-[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/decomposer-20260525-224257.md << 'EOF'\n## 2026-05-25T22:42:57Z · gap · Vlasov.dobrushin (thm:dobrushin)\n\n**Result:** success\n**Iterations:** 1/6\n**Sorry count:** 2 → 7  (delta: +5)\n\n### Selection rationale (expl
+919:  sorry
+933:  sorry
+941:  sorry
+963:  sorry
+982:  sorry
+1017:  sorry -- residual: package (C, hC, hbound) into the ∃ C witness
+1083:  -- S
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":975,"limit":55}
+→    975→    (hg : IsVlasovSolution gradW g)
+   976→    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+   977→    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+   978→    ∃ C : ℝ, 0 < C ∧
+   979→      ∀ t : ℝ, 0 ≤ t →
+   980→        wasserstein1 (f t) (g t) ≤
+   981→          ENNReal.ofReal (Real.exp (C 
+[Bash] {"command":"grep -rn \"^theorem le_gronwallBound_of_liminf_deriv_right_le\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean | head -3","description":"Validate le_gronwallBound_of_liminf_deriv_right_le"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:111:theorem le_gronwallBound_of_liminf_deriv_right_le {f f' : ℝ → ℝ} {δ K ε : ℝ} {a b : ℝ}
+[Bash] {"command":"grep -rn \"^theorem gronwallBound_ε0\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean | head -3","description":"Validate gronwallBound_ε0"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Analysis/ODE/Gronwall.lean:77:theorem gronwallBound_ε0 (δ K x : ℝ) : gronwallBound δ K 0 x = δ * exp (K * x) := by
+[Bash] {"command":"grep -rn \"^theorem ENNReal.ofReal_mul\\b\\|^lemma ENNReal.ofReal_mul\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean | head -3","description":"Confirm ENNReal.ofReal_mul is in ENNReal namespace"}
 → 
-[Bash] {"command":"rm /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.decomposer-bak","description":"Remove backup checkpoint file"}
+[Bash] {"command":"grep -rn \"^theorem ofReal_le_ofReal\\b\\|^lemma ofReal_le_ofReal\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean | head -3","description":"Confirm ENNReal.ofReal_le_ofReal in namespace"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean:137:theorem ofReal_le_ofReal {p q : ℝ} (h : p ≤ q) : ENNReal.ofReal p ≤ ENNReal.ofReal q := by
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Real.lean","offset":293,"limit":15}
+→    293→theorem toReal_lt_of_lt_ofReal {b : ℝ} (h : a < ENNReal.ofReal b) : ENNReal.toReal a < b :=
+   294→  (lt_ofReal_iff_toReal_lt h.ne_top).1 h
+   295→
+   296→@[simp]
+   297→theorem ofReal_mul {p q : ℝ} (hp : 0 ≤ p) :
+   298→    ENNReal.ofReal (p * q) = ENNReal.ofReal p * ENNReal.ofReal q := by
+ 
+[Bash] {"command":"grep -rn \"^theorem mul_le_mul_of_nonneg_left\\|^lemma mul_le_mul_of_nonneg_left\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Algebra/Order/Ring/Lemmas.lean 2>/dev/null | head -3","description":"Validate mul_le_mul_of_nonneg_left"}
 → 
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":878,"limit":145}
+[Bash] {"command":"grep -rn \"^theorem mul_le_mul_of_nonneg_left\\|^lemma mul_le_mul_of_nonneg_left\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/ 2>/dev/null | head -5","description":"Search all Mathlib for mul_le_mul_of_nonneg_left"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Tactic/GCongr/Core.lean:66:theorem mul_le_mul_of_nonneg_left [Mul α] [Zero α] [Preorder α] [PosMulMono α]
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Algebra/Order/GroupW
+[Bash] {"command":"grep -rn \"^theorem toReal_nonneg\\|^lemma toReal_nonneg\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/ 2>/dev/null | head -3","description":"Check ENNReal.toReal_nonneg"}
+→ 
+[Bash] {"command":"grep -rn \"^theorem ofReal_toReal_le\\|^lemma ofReal_toReal_le\\b\\|^theorem ofReal_toReal\\b\\|^lemma ofReal_toReal\\b\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/ 2>/dev/null | head -5","description":"Check ENNReal.ofReal_toReal
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Basic.lean:234:theorem ofReal_toReal {a : ℝ≥0∞} (h : a ≠ ∞) : ENNReal.ofReal a.toReal = a := by
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/ENNReal/Basi
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json << 'EOF'\n{\n  \"schema_version\": 1,\n  \"generated_at\": \"2026-05-25T23:17:47Z\",\n  \"generated_by\": \"sorry-decomposer\",\n  \"parent\": {\n    \"name\": \"Vlasov.Mat
+→ JSON sidecar written
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && python3 -c \"import json; d = json.load(open('/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json')); print('schema_version:', d['schema_version']); print('helpers:', l
+→ schema_version: 1
+helpers: 4
+axioms: 2
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":878,"limit":40}
 →    878→    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
    879→
    880→/-! Decomposed by sorry-decomposer.
@@ -307,23 +227,133 @@ Whenever you read a file, you should consider whether it would be considered mal
    882→
    883→-- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
    884→-- Requires Wasserstein-1 Kantorovich–Rubinstein
-→ [{"type":"text","text":"Everything looks correct. The file structure is:\n- Line 880: 2-line pointer \n- Lines 886-912: 2 axioms (Mathlib gaps)\n- Lines 914-982: 5 helper lemmas (all `sorry`)\n- Lines 984-1017: `dobrushin` theorem with scaffold body (1 residual `sorry`)\n\n```\nsorry-decomposer resu
-[thinking] The sorry-decomposer agent successfully decomposed the `Vlasov.dobrushin` theorem. Let me summarize what was accomplished.
-The decomposition of `Vlasov.dobrushin` completed successfully.
+[Edit] {"replace_all":false,"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","old_string":"-- Mathlib gap: Gronwall-based exponential W₁ growth bound via\n-- characteristic-flow coupling of two Vlasov solutions.\n-- Requires measure-valued ODE existence + uniqueness +
+→ The file /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean has been updated successfully.
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -40","description":"Build after first edit to check skeleton typechecks","timeout":180000}
+→ Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:942:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:957:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:975:6: declarat
+[Bash] {"command":"grep -n '\\bsorry\\b' /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | grep -v \"^\\s*--\\|^[[:space:]]*/-\" | head -20","description":"Count sorry occurrences in the file (excluding comments)"}
+→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
+221:/-! Decomposed by sorry-decomposer.
+800:  sorry
+880:/-! Decomposed by sorry-decomposer.
+895:/-! Decomposed by sorry-decomposer.
+949:  sorry
+970:  sorry
+979:  sorry
+999:  sorry
+1018:  sorry -- residual: apply wassersteinGronwallCou
+[rate-limit] {"status":"allowed","resetsAt":1779791400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779777000,"isUsingOverage":false}
+[Bash] {"command":"grep -n \"wassersteinGronwallCoupling_gronwall_le\\|wassersteinGronwallCoupling_real_bound\\|wassersteinGronwallCoupling_ennreal_mul_comm\\|wassersteinGronwallCoupling_ofReal_le\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"Check helper names
+→ 942:lemma wassersteinGronwallCoupling_gronwall_le
+953:`wassersteinGronwallCoupling_gronwall_le` to conclude:
+957:lemma wassersteinGronwallCoupling_real_bound
+975:lemma wassersteinGronwallCoupling_ennreal_mul_comm
+983:Uses wassersteinGronwallCoupling_real_bound + wassersteinGronwallCoupling_ennreal_m
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":893,"limit":130}
+→    893→      (L : ℝ) * (wasserstein1 ρ σ).toReal
+   894→
+   895→/-! Decomposed by sorry-decomposer.
+   896→    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
+   897→
+   898→-- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling:
+   899→-- Narrow continuity of Wasserstein-1
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep \"^warning.*sorry\\|error\\|Build completed\" | head -20","description":"Final build verification - check exit status and sorry warnings","timeout":180000}
+→ warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:942:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:957:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:975:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:986:6: declaration uses `sorry`
+warni
+[Bash] {"command":"grep -A 3 \"^/--\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | grep -A 2 \"wassersteinGronwallCoupling_gronwall_le\\|wassersteinGronwallCoupling_real_bound\\|wassersteinGronwallCoupling_ennreal_mul_comm\\|wassersteinGronwallCoupling_ofReal_le\" | head -30"
+→ `wassersteinGronwallCoupling_gronwall_le` to conclude:
+  (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g 0)).toReal * Real.exp(C * t)
+--
+--
+lemma wassersteinGronwallCoupling_ennreal_mul_comm
+--
+/-- Lift the real-valued Gronwall bound to ENNReal:
+--
+Uses wassersteinGronwallCoupling_real_bo
+[Bash] {"command":"python3 -c \"import json; d = json.load(open('/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json')); print('schema_version == 1:', d['schema_version'] == 1); print('helpers length:', len(d['helpers'])); print('axioms length:', le
+→ schema_version == 1: True
+helpers length: 4
+axioms length: 2
+parent name: Vlasov.MathlibTODO_wassersteinGronwallCoupling
+parent kind: axiom
+[Bash] {"command":"grep -n \"^lemma wassersteinGronwallCoupling_gronwall_le\\|^lemma wassersteinGronwallCoupling_real_bound\\|^lemma wassersteinGronwallCoupling_ennreal_mul_comm\\|^lemma wassersteinGronwallCoupling_ofReal_le\\|^theorem MathlibTODO_wassersteinGronwallCoupling\\|^axiom MathlibTODO_wasserstei
+→ 902:axiom MathlibTODO_wassersteinGronwallCoupling_W1ContOn
+920:axiom MathlibTODO_wassersteinGronwallCoupling_derivBound
+942:lemma wassersteinGronwallCoupling_gronwall_le
+957:lemma wassersteinGronwallCoupling_real_bound
+975:lemma wassersteinGronwallCoupling_ennreal_mul_comm
+986:lemma wassersteinGronw
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json << 'EOF'\n{\n  \"schema_version\": 1,\n  \"generated_at\": \"2026-05-25T23:17:47Z\",\n  \"generated_by\": \"sorry-decomposer\",\n  \"parent\": {\n    \"name\": \"Vlasov.Mat
+→ JSON sidecar updated with line numbers
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/decomposer-20260525-231747.md << 'EOF'\n## 2026-05-25T23:17:47Z · gap · Vlasov.MathlibTODO_wassersteinGronwallCoupling\n\n**Result:** success\n**Iterations:** 1/6\n**Sorry count:** 7 → 12  (delta: +5 = k=4 helpers + r=
+→ Attempt log written
+[Bash] {"command":"rm /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.decomposer-bak && echo \"Checkpoint cleaned up\"","description":"Remove the backup checkpoint file"}
+→ Checkpoint cleaned up
+[Bash] {"command":"# Check 2: k = 4 helpers in [3, 8]\necho \"Helper count:\"\ngrep -c \"^lemma wassersteinGronwallCoupling_\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean\n\n# Check 3: docstrings non-empty and unique\necho \"Docstring starts:\"\ngrep -B1 \"^lemma wassersteinGr
+→ Helper count:
+4
+Docstring starts:
+and then simplifies via `gronwallBound_ε0`. -/
+--
+TODO(mathlib): depends on sub-axioms for measure-valued ODE continuity and coupling. -/
+--
+Uses ENNReal.ofReal_mul and mul_comm to reorder the product. -/
+--
+TODO(mathlib): depends on wassersteinGronwallCoupling_real
+[Bash] {"command":"# Check 6: parent body has >= 1 sorry\necho \"Sorries in parent theorem body:\"\ngrep -A 10 \"^theorem MathlibTODO_wassersteinGronwallCoupling$\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | grep -c \"sorry\"\n\n# Check 7: 2-line pointer exists above the bl
+→ Sorries in parent theorem body:
+0
+2-line pointer:
+221:/-! Decomposed by sorry-decomposer.
+880:/-! Decomposed by sorry-decomposer.
+895:/-! Decomposed by sorry-decomposer.
+896:    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
+JSON sidecar: ALL CHECKS PASS
+  schema_version == 1
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1001,"limit":25}
+→   1001→-- The original Mathlib gap axiom, now expressed as a theorem.
+  1002→-- The proof scaffold uses the sub-axioms and the four helper lemmas above.
+  1003→theorem MathlibTODO_wassersteinGronwallCoupling
+  1004→    {d : ℕ} [NeZero d]
+  1005→    (gradW : PhysSpace d → PhysSpace d)
+  1006→    (L :
+[Bash] {"command":"grep -A 20 \"^theorem MathlibTODO_wassersteinGronwallCoupling$\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | grep -c \"sorry\"","description":"Verify parent theorem body has at least 1 sorry (with larger window)"}
+→ 1
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":893,"limit":10}
+→    893→      (L : ℝ) * (wasserstein1 ρ σ).toReal
+   894→
+   895→/-! Decomposed by sorry-decomposer.
+   896→    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
+   897→
+   898→-- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling:
+   899→-- Narrow continuity of Wasserstein-1
+→ [{"type":"text","text":"The 2-line pointer at lines 895-896 is immediately above the helper block. All checks pass.\n\n```\nsorry-decomposer result: success\ntarget: Vlasov.MathlibTODO_wassersteinGronwallCoupling  →  decomposed into 4 helpers (+ 2 sub-axioms)\niterations used: 1/6\nsorry count: 7 → 
+[thinking] The sorry-decomposer has completed its work. Let me summarize the results for the user.
+The decomposition succeeded. Here's what changed:
 
-**Summary:**
-- **Target:** `Vlasov.dobrushin` (gap mode)
-- **Sorry count:** 2 → 7 (+5 net, as expected for structural decomposition)
-- **Iterations used:** 1 of 6
+**Target:** `Vlasov.MathlibTODO_wassersteinGronwallCoupling` (was a monolithic `axiom`)
 
-**What was inserted before `dobrushin`:**
-1. `axiom MathlibTODO_convolveLipschitzEstimate` — Lipschitz estimate for convolutions (Mathlib gap)
-2. `axiom MathlibTODO_wassersteinGronwallCoupling` — Wasserstein Gronwall coupling (Mathlib gap)
-3. `lemma dobrushin_C_choice` — picks the constant C
-4. `lemma convolveDiff_norm_le` — bounds the convolved difference in norm
-5. `lemma wasserstein1_ofReal_exp_monotone` — monotonicity of W₁ along the exp factor
-6. `lemma dobrushin_ennreal_bound` — the ℝ≥0∞ version of the Dobrushin bound
-7. `lemma dobrushin_package_exists` — packages all ingredients together
+**Result:** Converted to a `theorem` backed by **2 sub-axioms** + **4 helper lemmas** (sorry count: 7 → 12, delta +5)
 
-The `dobrushin` theorem body was rewritten to invoke `dobrushin_package_exists` with 1 residual `sorry`, and the sidecar plan file (`dobrushin.json`) was updated with actual line numbers. The sorry-prover can now tackle each helper lemma independently.
-[result] success duration=584301ms cost=$2.4798232500000004
+### New sub-axioms (focused, individually provable):
+1. `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` — continuity of W₁ along Vlasov solution curves
+2. `MathlibTODO_wassersteinGronwallCoupling_derivBound` — core coupling differential inequality (characteristic flow + W₁ triangle inequality)
+
+### New helper lemmas:
+| Name | Line | Difficulty | Purpose |
+|------|------|-----------|---------|
+| `wassersteinGronwallCoupling_gronwall_le` | ~942 | 2 | Wraps Mathlib's `le_gronwallBound_of_liminf_deriv_right_le` |
+| `wassersteinGronwallCoupling_real_bound` | ~957 | 3 | Applies Gronwall + sub-axioms → real W₁ bound |
+| `wassersteinGronwallCoupling_ennreal_mul_comm` | ~975 | 1 | Trivial ENNReal product reordering (should close in 1 cycle) |
+| `wassersteinGronwallCoupling_ofReal_le` | ~986 | 2 | Full ENNReal lift via `ENNReal.ofReal_toReal_le` |
+
+**Next step:** Run `sorry-prover` targeting `wassersteinGronwallCoupling_ennreal_mul_comm` first (difficulty 1), then `wassersteinGronwallCoupling_gronwall_le`. The plan sidecar is at `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`.
+[result] success duration=671350ms cost=$2.737742
