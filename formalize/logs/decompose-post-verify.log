@@ -3,16 +3,15 @@
 [Agent] {"description":"Verify Lean formalization and write coverage report","subagent_type":"lean-verifier","prompt":"Verify the Lean formalization and write a coverage report.\n\n  project root: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:    /Users/jkmiller/Documents/Claude/Proje
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779605400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779604200,"isUsingOverage":false}
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build the Lean project and capture output","timeout":300000}
+[rate-limit] {"status":"allowed","resetsAt":1779791400,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779774600,"isUsingOverage":false}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -200","description":"Build Lean project and capture output","timeout":300000}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md"}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean"}
 → ⚠ [8248/8250] Replayed Vlasov.Basic
-warning: Vlasov/Basic.lean:229:100: This line exceeds the 100 character limit, please shorten it!
-
-Note: This linter can be disabled with `set_option linter.style.longLine false`
-warning: Vlasov/Basic.lean:265:6: declaration uses `sorry`
-warning: Vlasov/Basic.lean
+warning: Vlasov/Basic.lean:226:0: automatically included section variable(s) unused in theorem `Vlasov.empiricalMeasure_integral_eq`:
+  [NeZero d]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+ 
 →      1→# Outline of Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics
      2→
      3→## Notation
@@ -20,6 +19,17 @@ warning: Vlasov/Basic.lean
      5→- `\R` → `\mathbb{R}` — real numbers (`ℝ` in Lean / Mathlib)
      6→- `\T` → `\mathbb{T}` — torus (defined but not used in the body)
      7→- `\N` → `\mathbb{N}` — nat
+→ <persisted-output>
+Output too large (60.8KB). Full output saved to: /Users/jkmiller/.claude/projects/-Users-jkmiller-Documents-Claude-Projects-Vlasov/3f5ce522-da21-4fa7-8aa5-a60267c431e0/tool-results/toolu_01UvfdmzP1tphU4V1zuB3yxH.txt
+
+Preview (first 2KB):
+     1→/-
+     2→Formalization skeleton for
+[Read] {"file_path":"/Users/jkmiller/.claude/projects/-Users-jkmiller-Documents-Claude-Projects-Vlasov/3f5ce522-da21-4fa7-8aa5-a60267c431e0/tool-results/toolu_01UvfdmzP1tphU4V1zuB3yxH.txt"}
+→ File content (27831 tokens) exceeds maximum allowed tokens (25000). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/ 2>/dev/null && echo \"---\" && ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/*.json 2>/dev/null || echo \"No plans directory or no JSON files\"","description":"List decomposition plan JSON files"}
+→ <tool_use_error>Sibling tool call errored</tool_use_error>
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","limit":400}
 →      1→/-
      2→Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
      3→Generated from vlasov.tex.
@@ -29,48 +39,69 @@ warning: Vlasov/Basic.lean
      7→import Mathlib
      8→
      9→open scoped BigOperato
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":260,"limit":100}
-→    260→diagonalCorrection_bound ← diagonalCorrection_eq
-   261→-/
-   262→
-   263→/-- The integral of a function φ against the empirical measure `empiricalMeasure N X V`
-   264→equals `(1/N) * ∑ i, φ(X i, V i)`, by unfolding the weighted sum of Dirac masses. -/
-   265→lemma empiricalMeasure_integral_
-[Bash] {"command":"grep -n \"sorry\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","description":"List all sorry occurrences with line numbers"}
-→ 4:All proofs are `sorry`; this file is a statement-only scaffold.
-221:/-! ## sorry-decomposer plan for weakEvolutionEmpiricalMeasure
-270:  sorry
-291:  sorry
-314:  sorry
-337:  sorry
-350:  sorry
-418:    sorry
-557:  sorry
-666:  sorry
-732:  -- Skeleton from sorry-prover; finished manually.
-[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-23\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
-→ 
+[Bash] {"command":"ls /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/*.json 2>/dev/null || echo \"No JSON plans\"","description":"List decomposition plan JSON files"}
+→ /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json
+/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","limit":400,"offset":400}
+→    400→  simp [ENNReal.toReal_div, ENNReal.toReal_natCast]
+   401→
+   402→/-- The remainder term `r` in the weak evolution identity equals
+   403→`(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
+   404→obtained when extending the Newton-equation sum `Σ_{j≠i}` to all `j`
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json"}
+→      1→{
+     2→  "schema_version": 1,
+     3→  "generated_at": "2026-05-25T00:00:00Z",
+     4→  "generated_by": "Phase A+B revision of the 2026-05-23 plan: (A) sub-decompose diagonalCorrection_eq by extracting convolveFunctionMeasure_empiricalSpatial_eq (API navigation) so the residual is pure alge
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json"}
+→      1→{
+     2→  "schema_version": 1,
+     3→  "generated_at": "2026-05-25T22:15:32Z",
+     4→  "generated_by": "sorry-decomposer",
+     5→  "parent": {
+     6→    "name": "Vlasov.dobrushin",
+     7→    "kind": "theorem",
+     8→    "tex_label": "thm:dobrushin",
+     9→    "file": "Vlasov/Basic.lea
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","limit":400,"offset":800}
+→    800→  sorry
+   801→
+   802→-- ---------------------------------------------------------------------------
+   803→-- §10  Equation (Characteristic / mean-field ODE)   (tex: eq:char)
+   804→-- ---------------------------------------------------------------------------
+   805→
+   806→-- TODO(mathlib
+[Bash] {"command":"grep -n \"^theorem\\|^def\\|^lemma\\|^noncomputable def\\|^abbrev\\|^class\\|^axiom\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head -80","description":"List all top-level declarations with line numbers"}
+→ 24:abbrev PhysSpace (d : ℕ) := EuclideanSpace ℝ (Fin d)
+27:abbrev PhaseSpace (d : ℕ) := PhysSpace d × PhysSpace d
+41:noncomputable def hamiltonianN (N : ℕ) (W : PhysSpace d → ℝ)
+60:def IsNewtonSolution (N : ℕ) (gradW : PhysSpace d → PhysSpace d)
+80:class AssW (W : PhysSpace d → ℝ) : Prop where
+99:le
+[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md << 'REPORT_EOF'\n# Formalization coverage report\n\nGenerated: 2026-05-25\nSource outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md\nLean file: /Users/jkmiller/Documents/Claude/Proje
+→ Report written successfully.
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
-     3→Generated: 2026-05-23
+     3→Generated: 2026-05-25
      4→Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
      5→Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
      6→
      7→## Build status
      8
-→ [{"type":"text","text":"The report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.\n\n---\n\n**verified: 13/13 items present (10 present, 1 present-with-sorry for prop:weak, 1 present-stubbed for cor:empirical-vlasov, 1 present-with-sorry each for thm:vlas
-The verifier completed successfully. Here's the summary:
+→ [{"type":"text","text":"The report is written and verified. Here is a summary of what was found and documented.\n\n---\n\n## Summary\n\n**verified: 13/13 items present, build: success**\n\n### Build status\n- Build succeeded (8250 jobs, 0 errors)\n- 8 sorry warnings, 18 cosmetic warnings (unused var
+The lean-verifier has completed. Here's the key summary from the coverage report:
 
-**Build: SUCCESS** (8250 jobs, no errors)
+**Build: SUCCESS** (8,250 jobs, 0 errors)
 
 **Coverage: 13/13 outline items present**
 
-| Status | Items |
-|---|---|
-| Fully proved | 9 items (including `cor:mfl` — mean-field limit) |
-| Present with sorry | 3 items: `prop:weak` (6 sorries), `thm:vlasov-wp` (1), `thm:dobrushin` (1) |
-| Present-stubbed | 1 item: `cor:empirical-vlasov` (proof complete, but depends on sorry'd `prop:weak`) |
+- **11 items fully proved** (no sorry)
+- **2 items with remaining sorries:**
+  - `vlasovWellPosedness` — 1 stub sorry
+  - `dobrushin` — 5 helper sorries + 1 residual glue sorry (blocked by 2 Mathlib gap axioms: `MathlibTODO_convolveLipschitzEstimate` and `MathlibTODO_wassersteinGronwallCoupling`)
 
-**8 sorry warnings total.** The full report has been written to `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md`.
-[result] success duration=107528ms cost=$0.48320374999999993
+**Total sorry count: 8**
+
+**Recommended next step:** Discharge `wasserstein1_ofReal_exp_monotone` (line 938, difficulty 1) — the plan supplies a near-complete one-liner via `ENNReal.ofReal_le_ofReal` + `Real.exp_le_exp.mpr`.
+[result] success duration=117013ms cost=$0.7227319999999999

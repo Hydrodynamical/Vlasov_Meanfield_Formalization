@@ -449,12 +449,34 @@ depth). Hard cap of 6 build iterations. Checkpoint the file before
 editing and revert on failure." \
     900
 
-  # Safety net (mirrors the prover's checkpoint restore): if SIGALRM kills
-  # the decomposer mid-edit, its own revert never runs and the .decomposer-bak
-  # file is left behind.  Restore so the post-verifier sees a green baseline.
+  # Safety net (mirrors the prover's checkpoint restore): if the decomposer
+  # is killed before its own §7 cleanup, the .decomposer-bak file is left
+  # behind.  Decide whether the post-SIGALRM state is "agent's work
+  # successfully landed" (preserve) or "agent broke the file" (restore).
+  #
+  # Background: the May 25 dobrushin gap-mode run hit SIGALRM at 900s right
+  # AFTER the agent finished all Lean edits (axioms + 5 helpers + parent
+  # rewrite, build green) and started its final plan-JSON write.  The
+  # earlier always-restore heuristic wiped that good work.  The new
+  # heuristic preserves it.
   if [ -f "${LEAN_FILE}.decomposer-bak" ]; then
-    echo "--- decomposer-bak checkpoint still present; restoring (decomposer killed before its own revert step) ---"
-    mv "${LEAN_FILE}.decomposer-bak" "${LEAN_FILE}"
+    echo "--- decomposer-bak checkpoint present; deciding preserve vs restore ---"
+    if cmp -s "${LEAN_FILE}" "${LEAN_FILE}.decomposer-bak"; then
+      # No diff between current and checkpoint.  Agent did no useful Lean
+      # work (or undid it all itself).  Just clean up the bak.
+      echo "    current Lean file == checkpoint; nothing to preserve, cleaning bak."
+      rm "${LEAN_FILE}.decomposer-bak"
+    elif (cd "${PROJECT}" && lake build 2>&1 | grep -qE "^error:"); then
+      # File differs AND has build errors.  Agent's edits broke compilation;
+      # restore from checkpoint so the post-verifier sees a green baseline.
+      echo "    current Lean file has build errors; RESTORING from .decomposer-bak."
+      mv "${LEAN_FILE}.decomposer-bak" "${LEAN_FILE}"
+    else
+      # File differs AND builds clean.  Agent's work landed before SIGALRM.
+      # Preserve it; clean up the bak.
+      echo "    current Lean file builds green with edits; PRESERVING agent's work, cleaning bak."
+      rm "${LEAN_FILE}.decomposer-bak"
+    fi
   fi
 
   # Refresh report so subsequent --prove-next/--prove-easiest sees the new

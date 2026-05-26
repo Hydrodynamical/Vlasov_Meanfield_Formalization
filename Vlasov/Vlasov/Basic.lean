@@ -877,6 +877,110 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
   ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f),
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
 
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/dobrushin.json`. -/
+
+-- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
+-- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
+-- in Mathlib's stable API for general metric spaces.
+axiom MathlibTODO_convolveLipschitzEstimate
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : Measure (PhysSpace d))
+    (x : PhysSpace d) :
+    ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
+      (L : ℝ) * (wasserstein1 ρ σ).toReal
+
+-- Mathlib gap: Gronwall-based exponential W₁ growth bound via
+-- characteristic-flow coupling of two Vlasov solutions.
+-- Requires measure-valued ODE existence + uniqueness + Wasserstein-1
+-- triangle inequality under pushforward, none of which are in Mathlib's
+-- stable API.
+axiom MathlibTODO_wassersteinGronwallCoupling
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (t : ℝ) (ht : 0 ≤ t) :
+    wasserstein1 (f t) (g t) ≤
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
+
+/-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
+This provides the Dobrushin constant independently of whether L = 0.
+TODO(mathlib): `lt_max_of_lt_right` and `le_max_left` are the key order lemmas. -/
+lemma dobrushin_C_choice (L : NNReal) :
+    ∃ C : ℝ, 0 < C ∧ (L : ℝ) ≤ C := by
+  sorry
+
+/-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
+on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.
+This is the key estimate: the convolution ∇W * ρ is Lipschitz in ρ with respect to
+the Wasserstein-1 distance, via Kantorovich–Rubinstein duality.
+TODO(mathlib): depends on `MathlibTODO_convolveLipschitzEstimate` Mathlib gap. -/
+lemma convolveDiff_norm_le
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : Measure (PhysSpace d))
+    (x : PhysSpace d) :
+    ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
+      (L : ℝ) * (wasserstein1 ρ σ).toReal := by
+  sorry
+
+/-- For C > 0 and 0 ≤ s ≤ t, we have
+ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
+This is the monotonicity of the exponential bound in time. -/
+lemma wasserstein1_ofReal_exp_monotone
+    (C : ℝ) (hC : 0 < C) (s t : ℝ) (hs : 0 ≤ s) (hst : s ≤ t) :
+    ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)) := by
+  sorry
+
+/-- Given MathlibTODO_wassersteinGronwallCoupling and C = max(L,1) > 0 with (L : ℝ) ≤ C,
+for any two Vlasov solutions f and g, for all t ≥ 0 we have
+wasserstein1 (f t) (g t) ≤ ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0).
+Depends on dobrushin_C_choice (for the constant C) and convolveDiff_norm_le (for the
+Lipschitz estimate used in the Gronwall argument via MathlibTODO_wassersteinGronwallCoupling).
+TODO(mathlib): depends on `MathlibTODO_wassersteinGronwallCoupling` Mathlib gap. -/
+lemma dobrushin_ennreal_bound
+    (W : PhysSpace d → ℝ) [hW : AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
+    ∀ t : ℝ, 0 ≤ t →
+      wasserstein1 (f t) (g t) ≤
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+  sorry
+
+/-- Package the bound and positivity of C into the existential conclusion of dobrushin:
+∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).
+Depends on dobrushin_C_choice and dobrushin_ennreal_bound. -/
+lemma dobrushin_package_exists
+    (W : PhysSpace d → ℝ) [hW : AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+    ∃ C : ℝ, 0 < C ∧
+      ∀ t : ℝ, 0 ≤ t →
+        wasserstein1 (f t) (g t) ≤
+          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+  sorry
+
 /-- (tex: thm:dobrushin)
 Dobrushin's stability theorem (1979).
 
@@ -906,7 +1010,11 @@ theorem dobrushin
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  sorry
+  -- close via dobrushin_package_exists, which composes dobrushin_C_choice
+  -- and dobrushin_ennreal_bound (which itself invokes MathlibTODO_wassersteinGronwallCoupling)
+  obtain ⟨C, hC, hbound⟩ :=
+    dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
+  sorry -- residual: package (C, hC, hbound) into the ∃ C witness
 
 -- ---------------------------------------------------------------------------
 -- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)

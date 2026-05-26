@@ -63,6 +63,10 @@ attempt log so the user can audit your choice.
   `result: skipped — target is already proved`.
 - Target is a `def` / `class` / `structure` rather than `theorem` / `lemma`:
   skip with `result: skipped — target is definitional, not a proof obligation`.
+  **Exception**: in `gap` mode (per §3.4), `axiom` targets ARE allowed.
+  The agent converts `axiom X : T` to `theorem X : T := by sorry` as
+  its first edit, then proceeds with standard gap-mode decomposition.
+  See §3.4's "Axiom targets" subsection for details.
 
 ## 1. Checkpoint
 
@@ -427,7 +431,15 @@ Schema (v1):
   "generated_by": "sorry-decomposer",
   "parent": {
     "name": "<Vlasov.targetName>",
-    "kind": "theorem",      // or "lemma", "definition", "structure"
+    "kind": "theorem",      // or "lemma", "definition", "structure", "axiom"
+                            //   `axiom` is used by axiom-decompositions
+                            //   in gap mode (§3.4 "Axiom targets"): the
+                            //   original axiom is REPLACED by a theorem in
+                            //   Basic.lean, but `parent.kind = "axiom"`
+                            //   records the ORIGINAL kind so downstream
+                            //   tooling / humans see this decomposition
+                            //   replaced an axiom (not just decomposed a
+                            //   sorry'd theorem).
     "tex_label": "<prop:weak or similar; omit if none>",
     "file": "<path relative to project root>",
     "line": <integer, declaration line>
@@ -569,6 +581,79 @@ one axiom whose statement combines all three rather than three
 separate axioms — fewer trust commitments. Counter-balance: keep
 each axiom's statement readable; if combining would produce a
 50-line existential, split.
+
+### Axiom targets (gap mode, axiom input)
+
+When the target Lean declaration is `axiom X : T` (a top-level type
+postulate with no body), gap mode handles it as follows.  Note: this
+path is enabled ONLY in gap mode (per §0's skip-rule exception);
+standard `--decompose` still refuses axiom targets.
+
+1. **First edit: axiom → theorem-with-sorry.** Replace the line
+   `axiom X : T` in the Lean file with `theorem X : T := by sorry`.
+   The declaration's name `X` is preserved exactly — callers anywhere
+   else in the codebase (e.g., a helper that originally invoked `X`
+   as an axiom via `exact X args`) continue to typecheck without
+   modification.  The KIND changes from axiom to theorem; a `sorry`
+   body now exists for the rest of this gap-mode decomposition to
+   rewrite into a proof scaffold.
+
+2. **Now proceed as standard gap-mode** on the now-sorry'd theorem.
+   Emit:
+     - `helpers[]`: constructive lemmas factoring out the provable
+       parts of T's proof (typically: Mathlib-applies where the
+       underlying lemma exists — see step 4).
+     - `axioms[]`: **sub-axioms** capturing the remaining structural
+       gaps.  Name them by nesting: if the original was
+       `MathlibTODO_X`, sub-axioms are `MathlibTODO_X_<subpart>`
+       (example: `MathlibTODO_wassersteinGronwallCoupling` → sub-axiom
+       `MathlibTODO_wassersteinGronwallCoupling_W1_pushforward`).  The
+       nested prefix preserves the `MathlibTODO_*` grep convention for
+       trust enumeration and visually signals the genealogy.
+     - Rewrite the (now-theorem) `X`'s body as a scaffold composing
+       helpers + sub-axioms.  Per §4.2's gap-mode addendum, the
+       scaffold MAY invoke the new sub-axioms via
+       `exact MathlibTODO_X_subpart ...` patterns.
+
+3. **Trust accounting.**  Before: 1 axiom (`X`).  After: K sub-axioms
+   (where K ≥ 0) + some constructive helpers (sorry'd; the prover
+   closes them later).  Outcomes:
+     - K = 0 (no sub-axioms; fully constructive decomposition):
+       trust strictly REDUCED.  Best case.
+     - K = 1, smaller statement than `X`: trust REDUCED in scope.
+     - K = 1, same scope as `X`: not useful — abort with
+       `result: skipped — decomposition did not reduce trust`.
+     - K ≥ 2: trust DIVIDED into smaller pieces (each sub-axiom
+       captures a focused gap); usually a net improvement for
+       future maintainers even if total count grows.
+
+4. **Pre-flight grep for Mathlib presence.**  Before emitting any
+   sub-axiom, grep Mathlib for whether the statement is ALREADY a
+   theorem.  Use the same §3.1.5 grep idiom (scoped to the relevant
+   subdirectory).  If a matching theorem exists, do NOT sub-axiomatize
+   — emit a constructive helper instead that invokes the Mathlib
+   theorem.  Example: when decomposing
+   `MathlibTODO_wassersteinGronwallCoupling`, the Gronwall step is
+   `le_gronwallBound_of_liminf_deriv_right_le` in
+   `Mathlib/Analysis/ODE/Gronwall.lean` — a constructive helper
+   `gronwall_step` should invoke that lemma, not a sub-axiom.
+
+5. **Plan JSON.**  Set `parent.kind = "axiom"` (records the ORIGINAL
+   kind for downstream visibility — see §3.2 schema note).  The
+   `axioms[]` array contains the sub-axioms (may be empty if K = 0).
+   The `helpers[]` array contains the constructive pieces.  The
+   `residual_glue` is typically NULL for axiom-decompositions (the
+   parent body is usually a clean compose-and-exact, not requiring a
+   distinct residual-glue step).
+
+6. **Direct-proof fast path.**  If pre-flight grep reveals that the
+   axiom's ENTIRE content is in Mathlib (no sub-axioms needed, the
+   proof is just `exact <Mathlib_lemma> args`), don't bother with
+   the full decomposition.  Instead: convert `axiom X : T` to
+   `theorem X : T := <proof_term>` directly (no helpers, no
+   sub-axioms, no scaffold), and exit with
+   `result: success — axiom replaced by direct Mathlib proof`.  This
+   is the trust-elimination fast path.
 
 ## 4. Edit loop (hard cap: 6 iterations, where an iteration = one edit + one build)
 

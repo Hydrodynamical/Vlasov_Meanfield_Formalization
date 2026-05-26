@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-25T22:15:32Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.dobrushin",
+    "kind": "theorem",
+    "tex_label": "thm:dobrushin",
+    "file": "Vlasov/Basic.lean",
+    "line": 997
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.dobrushin_C_choice",
+      "file": "Vlasov/Basic.lean",
+      "line": 917,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "le_max_right",
+        "le_max_left",
+        "lt_max_of_lt_right",
+        "NNReal.coe_nonneg"
+      ],
+      "one_line_math": "For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C. This provides the Dobrushin constant independently of whether L = 0."
+    },
+    {
+      "name": "Vlasov.convolveDiff_norm_le",
+      "file": "Vlasov/Basic.lean",
+      "line": 926,
+      "difficulty": 4,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasureTheory.norm_integral_le_integral_norm",
+        "LipschitzWith.dist_le_mul",
+        "ENNReal.ofReal_le_ofReal"
+      ],
+      "one_line_math": "If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ σ on PhysSpace d, ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤ L · (wasserstein1 ρ σ).toReal. This is the key estimate: the convolution ∇W * ρ is Lipschitz in ρ with respect to the Wasserstein-1 distance, via Kantorovich-Rubinstein duality."
+    },
+    {
+      "name": "Vlasov.wasserstein1_ofReal_exp_monotone",
+      "file": "Vlasov/Basic.lean",
+      "line": 938,
+      "difficulty": 1,
+      "deps": [],
+      "mathlib_hints": [
+        "ENNReal.ofReal_le_ofReal",
+        "Real.exp_le_exp",
+        "mul_le_mul_of_nonneg_left"
+      ],
+      "one_line_math": "For C > 0 and 0 ≤ s ≤ t, we have ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)). This is the monotonicity of the exponential bound in time.",
+      "proof_sketch": "apply ENNReal.ofReal_le_ofReal\nexact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst (le_of_lt hC))"
+    },
+    {
+      "name": "Vlasov.dobrushin_ennreal_bound",
+      "file": "Vlasov/Basic.lean",
+      "line": 949,
+      "difficulty": 4,
+      "deps": ["Vlasov.dobrushin_C_choice", "Vlasov.convolveDiff_norm_le"],
+      "mathlib_hints": [
+        "ENNReal.ofReal_mul",
+        "ENNReal.ofReal_le_ofReal",
+        "iSup_le",
+        "le_iSup"
+      ],
+      "one_line_math": "Given the MathlibTODO_wassersteinGronwallCoupling axiom (which provides the Gronwall-based measure-valued ODE estimate), for C = max(L,1) and any two Vlasov solutions f and g, for all t ≥ 0 we have wasserstein1 (f t) (g t) ≤ ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)."
+    },
+    {
+      "name": "Vlasov.dobrushin_package_exists",
+      "file": "Vlasov/Basic.lean",
+      "line": 968,
+      "difficulty": 2,
+      "deps": ["Vlasov.dobrushin_C_choice", "Vlasov.dobrushin_ennreal_bound"],
+      "mathlib_hints": [
+        "le_max_right",
+        "le_max_left",
+        "lt_max_of_lt_right"
+      ],
+      "one_line_math": "Package the bound and positivity of C into the existential conclusion of dobrushin: ∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).",
+      "proof_sketch": "obtain ⟨C, hC, hCL⟩ := dobrushin_C_choice L\nexact ⟨C, hC, dobrushin_ennreal_bound W gradW hgradW L hL f g hf hg hf_prob hg_prob C hC hCL⟩"
+    }
+  ],
+  "axioms": [
+    {
+      "name": "MathlibTODO_convolveLipschitzEstimate",
+      "file": "Vlasov/Basic.lean",
+      "line": 886,
+      "statement_summary": "For L-Lipschitz gradW and measures ρ, σ on PhysSpace d, the pointwise norm ‖(∇W*ρ)(x) - (∇W*σ)(x)‖ is bounded by L · W₁(ρ,σ).toReal for all x.",
+      "tracked_at": "",
+      "one_line_math": "The map ρ ↦ ∇W * ρ (convolution of Lipschitz function with measure) is Lipschitz in ρ with respect to Wasserstein-1 distance: ‖(∇W*ρ)(x) - (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ) for all x."
+    },
+    {
+      "name": "MathlibTODO_wassersteinGronwallCoupling",
+      "file": "Vlasov/Basic.lean",
+      "line": 900,
+      "statement_summary": "Given two Vlasov solutions f and g with L-Lipschitz ∇W and C ≥ L, C > 0, the Gronwall inequality via characteristic flow coupling gives wasserstein1 (f t) (g t) ≤ ENNReal.ofReal (exp (C * t)) * wasserstein1 (f 0) (g 0) for all t ≥ 0.",
+      "tracked_at": "",
+      "one_line_math": "The Gronwall inequality, applied via a coupling of the characteristic ODEs for two Vlasov solutions, yields exponential growth of W₁(f_t, g_t) with constant C ≥ L. This requires Mathlib API for measure-valued ODEs and Wasserstein-1 triangle inequality under pushforward."
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Basic.lean",
+    "line": 1017,
+    "branch_label": "main body of dobrushin; residual sorry to be closed once dobrushin_package_exists is proved",
+    "composition": ["dobrushin_C_choice", "dobrushin_ennreal_bound", "dobrushin_package_exists"],
+    "strategy": "Once dobrushin_package_exists is proved (using dobrushin_C_choice + dobrushin_ennreal_bound), the parent obtains ⟨C, hC, hbound⟩ from it and packages them as the ∃ C witness.",
+    "tactic_sketch": "obtain ⟨C, hC, hbound⟩ :=\n  dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob\nexact ⟨C, hC, hbound⟩"
+  }
+}
