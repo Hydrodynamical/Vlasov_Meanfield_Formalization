@@ -883,6 +883,39 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_convolveLipschitzEstimate.json`. -/
 
+/-!
+## Note on the remaining sorries in this cascade
+
+`convolveLipschitz_KR_le`, `convolveLipschitz_inner_bound`, the parent
+`MathlibTODO_convolveLipschitzEstimate`, and (downstream) the
+`wassersteinGronwallCoupling_ofReal_le` + parent
+`MathlibTODO_wassersteinGronwallCoupling` all conclude in `.toReal`
+of an ENNReal expression involving `wasserstein1 ρ σ`.  The
+inequality is FALSE without a finiteness hypothesis on
+`wasserstein1 ρ σ`, because `(⊤ : ℝ≥0∞).toReal = 0` collapses any
+positive LHS bound by a `wasserstein1` term.
+
+To close these sorries constructively, we'd need either
+  (a) thread `wasserstein1 ρ σ ≠ ⊤` as a hypothesis through the
+      cascade and derive it at the dobrushin call site from
+      `HasFiniteFirstMoment` via a `wasserstein1_lt_top_of_finite_moment`
+      lemma (provable but ~30-50 lines of measure-theoretic
+      plumbing); or
+  (b) restate the cascade in ENNReal form (no `.toReal`), where the
+      bound holds trivially when `wasserstein1 = ⊤`.
+
+Either is a structural change beyond the scope of the current
+cleanup pass, so the cascade stays decomposed-with-sorries: each
+helper has a clear constructive sketch in its docstring, and the
+plan JSON records the textbook proof structure.  The remaining
+`MathlibTODO_*` placeholders (`W1ContOn`, `derivBound`) are the
+genuine PDE/coupling-theory gaps and are blocked on Mathlib OT
+infrastructure (full KR duality, characteristic flow theory for
+measure-valued ODEs).  See `formalize/DESIGN.md` for the bigger
+picture.
+-/
+
+
 /-- For fixed `x : PhysSpace d` and `v : PhysSpace d`, the function
 `y ↦ @inner ℝ (PhysSpace d) _ (gradW (x - y)) v` is LipschitzWith `(L * ‖v‖₊)`.
 Proof: the map `y ↦ gradW (x - y)` is L-Lipschitz (composition of the L-Lipschitz `gradW`
@@ -895,7 +928,25 @@ lemma convolveLipschitz_inner_lipschitz
     (x v : PhysSpace d) :
     LipschitzWith (L * ‖v‖₊) (fun y : PhysSpace d =>
       @inner ℝ (PhysSpace d) _ (gradW (x - y)) v) := by
-  sorry
+  -- Step 1: y ↦ x - y is 1-Lipschitz (direct check via dist)
+  have h_sub : LipschitzWith 1 (fun y : PhysSpace d => x - y) := by
+    refine LipschitzWith.of_dist_le_mul (fun a b => ?_)
+    rw [NNReal.coe_one, one_mul, dist_eq_norm, dist_eq_norm,
+        sub_sub_sub_cancel_left, norm_sub_rev]
+  -- Step 2: gradW ∘ (x - ·) is L-Lipschitz (since L * 1 = L)
+  have h_gW : LipschitzWith L (fun y : PhysSpace d => gradW (x - y)) := by
+    simpa using hL.comp h_sub
+  -- Step 3: w ↦ ⟨w, v⟩ is ‖v‖₊-Lipschitz by Cauchy-Schwarz
+  have h_inner_v : LipschitzWith ‖v‖₊
+      (fun w : PhysSpace d => @inner ℝ (PhysSpace d) _ w v) := by
+    refine LipschitzWith.of_dist_le_mul (fun a b => ?_)
+    rw [Real.dist_eq, ← inner_sub_left, dist_eq_norm]
+    calc |@inner ℝ (PhysSpace d) _ (a - b) v|
+        ≤ ‖a - b‖ * ‖v‖ := abs_real_inner_le_norm _ _
+      _ = (‖v‖₊ : ℝ) * ‖a - b‖ := by rw [mul_comm]; rfl
+  -- Step 4: compose (Lipschitz constant is ‖v‖₊ * L; rewrite to L * ‖v‖₊)
+  have h_comp := h_inner_v.comp h_gW
+  rwa [mul_comm] at h_comp
 
 /-- For any 1-Lipschitz function `φ : PhysSpace d → ℝ`, the integral difference
 `∫ φ dρ − ∫ φ dσ ≤ (wasserstein1 ρ σ).toReal`.
