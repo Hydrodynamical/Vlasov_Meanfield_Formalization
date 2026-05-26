@@ -883,14 +883,15 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
 -- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
 -- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
 -- in Mathlib's stable API for general metric spaces.
-axiom MathlibTODO_convolveLipschitzEstimate
+theorem MathlibTODO_convolveLipschitzEstimate
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
     (x : PhysSpace d) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
-      (L : ℝ) * (wasserstein1 ρ σ).toReal
+      (L : ℝ) * (wasserstein1 ρ σ).toReal := by
+  sorry
 
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
@@ -899,7 +900,7 @@ axiom MathlibTODO_convolveLipschitzEstimate
 -- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
 -- Requires: Wasserstein distance continuity under narrowly-continuous measure flows
 -- (not in Mathlib's stable API for measure-valued ODEs on PhaseSpace).
-axiom MathlibTODO_wassersteinGronwallCoupling_W1ContOn
+theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -909,7 +910,8 @@ axiom MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
-    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T)
+    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
+  sorry
 
 -- Sub-axiom 2 of MathlibTODO_wassersteinGronwallCoupling:
 -- Right-derivative Gronwall bound for the Wasserstein-1 coupling.
@@ -917,7 +919,7 @@ axiom MathlibTODO_wassersteinGronwallCoupling_W1ContOn
 -- initial label) + W₁ triangle inequality under measure pushforward.
 -- Neither the measure-valued Picard theorem nor the W₁ pushforward contraction
 -- is in Mathlib's stable API.
-axiom MathlibTODO_wassersteinGronwallCoupling_derivBound
+theorem MathlibTODO_wassersteinGronwallCoupling_derivBound
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -932,7 +934,8 @@ axiom MathlibTODO_wassersteinGronwallCoupling_derivBound
       ∀ r : ℝ, C * (wasserstein1 (f s) (g s)).toReal < r →
         ∃ᶠ z in nhdsWithin s (Set.Ioi s),
           (z - s)⁻¹ * ((wasserstein1 (f z) (g z)).toReal -
-            (wasserstein1 (f s) (g s)).toReal) < r
+            (wasserstein1 (f s) (g s)).toReal) < r := by
+  sorry
 
 /-- For a continuous function h : ℝ → ℝ on [0, T] with h(0) ≤ δ and with
 right-derivative liminf bounded by C * h(s) for all s ∈ [0, T),

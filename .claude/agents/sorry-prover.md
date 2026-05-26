@@ -33,6 +33,15 @@ Skip rules:
 - If the recommendation explicitly says the proof is blocked on missing
   Mathlib API or on another `sorry` that hasn't been discharged yet,
   skip it and move to the next recommendation.
+- **If the target's declaration name starts with `MathlibTODO_`,
+  skip it unconditionally.** These are placeholder sorry'd theorems
+  emitted by `sorry-decomposer` in gap mode (§3.4) to mark
+  Mathlib-API gaps. By construction they CANNOT yet be proved —
+  the whole reason they exist is that Mathlib doesn't have the
+  underlying lemma. Attempting to prove a `MathlibTODO_*` target
+  wastes a cycle on something the prover cannot solve until upstream
+  Mathlib adds the lemma. Skip with `result: skipped — target is
+  a MathlibTODO_* placeholder for missing Mathlib API`.
 - If every recommendation is blocked, write a one-paragraph note to the
   attempt log explaining the blockers and exit with `result: skipped`.
 
