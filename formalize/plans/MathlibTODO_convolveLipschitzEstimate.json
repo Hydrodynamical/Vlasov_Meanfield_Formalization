@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-26T00:20:00Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.MathlibTODO_convolveLipschitzEstimate",
+    "kind": "theorem",
+    "tex_label": "",
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 886
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.convolveLipschitz_inner_lipschitz",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "LipschitzWith.comp",
+        "lipschitzWith_of_opNorm_le",
+        "ContinuousLinearMap.integral_comp_comm",
+        "real_inner_smul_left"
+      ],
+      "one_line_math": "For any fixed x and v in PhysSpace d, the function y ↦ ⟨gradW(x−y), v⟩ is LipschitzWith (L * ‖v‖₊): compose the L-Lipschitz map y ↦ gradW(x−y) with the ‖v‖₊-Lipschitz linear map w ↦ ⟨w, v⟩.",
+      "proof_sketch": null
+    },
+    {
+      "name": "Vlasov.convolveLipschitz_KR_le",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "le_iSup₂",
+        "ENNReal.ofReal_le_ofReal",
+        "ENNReal.toReal_iSup",
+        "ENNReal.ofReal_toReal"
+      ],
+      "one_line_math": "For any 1-Lipschitz function φ : PhysSpace d → ℝ, the integral difference ∫ φ dρ − ∫ φ dσ is bounded by (wasserstein1 ρ σ).toReal, directly from the Kantorovich–Rubinstein supremum definition of wasserstein1.",
+      "proof_sketch": null
+    },
+    {
+      "name": "Vlasov.convolveLipschitz_inner_bound",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 3,
+      "deps": ["Vlasov.convolveLipschitz_inner_lipschitz", "Vlasov.convolveLipschitz_KR_le"],
+      "mathlib_hints": [
+        "ContinuousLinearMap.integral_comp_comm",
+        "integral_sub",
+        "norm_integral_le_integral_norm",
+        "real_inner_le_norm"
+      ],
+      "one_line_math": "For any v : PhysSpace d with ‖v‖ ≤ 1, the real inner product ⟨(∇W∗ρ)(x) − (∇W∗σ)(x), v⟩ is bounded by L · W₁(ρ, σ).toReal: unfold convolveFunctionMeasure, linearise the inner product through the integral difference, then apply convolveLipschitz_KR_le to the (L·‖v‖₊ / L)-rescaled 1-Lipschitz integrand.",
+      "proof_sketch": null
+    },
+    {
+      "name": "Vlasov.convolveLipschitz_norm_le_of_inner_forall",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "real_inner_self_eq_norm_mul_norm",
+        "real_inner_le_norm",
+        "abs_real_inner_le_norm",
+        "norm_nonneg"
+      ],
+      "one_line_math": "If every unit vector v with ‖v‖ ≤ 1 satisfies ⟨z, v⟩ ≤ C, then ‖z‖ ≤ C: take v = z / ‖z‖ (the maximiser) to get ‖z‖ = ⟨z, z/‖z‖⟩ ≤ C, handling the z = 0 case separately.",
+      "proof_sketch": null
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": -1,
+    "branch_label": "main body of MathlibTODO_convolveLipschitzEstimate",
+    "composition": [
+      "Vlasov.convolveLipschitz_inner_bound",
+      "Vlasov.convolveLipschitz_norm_le_of_inner_forall"
+    ],
+    "strategy": "Apply convolveLipschitz_norm_le_of_inner_forall with C = L * (wasserstein1 ρ σ).toReal and z = the difference vector, citing convolveLipschitz_inner_bound for the universal inner-product bound.",
+    "tactic_sketch": "exact convolveLipschitz_norm_le_of_inner_forall d gradW L hL ρ σ x\n  (convolveLipschitz_inner_bound gradW L hL ρ σ x)"
+  }
+}

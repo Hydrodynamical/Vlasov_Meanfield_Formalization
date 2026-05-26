@@ -880,6 +880,65 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/dobrushin.json`. -/
 
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/MathlibTODO_convolveLipschitzEstimate.json`. -/
+
+/-- For fixed `x : PhysSpace d` and `v : PhysSpace d`, the function
+`y ↦ @inner ℝ (PhysSpace d) _ (gradW (x - y)) v` is LipschitzWith `(L * ‖v‖₊)`.
+Proof: the map `y ↦ gradW (x - y)` is L-Lipschitz (composition of the L-Lipschitz `gradW`
+with the 1-Lipschitz subtraction `y ↦ x - y`), and `w ↦ ⟨w, v⟩` is `‖v‖₊`-Lipschitz
+(bounded linear map with operator norm `‖v‖`); compose via `LipschitzWith.comp`. -/
+lemma convolveLipschitz_inner_lipschitz
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (x v : PhysSpace d) :
+    LipschitzWith (L * ‖v‖₊) (fun y : PhysSpace d =>
+      @inner ℝ (PhysSpace d) _ (gradW (x - y)) v) := by
+  sorry
+
+/-- For any 1-Lipschitz function `φ : PhysSpace d → ℝ`, the integral difference
+`∫ φ dρ − ∫ φ dσ ≤ (wasserstein1 ρ σ).toReal`.
+This follows directly from the Kantorovich–Rubinstein definition of `wasserstein1` as the
+supremum of integral differences over 1-Lipschitz test functions, together with
+`ENNReal.toReal_iSup` and `ENNReal.ofReal_toReal` to convert between ENNReal and ℝ. -/
+lemma convolveLipschitz_KR_le
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (ρ σ : Measure α) (φ : α → ℝ) (hφ : LipschitzWith 1 φ) :
+    ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ ≤ (wasserstein1 ρ σ).toReal := by
+  sorry
+
+/-- For any `v : PhysSpace d` with `‖v‖ ≤ 1`, the real inner product
+`⟨(∇W∗ρ)(x) − (∇W∗σ)(x), v⟩` is bounded by `(L : ℝ) * (wasserstein1 ρ σ).toReal`.
+Proof: unfold `convolveFunctionMeasure` to expose `∫ gradW(x−y) dρ` and `∫ gradW(x−y) dσ`;
+commute the inner product `⟨·, v⟩` (a continuous linear map) through each integral via
+`ContinuousLinearMap.integral_comp_comm`; then the integrand function
+`y ↦ ⟨gradW(x−y), v⟩` has Lipschitz constant `L * ‖v‖` ≤ `L` (from `convolveLipschitz_inner_lipschitz`),
+so `(1/L) * (that integrand)` is 1-Lipschitz and `convolveLipschitz_KR_le` closes the estimate. -/
+lemma convolveLipschitz_inner_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : Measure (PhysSpace d))
+    (x : PhysSpace d) :
+    ∀ v : PhysSpace d, ‖v‖ ≤ 1 →
+      @inner ℝ (PhysSpace d) _ (convolveFunctionMeasure gradW ρ x -
+        convolveFunctionMeasure gradW σ x) v ≤
+        (L : ℝ) * (wasserstein1 ρ σ).toReal := by
+  sorry
+
+/-- For `z : PhysSpace d` and `C : ℝ`, if every unit vector `v` (with `‖v‖ ≤ 1`) satisfies
+`@inner ℝ (PhysSpace d) _ z v ≤ C`, then `‖z‖ ≤ C`.
+Proof: in the `z = 0` case, `‖0‖ = 0 ≤ C` (from `C ≥ ⟨0, 0⟩ = 0`); in the `z ≠ 0` case,
+take `v = z / ‖z‖` (which satisfies `‖v‖ = 1`); then
+`‖z‖ = ⟨z, z/‖z‖⟩ = ⟨z, v⟩ ≤ C` by hypothesis via `real_inner_self_eq_norm_mul_norm`. -/
+lemma convolveLipschitz_norm_le_of_inner_forall
+    {d : ℕ} [NeZero d]
+    (z : PhysSpace d) (C : ℝ)
+    (h : ∀ v : PhysSpace d, ‖v‖ ≤ 1 → @inner ℝ (PhysSpace d) _ z v ≤ C) :
+    ‖z‖ ≤ C := by
+  sorry
+
 -- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
 -- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
 -- in Mathlib's stable API for general metric spaces.
