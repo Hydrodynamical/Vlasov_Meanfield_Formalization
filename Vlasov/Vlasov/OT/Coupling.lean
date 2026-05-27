@@ -95,7 +95,10 @@ Two cases:
 This proof would need ~50-100 lines of measure-theoretic plumbing. -/
 theorem wasserstein1_le_wasserstein1_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν) :
     wasserstein1 μ ν ≤ wasserstein1_coupling μ ν := by
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   refine le_iInf fun π => le_iInf fun hπ => ?_
@@ -103,7 +106,14 @@ theorem wasserstein1_le_wasserstein1_coupling
   -- Case 1: the cost is ⊤ → trivially bound by ⊤.
   by_cases h_top : ∫⁻ z, edist z.1 z.2 ∂π = ⊤
   · rw [h_top]; exact le_top
-  -- Case 2: finite cost → substantive proof needed (see proof strategy above).
+  -- Case 2: finite cost. Substantive proof.  The skeleton below maps each
+  -- stage to a Mathlib API call but the integrability/measurability threading
+  -- requires careful attention to instance synthesis and lemma-name churn.
+  -- Initial draft attempted Stages 1+2 (π is probability measure; dist is
+  -- integrable from h_top); both ran into Mathlib-API friction
+  -- (AEStronglyMeasurable for continuous on PseudoMetric without
+  -- SecondCountableTopology; HasFiniteIntegral.intro / hasFiniteIntegral_def
+  -- naming).  Full proof deferred to a follow-up session.
   sorry
 
 end Vlasov
