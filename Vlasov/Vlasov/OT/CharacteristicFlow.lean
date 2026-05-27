@@ -561,6 +561,238 @@ lemma exists_vlasov_extend_one_window
         (hasFDerivAt_snd (E := PhysSpace d) (F := PhysSpace d)).comp_hasDerivWithinAt t h_dw
       simpa [vlasovVectorField] using h_proj
 
+/-! ### Per-window helpers for the N-window induction in
+    `exists_vlasov_characteristicFlow`.
+
+    These three top-level lemmas are generic in `(β, ODE, confinement,
+    field bound, IH bound, reference point)` with no mention of the
+    N-window induction context (no `γ_k`, `k`, `N`, `z₀`).  This
+    genericity gives each helper its own elaboration budget (closing
+    the heartbeat-blocked inline carries) AND makes them composable
+    for future call sites — Stage C's chain rule, well-posedness's
+    Banach iteration, etc.
+
+    Composition order: Helper 1 (confinement) → Helper 2 (window-wide
+    velocity bound) → Helper 3 (endpoint position bound).
+-/
+
+/-- **Helper 1: Picard window confinement.**
+
+For a trajectory β satisfying the Vlasov ODE on a Picard window
+`[t_start, t_start + δ]` centered at `w`, the position component
+stays within the local force-bound ball:
+`(β s).1 ∈ closedBall w.1 (3a/2)` for `s` in the window.
+
+**Math sketch (supremum trick — method of continuity).**
+
+Define `g(s) := ‖β(s) - w‖` and `S := {s ∈ [t_start, t_start + δ] |
+g(s) ≤ L_pl · (s - t_start)}` where `L_pl := V_max + a + M`.  Note
+that the naive open-closed connectedness argument FAILS here: at a
+saturated point `s₀ ∈ S` (where `g(s₀) = L_pl · (s₀ - t_start)`),
+for `s < s₀` slightly less than `s₀`, continuity gives `g(s) ≈ g(s₀)`
+but the target `L_pl · (s - t_start) < L_pl · (s₀ - t_start)` is
+strictly smaller, so `g(s) ≤ L_pl · (s - t_start)` can fail.  The
+set S is closed but NOT open in `[t_start, t_start + δ]`.
+
+The correct argument is the supremum trick:
+
+  1. Let `s* := sup S`.  Well-defined: `t_start ∈ S` (since g(t_start)
+     = 0) and S ⊆ [t_start, t_start + δ].
+  2. `s* ∈ S` by closedness of S (Mathlib's `IsClosed.sSup_mem`).
+  3. `s* = t_start + δ` by contradiction: if `s* < t_start + δ`, then
+     `g(s*) ≤ L_pl · (s* - t_start) ≤ L_pl · δ ≤ a/2` (last from
+     Picard contraction `hδ_contract`).  So `β(s*) ∈ closedBall w (a/2)`,
+     hence `(β s*).1 ∈ closedBall w.1 (3a/2)`, so the field bound L_pl
+     applies at `β(s*)`.  By one-sided (right) mean-value on
+     `[s*, min(s* + ε, t_start + δ)]` for small ε > 0:
+     `g(s) - g(s*) ≤ L_pl · (s - s*)`.  Combined with `g(s*) ≤ L_pl · (s* - t_start)`:
+     `g(s) ≤ L_pl · (s - t_start)`, so `s ∈ S`.  Hence S contains points
+     strictly greater than `s*`, contradicting `s* = sup S`.
+  4. Therefore `s* = t_start + δ` and `S = [t_start, t_start + δ]`.
+
+**Status: deferred.**  The supremum-trick proof requires careful
+threading of Mathlib's `IsClosed.sSup_mem`, `IsLUB`, and one-sided
+mean-value APIs (~80-120 lines).  Path C of the plan was chosen:
+sorry the helper body with precisely-stated lemma + detailed strategy
+comment, then close in a focused follow-up.  Alternative closing path:
+modify `exists_vlasov_extend_one_window` to use `FunSpace` machinery
+directly and expose Mathlib's internal `compProj_mem_closedBall`. -/
+lemma vlasov_window_confinement
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (w : PhaseSpace d) (a : NNReal) (ha : 0 < a) (M : NNReal)
+    (V_max : NNReal) (hV : ‖w.2‖ ≤ (V_max : ℝ))
+    (t_start δ : ℝ) (hδ_pos : 0 < δ) (hδ_le_one : δ ≤ 1)
+    (hδ_contract : δ ≤ (a : ℝ) / 2 / (((V_max + a + M : NNReal) : ℝ) + 1))
+    (hbound : ∀ t ∈ Set.Icc t_start (t_start + 1),
+              ∀ x ∈ Metric.closedBall w.1 (3 * (a : ℝ) / 2),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M)
+    (β : ℝ → PhaseSpace d) (hβ_init : β t_start = w)
+    (hβ_ode_Icc : ∀ t ∈ Set.Icc t_start (t_start + δ),
+      HasDerivWithinAt (fun s => (β s).1) (β t).2
+        (Set.Icc t_start (t_start + δ)) t ∧
+      HasDerivWithinAt (fun s => (β s).2)
+        (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
+        (Set.Icc t_start (t_start + δ)) t) :
+    ∀ s ∈ Set.Icc t_start (t_start + δ),
+      (β s).1 ∈ Metric.closedBall w.1 (3 * (a : ℝ) / 2) := by
+  -- Supremum-trick proof per docstring.  Deferred: see status note above.
+  sorry
+
+/-- **Helper 2: Window-wide velocity bound.**
+
+For a trajectory β with velocity-component ODE
+`(β · ).2' = -(∇W ∗ ρ_·)((β ·).1)` on `[t_start, t_start + δ]` and
+force bound M (made applicable by `h_β_in_ball`), the velocity at
+every interior `s` is bounded by `h_vel_init + M · (s - t_start)`.
+
+**Math sketch.**  One application of
+`Convex.norm_image_sub_le_of_norm_hasDerivWithin_le` on `(β · ).2`
+over the convex window `Icc t_start (t_start + δ)`, with `y := s`
+universally quantified:
+  `‖(β s).2 - (β t_start).2‖ ≤ M · ‖s - t_start‖ = M · (s - t_start)`.
+Triangle with `‖(β t_start).2‖ = ‖w.2‖ ≤ h_vel_init` (using `hβ_init`)
+gives the conclusion.
+
+The universal quantification over `y` in the mean-value lemma is what
+makes this WINDOW-WIDE from ONE invocation — no per-s re-application. -/
+lemma vlasov_window_velocity_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (w : PhaseSpace d) (a : NNReal) (M : NNReal)
+    (t_start δ : ℝ) (hδ_pos : 0 < δ) (hδ_le_one : δ ≤ 1)
+    (h_vel_init : ℝ) (hβ_init_vel_bound : ‖w.2‖ ≤ h_vel_init)
+    (β : ℝ → PhaseSpace d) (hβ_init : β t_start = w)
+    (hβ_ode_Icc : ∀ t ∈ Set.Icc t_start (t_start + δ),
+      HasDerivWithinAt (fun s => (β s).2)
+        (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
+        (Set.Icc t_start (t_start + δ)) t)
+    (h_β_in_ball : ∀ s ∈ Set.Icc t_start (t_start + δ),
+      (β s).1 ∈ Metric.closedBall w.1 (3 * (a : ℝ) / 2))
+    (hbound : ∀ t ∈ Set.Icc t_start (t_start + 1),
+              ∀ x ∈ Metric.closedBall w.1 (3 * (a : ℝ) / 2),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M) :
+    ∀ s ∈ Set.Icc t_start (t_start + δ),
+      ‖(β s).2‖ ≤ h_vel_init + (M : ℝ) * (s - t_start) := by
+  intro s hs
+  -- Convexity of the window.
+  have h_convex : Convex ℝ (Set.Icc t_start (t_start + δ)) := convex_Icc _ _
+  have h_t_start_in : t_start ∈ Set.Icc t_start (t_start + δ) :=
+    ⟨le_refl _, by linarith⟩
+  -- Force bound on the window (via h_β_in_ball).
+  have h_force_window : ∀ u ∈ Set.Icc t_start (t_start + δ),
+      ‖-(convolveFunctionMeasure gradW (ρ u) (β u).1)‖ ≤ (M : ℝ) := by
+    intro u hu
+    rw [norm_neg]
+    have hu_time : u ∈ Set.Icc t_start (t_start + 1) :=
+      ⟨hu.1, le_trans hu.2 (by linarith [hδ_le_one])⟩
+    exact hbound u hu_time (β u).1 (h_β_in_ball u hu)
+  -- Velocity ODE on the window.
+  have h_vel_ode : ∀ u ∈ Set.Icc t_start (t_start + δ),
+      HasDerivWithinAt (fun v => (β v).2)
+        (-(convolveFunctionMeasure gradW (ρ u) (β u).1))
+        (Set.Icc t_start (t_start + δ)) u :=
+    fun u hu => hβ_ode_Icc u hu
+  -- Apply Convex.norm_image_sub_le with x := t_start, y := s.
+  have h_mv : ‖(β s).2 - (β t_start).2‖ ≤ (M : ℝ) * ‖s - t_start‖ :=
+    h_convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      h_vel_ode h_force_window h_t_start_in hs
+  have h_diff_nn : 0 ≤ s - t_start := by linarith [hs.1]
+  rw [Real.norm_of_nonneg h_diff_nn] at h_mv
+  -- β t_start = w, so (β t_start).2 = w.2.
+  have h_β_t_start_vel : (β t_start).2 = w.2 := by rw [hβ_init]
+  -- Triangle: ‖(β s).2‖ ≤ ‖(β s).2 - (β t_start).2‖ + ‖(β t_start).2‖.
+  have h_decomp : (β s).2 = ((β s).2 - (β t_start).2) + (β t_start).2 :=
+    (sub_add_cancel _ _).symm
+  have h_triangle : ‖(β s).2‖
+      ≤ ‖(β s).2 - (β t_start).2‖ + ‖(β t_start).2‖ := by
+    calc ‖(β s).2‖ = ‖((β s).2 - (β t_start).2) + (β t_start).2‖ := by rw [← h_decomp]
+      _ ≤ _ := norm_add_le _ _
+  -- Combine: ‖(β s).2‖ ≤ M·(s - t_start) + ‖w.2‖ ≤ h_vel_init + M·(s - t_start).
+  rw [h_β_t_start_vel] at h_triangle
+  -- h_mv has `(β t_start).2`; rewrite to `w.2` for compatibility.
+  rw [h_β_t_start_vel] at h_mv
+  linarith [h_mv, hβ_init_vel_bound]
+
+/-- **Helper 3: Window endpoint position bound.**
+
+For a trajectory β with position-component ODE
+`(β · ).1' = (β · ).2` on `[t_start, t_start + δ]` and a uniform
+velocity bound `V_bound` (typically Helper 2's output composed with
+a worst-case substitution), the position at `t_start + δ` is bounded
+relative to an explicit reference point `x_ref`:
+  `‖(β (t_start + δ)).1 - x_ref‖ ≤ h_pos_init + V_bound · δ`
+where `h_pos_init ≥ ‖w.1 - x_ref‖`.
+
+**Math sketch.**  One application of
+`Convex.norm_image_sub_le_of_norm_hasDerivWithin_le` on `(β · ).1`
+over the convex window with `x := t_start`, `y := t_start + δ`:
+  `‖(β (t_start + δ)).1 - (β t_start).1‖ ≤ V_bound · δ` (using
+  `hβ_init` for `(β t_start).1 = w.1`).
+Triangle with `‖w.1 - x_ref‖ ≤ h_pos_init` gives the conclusion.
+
+**Genericity.**  `x_ref : PhysSpace d` is an explicit parameter, NOT
+hardcoded to the N-window induction's `z₀.1`.  This makes the helper
+reusable for Stage C's chain rule (reference point: support of test
+function φ), well-posedness's Banach iteration (reference point:
+fixed-point candidate), etc. -/
+lemma vlasov_window_position_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (w : PhaseSpace d)
+    (t_start δ : ℝ) (hδ_pos : 0 < δ)
+    (V_bound : ℝ)
+    (x_ref : PhysSpace d)
+    (h_pos_init : ℝ) (hβ_init_pos_bound : ‖w.1 - x_ref‖ ≤ h_pos_init)
+    (β : ℝ → PhaseSpace d) (hβ_init : β t_start = w)
+    (hβ_ode_Icc : ∀ t ∈ Set.Icc t_start (t_start + δ),
+      HasDerivWithinAt (fun s => (β s).1) (β t).2
+        (Set.Icc t_start (t_start + δ)) t)
+    (h_window_vel : ∀ s ∈ Set.Icc t_start (t_start + δ),
+      ‖(β s).2‖ ≤ V_bound) :
+    ‖(β (t_start + δ)).1 - x_ref‖ ≤ h_pos_init + V_bound * δ := by
+  -- Convexity of the window.
+  have h_convex : Convex ℝ (Set.Icc t_start (t_start + δ)) := convex_Icc _ _
+  have h_t_start_in : t_start ∈ Set.Icc t_start (t_start + δ) :=
+    ⟨le_refl _, by linarith⟩
+  have h_t_end_in : t_start + δ ∈ Set.Icc t_start (t_start + δ) :=
+    ⟨by linarith, le_refl _⟩
+  -- Position ODE on the window.
+  have h_pos_ode : ∀ u ∈ Set.Icc t_start (t_start + δ),
+      HasDerivWithinAt (fun v => (β v).1) (β u).2
+        (Set.Icc t_start (t_start + δ)) u :=
+    fun u hu => hβ_ode_Icc u hu
+  -- Apply Convex.norm_image_sub_le with x := t_start, y := t_start + δ.
+  have h_mv : ‖(β (t_start + δ)).1 - (β t_start).1‖
+              ≤ V_bound * ‖(t_start + δ) - t_start‖ :=
+    h_convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      h_pos_ode h_window_vel h_t_start_in h_t_end_in
+  have h_δ_eq : (t_start + δ) - t_start = δ := by ring
+  rw [h_δ_eq, Real.norm_of_nonneg (le_of_lt hδ_pos)] at h_mv
+  -- β t_start = w, so (β t_start).1 = w.1.
+  have h_β_t_start_pos : (β t_start).1 = w.1 := by rw [hβ_init]
+  rw [h_β_t_start_pos] at h_mv
+  -- Triangle: ‖(β (t_start+δ)).1 - x_ref‖
+  --        ≤ ‖(β (t_start+δ)).1 - w.1‖ + ‖w.1 - x_ref‖
+  --        ≤ V_bound · δ + h_pos_init.
+  have h_decomp : (β (t_start + δ)).1 - x_ref
+                = ((β (t_start + δ)).1 - w.1) + (w.1 - x_ref) := by
+    rw [sub_add_sub_cancel]
+  have h_triangle : ‖(β (t_start + δ)).1 - x_ref‖
+      ≤ ‖(β (t_start + δ)).1 - w.1‖ + ‖w.1 - x_ref‖ := by
+    calc ‖(β (t_start + δ)).1 - x_ref‖
+        = ‖((β (t_start + δ)).1 - w.1) + (w.1 - x_ref)‖ := by rw [← h_decomp]
+      _ ≤ _ := norm_add_le _ _
+  linarith [h_mv, hβ_init_pos_bound]
+
 /-- **Global** characteristic-flow existence on `[0, T]`.
 
 This is the eventual N-window stitching target: iterate the
@@ -887,9 +1119,38 @@ theorem exists_vlasov_characteristicFlow
       --   - a follow-up Mathlib PR that exposes the confinement publicly.
       -- Closing this single helper discharges BOTH (s.7) substeps below.
       -- ============================================================
+      -- The two interval forms `Icc (k·δ) ((k+1)·δ)` and `Icc (k·δ) (k·δ + δ)`
+      -- are equal in ℝ but not syntactically; convert via `h_kδ_succ_eq`.
+      have hδ_global_le_one : δ_uniform ≤ 1 := min_le_left _ _
+      have hδ_global_le_ratio : δ_uniform ≤
+          (a : ℝ) / 2 / (((V_max + a + M : NNReal) : ℝ) + 1) := min_le_right _ _
+      -- Convert hβ_ode_Icc's interval from `Icc (k·δ) (k·δ + δ')` to
+      -- `Icc (k·δ) (k·δ + δ_uniform)` via hδ'_eq_uniform.  Targeted
+      -- rewrite — only the second δ occurrence (after the `+`).
+      have h_sec_eq : (k : ℝ) * δ_uniform + δ' = (k : ℝ) * δ_uniform + δ_uniform := by
+        rw [hδ'_eq_uniform]
+      have hβ_ode_Icc_unified : ∀ t ∈ Set.Icc ((k : ℝ) * δ_uniform)
+                                      ((k : ℝ) * δ_uniform + δ_uniform),
+          HasDerivWithinAt (fun s => (β s).1) (β t).2
+            (Set.Icc ((k : ℝ) * δ_uniform) ((k : ℝ) * δ_uniform + δ_uniform)) t ∧
+          HasDerivWithinAt (fun s => (β s).2)
+            (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
+            (Set.Icc ((k : ℝ) * δ_uniform) ((k : ℝ) * δ_uniform + δ_uniform)) t := by
+        rw [← h_sec_eq]; exact hβ_ode_Icc
+      have h_β_in_ball_native : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform)
+                                    ((k : ℝ) * δ_uniform + δ_uniform),
+          (β s).1 ∈ Metric.closedBall (γ_k ((k : ℝ) * δ_uniform)).1 (3 * (a : ℝ) / 2) :=
+        vlasov_window_confinement gradW L hL ρ h_int hρ_cont
+          (γ_k ((k : ℝ) * δ_uniform)) a ha M V_max h_vel_Vmax
+          ((k : ℝ) * δ_uniform) δ_uniform hδ_pos hδ_global_le_one hδ_global_le_ratio
+          hbound_local β hβ_init hβ_ode_Icc_unified
       have h_β_in_ball : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform) (((k + 1 : ℕ) : ℝ) * δ_uniform),
           (β s).1 ∈ Metric.closedBall (γ_k ((k : ℝ) * δ_uniform)).1 (3 * (a : ℝ) / 2) := by
-        sorry
+        intro s hs
+        apply h_β_in_ball_native s
+        rw [show ((k : ℝ) * δ_uniform + δ_uniform) = ((k + 1 : ℕ) : ℝ) * δ_uniform
+            from h_kδ_succ_eq]
+        exact hs
       refine ⟨γ_succ, h_γsucc_0, ?_, ?_, ?_⟩
       · -- (s.6) Within-derivative on Icc 0 ((k+1)·δ_uniform).
         -- Use .union of two pieces (Icc 0 (k·δ_uniform) + Icc (k·δ_uniform) ((k+1)·δ_uniform)),
@@ -1095,16 +1356,77 @@ theorem exists_vlasov_characteristicFlow
               linarith [h_vel_k]
           _ = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (((k + 1 : ℕ) : ℝ) * δ_uniform) := by
               rw [h_succ_kδ_expand]; ring
-      · -- (s.7) Position bound (LINEAR invariant) — deferred.
-        -- Structure parallels the velocity carry: mean-value on β.1 with
-        -- velocity bound V_max throughout the window.  The velocity bound
-        -- comes from a separate mean-value on β.2 applied at every t ∈ window
-        -- (force bound M, h_β_in_ball).  Then triangle with IH position
-        -- gives `a/2 + V_max·((k+1)·δ)`.
-        -- Code was drafted but blew past Lean's heartbeat limit due to the
-        -- accumulated complexity of the outer scaffold; refactor into a
-        -- separate helper lemma is the right next move.
-        sorry
+      · -- (s.7) Position bound (LINEAR invariant) via Helper 3.
+        -- Compose: Helper 2 gives window-wide velocity bound ≤ V_max;
+        -- Helper 3 then gives endpoint position bound `h_pos_init + V_max·δ`.
+        -- Triangle / arithmetic to match the (k+1)-step invariant.
+        -- The velocity-init bound for Helper 2: ‖γ_k(k·δ).2‖ (= ‖w.2‖)
+        -- bounded by tight IH `‖z₀.2‖ + a/2 + M·(k·δ)`.
+        have h_vel_init_w : ‖(γ_k ((k : ℝ) * δ_uniform)).2‖
+                          ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ_uniform) :=
+          h_vel_k
+        -- Helper 2 output: pointwise velocity bound on the window.
+        have h_vel_window_tight :=
+          vlasov_window_velocity_bound gradW ρ
+            (γ_k ((k : ℝ) * δ_uniform)) a M
+            ((k : ℝ) * δ_uniform) δ_uniform hδ_pos hδ_global_le_one
+            (‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ_uniform))
+            h_vel_init_w β hβ_init
+            (fun t ht => (hβ_ode_Icc_unified t ht).2)
+            h_β_in_ball_native hbound_local
+        -- Derive ‖(β s).2‖ ≤ V_max from the tight pointwise bound + (k+1)·δ ≤ T+1.
+        have h_V_max_real : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T + 1) := by
+          have h_V_def : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((T + 1).toNNReal : ℝ) := by
+            simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
+          rw [h_V_def, Real.coe_toNNReal _ (by linarith : (0 : ℝ) ≤ T + 1)]
+        have h_window_vel_Vmax : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform)
+                                  ((k : ℝ) * δ_uniform + δ_uniform),
+            ‖(β s).2‖ ≤ (V_max : ℝ) := by
+          intro s hs
+          have h_s_le_T1 : s ≤ T + 1 := by
+            calc s ≤ (k : ℝ) * δ_uniform + δ_uniform := hs.2
+              _ = ((k + 1 : ℕ) : ℝ) * δ_uniform := h_kδ_succ_eq
+              _ ≤ T + 1 := h_succ_kδ_le
+          have h_s_minus_nn : 0 ≤ s - (k : ℝ) * δ_uniform := by linarith [hs.1]
+          have h_M_nn : (0 : ℝ) ≤ (M : ℝ) := M.coe_nonneg
+          have h_vel_at_s := h_vel_window_tight s hs
+          -- h_vel_at_s : ‖(β s).2‖ ≤ ‖z₀.2‖ + a/2 + M·(k·δ) + M·(s - k·δ)
+          --             = ‖z₀.2‖ + a/2 + M·s ≤ ‖z₀.2‖ + a/2 + M·(T+1) = V_max.
+          rw [h_V_max_real]
+          have h_sum : (M : ℝ) * ((k : ℝ) * δ_uniform) + (M : ℝ) * (s - (k : ℝ) * δ_uniform)
+                     = (M : ℝ) * s := by ring
+          have h_M_s_le : (M : ℝ) * s ≤ (M : ℝ) * (T + 1) :=
+            mul_le_mul_of_nonneg_left h_s_le_T1 h_M_nn
+          linarith [h_vel_at_s]
+        -- Helper 3 application: position bound at endpoint.
+        have h_pos_init_at_w : ‖(γ_k ((k : ℝ) * δ_uniform)).1 - z₀.1‖
+                            ≤ (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ_uniform) := h_pos_k
+        have h_pos_carry :=
+          vlasov_window_position_bound gradW ρ
+            (γ_k ((k : ℝ) * δ_uniform)) ((k : ℝ) * δ_uniform) δ_uniform hδ_pos
+            (V_max : ℝ) z₀.1
+            ((a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ_uniform))
+            h_pos_init_at_w β hβ_init
+            (fun t ht => (hβ_ode_Icc_unified t ht).1)
+            h_window_vel_Vmax
+        -- h_pos_carry : ‖(β (k·δ + δ)).1 - z₀.1‖ ≤ a/2 + V_max·(k·δ) + V_max·δ.
+        -- Goal: ‖(γ_succ ((k+1)·δ)).1 - z₀.1‖ ≤ a/2 + V_max·((k+1)·δ).
+        -- Connect: γ_succ ((k+1)·δ) = β ((k+1)·δ) = β (k·δ + δ) (h_γsucc_right + h_kδ_succ_eq).
+        have h_kδ_lt_succ_kδ : (k : ℝ) * δ_uniform < ((k + 1 : ℕ) : ℝ) * δ_uniform := by
+          rw [← h_kδ_succ_eq]; linarith
+        have h_γsucc_eq_β : (γ_succ (((k + 1 : ℕ) : ℝ) * δ_uniform)).1
+                          = (β ((k : ℝ) * δ_uniform + δ_uniform)).1 := by
+          rw [h_γsucc_right _ h_kδ_lt_succ_kδ, h_kδ_succ_eq]
+        show ‖(γ_succ (((k + 1 : ℕ) : ℝ) * δ_uniform)).1 - z₀.1‖
+              ≤ (a : ℝ) / 2 + (V_max : ℝ) * (((k + 1 : ℕ) : ℝ) * δ_uniform)
+        rw [h_γsucc_eq_β]
+        have h_succ_expand : ((k + 1 : ℕ) : ℝ) * δ_uniform
+                           = (k : ℝ) * δ_uniform + δ_uniform := h_kδ_succ_eq.symm
+        rw [h_succ_expand]
+        calc ‖(β ((k : ℝ) * δ_uniform + δ_uniform)).1 - z₀.1‖
+            ≤ (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ_uniform) + (V_max : ℝ) * δ_uniform :=
+              h_pos_carry
+          _ = (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ_uniform + δ_uniform) := by ring
   -- ============================================================
   -- Bundle per-z curves into a joint flow via Classical.choose.
   -- For z outside the initial-condition ball, value is arbitrary (the
