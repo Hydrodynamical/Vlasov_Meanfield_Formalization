@@ -28,6 +28,21 @@ See `formalize/DESIGN.md` for the overall design choices.
 
 import Vlasov.Basic
 
+/-
+**Mathlib-upstream targeting note.**  The contents of this file —
+`IsCoupling`, `wasserstein1_coupling`, the easy direction of KR,
+`IsCoupling.map`, and `wasserstein1_pushforward_le_iInf` — are all
+domain-independent OT on pseudometric spaces.  When eventually
+contributed upstream, the natural home is
+`Mathlib/MeasureTheory/Wasserstein/Coupling.lean` under
+`namespace MeasureTheory`.  We keep `namespace Vlasov` for now so the
+project remains self-contained.  The hard direction of KR
+(Hahn-Banach + Prokhorov tightness for optimal coupling existence)
+is also Mathlib-worthy but a several-month project; we explicitly
+defer it and route the dobrushin proof around it via the easy
+direction + pushforward chain instead.
+-/
+
 namespace Vlasov
 
 open MeasureTheory ENNReal
@@ -114,6 +129,63 @@ theorem wasserstein1_le_wasserstein1_coupling
   -- (AEStronglyMeasurable for continuous on PseudoMetric without
   -- SecondCountableTopology; HasFiniteIntegral.intro / hasFiniteIntegral_def
   -- naming).  Full proof deferred to a follow-up session.
+  sorry
+
+/-! ## Pushforward of couplings
+
+The lemmas below are the "reusable pieces" needed for the dobrushin chain
+once the easy direction of KR is available.  They build the bridge from
+coupling-based bounds on initial measures (`μ`, `ν`) to coupling-based
+bounds on pushed-forward measures (`Φ_# μ`, `Ψ_# ν`), which is how the
+Dobrushin proof connects characteristic flows back to W₁ growth.
+-/
+
+/-- Pushforward of a coupling under a pair of measurable maps is a coupling
+of the pushed-forward marginals.  Pure measure theory; no metric structure
+needed.
+
+This is the *generic α/β shape* — the codomain types `α'`, `β'` can be
+arbitrary measurable spaces, not necessarily equal to the domain.  This
+matters because the characteristic-flow application uses
+`(Prod.map Φ Ψ)` with `Φ` and `Ψ` distinct maps; the diagonal
+case `α' = α, Φ = Ψ` is a specialization. -/
+lemma IsCoupling.map {α β α' β' : Type*}
+    [MeasurableSpace α] [MeasurableSpace β]
+    [MeasurableSpace α'] [MeasurableSpace β']
+    {π : Measure (α × β)} {μ : Measure α} {ν : Measure β}
+    (hπ : IsCoupling π μ ν)
+    (Φ : α → α') (Ψ : β → β')
+    (hΦ : Measurable Φ) (hΨ : Measurable Ψ) :
+    IsCoupling (Measure.map (Prod.map Φ Ψ) π) (Measure.map Φ μ) (Measure.map Ψ ν) := by
+  sorry
+
+/-- The dual-formula `wasserstein1` of the pushed-forward measures is bounded
+above by the infimum over couplings of the original measures of the
+pushed-forward cost.  This is the "iInf trick":
+
+  wasserstein1 (Φ_# μ) (Ψ_# ν)
+    ≤ wasserstein1_coupling (Φ_# μ) (Ψ_# ν)            (KR easy)
+    = ⨅ π' (coupling of Φ_# μ, Ψ_# ν), ∫⁻ edist dπ'
+    ≤ ⨅ π  (coupling of μ, ν), ∫⁻ edist (Φ z.1, Ψ z.2) dπ   (push couplings via IsCoupling.map)
+
+Used in the dobrushin proof: applied with `Φ`, `Ψ` the characteristic
+flows of `f`, `g` at time `t` (or the difference flow), this turns a
+W₁-bound on `(f_t, g_t)` into a coupling-cost bound on `(f_0, g_0)`
+that can be controlled by Gronwall. -/
+lemma wasserstein1_pushforward_le_iInf
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (Φ Ψ : α → α) (hΦ : Measurable Φ) (hΨ : Measurable Ψ)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν)
+    (hΦμ_prob : IsProbabilityMeasure (Measure.map Φ μ))
+    (hΨν_prob : IsProbabilityMeasure (Measure.map Ψ ν))
+    (hΦμ_fm : Integrable (fun y => dist y x₀) (Measure.map Φ μ))
+    (hΨν_fm : Integrable (fun y => dist y x₀) (Measure.map Ψ ν)) :
+    wasserstein1 (Measure.map Φ μ) (Measure.map Ψ ν) ≤
+      ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
+        ∫⁻ z, edist (Φ z.1) (Ψ z.2) ∂π := by
   sorry
 
 end Vlasov
