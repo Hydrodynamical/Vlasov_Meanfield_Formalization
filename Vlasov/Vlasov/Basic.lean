@@ -1292,7 +1292,14 @@ lemma W1ContOn_integralContAt
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
     Continuous (fun t => ∫ z, φ z ∂(f t)) := by
-  sorry
+  -- IsVlasovSolution specialised to this φ gives WeakEvolutionEq.
+  have h_weak : WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0) :=
+    hf φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
+  -- WeakEvolutionEq unfolds to `∀ t, HasDerivAt (fun s => ∫ φ ∂f s) _ t`.
+  -- HasDerivAt at every point implies Continuous via HasDerivAt.continuousAt.
+  rw [continuous_iff_continuousAt]
+  intro t
+  exact (h_weak t).continuousAt
 
 /-- Given lower semicontinuity, upper semicontinuity, and pointwise finiteness of
 t ↦ wasserstein1 (f t) (g t) on Set.Icc 0 T, conclude that
