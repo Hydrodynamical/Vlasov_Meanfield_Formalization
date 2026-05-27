@@ -157,7 +157,15 @@ lemma IsCoupling.map {α β α' β' : Type*}
     (Φ : α → α') (Ψ : β → β')
     (hΦ : Measurable Φ) (hΨ : Measurable Ψ) :
     IsCoupling (Measure.map (Prod.map Φ Ψ) π) (Measure.map Φ μ) (Measure.map Ψ ν) := by
-  sorry
+  refine ⟨?_, ?_⟩
+  · -- fst marginal: Measure.map Prod.fst (Measure.map (Prod.map Φ Ψ) π) = Measure.map Φ μ
+    have h_comp_fst : Prod.fst ∘ Prod.map Φ Ψ = Φ ∘ Prod.fst := by funext; rfl
+    rw [Measure.map_map measurable_fst (hΦ.prodMap hΨ), h_comp_fst,
+        ← Measure.map_map hΦ measurable_fst, hπ.1]
+  · -- snd marginal: Measure.map Prod.snd (Measure.map (Prod.map Φ Ψ) π) = Measure.map Ψ ν
+    have h_comp_snd : Prod.snd ∘ Prod.map Φ Ψ = Ψ ∘ Prod.snd := by funext; rfl
+    rw [Measure.map_map measurable_snd (hΦ.prodMap hΨ), h_comp_snd,
+        ← Measure.map_map hΨ measurable_snd, hπ.2]
 
 /-- The dual-formula `wasserstein1` of the pushed-forward measures is bounded
 above by the infimum over couplings of the original measures of the
@@ -174,11 +182,10 @@ W₁-bound on `(f_t, g_t)` into a coupling-cost bound on `(f_0, g_0)`
 that can be controlled by Gronwall. -/
 lemma wasserstein1_pushforward_le_iInf
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
     (Φ Ψ : α → α) (hΦ : Measurable Φ) (hΨ : Measurable Ψ)
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
-    (hμ_fm : Integrable (fun y => dist y x₀) μ)
-    (hν_fm : Integrable (fun y => dist y x₀) ν)
     (hΦμ_prob : IsProbabilityMeasure (Measure.map Φ μ))
     (hΨν_prob : IsProbabilityMeasure (Measure.map Ψ ν))
     (hΦμ_fm : Integrable (fun y => dist y x₀) (Measure.map Φ μ))
@@ -186,6 +193,29 @@ lemma wasserstein1_pushforward_le_iInf
     wasserstein1 (Measure.map Φ μ) (Measure.map Ψ ν) ≤
       ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
         ∫⁻ z, edist (Φ z.1) (Ψ z.2) ∂π := by
-  sorry
+  haveI := hΦμ_prob
+  haveI := hΨν_prob
+  -- Step 1: KR easy applied to (Φ_# μ, Ψ_# ν).
+  have h_kr := wasserstein1_le_wasserstein1_coupling
+    (Measure.map Φ μ) (Measure.map Ψ ν) x₀ hΦμ_fm hΨν_fm
+  refine le_trans h_kr ?_
+  -- Step 2: bound wasserstein1_coupling via a specific pushed-forward coupling.
+  refine le_iInf fun π => le_iInf fun hπ => ?_
+  -- The pushed-forward coupling IS a coupling of (Φ_# μ, Ψ_# ν) by IsCoupling.map.
+  have hπ_pushed : IsCoupling (Measure.map (Prod.map Φ Ψ) π)
+                              (Measure.map Φ μ) (Measure.map Ψ ν) :=
+    hπ.map Φ Ψ hΦ hΨ
+  -- So wasserstein1_coupling ≤ ∫⁻ edist d(pushed-forward π).
+  have h_inf : wasserstein1_coupling (Measure.map Φ μ) (Measure.map Ψ ν) ≤
+      ∫⁻ z, edist z.1 z.2 ∂(Measure.map (Prod.map Φ Ψ) π) := by
+    refine iInf_le_of_le (Measure.map (Prod.map Φ Ψ) π) ?_
+    exact iInf_le _ hπ_pushed
+  refine le_trans h_inf ?_
+  -- Step 3: pushforward of the lintegral.
+  -- ∫⁻ z, edist z.1 z.2 ∂(Φ × Ψ)_# π = ∫⁻ z, edist (Φ z.1) (Ψ z.2) ∂π
+  rw [lintegral_map (measurable_fst.edist measurable_snd) (hΦ.prodMap hΨ)]
+  -- After rw: ∫⁻ z, edist (Prod.map Φ Ψ z).1 (Prod.map Φ Ψ z).2 ∂π ≤ ∫⁻ z, edist (Φ z.1) (Ψ z.2) ∂π
+  -- (Prod.map Φ Ψ z).1 = Φ z.1 and .2 = Ψ z.2 by definition; the integrals are pointwise equal.
+  rfl
 
 end Vlasov
