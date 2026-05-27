@@ -1268,7 +1268,12 @@ lemma W1ContOn_lt_top
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
     ∀ t : ℝ, wasserstein1 (f t) (g t) < ⊤ := by
-  sorry
+  intro t
+  obtain ⟨hf_prob_t, hf_int_t⟩ := hf_prob t
+  obtain ⟨hg_prob_t, hg_int_t⟩ := hg_prob t
+  haveI : IsProbabilityMeasure (f t) := hf_prob_t
+  haveI : IsProbabilityMeasure (g t) := hg_prob_t
+  exact wasserstein1_lt_top_of_finite_moment (f t) (g t) hf_int_t hg_int_t
 
 /-- For a Vlasov solution f satisfying IsVlasovSolution gradW f and any smooth
 compactly-supported test function φ with ContDiff ℝ ⊤ φ and HasCompactSupport φ,
