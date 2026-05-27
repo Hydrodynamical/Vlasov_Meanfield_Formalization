@@ -1343,7 +1343,7 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     MathlibTODO_W1ContOn_uscNarrow gradW L hL f g hf hg hf_prob hg_prob T hT
   -- Step 5: assemble via W1ContOn_toRealContOn (close this sorry to finish)
   have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
-  sorry
+  exact h_goal
 
 -- Sub-axiom 2 of MathlibTODO_wassersteinGronwallCoupling:
 -- Right-derivative Gronwall bound for the Wasserstein-1 coupling.

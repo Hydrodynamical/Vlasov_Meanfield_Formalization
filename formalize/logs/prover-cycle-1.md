@@ -42,3 +42,32 @@ The target `W1ContOn_lt_top` needed to introduce `t`, destructure both `hf_prob 
 into their components, bring the `IsProbabilityMeasure` instances into scope via `haveI`,
 then apply the already-proved `wasserstein1_lt_top_of_finite_moment` with the integrability
 witnesses. The proof closed in one iteration.
+
+## 2026-05-26T04:XX:XX · residual-glue · MathlibTODO_wassersteinGronwallCoupling_W1ContOn
+**Result:** success
+**Iterations:** 1/8
+**Sorry count:** 7 → 6
+**Pre-flight (§3.5):** dropped 0 hint(s); validated 0 sketch lemma(s); rejected 0 in-loop citation(s)
+
+### Candidate table (Mode B)
+
+| Sorry (decl name) | Plan | Difficulty | Score | Source | Sketch? |
+|---|---|---|---|---|---|
+| `W1ContOn_toRealContOn` (line 1303) | MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json | 2 | 4 | plan-aware | N |
+| `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (line 1315, residual) | MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json | — | 4 | plan-aware-residual | Y |
+| `W1ContOn_integralContAt` (line 1283) | MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json | 3 | 3 | plan-aware | N |
+| `vlasovWellPosedness` (line 784) | (none) | — | 1 | rubric | N |
+
+**Tie-break:** plan-aware-residual ahead of plan-aware at score 4. Selected: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` residual glue at line 1315.
+
+### Notes on sketch fast path
+The plan's tactic_sketch was `exact W1ContOn_toRealContOn gradW L hL f g hf hg hf_prob hg_prob T hT`. However, inspecting the code at line 1315 revealed the proof body was already written as a scaffold with `have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc` followed by `sorry`. The fix was `exact h_goal`, which closed the goal in 1 iteration.
+
+### Final proof (on success)
+```lean
+  have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
+  exact h_goal
+```
+
+### Lookup trail
+- No external Mathlib lemmas were cited; the fix was purely structural.

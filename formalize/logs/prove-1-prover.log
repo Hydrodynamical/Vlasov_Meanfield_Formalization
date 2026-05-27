@@ -3,11 +3,11 @@
 [Agent] {"description":"Attempt to prove one sorry","subagent_type":"sorry-prover","prompt":"Attempt to discharge ONE sorry.\n\n  project root:    /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov\n  lean file:       /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean\n  verifier
 [system] task_started
 [text]
-[rate-limit] {"status":"allowed","resetsAt":1779867600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779852000,"isUsingOverage":false}
+[rate-limit] {"status":"allowed","resetsAt":1779867600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779852600,"isUsingOverage":false}
 [Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/report.md"}
 →      1→# Formalization coverage report
      2→
-     3→Generated: 2026-05-26T00:00:00Z
+     3→Generated: 2026-05-27T03:29:16Z
      4→Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
      5→Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
      6→
@@ -28,81 +28,50 @@ weakEvolutionEmpiricalMeasure.json
      7→    "kind": "theorem",
      8→    "tex_label": "",
      9→   
-[Bash] {"command":"cp /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.prover-bak","description":"Checkpoint the Lean file"}
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E 'declaration uses .sorry.'"}
+→ warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1233:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1248:8: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1283:6: declaration uses `sorry`
+warning: Vlasov/Basic.lean:1303:6: declaration uses `sorry`
+w
+[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1295,"limit":80}
+→   1295→  sorry
+  1296→
+  1297→/-- Given lower semicontinuity, upper semicontinuity, and pointwise finiteness of
+  1298→t ↦ wasserstein1 (f t) (g t) on Set.Icc 0 T, conclude that
+  1299→t ↦ (wasserstein1 (f t) (g t)).toReal is ContinuousOn Set.Icc 0 T.
+  1300→Proof: continuousOn_iff_lower_upperSemico
+[Bash] {"command":"cp /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.prover-bak","description":"Checkpoint the lean file"}
 → 
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":1240,"limit":60}
-→   1240→    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-  1241→    (T : ℝ) (hT : 0 ≤ T) :
-  1242→    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  1243→  sorry
-  1244→
-  1245→-- Mathlib gap B: W₁ is upper semicontinuous along Vlasov solution curves.
-  1246→-- Require
-[Bash] {"command":"grep -n \"HasFiniteFirstMoment\\|wasserstein1_lt_top_of_finite_moment\" /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean | head -30","description":"Find HasFiniteFirstMoment definition and wasserstein1_lt_top_of_finite_moment"}
-→ 773:def HasFiniteFirstMoment (μ : Measure (PhaseSpace d)) : Prop :=
-789:    (hf₀ : HasFiniteFirstMoment f₀) :
-794:      (∀ t, HasFiniteFirstMoment (f t)) ∧
-889:lemma wasserstein1_lt_top_of_finite_moment
-970:  (wasserstein1_lt_top_of_finite_moment μ ν hμ hν).ne
-993:      `HasFiniteFirstMoment` via a 
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":773,"limit":10}
-→    773→def HasFiniteFirstMoment (μ : Measure (PhaseSpace d)) : Prop :=
-   774→  IsProbabilityMeasure μ ∧ Integrable (fun z : PhaseSpace d => ‖z‖) μ
-   775→
-   776→/-- (tex: thm:vlasov-wp)
-   777→Existence and uniqueness for the Vlasov equation.
-   778→
-   779→Let f_0 ∈ 𝒫_1(ℝ^d × ℝ^d) be a probabilit
-[Read] {"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","offset":889,"limit":20}
-→    889→lemma wasserstein1_lt_top_of_finite_moment
-   890→    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
-   891→    [BorelSpace E]
-   892→    (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-   893→    (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrabl
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -20","description":"Baseline build"}
-→ Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
-warning: Vlasov/Basic.lean:1646:5: unused variable `hgradW`
+[Edit] {"replace_all":false,"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","old_string":"  have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc\n  sorry","new_string":"  have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc\n  exact h_goal
+→ The file /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean has been updated successfully.
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | tail -30","description":"Build after replacing sorry with exact h_goal"}
+[system] task_started
+→ Command running in background with ID: bgfoefkt0. Output is being written to: /private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/bgfoefkt0.output
+[Bash] {"command":"sleep 60 && cat /private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/bgfoefkt0.output","description":"Wait for build and read output"}
+→ Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Vlasov/Basic.lean:1536:5: unused variable `hgradW`
 
 Note: This linter can be disabled with `set_option linter.unusedVariables false`
-warning: Vlasov/Basic.lean:1647:18: unused variable `hL`
-
-Note: This linter
-[Edit] {"replace_all":false,"file_path":"/Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean","old_string":"    ∀ t : ℝ, wasserstein1 (f t) (g t) < ⊤ := by\n  sorry","new_string":"    ∀ t : ℝ, wasserstein1 (f t) (g t) < ⊤ := by\n  intro t\n  obtain ⟨hf_prob_t, hf_int_t⟩ := hf_prob t\n
-→ The file /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean has been updated successfully.
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"error:|warning:.*sorry\" | head -20","description":"Build and check for errors"}
-[system] task_started
-→ Command running in background with ID: b3fmbucld. Output is being written to: /private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/b3fmbucld.output
-[Bash] {"command":"cat /private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/b3fmbucld.output 2>/dev/null | tail -30; sleep 5; cat /private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/b3fmbucld.output 2>/dev/null | tail -30","description":"Wait for build o
+warning: Vlasov/Basic.lean:1648:0: automatically included section variable(s)
+[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E 'declaration uses .sorry.'","description":"Check remaining sorry warnings"}
+[rate-limit] {"status":"allowed","resetsAt":1779867600,"rateLimitType":"five_hour","overageStatus":"allowed","overageResetsAt":1779853200,"isUsingOverage":false}
 → warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
 warning: Vlasov/Basic.lean:1233:8: declaration uses `sorry`
 warning: Vlasov/Basic.lean:1248:8: declaration uses `sorry`
 warning: Vlasov/Basic.lean:1283:6: declaration uses `sorry`
 warning: Vlasov/Basic.lean:1303:6: declaration uses `sorry`
 w
-[Bash] {"command":"cd /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov && lake build 2>&1 | grep -E \"error:|successfully|sorry\" | head -20","description":"Final build check","timeout":180000}
-→ warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
-warning: Vlasov/Basic.lean:1233:8: declaration uses `sorry`
-warning: Vlasov/Basic.lean:1248:8: declaration uses `sorry`
-warning: Vlasov/Basic.lean:1283:6: declaration uses `sorry`
-warning: Vlasov/Basic.lean:1303:6: declaration uses `sorry`
-w
-[Bash] {"command":"cat > /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/prover-cycle-1.md << 'EOF'\n## 2026-05-26T00:00:00Z · (no tex label) · W1ContOn_lt_top\n\n**Result:** success\n**Iterations:** 1/8\n**Sorry count:** 8 → 7\n**Pre-flight (§3.5):** dropped 0 hint(s); validated 1 sketch l
+[Bash] {"command":"rm /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.prover-bak"}
 → 
-[Bash] {"command":"rm /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean.prover-bak","description":"Remove checkpoint file"}
+[Bash] {"command":"cat >> /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/logs/prover-cycle-1.md << 'EOF'\n\n## 2026-05-26T04:XX:XX · residual-glue · MathlibTODO_wassersteinGronwallCoupling_W1ContOn\n**Result:** success\n**Iterations:** 1/8\n**Sorry count:** 7 → 6\n**Pre-flight (§3.5):** dropped
 → 
-→ [{"type":"text","text":"```\nsorry-prover result: success\ntarget: (no tex label)  →  W1ContOn_lt_top\niterations used: 1/8\nsorry count: 8 → 7\nnotes: Unpacked HasFiniteFirstMoment, brought IsProbabilityMeasure instances into scope via haveI, applied wasserstein1_lt_top_of_finite_moment\nlog: /User
-[thinking] Let me read the output file.
-[Read] {"file_path":"/private/tmp/claude-501/-Users-jkmiller-Documents-Claude-Projects-Vlasov/tasks/b3fmbucld.output"}
-→      1→warning: Vlasov/Basic.lean:784:8: declaration uses `sorry`
-     2→warning: Vlasov/Basic.lean:1233:8: declaration uses `sorry`
-     3→warning: Vlasov/Basic.lean:1248:8: declaration uses `sorry`
-     4→warning: Vlasov/Basic.lean:1283:6: declaration uses `sorry`
-     5→warning: Vlasov/Basic.lean
-The prover succeeded. Summary:
+→ [{"type":"text","text":"```\nsorry-prover result: success\ntarget: residual-glue  →  MathlibTODO_wassersteinGronwallCoupling_W1ContOn (line 1315)\niterations used: 1/8\nsorry count: 7 → 6\nnotes: residual scaffold already had h_goal computed; replaced sorry with exact h_goal\nlog: /Users/jkmiller/Do
+[thinking] The sorry-prover already completed successfully. The background task notification is likely related to the build that happened during the prover's work. The result is already clear from the agent outp
+The sorry-prover succeeded:
 
-- **Target**: `W1ContOn_lt_top`
-- **Result**: sorry count **8 → 7** (1 iteration used)
-- **Build**: clean, 7 sorries remaining (all `sorry` warnings, no errors)
-
-The proof destructured `HasFiniteFirstMoment` hypotheses for both `f t` and `g t`, introduced the `IsProbabilityMeasure` instances via `haveI`, then applied the existing `wasserstein1_lt_top_of_finite_moment` lemma.
-[result] success duration=235574ms cost=$0.7102599999999999
+- **Target**: residual glue at line 1315 (`MathlibTODO_wassersteinGronwallCoupling_W1ContOn`)
+- **Fix**: The proof scaffold already had `h_goal` computed — replaced `sorry` with `exact h_goal`
+- **Result**: Sorry count reduced from **7 → 6** in 1 build iteration
+[result] success duration=270961ms cost=$0.50619075
