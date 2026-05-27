@@ -110,6 +110,7 @@ Two cases:
 This proof would need ~50-100 lines of measure-theoretic plumbing. -/
 theorem wasserstein1_le_wasserstein1_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
     (hμ_fm : Integrable (fun y => dist y x₀) μ)
@@ -118,18 +119,104 @@ theorem wasserstein1_le_wasserstein1_coupling
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   refine le_iInf fun π => le_iInf fun hπ => ?_
   -- Goal: ENNReal.ofReal (∫φ dμ - ∫φ dν) ≤ ∫⁻ z, edist z.1 z.2 ∂π
-  -- Case 1: the cost is ⊤ → trivially bound by ⊤.
   by_cases h_top : ∫⁻ z, edist z.1 z.2 ∂π = ⊤
   · rw [h_top]; exact le_top
-  -- Case 2: finite cost. Substantive proof.  The skeleton below maps each
-  -- stage to a Mathlib API call but the integrability/measurability threading
-  -- requires careful attention to instance synthesis and lemma-name churn.
-  -- Initial draft attempted Stages 1+2 (π is probability measure; dist is
-  -- integrable from h_top); both ran into Mathlib-API friction
-  -- (AEStronglyMeasurable for continuous on PseudoMetric without
-  -- SecondCountableTopology; HasFiniteIntegral.intro / hasFiniteIntegral_def
-  -- naming).  Full proof deferred to a follow-up session.
-  sorry
+  push_neg at h_top
+  -- Step 1: π inherits IsProbabilityMeasure from its first marginal μ.
+  haveI hπ_prob : IsProbabilityMeasure π := by
+    refine ⟨?_⟩
+    have h_eq : π Set.univ = μ Set.univ := by
+      rw [← hπ.1, Measure.map_apply measurable_fst MeasurableSet.univ,
+          Set.preimage_univ]
+    rw [h_eq, measure_univ]
+  -- Step 2: `dist z.1 z.2` is Integrable wrt π (from h_top, via edist = ofReal dist).
+  have h_dist_meas : AEStronglyMeasurable (fun z : α × α => dist z.1 z.2) π :=
+    (measurable_fst.dist measurable_snd).aestronglyMeasurable
+  have h_enorm_eq : ∀ z : α × α, ‖dist z.1 z.2‖ₑ = edist z.1 z.2 := fun z => by
+    rw [Real.enorm_eq_ofReal_abs, abs_of_nonneg dist_nonneg, edist_dist]
+  have h_dist_int : Integrable (fun z : α × α => dist z.1 z.2) π := by
+    refine ⟨h_dist_meas, ?_⟩
+    rw [hasFiniteIntegral_iff_enorm]
+    simp_rw [h_enorm_eq]
+    exact h_top.lt_top
+  -- Step 3: 1-Lipschitz φ is integrable wrt μ and wrt ν, via |φ y| ≤ |φ x₀| + dist y x₀
+  -- and the finite-first-moment hypothesis on each marginal.
+  have hφ_cont : Continuous φ := hφ.continuous
+  have hφ_meas_μ : AEStronglyMeasurable φ μ := hφ_cont.aestronglyMeasurable
+  have hφ_meas_ν : AEStronglyMeasurable φ ν := hφ_cont.aestronglyMeasurable
+  have h_pt_bound : ∀ y, |φ y| ≤ |φ x₀| + dist y x₀ := fun y => by
+    calc |φ y|
+        = |(φ y - φ x₀) + φ x₀|             := by ring_nf
+      _ ≤ |φ y - φ x₀| + |φ x₀|              := abs_add_le _ _
+      _ ≤ dist y x₀ + |φ x₀|                 := by
+            have := hφ.dist_le_mul y x₀
+            rw [Real.dist_eq, NNReal.coe_one, one_mul] at this
+            linarith
+      _ = |φ x₀| + dist y x₀                 := by ring
+  have h_dom_μ : Integrable (fun y => |φ x₀| + dist y x₀) μ :=
+    (integrable_const _).add hμ_fm
+  have h_dom_ν : Integrable (fun y => |φ x₀| + dist y x₀) ν :=
+    (integrable_const _).add hν_fm
+  have hφ_int_μ : Integrable φ μ :=
+    h_dom_μ.mono hφ_meas_μ (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) dist_nonneg)]
+      exact h_pt_bound y)
+  have hφ_int_ν : Integrable φ ν :=
+    h_dom_ν.mono hφ_meas_ν (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) dist_nonneg)]
+      exact h_pt_bound y)
+  -- Step 4: φ ∘ Prod.fst integrable wrt π (since fst-marginal = μ).
+  have hφ_fst_meas : AEStronglyMeasurable (fun z : α × α => φ z.1) π :=
+    (hφ_cont.comp continuous_fst).aestronglyMeasurable
+  have hφ_snd_meas : AEStronglyMeasurable (fun z : α × α => φ z.2) π :=
+    (hφ_cont.comp continuous_snd).aestronglyMeasurable
+  have h_diff_bound : ∀ z : α × α, |φ z.1 - φ z.2| ≤ dist z.1 z.2 := fun z => by
+    have := hφ.dist_le_mul z.1 z.2
+    rwa [Real.dist_eq, NNReal.coe_one, one_mul] at this
+  -- φ z.1 − φ z.2 is integrable wrt π (bounded by integrable dist).
+  have h_diff_int : Integrable (fun z : α × α => φ z.1 - φ z.2) π :=
+    h_dist_int.mono (hφ_fst_meas.sub hφ_snd_meas) (Filter.Eventually.of_forall fun z => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg dist_nonneg]
+      exact h_diff_bound z)
+  -- Step 5: change of variables via marginals.
+  have hφ_meas_pf : AEStronglyMeasurable φ (Measure.map Prod.fst π) := by
+    rw [hπ.1]; exact hφ_meas_μ
+  have hφ_meas_ps : AEStronglyMeasurable φ (Measure.map Prod.snd π) := by
+    rw [hπ.2]; exact hφ_meas_ν
+  have h_cov_μ : ∫ y, φ y ∂μ = ∫ z, φ z.1 ∂π := by
+    conv_lhs => rw [← hπ.1]
+    exact integral_map measurable_fst.aemeasurable hφ_meas_pf
+  have h_cov_ν : ∫ y, φ y ∂ν = ∫ z, φ z.2 ∂π := by
+    conv_lhs => rw [← hπ.2]
+    exact integral_map measurable_snd.aemeasurable hφ_meas_ps
+  -- ∫(φ z.1) dπ and ∫(φ z.2) dπ are individually integrable.
+  have hφ_fst_int : Integrable (fun z : α × α => φ z.1) π := by
+    have h := hφ_int_μ
+    rw [← hπ.1] at h
+    exact (integrable_map_measure hφ_meas_pf measurable_fst.aemeasurable).mp h
+  have hφ_snd_int : Integrable (fun z : α × α => φ z.2) π := by
+    have h := hφ_int_ν
+    rw [← hπ.2] at h
+    exact (integrable_map_measure hφ_meas_ps measurable_snd.aemeasurable).mp h
+  -- Step 6: ∫φ dμ − ∫φ dν = ∫(φ z.1 − φ z.2) dπ
+  rw [h_cov_μ, h_cov_ν, ← integral_sub hφ_fst_int hφ_snd_int]
+  -- Step 7: bound the integrand by dist (using 1-Lip), then integrate.
+  have h_real_bound : ∫ z, (φ z.1 - φ z.2) ∂π ≤ ∫ z, dist z.1 z.2 ∂π := by
+    apply integral_mono_ae h_diff_int h_dist_int
+    exact Filter.Eventually.of_forall fun z => (le_abs_self _).trans (h_diff_bound z)
+  -- Step 8: ofReal(∫(φ z.1 − φ z.2) dπ) ≤ ofReal(∫ dist dπ) = ∫⁻ edist dπ.
+  refine (ENNReal.ofReal_le_ofReal h_real_bound).trans ?_
+  -- ofReal(∫ dist dπ) = ∫⁻ ofReal(dist) dπ = ∫⁻ edist dπ
+  rw [ofReal_integral_eq_lintegral_ofReal h_dist_int
+        (Filter.Eventually.of_forall fun _ => dist_nonneg)]
+  -- ∫⁻ ofReal(dist z.1 z.2) ∂π ≤ ∫⁻ edist z.1 z.2 ∂π  (equal pointwise via edist_dist)
+  apply le_of_eq
+  apply lintegral_congr
+  intro z
+  exact (edist_dist z.1 z.2).symm
 
 /-! ## Pushforward of couplings
 
