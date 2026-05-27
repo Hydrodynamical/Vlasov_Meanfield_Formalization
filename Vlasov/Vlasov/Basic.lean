@@ -1224,10 +1224,89 @@ theorem MathlibTODO_convolveLipschitzEstimate
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
 
--- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling:
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json`. -/
+
+-- Mathlib gap A: W₁ is lower semicontinuous under narrow convergence of measure curves.
+-- Requires KR duality for non-compactly-supported Lipschitz test functions;
+-- not available in Mathlib's stable OT/measure-valued-ODE API.
+theorem MathlibTODO_W1ContOn_lscNarrow
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (T : ℝ) (hT : 0 ≤ T) :
+    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
+  sorry
+
+-- Mathlib gap B: W₁ is upper semicontinuous along Vlasov solution curves.
+-- Requires characteristic flow coupling argument and W₁ triangle inequality under pushforward;
+-- neither is in Mathlib's stable API for measure-valued ODEs.
+theorem MathlibTODO_W1ContOn_uscNarrow
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (T : ℝ) (hT : 0 ≤ T) :
+    UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
+  sorry
+
+/-- For Vlasov solutions f, g with HasFiniteFirstMoment at each time t, the
+Wasserstein-1 distance wasserstein1 (f t) (g t) is strictly less than ⊤ (i.e. finite)
+for every t. Proof: unfold HasFiniteFirstMoment to extract IsProbabilityMeasure and
+Integrable (norm) witnesses, then apply wasserstein1_lt_top_of_finite_moment. -/
+lemma W1ContOn_lt_top
+    {d : ℕ} [NeZero d]
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+    ∀ t : ℝ, wasserstein1 (f t) (g t) < ⊤ := by
+  sorry
+
+/-- For a Vlasov solution f satisfying IsVlasovSolution gradW f and any smooth
+compactly-supported test function φ with ContDiff ℝ ⊤ φ and HasCompactSupport φ,
+the map t ↦ ∫ z, φ z ∂(f t) is continuous on ℝ. Proof: IsVlasovSolution provides
+HasDerivAt (fun s => ∫ φ ∂(f s)) (derivative value) t at every t via WeakEvolutionEq;
+HasDerivAt.continuousAt then gives ContinuousAt, and assembling over all t gives Continuous. -/
+lemma W1ContOn_integralContAt
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_compact : HasCompactSupport φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
+    Continuous (fun t => ∫ z, φ z ∂(f t)) := by
+  sorry
+
+/-- Given lower semicontinuity, upper semicontinuity, and pointwise finiteness of
+t ↦ wasserstein1 (f t) (g t) on Set.Icc 0 T, conclude that
+t ↦ (wasserstein1 (f t) (g t)).toReal is ContinuousOn Set.Icc 0 T.
+Proof: continuousOn_iff_lower_upperSemicontinuousOn gives ContinuousOn for the ENNReal map;
+then compose with ENNReal.continuousOn_toReal (which is continuous on {a | a ≠ ⊤}) using
+ContinuousOn.comp, with the range-subset condition provided by h_lt_top. -/
+lemma W1ContOn_toRealContOn
+    {d : ℕ} [NeZero d]
+    (f g : ℝ → Measure (PhaseSpace d))
+    (T : ℝ) (hT : 0 ≤ T)
+    (h_lt_top : ∀ t : ℝ, wasserstein1 (f t) (g t) < ⊤)
+    (h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T))
+    (h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T)) :
+    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
+  sorry
+
+-- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling (decomposed above):
 -- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
--- Requires: Wasserstein distance continuity under narrowly-continuous measure flows
--- (not in Mathlib's stable API for measure-valued ODEs on PhaseSpace).
 theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1239,6 +1318,26 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
     ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
+  -- Step 1: pointwise finiteness from HasFiniteFirstMoment
+  have h_finite : ∀ t, wasserstein1 (f t) (g t) < ⊤ :=
+    W1ContOn_lt_top f g hf_prob hg_prob
+  -- Step 2: narrow continuity of integral-against-test-function for f and g
+  -- (W1ContOn_integralContAt; feeds into the LSC argument below)
+  have h_int_cont_f : ∀ (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ ⊤ φ)
+      (hc : HasCompactSupport φ) (gXφ gVφ : PhaseSpace d → PhysSpace d)
+      (hgXφ : ∀ z, gXφ z = gradient (fun x => φ (x, z.2)) z.1)
+      (hgVφ : ∀ z, gVφ z = gradient (fun v => φ (z.1, v)) z.2),
+      Continuous (fun t => ∫ z, φ z ∂(f t)) :=
+    fun φ hφ hc gXφ gVφ hgXφ hgVφ =>
+      W1ContOn_integralContAt gradW f hf φ hφ hc gXφ gVφ hgXφ hgVφ
+  -- Step 3: W₁ is LSC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_lscNarrow)
+  have h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
+    MathlibTODO_W1ContOn_lscNarrow gradW f g hf hg hf_prob hg_prob T hT
+  -- Step 4: W₁ is USC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_uscNarrow)
+  have h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
+    MathlibTODO_W1ContOn_uscNarrow gradW L hL f g hf hg hf_prob hg_prob T hT
+  -- Step 5: assemble via W1ContOn_toRealContOn (close this sorry to finish)
+  have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
   sorry
 
 -- Sub-axiom 2 of MathlibTODO_wassersteinGronwallCoupling:

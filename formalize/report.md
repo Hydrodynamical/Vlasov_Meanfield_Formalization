@@ -7,220 +7,254 @@ Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.
 ## Build status
 
 - Result: success
-- Sorry warnings: 4
+- Sorry warnings: 8
 - Other warnings: 28
 - Errors: 0
 
-The 4 sorry warnings are at:
-- Line 784: `vlasovWellPosedness` (tex: thm:vlasov-wp)
-- Line 1073: `convolveLipschitz_inner_bound` (helper of MathlibTODO_convolveLipschitzEstimate)
-- Line 1140: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (sub-axiom)
-- Line 1159: `MathlibTODO_wassersteinGronwallCoupling_derivBound` (sub-axiom)
+Sorry-bearing declarations (from build output):
+- Line 784: `vlasovWellPosedness`
+- Line 1233: `MathlibTODO_W1ContOn_lscNarrow`
+- Line 1248: `MathlibTODO_W1ContOn_uscNarrow`
+- Line 1265: `W1ContOn_lt_top`
+- Line 1278: `W1ContOn_integralContAt`
+- Line 1298: `W1ContOn_toRealContOn`
+- Line 1310: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn`
+- Line 1349: `MathlibTODO_wassersteinGronwallCoupling_derivBound`
 
 ## Coverage
 
 | Tex label | Kind | Lean declaration | Status |
 |-----------|------|------------------|--------|
-| eq:HN | equation | `hamiltonianN` | present |
-| eq:newton | equation | `IsNewtonSolution` | present |
-| ass:W | assumption | `class AssW` | present |
-| def:empirical | definition | `empiricalMeasure`, `empiricalMeasureCurve`, `empiricalMeasure_isProbabilityMeasure` | present |
-| prop:weak | proposition | `weakEvolutionEmpiricalMeasure` | present |
-| eq:weak-eq | equation | `WeakEvolutionEq` | present |
-| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` | present |
-| eq:vlasov | equation | `IsVlasovSolution` | present |
-| thm:vlasov-wp | theorem | `vlasovWellPosedness` | present-with-sorry |
-| eq:char | equation | `IsCharacteristicFlow`, `IsCharacteristicFlowSelfConsistent`, `vlasovSolutionViaPushforward` | present |
-| thm:dobrushin | theorem | `dobrushin` | present |
-| eq:dobrushin | equation | `DobrushinStabilityEstimate` | present |
-| cor:mfl | corollary | `meanFieldLimit` | present |
+| eq:HN | equation | `hamiltonianN` (line 41) | present |
+| eq:newton | equation | `IsNewtonSolution` (line 60) | present |
+| ass:W | assumption | `class AssW` (line 80) | present |
+| def:empirical | definition | `empiricalMeasure` + `empiricalMeasureCurve` (lines 174, 197) | present |
+| prop:weak | proposition | `weakEvolutionEmpiricalMeasure` (line 557) | present |
+| eq:weak-eq | equation | `WeakEvolutionEq` (line 674) | present |
+| cor:empirical-vlasov | corollary | `empiricalMeasureSolvesVlasov` (line 698) | present |
+| eq:vlasov | equation | `IsVlasovSolution` (line 755) | present |
+| thm:vlasov-wp | theorem | `vlasovWellPosedness` (line 784) | present-with-sorry |
+| eq:char | equation | `IsCharacteristicFlow` + `IsCharacteristicFlowSelfConsistent` + `vlasovSolutionViaPushforward` (lines 822, 837, 846) | present |
+| thm:dobrushin | theorem | `dobrushin` (line 1585) | present-with-sorry |
+| eq:dobrushin | equation | `DobrushinStabilityEstimate` (line 1617) | present |
+| cor:mfl | corollary | `meanFieldLimit` (line 1643) | present |
 
-Status values: `present` (proved, no sorry), `present-with-sorry`, `present-stubbed`, `commented-out`, `missing`.
+**Summary: 13/13 outline items present. 2 items carry sorries (vlasovWellPosedness, dobrushin).**
+
+Status key:
+- `present`: proved without sorry (or is a definition/predicate requiring no proof)
+- `present-with-sorry`: Lean declaration exists and type-checks, but proof body contains `sorry` (directly or via chain of helper dependencies)
 
 Notes:
-- `thm:dobrushin` (`dobrushin`) itself closes via `dobrushin_package_exists` which
-  internally invokes `MathlibTODO_wassersteinGronwallCoupling`; the latter
-  terminates via two `sorry`-backed sub-axioms. The theorem declaration contains
-  no `sorry` at the top level; the sorry cascade is buried in the helper graph.
-  See the sorry inventory below.
-- `meanFieldLimit` is fully proved (no sorry): it relies on `DobrushinStabilityEstimate`
-  as a parameter rather than calling the `dobrushin` proof chain internally.
-- All 13 outline items have at least a named Lean declaration. No outline item is
-  `missing` or `commented-out`.
+- `eq:HN`, `eq:newton`, `def:empirical`, `eq:vlasov`, `eq:char`, `eq:dobrushin`: These are equations/definitions formalized as Lean `def` or `abbrev`; they carry no proof obligation beyond type-checking.
+- `ass:W` is a `class` (structure of hypotheses); its helper `gradient_zero_of_even` is fully proved.
+- `prop:weak` (`weakEvolutionEmpiricalMeasure`) has no direct sorry on line 557; its proof is fully assembled from the six helper lemmas in `formalize/plans/weakEvolutionEmpiricalMeasure.json`, all of which are proved (no sorry warnings on lines 226, 251, 305, 372, 412, 490).
+- `cor:empirical-vlasov` (`empiricalMeasureSolvesVlasov`) is fully proved (no sorry warning at line 698).
+- `cor:mfl` (`meanFieldLimit`) is fully proved (no sorry warning at line 1643).
+- `thm:dobrushin` (`dobrushin`) delegates to `dobrushin_package_exists` which in turn depends on `MathlibTODO_wassersteinGronwallCoupling`; sorry propagates through the chain.
+
+---
 
 ## Sorry inventory
 
-### `MathlibTODO_convolveLipschitzEstimate` (no tex-label, decomposed)
+### `vlasovWellPosedness` (tex: thm:vlasov-wp)
 
-Plan: `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_convolveLipschitzEstimate.json`
+**Not decomposed.** A single top-level `sorry` at line 800. This is a genuine
+Mathlib gap: existence-uniqueness for measure-valued Vlasov PDE requires a
+Picard-style fixed-point theorem for measure-valued ODEs in the Wasserstein
+metric, which is not in Mathlib's stable API.
 
-This parent has line -1 entries in the plan (helpers not yet placed in the file).
-The helpers `convolveLipschitz_inner_lipschitz`, `convolveLipschitz_norm_le_of_inner_forall`
-appear in the file (lines 1016 and 1091) as proved lemmas; they are not in the plan's
-helper list with positive line numbers. The one sorry-bearing helper that IS in the file is
-`convolveLipschitz_inner_bound` (line 1073). `convolveLipschitz_KR_le` (line 1048) is proved.
-
-The parent theorem `MathlibTODO_convolveLipschitzEstimate` (line 1117) is itself proved
-(delegates to `convolveLipschitz_norm_le_of_inner_forall` citing `convolveLipschitz_inner_bound`).
-The build's sorry warning at line 1073 is entirely within `convolveLipschitz_inner_bound`.
-
-| # | Name | Line | Difficulty | Score | Deps | Status |
-|---|------|------|------------|-------|------|--------|
-| 1 | convolveLipschitz_inner_lipschitz | 1016 | 3 | 3 | (none) | proved |
-| 2 | convolveLipschitz_KR_le | 1048 | 2 | 4 | (none) | proved |
-| 3 | convolveLipschitz_inner_bound | 1073 | 3 | 3 | inner_lipschitz, KR_le | sorry |
-| 4 | convolveLipschitz_norm_le_of_inner_forall | 1091 | 2 | 4 | (none) | proved |
-
-`Score = 6 − Difficulty`.
-
-Residual glue: line -1 (not placed in file); has `tactic_sketch` in plan.
-Parent `MathlibTODO_convolveLipschitzEstimate` (line 1117): proved (delegates to helpers).
-
----
-
-### `MathlibTODO_wassersteinGronwallCoupling` (no tex-label, decomposed)
-
-Plan: `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`
-
-Sub-axioms (genuine Mathlib gaps, blocked on OT infrastructure):
-- `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (line 1140): **sorry**
-- `MathlibTODO_wassersteinGronwallCoupling_derivBound` (line 1159): **sorry**
-
-| # | Name | Line | Difficulty | Score | Deps | Status |
-|---|------|------|------------|-------|------|--------|
-| 1 | wassersteinGronwallCoupling_gronwall_le | 1182 | 2 | 4 | (none) | proved |
-| 2 | wassersteinGronwallCoupling_real_bound | 1202 | 3 | 3 | gronwall_le (+ sub-axioms W1ContOn, derivBound) | proved (sorry-backed) |
-| 3 | wassersteinGronwallCoupling_ennreal_mul_comm | 1228 | 1 | 5 | (none) | proved |
-| 4 | wassersteinGronwallCoupling_ofReal_le | 1239 | 2 | 4 | real_bound, ennreal_mul_comm | proved (sorry-backed) |
-
-`Score = 6 − Difficulty`.
-
-Residual glue: line 1282 (parent `MathlibTODO_wassersteinGronwallCoupling` body); delegates to
-`wassersteinGronwallCoupling_ofReal_le`. Status: proved (no sorry at the parent's line).
-The sorry warnings at lines 1140 and 1159 are entirely inside the two sub-axioms; the helper
-chain (`real_bound` → `ofReal_le`) composes them successfully.
-
----
-
-### `weakEvolutionEmpiricalMeasure` (tex: prop:weak, decomposed)
-
-Plan: `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/weakEvolutionEmpiricalMeasure.json`
-
-| # | Name | Line | Difficulty | Score | Deps | Status |
-|---|------|------|------------|-------|------|--------|
-| 1 | empiricalMeasure_integral_eq | 226 | 1 | 5 | (none) | proved |
-| 2 | hasDerivAt_phi_along_trajectory | 251 | 1 | 5 | (none) | proved |
-| 3 | hasDerivAt_empiricalIntegral_sum | 305 | 3 | 3 | 1, 2 | proved |
-| 4 | convolveFunctionMeasure_empiricalSpatial_eq | 372 | 3 | 3 | (none) | proved |
-| 5 | diagonalCorrection_eq | 412 | 1 | 5 | 4 | proved |
-| 6 | diagonalCorrection_bound | 490 | 2 | 4 | (none) | proved |
-
-`Score = 6 − Difficulty`.
-
-Residual glue: line 619 (branch `HasDerivAt` first `?_` branch of parent `refine`);
-composes [hasDerivAt_empiricalIntegral_sum, diagonalCorrection_eq]; `tactic_sketch` present in plan.
-Status: proved (no sorry warning at line 619 or parent line 557).
-
-All 6 helpers and the residual glue are **proved**. `weakEvolutionEmpiricalMeasure` is clean.
+| Decl | Line | Note |
+|------|------|------|
+| `vlasovWellPosedness` | 784 (sorry at 800) | Entire proof body is `sorry` |
 
 ---
 
 ### `dobrushin` (tex: thm:dobrushin, decomposed)
 
-Plan: `/Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/plans/dobrushin.json`
+Plan: `formalize/plans/dobrushin.json`
 
-Note: the plan file records file path as `Vlasov/Basic.lean` (the pre-rename path);
-the current file is `Vlasov/Vlasov/Basic.lean`. Line numbers below are from the current file
-by inspection.
+`dobrushin` itself (line 1585) has no direct sorry — its body calls
+`dobrushin_package_exists` which in turn depends on
+`MathlibTODO_wassersteinGronwallCoupling`. The sorry chain passes through
+the `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` sub-axiom and
+`MathlibTODO_wassersteinGronwallCoupling_derivBound` sub-axiom, both of
+which are genuine Mathlib gaps (measure-valued ODE theory).
 
-Sub-axioms (genuine Mathlib gaps):
-- `MathlibTODO_convolveLipschitzEstimate` (line 1117): theorem proved, backed by `convolveLipschitz_inner_bound` (sorry)
-- `MathlibTODO_wassersteinGronwallCoupling` (line 1282): proved, backed by two sorry sub-axioms
+The dobrushin plan helpers at the level of `dobrushin.json`:
 
 | # | Name | Line | Difficulty | Score | Deps | Status |
-|---|------|------|------------|-------|------|--------|
-| 1 | dobrushin_C_choice | 1300 | 2 | 4 | (none) | proved |
-| 2 | convolveDiff_norm_le | 1310 | 4 | 2 | MathlibTODO_convolveLipschitzEstimate | proved (sorry-backed) |
-| 3 | wasserstein1_ofReal_exp_monotone | 1323 | 1 | 5 | (none) | proved |
-| 4 | dobrushin_ennreal_bound | 1335 | 4 | 2 | dobrushin_C_choice, convolveDiff_norm_le, MathlibTODO_wassersteinGronwallCoupling | proved (sorry-backed) |
-| 5 | dobrushin_package_exists | 1361 | 2 | 4 | dobrushin_C_choice, dobrushin_ennreal_bound | proved (sorry-backed) |
+|---|------|------|-----------|-------|------|--------|
+| 1 | `dobrushin_C_choice` | 1490 | 2 | 4 | (none) | proved |
+| 2 | `wasserstein1_ofReal_exp_monotone` | 1516 | 1 | 5 | (none) | proved |
+| 3 | `dobrushin_ennreal_bound` | 1528 | 4 | 2 | `dobrushin_C_choice`, `convolveDiff_norm_le` | sorry (via MathlibTODO chain) |
+| 4 | `dobrushin_package_exists` | 1554 | 2 | 4 | `dobrushin_C_choice`, `dobrushin_ennreal_bound` | sorry (via MathlibTODO chain) |
 
-`Score = 6 − Difficulty`.
+`Score = 6 - Difficulty`.
 
-Residual glue: line 1392 (parent `dobrushin` body); composes [dobrushin_package_exists].
-`tactic_sketch` present in plan. Status: proved (no sorry at line 1392).
-
-`dobrushin` itself is proved; the sorry cascade is isolated within two `MathlibTODO_*` placeholders.
+Residual glue: line 1603 (dobrushin body: `exact dobrushin_package_exists …`);
+composes [dobrushin_C_choice, dobrushin_ennreal_bound, dobrushin_package_exists].
+The residual is a one-liner that is already written and correct — it is not a
+sorry itself; the chain is blocked on the MathlibTODO sub-tree.
 
 ---
 
-### Non-decomposed sorries (flat table)
+### `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (decomposed)
 
-| Line | Enclosing declaration | Tex label | Notes |
-|------|-----------------------|-----------|-------|
-| 784 | `vlasovWellPosedness` | thm:vlasov-wp | Single top-level sorry; the existence-and-uniqueness theorem for Vlasov is a known Mathlib gap |
-| 1073 | `convolveLipschitz_inner_bound` | (none — helper of MathlibTODO_convolveLipschitzEstimate) | Key inner-product-versus-KR-dual estimate; see decomposed section above |
-| 1140 | `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` | (none — sub-axiom) | Narrow continuity of W₁ along Vlasov flows; requires Mathlib measure-ODE API |
-| 1159 | `MathlibTODO_wassersteinGronwallCoupling_derivBound` | (none — sub-axiom) | Differential inequality for W₁; requires characteristic flow coupling + pushforward contraction |
+Plan: `formalize/plans/MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json`
+
+This theorem decomposes into helpers in the W1ContOn sub-plan. The sorry
+warnings at lines 1233, 1248, 1265, 1278, 1298, 1310 belong to this sub-tree.
+
+| # | Name | Line | Difficulty | Score | Deps | Status |
+|---|------|------|-----------|-------|------|--------|
+| 1 | `MathlibTODO_W1ContOn_lscNarrow` | 1233 | — | — | (none; Mathlib gap) | sorry |
+| 2 | `MathlibTODO_W1ContOn_uscNarrow` | 1248 | — | — | (none; Mathlib gap) | sorry |
+| 3 | `W1ContOn_lt_top` | 1265 | 2 | 4 | (none) | sorry |
+| 4 | `W1ContOn_integralContAt` | 1278 | 3 | 3 | (none) | sorry |
+| 5 | `W1ContOn_toRealContOn` | 1298 | 2 | 4 | W1ContOn_lt_top, MathlibTODO_W1ContOn_lscNarrow, MathlibTODO_W1ContOn_uscNarrow | sorry |
+| 6 | `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` | 1310 | — | — | all above | sorry |
+
+`MathlibTODO_W1ContOn_lscNarrow` and `MathlibTODO_W1ContOn_uscNarrow` are
+genuine Mathlib gaps (KR duality for non-compact test functions; characteristic
+flow coupling for measure-valued ODEs). They block the entire W1ContOn sub-tree.
+
+`W1ContOn_lt_top` (line 1265) is independently tractable: it only needs
+`wasserstein1_lt_top_of_finite_moment` (already proved, line 889) applied
+under the `HasFiniteFirstMoment` hypothesis. Its sorry is a proof-assembly gap,
+not a Mathlib gap.
+
+`W1ContOn_integralContAt` (line 1278) is also independently tractable:
+`IsVlasovSolution` provides `HasDerivAt` for each integral, and `HasDerivAt`
+implies `ContinuousAt`, from which `Continuous` follows by pointwise assembly.
+This is a proof-assembly gap, not a Mathlib gap.
+
+`W1ContOn_toRealContOn` (line 1298) is blocked on the two Mathlib gaps
+(LSC + USC), so it cannot be closed until those are resolved.
+
+`MathlibTODO_wassersteinGronwallCoupling_derivBound` (line 1349) is a separate
+Mathlib gap: the right-derivative bound for the Wasserstein coupling requires
+the characteristic flow coupling argument and the W₁ triangle inequality under
+pushforward, neither of which is in Mathlib.
+
+---
+
+### `MathlibTODO_wassersteinGronwallCoupling` (decomposed)
+
+Plan: `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`
+
+The helpers in this plan that are relevant to the sorry chain:
+
+| # | Name | Line | Difficulty | Score | Deps | Status |
+|---|------|------|-----------|-------|------|--------|
+| 1 | `wassersteinGronwallCoupling_ennreal_mul_comm` | 1418 | 1 | 5 | (none) | proved |
+| 2 | `wassersteinGronwallCoupling_gronwall_le` | 1372 | 2 | 4 | (none) | proved |
+| 3 | `wassersteinGronwallCoupling_ofReal_le` | 1429 | 2 | 4 | `wassersteinGronwallCoupling_real_bound` | proved (wraps sub-axioms correctly) |
+| 4 | `wassersteinGronwallCoupling_real_bound` | 1392 | 3 | 3 | `wassersteinGronwallCoupling_gronwall_le`, sub-axioms | sorry (via sub-axioms) |
+| 5 | `MathlibTODO_wassersteinGronwallCoupling` | 1472 | — | — | all above | proved (delegates to `wassersteinGronwallCoupling_ofReal_le`) |
+
+Note: `MathlibTODO_wassersteinGronwallCoupling` at line 1472 has no sorry
+warning directly. The sorry chain runs through
+`wassersteinGronwallCoupling_real_bound` (line 1392) → sub-axioms at lines
+1310 and 1349.
+
+---
+
+### `MathlibTODO_convolveLipschitzEstimate` (decomposed)
+
+Plan: `formalize/plans/MathlibTODO_convolveLipschitzEstimate.json`
+
+All helpers are now proved (no sorry warnings on any of lines 1016, 1048,
+1073, 1179, 1205). The "MathlibTODO" name is historical; the theorem is
+fully proved via the four helper lemmas.
+
+| # | Name | Line | Difficulty | Score | Deps | Status |
+|---|------|------|-----------|-------|------|--------|
+| 1 | `convolveLipschitz_inner_lipschitz` | 1016 | 3 | 3 | (none) | proved |
+| 2 | `convolveLipschitz_KR_le` | 1048 | 2 | 4 | (none) | proved |
+| 3 | `convolveLipschitz_norm_le_of_inner_forall` | 1179 | 2 | 4 | (none) | proved |
+| 4 | `convolveLipschitz_inner_bound` | 1073 | 3 | 3 | inner_lipschitz, KR_le | proved |
+| 5 | `MathlibTODO_convolveLipschitzEstimate` | 1205 | — | — | inner_bound, norm_le | proved |
+
+---
+
+### Non-decomposed sorries — flat table
+
+| Declaration | Line | Tex label | Nature |
+|-------------|------|-----------|--------|
+| `vlasovWellPosedness` | 784 (sorry at 800) | thm:vlasov-wp | Genuine Mathlib gap: measure-valued Picard theorem |
+| `W1ContOn_lt_top` | 1265 | (helper for thm:dobrushin chain) | Proof-assembly gap (tractable) |
+| `W1ContOn_integralContAt` | 1278 | (helper for thm:dobrushin chain) | Proof-assembly gap (tractable) |
+| `MathlibTODO_W1ContOn_lscNarrow` | 1233 | (sub-axiom for thm:dobrushin) | Genuine Mathlib gap: KR duality, narrow topology |
+| `MathlibTODO_W1ContOn_uscNarrow` | 1248 | (sub-axiom for thm:dobrushin) | Genuine Mathlib gap: char. flow coupling |
+| `W1ContOn_toRealContOn` | 1298 | (helper for thm:dobrushin chain) | Blocked on Mathlib gaps (LSC + USC) |
+| `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` | 1310 | (sub-axiom for thm:dobrushin) | Blocked on sub-axioms |
+| `MathlibTODO_wassersteinGronwallCoupling_derivBound` | 1349 | (sub-axiom for thm:dobrushin) | Genuine Mathlib gap: deriv bound via char. flow |
+
+---
 
 ## Recommended next steps
 
-### Decomposed parent: `MathlibTODO_convolveLipschitzEstimate`
+The 8 sorries fall into two buckets:
 
-The only open helper is `convolveLipschitz_inner_bound` (difficulty 3, Score 3). All other helpers
-in this cluster are proved. Closing this one sorry would make the entire `MathlibTODO_convolveLipschitzEstimate`
-cascade sorry-free (it already delegates correctly to the helper).
+**Bucket A: Tractable proof-assembly gaps (no new Mathlib API needed)**
 
-1. **Discharge `convolveLipschitz_inner_bound` (line 1073, difficulty 3, Score 3; no deps).**
-   The goal is: for any `v : PhysSpace d` with `‖v‖ ≤ 1`,
-   `⟨(∇W∗ρ)(x) − (∇W∗σ)(x), v⟩ ≤ L * (wasserstein1 ρ σ).toReal`.
-   Strategy: unfold `convolveFunctionMeasure` to expose `∫ gradW(x−y) dρ` and `∫ gradW(x−y) dσ`;
-   commute `⟨·, v⟩` (a CLM) through each integral via `ContinuousLinearMap.integral_comp_comm`;
-   the integrand `y ↦ ⟨gradW(x−y), v⟩` is `LipschitzWith (L * ‖v‖₊)` by
-   `convolveLipschitz_inner_lipschitz` (already proved); since `‖v‖ ≤ 1` this is
-   `LipschitzWith L`-or-less, so rescale by `L⁻¹` to get a 1-Lipschitz function and apply
-   `convolveLipschitz_KR_le` (already proved, at line 1048).
-   Hints: `ContinuousLinearMap.integral_comp_comm`, `integral_sub`, `norm_integral_le_integral_norm`,
-   `real_inner_le_norm`, `convolveLipschitz_inner_lipschitz`, `convolveLipschitz_KR_le`.
+1. Discharge `W1ContOn_lt_top` (line 1265; difficulty 2, Score 4; no deps).
+   The sorry's only obligation is: for each `t`, extract
+   `IsProbabilityMeasure (f t)`, `IsProbabilityMeasure (g t)`,
+   `Integrable (‖·‖) (f t)`, `Integrable (‖·‖) (g t)` from
+   `HasFiniteFirstMoment`, then apply `wasserstein1_lt_top_of_finite_moment`
+   (proved at line 889). This is a ~10-line proof.
+   Hints: `HasFiniteFirstMoment` unfolds to `IsProbabilityMeasure ∧ Integrable (·.norm) _;`
+   `wasserstein1_lt_top_of_finite_moment`.
 
-### Decomposed parent: `MathlibTODO_wassersteinGronwallCoupling`
+2. Discharge `W1ContOn_integralContAt` (line 1278; difficulty 3, Score 3; no deps).
+   `IsVlasovSolution gradW f` expands (via `WeakEvolutionEq`) to: for every
+   smooth compactly-supported `φ`, at every `t`,
+   `HasDerivAt (fun s => ∫ φ ∂f s) _ t`. `HasDerivAt.continuousAt` converts
+   this to `ContinuousAt` at every `t`, and `continuous_iff_continuousAt.mpr`
+   assembles `Continuous`. The remaining friction is supplying `gradXφ`,
+   `gradVφ`, `hgradXφ`, `hgradVφ` from `ContDiff ℝ ⊤ φ`.
+   Hints: `HasDerivAt.continuousAt`, `continuous_iff_continuousAt`,
+   `ContDiff.hasFDerivAt`.
 
-The two open sorries (`W1ContOn` and `derivBound`) are classified as genuine Mathlib gaps:
-they require narrow continuity of Wasserstein-1 along measure-valued ODE flows, and the
-characteristic flow coupling argument + W₁ triangle inequality under pushforward. Neither is
-in Mathlib's stable API. These are the deepest unresolved blockers.
+**Bucket B: Genuine Mathlib gaps (blocked on OT infrastructure)**
 
-2. **Discharge `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (line 1140, difficulty 2, Score 4).**
-   States that `t ↦ (wasserstein1 (f t) (g t)).toReal` is `ContinuousOn [0, T]` for two Vlasov
-   solutions `f, g`. This is a consequence of narrow continuity of Vlasov solutions (itself a
-   `HasFiniteFirstMoment`-type corollary) and continuity of Wasserstein distance under narrow
-   convergence. Hints from the Gronwall plan: `le_gronwallBound_of_liminf_deriv_right_le`,
-   `gronwallBound_ε0`, `gronwallBound_x0`. Mathlib's `MeasureTheory.ProbabilityMeasure`
-   API and `NNReal.tendsto_coe_iff` are relevant entry points.
+3. `MathlibTODO_W1ContOn_lscNarrow` (line 1233): W₁ is LSC under narrow
+   convergence. Requires KR duality for non-compactly-supported 1-Lipschitz
+   test functions. Blocked on Mathlib's optimal-transport API for general
+   (non-compact) metric spaces. Not tractable without upstream Mathlib work.
 
-3. **Discharge `MathlibTODO_wassersteinGronwallCoupling_derivBound` (line 1159, difficulty 3, Score 3).**
-   States the liminf right-derivative bound: `C * W₁(f_s, g_s) < r ⟹ ∃ᶠ z ...` for the
-   Gronwall wrapper. This requires the characteristic flow coupling argument — pairing particles
-   of `f` and `g` via the same initial label — plus the `MathlibTODO_convolveLipschitzEstimate`
-   estimate (which will be fully proved once step 1 is closed). Hints: `LipschitzWith.dist_le_mul`,
-   `ENNReal.ofReal_le_ofReal`, `iSup_le`, `le_iSup`.
+4. `MathlibTODO_W1ContOn_uscNarrow` (line 1248): W₁ is USC along Vlasov
+   solution curves. Requires the characteristic flow coupling argument (pairing
+   particles of `f` and `g` via the same ODE flow) and the W₁ triangle
+   inequality under measure pushforward. Blocked on Mathlib's measure-valued
+   ODE theory and the pushforward-contraction lemma.
 
-### Non-decomposed sorry: `vlasovWellPosedness`
+5. `W1ContOn_toRealContOn` (line 1298): follows immediately once items 3 and 4
+   are resolved (it composes LSC + USC + finiteness into `ContinuousOn`).
+   Hints: `continuousOn_iff_lower_upperSemicontinuousOn`,
+   `ENNReal.continuousOn_toReal`, `ContinuousOn.comp`.
 
-4. **Discharge `vlasovWellPosedness` (line 784, single sorry, tex: thm:vlasov-wp).**
-   This is the existence-and-uniqueness theorem for the Vlasov equation. It requires a
-   fixed-point / Picard iteration for the characteristic mean-field ODE at the measure level,
-   which depends on compactness and narrowly-continuous measure-valued ODE theory — not yet
-   in Mathlib. The recommended approach is decomposition via sorry-decomposer: extract
-   (a) a fixed-point iteration helper, (b) uniqueness via Dobrushin stability (already proved
-   as `dobrushin`), and (c) a narrow-continuity assertion. The `dobrushin` chain can serve as
-   the uniqueness component. Consider filing a decomposition plan JSON for this theorem.
+6. `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (line 1310): follows
+   from items 1–5. Residual glue is a one-liner: `exact W1ContOn_toRealContOn …`.
 
-### Priority order summary
+7. `MathlibTODO_wassersteinGronwallCoupling_derivBound` (line 1349): the
+   right-derivative Gronwall bound for the W₁ coupling. Requires the
+   characteristic flow coupling argument and W₁ triangle inequality under
+   pushforward. Independent of items 3–6 but equally blocked on Mathlib gaps.
 
-| Priority | Target | Score | Rationale |
-|----------|--------|-------|-----------|
-| 1 | `convolveLipschitz_inner_bound` (line 1073) | 3 | Closes the entire `MathlibTODO_convolveLipschitzEstimate` cascade; no Mathlib gaps, pure functional-analysis tactics |
-| 2 | `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (line 1140) | 4 | Lower difficulty but requires ODE continuity API; unblocks `derivBound` |
-| 3 | `MathlibTODO_wassersteinGronwallCoupling_derivBound` (line 1159) | 3 | Deepest gap; benefits from step 1 being closed first |
-| 4 | `vlasovWellPosedness` (line 784) | — | Largest scope; recommend decomposition plan first |
+8. `vlasovWellPosedness` (line 784): entire well-posedness theorem for the
+   Vlasov PDE. Requires a Picard-style fixed-point theorem in the space of
+   probability measures with finite first moment, equipped with the W₁ metric.
+   This is the deepest gap; resolving it likely requires items 3–7 plus
+   significant additional Mathlib OT infrastructure.
+
+**Priority ordering** (tractable first, then by impact on the sorry count):
+
+1. `W1ContOn_lt_top` (Score 4, no deps, no Mathlib gaps, ~10 lines).
+2. `W1ContOn_integralContAt` (Score 3, no deps, no Mathlib gaps, ~20 lines).
+3. After 1 and 2, `W1ContOn_toRealContOn` becomes tractable once the
+   Mathlib gaps are supplied (items 3–4 above).
+4. All remaining sorries are blocked on Mathlib OT infrastructure and should
+   be treated as `MathlibTODO_*` stubs until that infrastructure is available.

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-26T19:51:04Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.MathlibTODO_wassersteinGronwallCoupling_W1ContOn",
+    "kind": "theorem",
+    "tex_label": "",
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 1231
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.W1ContOn_lt_top",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "wasserstein1_lt_top_of_finite_moment"
+      ],
+      "one_line_math": "For Vlasov solutions f, g with HasFiniteFirstMoment at each time t, the Wasserstein-1 distance wasserstein1 (f t) (g t) is strictly less than top (finite) at every t."
+    },
+    {
+      "name": "Vlasov.W1ContOn_integralContAt",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "HasDerivAt.continuousAt",
+        "ContinuousAt.continuousOn"
+      ],
+      "one_line_math": "For a Vlasov solution f with IsVlasovSolution gradW f, and any test function phi with ContDiff top and HasCompactSupport, the map t to integral phi d(f t) is continuous; this follows because IsVlasovSolution provides HasDerivAt for this integral, and HasDerivAt implies ContinuousAt."
+    },
+    {
+      "name": "Vlasov.W1ContOn_toRealContOn",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 2,
+      "deps": ["Vlasov.W1ContOn_lt_top", "MathlibTODO_W1ContOn_lscNarrow", "MathlibTODO_W1ContOn_uscNarrow"],
+      "mathlib_hints": [
+        "continuousOn_iff_lower_upperSemicontinuousOn",
+        "ENNReal.continuousOn_toReal",
+        "ContinuousOn.comp"
+      ],
+      "one_line_math": "Given LowerSemicontinuousOn and UpperSemicontinuousOn of t to wasserstein1 (f t) (g t) on [0, T], and finiteness from W1ContOn_lt_top, assemble ContinuousOn of t to (wasserstein1 (f t) (g t)).toReal by composing ENNReal.toReal (which is continuous on the finite ENNReal values)."
+    }
+  ],
+  "axioms": [
+    {
+      "name": "MathlibTODO_W1ContOn_lscNarrow",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "statement_summary": "t to wasserstein1 (f t) (g t) is LowerSemicontinuousOn [0, T] whenever f and g are narrowly continuous measure curves; follows from W1 being a sup of continuous functionals, but requires Mathlib KR duality for non-compactly-supported Lipschitz test functions.",
+      "tracked_at": "",
+      "one_line_math": "The W1 distance, as a sup over 1-Lipschitz test functions of integral differences, is lower semicontinuous under narrow convergence of the measure arguments."
+    },
+    {
+      "name": "MathlibTODO_W1ContOn_uscNarrow",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "statement_summary": "t to wasserstein1 (f t) (g t) is UpperSemicontinuousOn [0, T] for Vlasov solutions f, g with finite first moments; requires characteristic flow coupling argument and W1 triangle inequality under measure pushforward, not in Mathlib.",
+      "tracked_at": "",
+      "one_line_math": "The W1 distance is upper semicontinuous along Vlasov solution curves, proved via the characteristic flow coupling: pairing particles of f and g via their common ODE flow gives a coupling whose cost controls W1 from above."
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": -1,
+    "branch_label": "main body of MathlibTODO_wassersteinGronwallCoupling_W1ContOn",
+    "composition": ["W1ContOn_lt_top", "W1ContOn_toRealContOn", "MathlibTODO_W1ContOn_lscNarrow", "MathlibTODO_W1ContOn_uscNarrow"],
+    "strategy": "Invoke W1ContOn_toRealContOn which in turn uses the two MathlibTODO sub-axioms for LSC and USC plus the finiteness lemma W1ContOn_lt_top to conclude ContinuousOn of the toReal composition.",
+    "tactic_sketch": "exact W1ContOn_toRealContOn gradW L hL f g hf hg hf_prob hg_prob T hT"
+  }
+}
