@@ -102,6 +102,35 @@ wall-clock is no longer the gate, the next ceiling is the
 iteration cap. Pushing past it requires either (a) raising the
 cap, (b) smaller helpers via decomposer, or (c) hand-proof.
 
+### L6. Rate-limit exhaustion → silent CLI hang → empty logs
+
+**Failure mode**: under five-hour rate limit exhaustion (or auth
+issues), the `claude` CLI hangs silently producing 0 bytes of
+stream-json output. The perl-alarm SIGALRM eventually fires
+(good — agent is killed cleanly), but ~50 min of wall-clock is
+wasted while we wait for the alarm.
+
+**Empirical confirmation**: 2026-05-26 W1ContOn cycle 6. Three
+consecutive agents (pre-verify + prover + post-verify) each
+produced 0-byte logs and ran their full SIGALRM budgets
+(600s + 1800s + 600s = 50 min total). All three silent. The
+previous cycle's prover log had logged a `[rate-limit]` event
+indicating the five-hour window was already pressured.
+
+**Fix**: `formalize.sh delegate()` now spawns a silent-failure
+watchdog that checks the `.jsonl` log size after 120s. If the log
+is 0 bytes, the watchdog pkills the agent process. Bounds the
+worst-case wall-clock cost of a silent failure at ~2 min per call
+instead of the full SIGALRM budget.
+
+**Generalisation**: SIGALRM is a *backstop* — it catches runaway
+work eventually but doesn't distinguish "agent hung at startup"
+from "agent making slow progress." Output-flow observation is
+the better fast-signal: if a stream-json pipeline produces 0
+bytes for N seconds, the agent is definitely not making
+progress. Worth applying this watchdog pattern to any
+long-running stream-buffering CLI.
+
 ### L5. The hard rule must specify the grep TARGET, not just the verb
 
 **Failure mode**: even with "GREP BEFORE YOU CITE" hoisted to

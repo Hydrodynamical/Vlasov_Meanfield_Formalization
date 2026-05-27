@@ -221,6 +221,25 @@ delegate() {
   fi
   echo
   echo "--- invoking subagent: ${agent} (timeout ${seconds}s${effort:+, effort ${effort}}) ---"
+  # SILENT-FAILURE WATCHDOG: under rate-limit exhaustion or auth issues, the
+  # claude CLI can hang silently — producing 0 bytes of stream-json output for
+  # the full SIGALRM budget. Observed empirically in the 2026-05-26 W1ContOn
+  # cycle 6 run: 3 silent agents (pre-verify + prover + post-verify) burned
+  # 50 min of wall-clock with empty .jsonl logs. The perl-alarm watchdog
+  # eventually fires (good), but ~50 min of wall-clock is wasted while we wait.
+  # This watchdog kills the agent EARLY if no stream-json bytes flush within
+  # the grace period.  Truncate logs upfront so the size check is meaningful.
+  : > "${LOGS}/${log}.jsonl"
+  : > "${LOGS}/${log}"
+  local watchdog_grace=120
+  (
+    sleep "${watchdog_grace}"
+    if [ ! -s "${LOGS}/${log}.jsonl" ]; then
+      echo "--- watchdog: '${agent}' silent after ${watchdog_grace}s; killing (rate-limit / auth issue?) ---"
+      pkill -f "${agent}" 2>/dev/null || true
+    fi
+  ) &
+  local watchdog_pid=$!
   # The driver runs with `set -euo pipefail`, so a non-zero exit from the
   # pipe (e.g. SIGALRM=142 when the watchdog fires) would abort the function
   # before we could classify the exit and decide whether to continue.
@@ -293,6 +312,9 @@ ${prompt}" 2>&1 \
             .
           end' \
       | tee "${LOGS}/${log}" ; } || rc=$?
+  # Stop the silent-failure watchdog (may have already fired and exited).
+  kill "${watchdog_pid}" 2>/dev/null || true
+  wait "${watchdog_pid}" 2>/dev/null || true
   if [ "${rc}" -eq 142 ]; then
     echo "agent '${agent}' exceeded ${seconds}s wall-clock budget (SIGALRM) — pipeline continuing"
   elif [ "${rc}" -ne 0 ]; then
