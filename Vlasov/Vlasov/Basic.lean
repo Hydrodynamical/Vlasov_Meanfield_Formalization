@@ -1075,13 +1075,101 @@ lemma convolveLipschitz_inner_bound
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
+    [IsProbabilityMeasure ρ] [IsProbabilityMeasure σ]
     (x : PhysSpace d)
-    (hW : wasserstein1 ρ σ ≠ ⊤) :
+    (hW : wasserstein1 ρ σ ≠ ⊤)
+    (hρ_int : Integrable (fun y => gradW (x - y)) ρ)
+    (hσ_int : Integrable (fun y => gradW (x - y)) σ) :
     ∀ v : PhysSpace d, ‖v‖ ≤ 1 →
       @inner ℝ (PhysSpace d) _ (convolveFunctionMeasure gradW ρ x -
         convolveFunctionMeasure gradW σ x) v ≤
         (L : ℝ) * (wasserstein1 ρ σ).toReal := by
-  sorry
+  intro v hv
+  unfold convolveFunctionMeasure
+  -- Case 1: v = 0 — inner with 0 is 0, RHS ≥ 0.
+  by_cases hv_zero : v = 0
+  · subst hv_zero
+    rw [inner_zero_right]
+    exact mul_nonneg L.coe_nonneg ENNReal.toReal_nonneg
+  have hv_pos : 0 < ‖v‖ := norm_pos_iff.mpr hv_zero
+  -- Case 2: L = 0 — gradW is constant, and probability measures both have mass 1,
+  -- so the two convolution integrals are equal, the difference is 0, the inner is 0.
+  by_cases hL_zero : L = 0
+  · have hgW_const : ∀ y, gradW (x - y) = gradW x := fun y => by
+      have h := hL.dist_le_mul (x - y) x
+      rw [hL_zero, NNReal.coe_zero, zero_mul] at h
+      have h0 : dist (gradW (x - y)) (gradW x) = 0 := le_antisymm h dist_nonneg
+      exact dist_eq_zero.mp h0
+    have h_fun_eq : (fun y => gradW (x - y)) = (fun _ : PhysSpace d => gradW x) :=
+      funext hgW_const
+    have hF : ∫ y, gradW (x - y) ∂ρ = gradW x := by
+      rw [h_fun_eq, integral_const]; simp
+    have hG : ∫ y, gradW (x - y) ∂σ = gradW x := by
+      rw [h_fun_eq, integral_const]; simp
+    rw [hF, hG, sub_self, inner_zero_left]
+    rw [hL_zero, NNReal.coe_zero, zero_mul]
+  -- Case 3: L > 0 and v ≠ 0 — main KR rescaling argument.
+  have hL_pos : (0 : ℝ) < L := lt_of_le_of_ne L.coe_nonneg (fun h =>
+    hL_zero (NNReal.coe_eq_zero.mp h.symm))
+  have hc_pos : (0 : ℝ) < (L : ℝ) * ‖v‖ := mul_pos hL_pos hv_pos
+  -- Distribute inner across subtraction
+  rw [inner_sub_left]
+  -- Swap inner with integral on each side (via integral_inner + real_inner_comm)
+  have h_swap_ρ : @inner ℝ (PhysSpace d) _ (∫ y, gradW (x - y) ∂ρ) v =
+                  ∫ y, @inner ℝ (PhysSpace d) _ (gradW (x - y)) v ∂ρ := by
+    rw [real_inner_comm, ← integral_inner hρ_int v]
+    simp_rw [real_inner_comm v]
+  have h_swap_σ : @inner ℝ (PhysSpace d) _ (∫ y, gradW (x - y) ∂σ) v =
+                  ∫ y, @inner ℝ (PhysSpace d) _ (gradW (x - y)) v ∂σ := by
+    rw [real_inner_comm, ← integral_inner hσ_int v]
+    simp_rw [real_inner_comm v]
+  rw [h_swap_ρ, h_swap_σ]
+  -- Now goal: ∫ψ dρ − ∫ψ dσ ≤ L · W₁.toReal, with ψ(y) := ⟪gradW(x-y), v⟫_ℝ.
+  set ψ : PhysSpace d → ℝ := fun y => @inner ℝ (PhysSpace d) _ (gradW (x - y)) v
+    with hψ_def
+  have hψ_lip : LipschitzWith (L * ‖v‖₊) ψ :=
+    convolveLipschitz_inner_lipschitz gradW L hL x v
+  -- Rescale ψ by c := L · ‖v‖ to get 1-Lipschitz φ.
+  set c : ℝ := (L : ℝ) * ‖v‖ with hc_def
+  set φ : PhysSpace d → ℝ := fun y => ψ y / c with hφ_def
+  -- Coerce: ((L * ‖v‖₊ : ℝ≥0) : ℝ) = c
+  have h_coe : ((L * ‖v‖₊ : NNReal) : ℝ) = c := by
+    simp [hc_def, NNReal.coe_mul]
+  -- φ is 1-Lipschitz: bound dist (φ a) (φ b).
+  have hφ_lip : LipschitzWith 1 φ := by
+    refine LipschitzWith.of_dist_le_mul (fun a b => ?_)
+    rw [NNReal.coe_one, one_mul]
+    have hψ_d : dist (ψ a) (ψ b) ≤ c * dist a b := by
+      have := hψ_lip.dist_le_mul a b
+      rwa [h_coe] at this
+    -- dist (ψ a / c) (ψ b / c) = dist (ψ a) (ψ b) / c   (c > 0)
+    have h_dist_div : dist (φ a) (φ b) = dist (ψ a) (ψ b) / c := by
+      simp [hφ_def, Real.dist_eq, ← sub_div, abs_div, abs_of_pos hc_pos]
+    rw [h_dist_div, div_le_iff₀ hc_pos]
+    linarith
+  -- Apply KR easy direction to the rescaled φ.
+  have h_kr : ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ ≤ (wasserstein1 ρ σ).toReal :=
+    convolveLipschitz_KR_le ρ σ φ hφ_lip hW
+  -- ∫φ = ∫ψ / c  (Bochner integral commutes with scalar division)
+  have h_int_φ_ρ : ∫ y, φ y ∂ρ = (∫ y, ψ y ∂ρ) / c := by
+    simp_rw [hφ_def, div_eq_mul_inv]
+    rw [integral_mul_const]
+  have h_int_φ_σ : ∫ y, φ y ∂σ = (∫ y, ψ y ∂σ) / c := by
+    simp_rw [hφ_def, div_eq_mul_inv]
+    rw [integral_mul_const]
+  rw [h_int_φ_ρ, h_int_φ_σ, ← sub_div, div_le_iff₀ hc_pos] at h_kr
+  -- h_kr : ∫ψ dρ − ∫ψ dσ ≤ W₁.toReal * c
+  -- Goal:  ∫ψ dρ − ∫ψ dσ ≤ L * W₁.toReal
+  -- Bridge: c * W₁ = L * ‖v‖ * W₁ ≤ L * W₁  (since ‖v‖ ≤ 1, W₁ ≥ 0)
+  have hW_nonneg : 0 ≤ (wasserstein1 ρ σ).toReal := ENNReal.toReal_nonneg
+  have h_chain : (wasserstein1 ρ σ).toReal * c ≤ (L : ℝ) * (wasserstein1 ρ σ).toReal := by
+    rw [hc_def]
+    calc (wasserstein1 ρ σ).toReal * ((L : ℝ) * ‖v‖)
+        = (L : ℝ) * ((wasserstein1 ρ σ).toReal * ‖v‖) := by ring
+      _ ≤ (L : ℝ) * ((wasserstein1 ρ σ).toReal * 1) := by
+          gcongr
+      _ = (L : ℝ) * (wasserstein1 ρ σ).toReal := by ring
+  linarith
 
 /-- For `z : PhysSpace d` and `C : ℝ`, if every unit vector `v` (with `‖v‖ ≤ 1`) satisfies
 `@inner ℝ (PhysSpace d) _ z v ≤ C`, then `‖z‖ ≤ C`.
@@ -1119,8 +1207,11 @@ theorem MathlibTODO_convolveLipschitzEstimate
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
+    [IsProbabilityMeasure ρ] [IsProbabilityMeasure σ]
     (x : PhysSpace d)
-    (hW : wasserstein1 ρ σ ≠ ⊤) :
+    (hW : wasserstein1 ρ σ ≠ ⊤)
+    (hρ_int : Integrable (fun y => gradW (x - y)) ρ)
+    (hσ_int : Integrable (fun y => gradW (x - y)) σ) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal := by
   -- Compose: from convolveLipschitz_inner_bound (for all unit v, ⟨z, v⟩ ≤ M)
@@ -1128,7 +1219,7 @@ theorem MathlibTODO_convolveLipschitzEstimate
   exact convolveLipschitz_norm_le_of_inner_forall
     (convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x)
     ((L : ℝ) * (wasserstein1 ρ σ).toReal)
-    (convolveLipschitz_inner_bound gradW L hL ρ σ x hW)
+    (convolveLipschitz_inner_bound gradW L hL ρ σ x hW hρ_int hσ_int)
 
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
@@ -1311,11 +1402,14 @@ lemma convolveDiff_norm_le
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
+    [IsProbabilityMeasure ρ] [IsProbabilityMeasure σ]
     (x : PhysSpace d)
-    (hW : wasserstein1 ρ σ ≠ ⊤) :
+    (hW : wasserstein1 ρ σ ≠ ⊤)
+    (hρ_int : Integrable (fun y => gradW (x - y)) ρ)
+    (hσ_int : Integrable (fun y => gradW (x - y)) σ) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal :=
-  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x hW
+  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x hW hρ_int hσ_int
 
 /-- For C > 0 and 0 ≤ s ≤ t, we have
 ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
