@@ -225,4 +225,51 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
   -- Step 4: handle the explicit-formula derivative match.
   sorry
 
+/-! ## Integration smoke test (Stage D follow-up)
+
+A small theorem demonstrating that the three OT files compose: given
+two characteristic flows on the same initial probability measures
+with finite first moment, the Wasserstein-1 distance between the
+pushed-forward measures at time `t` is bounded by the infimum (over
+couplings of the *initial* measures) of the pushed-forward edist
+cost.
+
+This is **exactly the shape** the USC and derivBound closures in
+`Vlasov/Basic.lean` need: it turns a coupling at time 0 into a
+W₁-upper-bound at time t.  The Gronwall-on-the-joint-ODE step (which
+controls the cost growth) is the next piece — orthogonal to OT,
+sits in the dynamics layer.
+
+The theorem is a direct application of `wasserstein1_pushforward_le_iInf`
+from `Coupling.lean`; the integration test confirms the type chain
+composes correctly when the maps are characteristic flows. -/
+
+theorem wasserstein1_lagrangian_pushforward_bound
+    {d : ℕ} [NeZero d]
+    (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ g₀ : Measure (PhaseSpace d))
+    [IsProbabilityMeasure f₀] [IsProbabilityMeasure g₀]
+    (t : ℝ)
+    (h_meas_f : Measurable (fun z : PhaseSpace d => (charX_f t z, charV_f t z)))
+    (h_meas_g : Measurable (fun z : PhaseSpace d => (charX_g t z, charV_g t z)))
+    (h_fmpr_f : IsProbabilityMeasure
+                (Measure.map (fun z : PhaseSpace d => (charX_f t z, charV_f t z)) f₀))
+    (h_fmpr_g : IsProbabilityMeasure
+                (Measure.map (fun z : PhaseSpace d => (charX_g t z, charV_g t z)) g₀))
+    (x₀ : PhaseSpace d)
+    (h_fm_f : Integrable (fun y : PhaseSpace d => dist y x₀)
+              (Measure.map (fun z : PhaseSpace d => (charX_f t z, charV_f t z)) f₀))
+    (h_fm_g : Integrable (fun y : PhaseSpace d => dist y x₀)
+              (Measure.map (fun z : PhaseSpace d => (charX_g t z, charV_g t z)) g₀)) :
+    wasserstein1
+      (Measure.map (fun z : PhaseSpace d => (charX_f t z, charV_f t z)) f₀)
+      (Measure.map (fun z : PhaseSpace d => (charX_g t z, charV_g t z)) g₀) ≤
+      ⨅ (π : Measure (PhaseSpace d × PhaseSpace d)) (_ : IsCoupling π f₀ g₀),
+        ∫⁻ z, edist (charX_f t z.1, charV_f t z.1)
+                    (charX_g t z.2, charV_g t z.2) ∂π :=
+  wasserstein1_pushforward_le_iInf
+    (fun z => (charX_f t z, charV_f t z))
+    (fun z => (charX_g t z, charV_g t z))
+    h_meas_f h_meas_g f₀ g₀ x₀ h_fmpr_f h_fmpr_g h_fm_f h_fm_g
+
 end Vlasov
