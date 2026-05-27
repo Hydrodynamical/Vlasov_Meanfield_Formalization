@@ -1308,7 +1308,13 @@ lemma W1ContOn_toRealContOn
     (h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T))
     (h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T)) :
     ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
-  sorry
+  -- LSC + USC = ContinuousOn (ENNReal-valued)
+  have h_cont_enn : ContinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
+    continuousOn_iff_lower_upperSemicontinuousOn.mpr ⟨h_lsc, h_usc⟩
+  -- ENNReal.toReal is ContinuousOn {a | a ≠ ⊤}; range of wasserstein1 stays there.
+  have h_maps_to : Set.MapsTo (fun t => wasserstein1 (f t) (g t))
+      (Set.Icc 0 T) {a : ENNReal | a ≠ ⊤} := fun t _ => (h_lt_top t).ne
+  exact ENNReal.continuousOn_toReal.comp h_cont_enn h_maps_to
 
 -- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling (decomposed above):
 -- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
