@@ -45,18 +45,22 @@ def IsCoupling {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
 
 /-! ## Coupling-based Wasserstein-1 distance -/
 
-/-- The coupling-based Wasserstein-1 distance: infimum of `∫ dist(x,y) dπ(x,y)`
+/-- The coupling-based Wasserstein-1 distance: infimum of `∫⁻ edist(x,y) dπ(x,y)`
 over all couplings `π` of `(μ, ν)`.  This is the Monge-Kantorovich definition,
 to be compared with the dual definition `wasserstein1` (in `Vlasov/Basic.lean`)
 via Kantorovich-Rubinstein duality.
 
-Returns `⊤` if no coupling exists (a degenerate case for non-probability or
-incompatible-mass measures). -/
+We use the Lebesgue lower integral `∫⁻` of `edist` (extended distance, valued
+in `ℝ≥0∞`) rather than the Bochner integral `∫` of `dist` (valued in `ℝ`).
+This is the standard OT convention: a coupling π whose cost is non-integrable
+contributes `⊤` to the infimum (rather than the Bochner junk-value 0), so the
+infimum correctly identifies the OT-optimal coupling.  Returns `⊤` if no
+coupling exists. -/
 noncomputable def wasserstein1_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) : ENNReal :=
   ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
-    ENNReal.ofReal (∫ z, dist z.1 z.2 ∂π)
+    ∫⁻ z, edist z.1 z.2 ∂π
 
 /-! ## Kantorovich-Rubinstein: easy direction
 
@@ -74,12 +78,32 @@ it is deferred to a follow-up file.
 dual-formula `wasserstein1 μ ν` is bounded above by the coupling-formula
 `wasserstein1_coupling μ ν`.
 
-(The finite-moment / probability hypotheses ensure all the integrals are
-well-defined and the integral_map change-of-variables fires cleanly.) -/
+**Proof strategy** (full proof TODO).  By `iSup_le` and `le_iInf`, it suffices
+to show that for every 1-Lipschitz `φ` and every coupling `π` of (μ, ν):
+`ENNReal.ofReal (∫φ dμ − ∫φ dν) ≤ ∫⁻ edist z.1 z.2 ∂π`.
+
+Two cases:
+  - `∫⁻ edist z.1 z.2 ∂π = ⊤`: trivially `_ ≤ ⊤`.  This case is handled.
+  - `∫⁻ edist z.1 z.2 ∂π < ⊤`: requires the substantive work:
+      (a) `edist`-integrability of `π` implies `dist`-integrability;
+      (b) by `Measure.IsCoupling` marginals and `integral_map`,
+          `∫φ dμ = ∫(φ ∘ Prod.fst) dπ`, similarly for `ν`;
+      (c) `∫φ dμ - ∫φ dν = ∫(φ(z.1) - φ(z.2)) dπ`;
+      (d) `|φ(z.1) - φ(z.2)| ≤ dist(z.1, z.2)` by 1-Lipschitz;
+      (e) integrability of each side via finite-first-moment of μ and ν,
+          derivable from finite coupling cost.
+This proof would need ~50-100 lines of measure-theoretic plumbing. -/
 theorem wasserstein1_le_wasserstein1_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
     wasserstein1 μ ν ≤ wasserstein1_coupling μ ν := by
+  refine iSup_le fun φ => iSup_le fun hφ => ?_
+  refine le_iInf fun π => le_iInf fun hπ => ?_
+  -- Goal: ENNReal.ofReal (∫φ dμ - ∫φ dν) ≤ ∫⁻ z, edist z.1 z.2 ∂π
+  -- Case 1: the cost is ⊤ → trivially bound by ⊤.
+  by_cases h_top : ∫⁻ z, edist z.1 z.2 ∂π = ⊤
+  · rw [h_top]; exact le_top
+  -- Case 2: finite cost → substantive proof needed (see proof strategy above).
   sorry
 
 end Vlasov
