@@ -41,22 +41,26 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E
   {f : ℝ → E → E} {tmin tmax : ℝ} {t₀ : Icc tmin tmax} {x₀ x : E} {a r L K : ℝ≥0}
 
 open Classical in
-/-- Mathlib (vendored, awaiting upstream PR): same as
-`exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith` but the
-conclusion will additionally expose `α x t ∈ closedBall x₀ a` (the
-confinement guarantee already implicit in the FunSpace construction). At
-this stage of the staged vendor the conclusion is still verbatim Mathlib;
-Stage 3 adds the conjunct. -/
+/-- **Picard-Lindelöf with confinement** (vendored from Mathlib, awaiting
+upstream PR). Same conclusion as
+`exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith` plus an
+additional conjunct `∀ t ∈ Icc tmin tmax, α x t ∈ closedBall x₀ a` —
+exposing the FunSpace confinement guarantee at the public API level. The
+underlying property is already proved upstream (the existing proof of
+`_lipschitzOnWith` invokes `FunSpace.compProj_mem_closedBall hf.mul_max_le`
+internally to constrain the iterate to the Lipschitz region); we only
+re-export it. -/
 theorem exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined
     (hf : IsPicardLindelof f t₀ x₀ a r L K) :
     ∃ α : E → ℝ → E, (∀ x ∈ closedBall x₀ r, α x t₀ = x ∧
-      ∀ t ∈ Icc tmin tmax, HasDerivWithinAt (α x) (f t (α x t)) (Icc tmin tmax) t) ∧
+      (∀ t ∈ Icc tmin tmax, HasDerivWithinAt (α x) (f t (α x t)) (Icc tmin tmax) t) ∧
+      (∀ t ∈ Icc tmin tmax, α x t ∈ closedBall x₀ a)) ∧
       ∃ L' : ℝ≥0, ∀ t ∈ Icc tmin tmax, LipschitzOnWith L' (α · t) (closedBall x₀ r) := by
   have (x) (hx : x ∈ closedBall x₀ r) := FunSpace.exists_isFixedPt_next hf hx
   choose α hα using this
   set α' := fun (x : E) ↦ if hx : x ∈ closedBall x₀ r then
     α x hx |>.compProj else 0 with hα'
-  refine ⟨α', fun x hx ↦ ⟨?_, fun t ht ↦ ?_⟩, ?_⟩
+  refine ⟨α', fun x hx ↦ ⟨?_, fun t ht ↦ ?_, fun t ht ↦ ?_⟩, ?_⟩
   · rw [hα']
     beta_reduce
     rw [dif_pos hx, FunSpace.compProj_val, ← hα, FunSpace.next_apply₀]
@@ -70,6 +74,11 @@ theorem exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confine
     intro t' ht'
     nth_rw 1 [← hα]
     rw [FunSpace.compProj_of_mem ht', FunSpace.next_apply]
+  · -- confinement: α' x t = (α x hx).compProj t ∈ closedBall x₀ a
+    rw [hα']
+    beta_reduce
+    rw [dif_pos hx]
+    exact α x hx |>.compProj_mem_closedBall hf.mul_max_le
   · obtain ⟨L', h⟩ := FunSpace.exists_forall_closedBall_funSpace_dist_le_mul hf
     refine ⟨L', fun t ht ↦ LipschitzOnWith.of_dist_le_mul fun x hx y hy ↦ ?_⟩
     simp_rw [hα']
@@ -78,5 +87,17 @@ theorem exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confine
     have : Nonempty (Icc tmin tmax) := ⟨t₀⟩
     apply ContinuousMap.dist_le_iff_of_nonempty.mp
     exact h x y hx hy (α x hx) (α y hy) (hα x hx) (hα y hy)
+
+/-- **Picard-Lindelöf with confinement, thin wrapper** (vendored). Drops the
+Lipschitz-in-initial-point conjunct from `_lipschitzOnWith_confined`. This is
+the form `exists_vlasov_extend_one_window` consumes — Vlasov doesn't need the
+flow's Lipschitz dependence on the initial point. -/
+theorem exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined
+    (hf : IsPicardLindelof f t₀ x₀ a r L K) :
+    ∃ α : E → ℝ → E, ∀ x ∈ closedBall x₀ r, α x t₀ = x ∧
+      (∀ t ∈ Icc tmin tmax, HasDerivWithinAt (α x) (f t (α x t)) (Icc tmin tmax) t) ∧
+      (∀ t ∈ Icc tmin tmax, α x t ∈ closedBall x₀ a) :=
+  have ⟨α, hα⟩ := exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined hf
+  ⟨α, hα.1⟩
 
 end IsPicardLindelof
