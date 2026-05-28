@@ -1265,7 +1265,8 @@ lemma w1_lscNarrow_diff_contOn
     (φ : PhaseSpace d → ℝ)
     (hφ_lip : LipschitzWith 1 φ) :
     ContinuousOn (fun t => ∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)) (Set.Icc 0 T) := by
-  sorry
+  exact (w1_lscNarrow_integralContOn_lip gradW f hf hf_prob T hT φ hφ_lip).sub
+        (w1_lscNarrow_integralContOn_lip gradW g hg hg_prob T hT φ hφ_lip)
 
 /-- For any 1-Lipschitz function φ, the map t ↦ ENNReal.ofReal (∫ φ d(f t) - ∫ φ d(g t))
 is LowerSemicontinuousOn Set.Icc 0 T: it is continuous (since ENNReal.ofReal is continuous
