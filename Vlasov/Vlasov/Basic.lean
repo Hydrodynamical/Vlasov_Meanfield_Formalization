@@ -1254,23 +1254,6 @@ theorem MathlibTODO_W1ContOn_uscNarrow
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Characteristic flow data generating f and g (Eulerian → Lagrangian gap;
-    -- threaded through to `dobrushin`, eventually discharged by Picard
-    -- regularity in the existence half of `vlasovWellPosedness`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (T : ℝ) (hT : 0 ≤ T) :
     UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
   sorry
@@ -1351,21 +1334,6 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (T : ℝ) (hT : 0 ≤ T) :
     ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
   -- Step 1: pointwise finiteness from HasFiniteFirstMoment
@@ -1385,9 +1353,7 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     MathlibTODO_W1ContOn_lscNarrow gradW f g hf hg hf_prob hg_prob T hT
   -- Step 4: W₁ is USC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_uscNarrow)
   have h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
-    MathlibTODO_W1ContOn_uscNarrow gradW L hL f g hf hg hf_prob hg_prob
-      charX_f charV_f hflow_f hf_pushforward hf_meas
-      charX_g charV_g hflow_g hg_pushforward hg_meas T hT
+    MathlibTODO_W1ContOn_uscNarrow gradW L hL f g hf hg hf_prob hg_prob T hT
   -- Step 5: assemble via W1ContOn_toRealContOn (close this sorry to finish)
   have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
   exact h_goal
@@ -1407,22 +1373,6 @@ theorem MathlibTODO_wassersteinGronwallCoupling_derivBound
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Characteristic flow data generating f and g (see `uscNarrow` for the
-    -- Eulerian → Lagrangian gap justification).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
     (T : ℝ) (hT : 0 ≤ T) :
     ∀ s ∈ Set.Ico 0 T,
@@ -1466,21 +1416,6 @@ lemma wassersteinGronwallCoupling_real_bound
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t) :
     (wasserstein1 (f t) (g t)).toReal ≤
@@ -1489,14 +1424,10 @@ lemma wassersteinGronwallCoupling_real_bound
     (fun s => (wasserstein1 (f s) (g s)).toReal)
     (wasserstein1 (f 0) (g 0)).toReal C t ht
     (MathlibTODO_wassersteinGronwallCoupling_W1ContOn
-      gradW L hL f g hf hg hf_prob hg_prob
-      charX_f charV_f hflow_f hf_pushforward hf_meas
-      charX_g charV_g hflow_g hg_pushforward hg_meas t ht)
+      gradW L hL f g hf hg hf_prob hg_prob t ht)
     (le_refl _)
     (MathlibTODO_wassersteinGronwallCoupling_derivBound
-      gradW L hL f g hf hg hf_prob hg_prob
-      charX_f charV_f hflow_f hf_pushforward hf_meas
-      charX_g charV_g hflow_g hg_pushforward hg_meas C hC hCL t ht)
+      gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht)
   exact key t (Set.right_mem_Icc.mpr ht)
 
 /-- For reals δ ≥ 0 and C > 0 and t ≥ 0, if r ≤ δ * Real.exp(C * t) then
@@ -1522,21 +1453,6 @@ lemma wassersteinGronwallCoupling_ofReal_le
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t)
     (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
@@ -1544,9 +1460,7 @@ lemma wassersteinGronwallCoupling_ofReal_le
       ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
   -- real bound
   have h_real := wassersteinGronwallCoupling_real_bound gradW L hL f g hf hg
-    hf_prob hg_prob
-    charX_f charV_f hflow_f hf_pushforward hf_meas
-    charX_g charV_g hflow_g hg_pushforward hg_meas C hC hCL t ht
+    hf_prob hg_prob C hC hCL t ht
   -- (wasserstein1 (f 0) (g 0)).toReal ≥ 0
   have h_t_real_nonneg : 0 ≤ (wasserstein1 (f t) (g t)).toReal := ENNReal.toReal_nonneg
   have h_0_real_nonneg : 0 ≤ (wasserstein1 (f 0) (g 0)).toReal := ENNReal.toReal_nonneg
@@ -1582,29 +1496,12 @@ theorem MathlibTODO_wassersteinGronwallCoupling
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t)
     (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
     wasserstein1 (f t) (g t) ≤
       ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) :=
-  wassersteinGronwallCoupling_ofReal_le gradW L hL f g hf hg hf_prob hg_prob
-    charX_f charV_f hflow_f hf_pushforward hf_meas
-    charX_g charV_g hflow_g hg_pushforward hg_meas C hC hCL t ht hW_t
+  wassersteinGronwallCoupling_ofReal_le gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht hW_t
 
 /-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
 This provides the Dobrushin constant independently of whether L = 0. -/
@@ -1656,21 +1553,6 @@ lemma dobrushin_ennreal_bound
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
     ∀ t : ℝ, 0 ≤ t →
       wasserstein1 (f t) (g t) ≤
@@ -1682,8 +1564,7 @@ lemma dobrushin_ennreal_bound
   have hW_t : wasserstein1 (f t) (g t) ≠ ⊤ :=
     wasserstein1_ne_top_of_finite_moment (f t) (g t) (hf_prob t).2 (hg_prob t).2
   exact MathlibTODO_wassersteinGronwallCoupling gradW L hL f g hf hg hf_prob hg_prob
-    charX_f charV_f hflow_f hf_pushforward hf_meas
-    charX_g charV_g hflow_g hg_pushforward hg_meas C hC hCL t ht hW_t
+    C hC hCL t ht hW_t
 
 /-- Package the bound and positivity of C into the existential conclusion of dobrushin:
 ∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).
@@ -1697,31 +1578,14 @@ lemma dobrushin_package_exists
     (hf : IsVlasovSolution gradW f)
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data (see `uscNarrow`).
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z))) :
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
     ∃ C : ℝ, 0 < C ∧
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
   obtain ⟨C, hC, hCL⟩ := dobrushin_C_choice L
   exact ⟨C, hC,
-    dobrushin_ennreal_bound W gradW hgradW L hL f g hf hg hf_prob hg_prob
-      charX_f charV_f hflow_f hf_pushforward hf_meas
-      charX_g charV_g hflow_g hg_pushforward hg_meas C hC hCL⟩
+    dobrushin_ennreal_bound W gradW hgradW L hL f g hf hg hf_prob hg_prob C hC hCL⟩
 
 /-- (tex: thm:dobrushin)
 Dobrushin's stability theorem (1979).
@@ -1747,25 +1611,7 @@ theorem dobrushin
     (hf : IsVlasovSolution gradW f)
     (hg : IsVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    -- Threaded Eulerian → Lagrangian flow data: characteristic flows
-    -- generating f and g.  This is the regularity input that
-    -- `vlasovWellPosedness` (existence half) will eventually produce
-    -- internally from Picard-Lindelof + Stage C's pushforward.
-    (charX_f charV_f : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_f : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (f t)) charX_f charV_f)
-    (hf_pushforward : ∀ t, f t =
-        vlasovSolutionViaPushforward charX_f charV_f (f 0) t)
-    (hf_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
-    (charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow_g : IsCharacteristicFlow gradW
-                (fun t => spatialMarginal (g t)) charX_g charV_g)
-    (hg_pushforward : ∀ t, g t =
-        vlasovSolutionViaPushforward charX_g charV_g (g 0) t)
-    (hg_meas : ∀ s, Measurable
-        (fun z : PhaseSpace d => (charX_g s z, charV_g s z))) :
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
     ∃ C : ℝ, 0 < C ∧
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
@@ -1773,8 +1619,6 @@ theorem dobrushin
   -- close via dobrushin_package_exists, which composes dobrushin_C_choice
   -- and dobrushin_ennreal_bound (which itself invokes MathlibTODO_wassersteinGronwallCoupling)
   exact dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
-    charX_f charV_f hflow_f hf_pushforward hf_meas
-    charX_g charV_g hflow_g hg_pushforward hg_meas
 
 -- ---------------------------------------------------------------------------
 -- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)
