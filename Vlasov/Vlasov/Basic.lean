@@ -848,6 +848,41 @@ noncomputable def vlasovSolutionViaPushforward
     (f₀ : Measure (PhaseSpace d)) (t : ℝ) : Measure (PhaseSpace d) :=
   Measure.map (fun z => (charX t z, charV t z)) f₀
 
+/-- A Vlasov solution with an explicit characteristic-flow representation.
+
+Strictly stronger than `IsVlasovSolution`: every `IsLagrangianVlasovSolution`
+satisfies the weak PDE AND admits a global characteristic flow `(charX, charV)`
+such that `f t = (charX t, charV t)_# (f 0)` for every `t`.
+
+This is the regularity level at which the dynamic-continuity / Lipschitz-on-
+flow / dominated-convergence-on-trajectory proofs (USC of W₁ under narrow
+convergence, derivative bound for Gronwall, narrow continuity in the KR-dual
+formulation) compose cleanly.  The session's three structural-failure
+datapoints (`MathlibTODO_W1ContOn_uscNarrow`, `vlasov_trajectory_lipschitz_bound`,
+`w1_lscNarrow_integralContOn_lip`) all root-cause to the absence of these
+witnesses in the abstract `IsVlasovSolution`.
+
+Proved producers:
+  * `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`
+    (`Vlasov/OT/CharacteristicFlow.lean`) — trivially, since the Stage C
+    wrapper already takes the flow as a hypothesis and the pushforward
+    equation holds by `vlasovSolutionViaPushforward`'s definition.
+  * `vlasovWellPosedness` (currently sorry'd) will produce
+    `IsLagrangianVlasovSolution` when its Banach fixed-point existence
+    half is proved — the construction explicitly builds the flow.
+
+Strict additivity: `IsLagrangianVlasovSolution gradW f → IsVlasovSolution gradW f`
+by `.1`.  No existing `IsVlasovSolution` consumer needs to migrate; opt-in
+`_lag` variants of targets that need the flow witness (uscNarrow, derivBound,
+H1, SC.8) are introduced as new declarations alongside the originals. -/
+def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  IsVlasovSolution gradW f ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
+    (∀ t, f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s, Measurable (fun z : PhaseSpace d => (charX s z, charV s z)))
+
 -- ---------------------------------------------------------------------------
 -- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)
 -- ---------------------------------------------------------------------------
