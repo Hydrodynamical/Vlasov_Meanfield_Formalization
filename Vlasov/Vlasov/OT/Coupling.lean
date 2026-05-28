@@ -218,69 +218,6 @@ theorem wasserstein1_le_wasserstein1_coupling
   intro z
   exact (edist_dist z.1 z.2).symm
 
-/-! ## Kantorovich-Rubinstein: hard direction (placeholder)
-
-The reverse inequality of `wasserstein1_le_wasserstein1_coupling`: the
-coupling-formula `wasserstein1_coupling μ ν` is bounded above by the
-dual-formula `wasserstein1 μ ν`.  Combined with the easy direction
-this gives the **Kantorovich-Rubinstein equality**.
-
-This is the genuine KR theorem (Hahn-Banach extension + Prokhorov
-tightness for existence of an optimal coupling).  Mathlib does not
-provide it (or any `Wasserstein` API at this writing); deferring
-upstream to Mathlib is the long-term plan.
-
-In-project consumers of the equality (currently sorry'd downstream):
-  * `MathlibTODO_W1ContOn_uscNarrow` (Basic.lean) — USC of
-    `t ↦ wasserstein1 (f t) (g t)` along Vlasov-solution curves.  The
-    dual-formula definition makes this manifestly LSC (sup of
-    continuous), not USC.  USC follows from the coupling-formula via
-    `upperSemicontinuousOn_biInf` once the equality is in hand.
-  * `MathlibTODO_wassersteinGronwallCoupling_derivBound` (Basic.lean) —
-    right-derivative Gronwall bound. Uses ε-optimal couplings, which
-    require the equality (or the close-to-optimum approximation
-    direction). -/
-
-/-- **KR hard direction (placeholder).**  The coupling-formula
-`wasserstein1_coupling μ ν` is bounded above by the dual-formula
-`wasserstein1 μ ν`.  Sorry'd: requires Hahn-Banach + Prokhorov
-tightness.  See section docstring for downstream consumers.
-
-Status: `sorry`'d intentionally.  This is a `MathlibTODO_*` placeholder
-of the same character as `MathlibTODO_convolveLipschitzEstimate` —
-the proof is mathematically standard but Mathlib does not currently
-provide it.  Sorry-prover should skip per its §0 skip rule. -/
-theorem MathlibTODO_wasserstein1_coupling_le_wasserstein1
-    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    [SecondCountableTopology α]
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (x₀ : α)
-    (hμ_fm : Integrable (fun y => dist y x₀) μ)
-    (hν_fm : Integrable (fun y => dist y x₀) ν) :
-    wasserstein1_coupling μ ν ≤ wasserstein1 μ ν := by
-  sorry
-
-/-- **Kantorovich-Rubinstein equality** (derived from both directions).
-Under finite-moment + probability hypotheses, the dual-formula
-`wasserstein1` and the coupling-formula `wasserstein1_coupling` agree.
-
-This is the unblocking lemma for `MathlibTODO_W1ContOn_uscNarrow` and
-`MathlibTODO_wassersteinGronwallCoupling_derivBound`: once we know
-`wasserstein1 μ ν = ⨅ π : Coupling, ∫⁻ edist ∂π`, USC of `t ↦ W₁(f t, g t)`
-follows from continuity-in-t of the integrand for each fixed coupling
-+ `upperSemicontinuousOn_biInf`. -/
-theorem wasserstein1_eq_wasserstein1_coupling
-    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    [SecondCountableTopology α]
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (x₀ : α)
-    (hμ_fm : Integrable (fun y => dist y x₀) μ)
-    (hν_fm : Integrable (fun y => dist y x₀) ν) :
-    wasserstein1 μ ν = wasserstein1_coupling μ ν :=
-  le_antisymm
-    (wasserstein1_le_wasserstein1_coupling μ ν x₀ hμ_fm hν_fm)
-    (MathlibTODO_wasserstein1_coupling_le_wasserstein1 μ ν x₀ hμ_fm hν_fm)
-
 /-! ## Pushforward of couplings
 
 The lemmas below are the "reusable pieces" needed for the dobrushin chain
