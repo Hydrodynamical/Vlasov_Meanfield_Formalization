@@ -1668,28 +1668,195 @@ theorem exists_vlasov_characteristicFlow_twoWindow
 
 /-! ## Stage C — Lagrangian → Eulerian: pushforward solves weak Vlasov
 
-This is the genuine project responsibility: showing that the pushforward
-of `f_0` under a characteristic flow satisfies the distributional
-Vlasov equation, i.e. matches `IsVlasovSolution`.
+The pushforward `vlasovSolutionViaPushforward charX charV f₀` satisfies
+`IsVlasovSolution`.  This connects the ODE side (`IsCharacteristicFlow`,
+pointwise `HasDerivAt`) to the PDE side (`IsVlasovSolution`,
+`WeakEvolutionEq` distributional formulation), closing the Lagrangian-
+Eulerian loop that Mathlib does not provide.
 
-Proof strategy (deferred to a focused session):
-1. Unfold `IsVlasovSolution`: for every smooth compactly-supported
-   test function `φ`, the curve `t ↦ ∫ φ d(pushforward f₀)` satisfies
-   the weak ODE shape from `WeakEvolutionEq`.
-2. Change variables via `integral_map` (already used in Coupling.lean):
-   `∫ φ d(map flow f₀) = ∫ (φ ∘ flow) df₀`.
-3. Differentiate under the integral sign: `HasDerivAt` from the
-   characteristic flow's ODE hypothesis (in `IsCharacteristicFlow`)
-   plus the chain rule on `φ` gives the time-derivative formula.
-4. The resulting expression matches `WeakEvolutionEq`'s RHS exactly
-   because the flow's ODE was `(charV, −(∇W ∗ ρ)(charX))` and the
-   dot-product chain rule on `φ(charX, charV)` produces precisely
-   `⟨charV, ∇_x φ⟩ − ⟨(∇W ∗ ρ)(charX), ∇_v φ⟩`.
+**Decomposition (per the `clear-picture-now-the-starry-sparrow` plan).**
 
-The differentiation-under-integral swap is the technical heart;
-Mathlib's `hasDerivAt_integral_of_dominated_loc_of_lip` (or near-
-equivalent) handles it, but the dominated-integrable hypothesis
-threading is substantial. -/
+Four named helpers, used as black boxes by the wrapper:
+
+  * **SC.1** `vlasov_pushforward_integral_eq_compose` — change of
+    variables: `∫ φ d(map flow_s f₀) = ∫ (φ ∘ flow_s) df₀`.  Direct
+    `integral_map`.  *(closed)*
+  * **SC.2** `vlasov_traj_chain_rule` — pointwise chain rule:
+    `HasDerivAt (s ↦ φ (charX s z, charV s z)) [formula] t`, using
+    `hflow`'s ODE pointwise `HasDerivAt`s and the chain rule on `φ`.
+    *(sorry'd — the product fderiv decomposition step needs API
+    threading that is not wired up; see body comment.)*
+  * **SC.3** `vlasov_pushforward_hasDerivAt_under_integral` —
+    differentiation-under-integral via
+    `hasDerivAt_integral_of_dominated_loc_of_lip`.  Requires a
+    dominated-integrable Lipschitz bound on `s ↦ φ ∘ flow_s` uniform
+    in `z`; this is the diff-under-integral technical heart.  *(sorry'd
+    with detailed strategy — needs hypothesis enrichment.)*
+  * **SC.4** `vlasov_rhs_pushforward_back` — push the chain-rule RHS
+    back through `integral_map` to match `WeakEvolutionEq`'s shape.
+    Symmetric to SC.1.  *(closed)*
+
+The wrapper composes them: SC.1 (rewrite LHS) → SC.3 (diff-under-integral,
+consuming SC.2 pointwise) → SC.4 (rewrite RHS).  Composition glue is
+closed.  Remaining sorries: SC.2 body, SC.3 body, and one sub-sorry
+inside the wrapper for AE-strong-measurability of the dot-product
+integrand (continuity threading via smoothness of `φ` and Lipschitz
+of `gradW`).  Sorry count for CharacteristicFlow.lean: 1 → 3, all on
+targeted, narrow goals. -/
+
+/-- **SC.1: integral change-of-variables for the Vlasov pushforward.**
+Direct application of `integral_map`. -/
+lemma vlasov_pushforward_integral_eq_compose
+    {d : ℕ} [NeZero d]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (s : ℝ)
+    (h_meas : AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_aesm : AEStronglyMeasurable φ
+                  (vlasovSolutionViaPushforward charX charV f₀ s)) :
+    ∫ z, φ z ∂(vlasovSolutionViaPushforward charX charV f₀ s) =
+      ∫ z, φ (charX s z, charV s z) ∂f₀ := by
+  unfold vlasovSolutionViaPushforward
+  exact integral_map h_meas hφ_aesm
+
+/-- **SC.2: pointwise chain rule along the characteristic trajectory.**
+
+For fixed `t` and fixed `z`, the curve `s ↦ φ (charX s z, charV s z)`
+has derivative
+`⟨charV t z, gradXφ (charX t z, charV t z)⟩
+ − ⟨(∇W ∗ ρ_t)(charX t z), gradVφ (charX t z, charV t z)⟩`
+at `t`.  Proof: chain rule on `φ ∘ (charX · z, charV · z)`, using
+`hflow`'s pointwise `HasDerivAt`s and the gradient formula for `φ`'s
+directional derivative. -/
+lemma vlasov_traj_chain_rule
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    (hX_deriv : ∀ t z, HasDerivAt (fun s => charX s z) (charV t z) t)
+    (hV_deriv : ∀ t z, HasDerivAt (fun s => charV s z)
+        (-(convolveFunctionMeasure gradW (ρ t) (charX t z))) t)
+    (t : ℝ) (z : PhaseSpace d) :
+    HasDerivAt (fun s => φ (charX s z, charV s z))
+      (@inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+       - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) (charX t z))
+          (gradVφ (charX t z, charV t z))) t := by
+  -- Strategy: (a) Joint pair has HasDerivAt with derivative
+  -- `(charV t z, -(∇W∗ρ_t)(charX t z))`.
+  -- (b) `φ` is `ContDiff` so has an FDeriv at the image point.
+  -- (c) Chain rule (`HasFDerivAt.comp_hasDerivAt`) gives HasDerivAt of
+  -- the composite, with derivative `fderiv φ (flow_t z) (charV t z, -(∇W∗ρ_t)(charX t z))`.
+  -- (d) The product fderiv splits via the gradient formula:
+  --     `fderiv φ (x,v) (a,b) = ⟨gradXφ (x,v), a⟩ + ⟨gradVφ (x,v), b⟩`.
+  -- (e) Substituting `(a,b) := (charV t z, -(∇W∗ρ_t)(charX t z))` and using
+  --     bilinearity of inner product with the negation gives the claimed formula.
+  --
+  -- Deferred sub-step: the product fderiv decomposition (d) requires Mathlib API
+  -- threading (`fderiv_prod`, `gradient_eq_inner_proj`) that is not yet wired up
+  -- in this file. Sorry'd with strategy.
+  sorry
+
+/-- **SC.3: differentiation under the integral for the pushforward integral.**
+
+`HasDerivAt (s ↦ ∫ z, φ (charX s z, charV s z) ∂f₀) (∫ z, [pointwise deriv] ∂f₀) t`,
+where the pointwise derivative at `t` is the chain-rule formula from SC.2.
+
+**Status: sorry'd — diff-under-integral technical heart.**
+
+Closing this helper requires applying
+`Mathlib.Analysis.Calculus.ParametricIntegral.hasDerivAt_integral_of_dominated_loc_of_lip`,
+whose hypotheses are:
+  * AE-strong-measurability of `s ↦ φ (charX s ·, charV s ·)` for `s`
+    near `t` (uses `φ` smooth + flow measurability).
+  * Integrability of `φ ∘ flow_t` against `f₀` (uses `φ` compact
+    support + `f₀` finite).
+  * AE-strong-measurability of the pointwise derivative against `f₀`.
+  * A dominated Lipschitz bound: for ae-z, the curve
+    `s ↦ φ (charX s z, charV s z)` is Lipschitz on a neighborhood of
+    `t` with an `f₀`-integrable Lipschitz coefficient.  This requires
+    a uniform-in-`z` bound on the flow speed `(charV s z, V̇(s,z))` —
+    the missing ingredient is global integrability of the flow speed
+    against `f₀`, which would typically be supplied by the Picard-
+    wellposedness layer (bounded flow on the support of `φ`).
+  * Pointwise `HasDerivAt` ae-z (provided by SC.2).
+
+The closure path is straightforward modulo the dominated-bound
+hypothesis enrichment; the current `hflow`/`hself` package doesn't
+expose this bound, so closing the helper requires either
+(a) adding a hypothesis to Stage C's wrapper for the dominated bound,
+or (b) deriving it from a strengthened `IsCharacteristicFlow` that
+exposes a global flow-speed bound. -/
+lemma vlasov_pushforward_hasDerivAt_under_integral
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (φ : PhaseSpace d → ℝ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (t : ℝ)
+    (h_pointwise : ∀ z, HasDerivAt (fun s => φ (charX s z, charV s z))
+      (@inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+       - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) (charX t z))
+          (gradVφ (charX t z, charV t z))) t) :
+    HasDerivAt (fun s => ∫ z, φ (charX s z, charV s z) ∂f₀)
+      (∫ z, @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+            - @inner ℝ (PhysSpace d) _
+                (convolveFunctionMeasure gradW (ρ t) (charX t z))
+                (gradVφ (charX t z, charV t z))
+          ∂f₀) t := by
+  -- See docstring above for the closure strategy.  Sorry'd.
+  sorry
+
+/-- **SC.4: push the chain-rule RHS back through `integral_map`.**
+
+`∫ z, [formula(charX t z, charV t z)] df₀ = ∫ y, [formula(y)] d(map flow_t f₀)`.
+
+Symmetric to SC.1; the same `integral_map` invocation, applied to the
+dot-product integrand.  Closes by `integral_map` after establishing AE-
+strong-measurability of the integrand. -/
+lemma vlasov_rhs_pushforward_back
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (t : ℝ)
+    (h_meas : AEMeasurable (fun z : PhaseSpace d => (charX t z, charV t z)) f₀)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (h_integrand_aesm : AEStronglyMeasurable
+      (fun y : PhaseSpace d =>
+        @inner ℝ (PhysSpace d) _ y.2 (gradXφ y)
+        - @inner ℝ (PhysSpace d) _
+            (convolveFunctionMeasure gradW
+              (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) y.1)
+            (gradVφ y))
+      (vlasovSolutionViaPushforward charX charV f₀ t)) :
+    ∫ z, @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+         - @inner ℝ (PhysSpace d) _
+            (convolveFunctionMeasure gradW
+              (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+              (charX t z))
+            (gradVφ (charX t z, charV t z))
+        ∂f₀
+      = ∫ y, @inner ℝ (PhysSpace d) _ y.2 (gradXφ y)
+             - @inner ℝ (PhysSpace d) _
+                (convolveFunctionMeasure gradW
+                  (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) y.1)
+                (gradVφ y)
+            ∂(vlasovSolutionViaPushforward charX charV f₀ t) := by
+  -- Direct application of integral_map in reverse direction, on the dot-product
+  -- integrand.  The integrand at `(charX t z, charV t z)` is precisely the
+  -- pre-image of the y-integrand under the pushforward map.
+  unfold vlasovSolutionViaPushforward at h_integrand_aesm ⊢
+  exact (integral_map h_meas h_integrand_aesm).symm
 
 /-- The Lagrangian → Eulerian equivalence: the pushforward of `f₀`
 under a characteristic flow satisfies the weak Vlasov equation.
@@ -1697,7 +1864,13 @@ under a characteristic flow satisfies the weak Vlasov equation.
 This connects the ODE side (`IsCharacteristicFlow`, with its
 pointwise `HasDerivAt`) to the PDE side (`IsVlasovSolution`, with
 its weak-evolution `WeakEvolutionEq` formulation), closing the
-Lagrangian-Eulerian loop that Mathlib does not provide. -/
+Lagrangian-Eulerian loop that Mathlib does not provide.
+
+**Hypothesis-widening (Stage C decomposition).**  Beyond `hflow` and
+`hself`, the wrapper requires AE-measurability of the joint flow map
+`(charX s, charV s)` for each `s`, which `IsCharacteristicFlow` does
+not currently expose.  Eventual callers (e.g. `vlasovWellPosedness`)
+will derive this from the regularity of Picard solutions. -/
 theorem vlasovSolutionViaPushforward_isVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1707,17 +1880,78 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
               (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
               charX charV)
     (hself : IsCharacteristicFlowSelfConsistent charX f₀
-              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))) :
+              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
+    (h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :
     IsVlasovSolution gradW (vlasovSolutionViaPushforward charX charV f₀) := by
   -- Unfold IsVlasovSolution; for each test function φ, prove WeakEvolutionEq.
-  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
-  -- WeakEvolutionEq: ∀ t, HasDerivAt (fun s => ∫ φ d(pushforward f₀ at s)) (RHS) t.
-  intro t
-  -- Step 1: integral_map turns ∫ φ d(pushforward) into ∫ (φ ∘ flow) df₀.
-  -- Step 2: differentiation under the integral, using HasDerivAt from hflow's ODE.
-  -- Step 3: chain rule on φ produces the WeakEvolutionEq RHS.
-  -- Step 4: handle the explicit-formula derivative match.
-  sorry
+  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
+  -- WeakEvolutionEq: HasDerivAt (fun s => ∫ φ d(pushforward s)) (RHS + 0) t.
+  -- Notation aliases.
+  set ρ : ℝ → Measure (PhysSpace d) :=
+    fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) with hρ_def
+  -- φ is continuous, hence AE-strongly-measurable wrt any measure.
+  have hφ_cont : Continuous φ := hφ_smooth.continuous
+  have hφ_aesm_general : ∀ μ : Measure (PhaseSpace d),
+      AEStronglyMeasurable φ μ := fun μ => hφ_cont.aestronglyMeasurable
+  -- SC.1 (used twice): unify ∫ φ d(vlasov s) with ∫ (φ ∘ flow_s) df₀.
+  have h_compose : ∀ s, ∫ z, φ z ∂(vlasovSolutionViaPushforward charX charV f₀ s) =
+      ∫ z, φ (charX s z, charV s z) ∂f₀ := fun s =>
+    vlasov_pushforward_integral_eq_compose charX charV f₀ s
+      (h_flow_meas s) φ (hφ_aesm_general _)
+  -- SC.2: pointwise chain rule at every z.
+  have h_pointwise := fun z =>
+    vlasov_traj_chain_rule gradW ρ charX charV φ hφ_smooth
+      gradXφ gradVφ hgradXφ hgradVφ hflow.2.1 hflow.2.2 t z
+  -- SC.3: lift to differentiation-under-integral.
+  have h_under_integral :=
+    vlasov_pushforward_hasDerivAt_under_integral gradW ρ charX charV f₀
+      φ gradXφ gradVφ t h_pointwise
+  -- SC.4: push the inner integral's value back through the pushforward.
+  -- We need AE-strong-measurability of the integrand wrt the pushforward.
+  -- The integrand uses gradXφ, gradVφ (continuous because φ is C∞), the
+  -- convolution (continuous in y.1 — Lipschitz of gradW + Continuous), and
+  -- linear/bilinear inner products.  We package this as a single
+  -- continuity-then-AEStronglyMeasurable step.
+  have h_integrand_aesm : AEStronglyMeasurable
+      (fun y : PhaseSpace d =>
+        @inner ℝ (PhysSpace d) _ y.2 (gradXφ y)
+        - @inner ℝ (PhysSpace d) _
+            (convolveFunctionMeasure gradW (ρ t) y.1) (gradVφ y))
+      (vlasovSolutionViaPushforward charX charV f₀ t) := by
+    -- The integrand is a difference of two products of continuous functions
+    -- of (y.1, y.2).  Each inner product is continuous and `convolveFunctionMeasure`
+    -- of a Lipschitz kernel against a fixed measure is continuous in x.
+    -- Sorry'd: detailed continuity threading (gradient of `ContDiff ⊤ φ` is
+    -- continuous, convolution-by-Lipschitz-kernel is continuous, inner is bilinear).
+    sorry
+  have h_push_back :=
+    vlasov_rhs_pushforward_back gradW charX charV f₀ t
+      (h_flow_meas t) gradXφ gradVφ h_integrand_aesm
+  -- Compose: rewrite LHS via h_compose into pushforward-integral form, apply
+  -- h_under_integral, then rewrite the derivative's RHS via h_push_back.
+  -- The target is `HasDerivAt (s ↦ ∫ φ d(vlasov s)) (∫ ... ∂(vlasov t) + 0) t`.
+  -- Step A: `(fun s => ∫ φ d(vlasov s)) = (fun s => ∫ z, φ (charX s z, charV s z) ∂f₀)`.
+  have hLHS : (fun s => ∫ z, φ z ∂(vlasovSolutionViaPushforward charX charV f₀ s)) =
+              (fun s => ∫ z, φ (charX s z, charV s z) ∂f₀) := funext h_compose
+  rw [hLHS]
+  -- Step B: rewrite the derivative value via h_push_back; the +0 is
+  -- definitionally absorbed by the `WeakEvolutionEq` shape.
+  rw [show (∫ z, @inner ℝ (PhysSpace d) _ z.2 (gradXφ z)
+              - @inner ℝ (PhysSpace d) _
+                  (convolveFunctionMeasure gradW
+                    (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) z.1)
+                  (gradVφ z)
+            ∂(vlasovSolutionViaPushforward charX charV f₀ t)
+            + (fun _ => (0 : ℝ)) t)
+          = ∫ z, @inner ℝ (PhysSpace d) _ z.2 (gradXφ z)
+                  - @inner ℝ (PhysSpace d) _
+                      (convolveFunctionMeasure gradW
+                        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) z.1)
+                      (gradVφ z)
+                ∂(vlasovSolutionViaPushforward charX charV f₀ t) from by ring]
+  rw [← h_push_back]
+  exact h_under_integral
 
 /-! ## Integration smoke test (Stage D follow-up)
 
