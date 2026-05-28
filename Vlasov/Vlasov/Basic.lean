@@ -1284,8 +1284,9 @@ lemma w1_lscNarrow_summand_lscOn
     (hφ_lip : LipschitzWith 1 φ) :
     LowerSemicontinuousOn
       (fun t => ENNReal.ofReal (∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)))
-      (Set.Icc 0 T) := by
-  sorry
+      (Set.Icc 0 T) :=
+  (ENNReal.continuous_ofReal.comp_continuousOn'
+    (w1_lscNarrow_diff_contOn gradW f g hf hg hf_prob hg_prob T hT φ hφ_lip)).lowerSemicontinuousOn
 
 /-- Given per-1-Lipschitz LSC of each summand `t ↦ ENNReal.ofReal(∫φd(f t) - ∫φd(g t))`,
 the Wasserstein-1 distance `wasserstein1 (f t) (g t) = ⨆ φ (_ : LipschitzWith 1 φ), …`
