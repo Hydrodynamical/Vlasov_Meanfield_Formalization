@@ -881,7 +881,7 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
   ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
     IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
     (∀ t, f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
-    (∀ s, Measurable (fun z : PhaseSpace d => (charX s z, charV s z)))
+    (∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0))
 
 -- ---------------------------------------------------------------------------
 -- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)

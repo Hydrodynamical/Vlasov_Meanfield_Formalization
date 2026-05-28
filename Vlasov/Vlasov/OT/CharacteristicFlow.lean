@@ -2293,6 +2293,66 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
   rw [← h_push_back]
   exact h_under_integral
 
+/-- **Stage C producer for `IsLagrangianVlasovSolution`**: same hypothesis
+package as `vlasovSolutionViaPushforward_isVlasovSolution`, but produces the
+*strictly stronger* `IsLagrangianVlasovSolution` predicate by additionally
+exposing the characteristic flow `(charX, charV)` and the pushforward
+equation `f t = (charX t, charV t)_# (f 0)`.
+
+The pushforward equation is essentially `rfl` once we know
+`vlasovSolutionViaPushforward charX charV f₀ 0 = f₀` — which follows from
+`IsCharacteristicFlow`'s initial-condition conjunct (`charX 0 z = z.1`,
+`charV 0 z = z.2`, so the time-0 map is the identity and `Measure.map id`
+acts trivially). -/
+theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolution
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hflow : IsCharacteristicFlow gradW
+              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+              charX charV)
+    (hself : IsCharacteristicFlowSelfConsistent charX f₀
+              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
+    (h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+    IsLagrangianVlasovSolution gradW (vlasovSolutionViaPushforward charX charV f₀) := by
+  -- The wrapper closes the IsVlasovSolution conjunct.
+  refine ⟨vlasovSolutionViaPushforward_isVlasovSolution gradW charX charV f₀
+            hflow hself h_flow_meas hgradW_cont hconv_cont,
+          charX, charV, hflow, ?_, ?_⟩
+  · -- Pushforward equation: f t = (flow_t)_# (f 0).
+    -- Reduces to vlasovSolutionViaPushforward charX charV f₀ 0 = f₀, via
+    -- (charX 0, charV 0) = id (from IsCharacteristicFlow's initial condition).
+    have h_init : (fun z : PhaseSpace d => (charX 0 z, charV 0 z)) = id := by
+      funext z
+      have h := hflow.1 z
+      exact Prod.ext h.1 h.2
+    have h0 : vlasovSolutionViaPushforward charX charV f₀ 0 = f₀ := by
+      simp [vlasovSolutionViaPushforward, h_init, Measure.map_id]
+    intro t
+    -- vlasovSolutionViaPushforward charX charV f₀ t
+    --   = Measure.map (charX t, charV t) f₀          (by defn)
+    --   = Measure.map (charX t, charV t) (vlasov 0)  (h0)
+    rw [h0]
+    rfl
+  · -- AEMeasurability wrt (f 0).  We have it wrt f₀, and (f 0) = f₀.
+    intro s
+    -- Goal: AEMeasurable (...) (vlasovSolutionViaPushforward charX charV f₀ 0)
+    -- The map f₀ ↦ (vlasov 0) is the same as h0 above; same hypothesis works.
+    have h_init : (fun z : PhaseSpace d => (charX 0 z, charV 0 z)) = id := by
+      funext z
+      have h := hflow.1 z
+      exact Prod.ext h.1 h.2
+    have h0 : vlasovSolutionViaPushforward charX charV f₀ 0 = f₀ := by
+      simp [vlasovSolutionViaPushforward, h_init, Measure.map_id]
+    rw [h0]
+    exact h_flow_meas s
+
 /-! ## Integration smoke test (Stage D follow-up)
 
 A small theorem demonstrating that the three OT files compose: given
