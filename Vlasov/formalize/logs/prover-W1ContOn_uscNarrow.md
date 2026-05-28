@@ -94,3 +94,93 @@ as `MathlibTODO_wasserstein1_eq_iInf_coupling` placeholder and close
 usc/derivBound conditionally on it.
 
 Both targets (`uscNarrow` and `derivBound`) share this blocker.
+
+---
+
+## 2026-05-28 · Second attempt · `MathlibTODO_W1ContOn_uscNarrow`
+
+**Result:** skipped (structurally blocked — see analysis below)
+**Iterations:** 0/8
+**Sorry count:** 4 → 4 (no change)
+**Pre-flight (§3.5):** validated `wasserstein1_eq_wasserstein1_coupling`, `upperSemicontinuousOn_iInf`, `ContinuousOn.upperSemicontinuousOn`; 0 dropped hints; 0 in-loop rejections.
+
+### Context
+
+The prior attempt correctly diagnosed the fundamental blocker. This
+second attempt was triggered with the newly-available lemma
+`wasserstein1_eq_wasserstein1_coupling` in `Vlasov/OT/Coupling.lean:272`.
+The question: does this new equality plus the iInf-based USC machinery
+yield a closed proof?
+
+### Why the answer is still No
+
+**Blocker 1 — KR equality itself uses a sorry (transitive).**
+`wasserstein1_eq_wasserstein1_coupling` is proved by `le_antisymm`
+using:
+  - `wasserstein1_le_wasserstein1_coupling` (fully proved), AND
+  - `MathlibTODO_wasserstein1_coupling_le_wasserstein1` (sorry'd,
+    Coupling.lean:253 — the hard direction of KR).
+
+Lean's sorry-propagation rule: any theorem proved using a sorry'd
+theorem is itself flagged as "declaration uses sorry". So replacing
+the target sorry with a proof that calls `wasserstein1_eq_wasserstein1_coupling`
+would eliminate the warning on line 1248 of Basic.lean, but the
+warning would reappear — we'd still have 4 sorry warnings total
+(the KR hard direction + the three others). The goal is 4 → 3.
+
+**Blocker 2 — Coupling index set varies with t.**
+After rewriting `wasserstein1 (f t) (g t)` to
+`wasserstein1_coupling (f t) (g t) = ⨅ π (_ : IsCoupling π (f t) (g t)), ∫⁻ edist ∂π`,
+the infimum is over couplings of `(f t, g t)`. This index set varies
+with `t`. Mathlib's `upperSemicontinuousOn_iInf` requires a FIXED
+index type `ι : Type*` — i.e., `⨅ (i : ι), f_i t`. There is no
+`upperSemicontinuousOn_iInf_varying_domain` lemma.
+
+To reduce to the fixed-index case, one would push forward a fixed
+coupling `π₀` of `(f 0, g 0)` via flow maps `(Φ_t, Ψ_t)` satisfying
+`f t = (Φ_t)_# (f 0)`, `g t = (Ψ_t)_# (g 0)`. Then
+`wasserstein1_coupling (f t) (g t) ≤ ∫⁻ edist(Φ_t(z.1), Ψ_t(z.2)) dπ₀`
+for every `π₀`, and the infimum over the fixed set of initial couplings
+is USC via `upperSemicontinuousOn_iInf` provided continuity of
+`t ↦ ∫⁻ edist(Φ_t(z.1), Ψ_t(z.2)) dπ₀` (which follows from
+continuity of the flow).
+
+**Blocker 3 — Flow data absent from signature.**
+The current signature has `hf : IsVlasovSolution gradW f`, which
+provides `WeakEvolutionEq` (weak PDE data for smooth compactly-
+supported test functions φ). It does NOT provide characteristic flow
+maps `Φ_t : PhaseSpace d → PhaseSpace d` satisfying
+`Measure.map Φ_t (f 0) = f t`. Adding flow data would require
+widening the signature — which the user explicitly reverted from a
+prior attempt.
+
+**Why `WeakEvolutionEq` cannot substitute for flow data.**
+`WeakEvolutionEq` gives `HasDerivAt (fun s => ∫ φ d(f s)) _ t` only
+for φ ∈ C_c^∞. The 1-Lipschitz test functions in the `wasserstein1`
+KR dual are NOT in C_c^∞ (they may have support ℝ^d). So the
+`WeakEvolutionEq` continuity (`W1ContOn_integralContAt`, Basic.lean:1283)
+does not apply to the test functions appearing in the `wasserstein1`
+definition. There is no direct route from `IsVlasovSolution` to
+USC of `t ↦ wasserstein1 (f t) (g t)`.
+
+### Structural diagnosis
+
+The theorem `MathlibTODO_W1ContOn_uscNarrow` requires all three of:
+1. The hard direction of KR (`MathlibTODO_wasserstein1_coupling_le_wasserstein1`).
+2. Characteristic flow maps `Φ_t`, `Ψ_t` (or equivalent Lagrangian data).
+3. Continuity of the flow in `t` (for the dominated-convergence argument
+   on `t ↦ ∫⁻ edist(Φ_t z.1, Ψ_t z.2) dπ₀`).
+
+None of these is currently available in the project without additional
+either Mathlib API or new hypotheses. The theorem is correctly named
+with the `MathlibTODO_` prefix — it represents a genuine API gap.
+
+### Lookup trail
+- `wasserstein1_eq_wasserstein1_coupling` — `Vlasov/OT/Coupling.lean:272`
+  (confirmed: transitively sorry'd via line 253)
+- `upperSemicontinuousOn_iInf` — `.lake/packages/mathlib/Mathlib/Topology/Semicontinuity/Basic.lean:1197`
+  (requires fixed index type; does not apply to varying-domain infs)
+- `upperSemicontinuousOn_biInf` — `.lake/packages/mathlib/Mathlib/Topology/Semicontinuity/Basic.lean:1201`
+  (same constraint; `p : ι → Prop` is a fixed predicate on a fixed `ι`)
+- `ContinuousOn.upperSemicontinuousOn` — `.lake/packages/mathlib/Mathlib/Topology/Semicontinuity/Basic.lean:799`
+  (would work IF we had ContinuousOn, which requires flow data)
