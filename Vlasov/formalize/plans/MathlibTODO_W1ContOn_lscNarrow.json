@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-28T00:00:00Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "MathlibTODO_W1ContOn_lscNarrow",
+    "kind": "theorem",
+    "tex_label": "",
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": 1233
+  },
+  "helpers": [
+    {
+      "name": "w1_lscNarrow_integralContOn_lip",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 4,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasureTheory.tendsto_integral_of_dominated_convergence",
+        "ENNReal.continuous_ofReal",
+        "ContinuousOn.lowerSemicontinuousOn"
+      ],
+      "one_line_math": "For any 1-Lipschitz function φ : PhaseSpace d → ℝ and Vlasov solution f with HasFiniteFirstMoment at each t, the map t ↦ ∫ φ d(f t) is continuous on Set.Icc 0 T. This is the technical heart of the LSC proof: approximate φ by compactly-supported smooth functions φ_ε using ContDiffBump mollifiers, apply W1ContOn_integralContAt to each φ_ε, then use dominated convergence controlled by HasFiniteFirstMoment (the norm ‖z‖ integrable bound) to pass the limit.",
+      "proof_sketch": null
+    },
+    {
+      "name": "w1_lscNarrow_diff_contOn",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 1,
+      "deps": ["w1_lscNarrow_integralContOn_lip"],
+      "mathlib_hints": [
+        "ContinuousOn.sub",
+        "ContinuousOn.lowerSemicontinuousOn"
+      ],
+      "one_line_math": "For any 1-Lipschitz φ, the map t ↦ ∫ φ d(f t) - ∫ φ d(g t) is continuous on Set.Icc 0 T, as a difference of two continuous functions given by w1_lscNarrow_integralContOn_lip applied to f and g.",
+      "proof_sketch": "intro φ hφ_lip\nexact (w1_lscNarrow_integralContOn_lip gradW f hf hf_prob T hT φ hφ_lip).sub\n  (w1_lscNarrow_integralContOn_lip gradW g hg hg_prob T hT φ hφ_lip)"
+    },
+    {
+      "name": "w1_lscNarrow_summand_lscOn",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 1,
+      "deps": ["w1_lscNarrow_diff_contOn"],
+      "mathlib_hints": [
+        "ContinuousOn.lowerSemicontinuousOn",
+        "LowerSemicontinuousOn.comp",
+        "ENNReal.continuous_ofReal"
+      ],
+      "one_line_math": "For any 1-Lipschitz φ, the map t ↦ ENNReal.ofReal (∫ φ d(f t) - ∫ φ d(g t)) is lower semicontinuous on Set.Icc 0 T, since ENNReal.ofReal is continuous (hence LSC) and the inner map is continuous by w1_lscNarrow_diff_contOn.",
+      "proof_sketch": "intro φ hφ_lip\nexact ENNReal.continuous_ofReal.lowerSemicontinuous.comp_continuousOn\n  (w1_lscNarrow_diff_contOn gradW f g hf hg hf_prob hg_prob T hT φ hφ_lip)"
+    },
+    {
+      "name": "w1_lscNarrow_of_summands",
+      "file": "Vlasov/Vlasov/Basic.lean",
+      "line": -1,
+      "difficulty": 1,
+      "deps": ["w1_lscNarrow_summand_lscOn"],
+      "mathlib_hints": [
+        "lowerSemicontinuousOn_biSup",
+        "lowerSemicontinuousOn_iSup"
+      ],
+      "one_line_math": "The Wasserstein-1 distance, defined as the double supremum ⨆ φ (_ : LipschitzWith 1 φ), ENNReal.ofReal (∫ φ d(f t) - ∫ φ d(g t)), is lower semicontinuous on Set.Icc 0 T as a supremum of LSC functions (via lowerSemicontinuousOn_biSup).",
+      "proof_sketch": "unfold wasserstein1\nexact lowerSemicontinuousOn_iSup (fun φ =>\n  lowerSemicontinuousOn_iSup (fun hφ =>\n    w1_lscNarrow_summand_lscOn gradW f g hf hg hf_prob hg_prob T hT φ hφ))"
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/Vlasov/Basic.lean",
+    "line": -1,
+    "branch_label": "main body — unfold wasserstein1 and apply w1_lscNarrow_of_summands",
+    "composition": ["w1_lscNarrow_of_summands"],
+    "strategy": "The parent theorem body unfolds the wasserstein1 KR-dual sup and delegates to w1_lscNarrow_of_summands, which composes the helper chain.",
+    "tactic_sketch": "exact w1_lscNarrow_of_summands gradW f g hf hg hf_prob hg_prob T hT"
+  }
+}

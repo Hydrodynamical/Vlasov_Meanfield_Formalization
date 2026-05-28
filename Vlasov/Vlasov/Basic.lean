@@ -1227,6 +1227,81 @@ theorem MathlibTODO_convolveLipschitzEstimate
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json`. -/
 
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/MathlibTODO_W1ContOn_lscNarrow.json`. -/
+
+/-- For any 1-Lipschitz function φ : PhaseSpace d → ℝ and a Vlasov solution f whose
+measure curve has HasFiniteFirstMoment at each time t, the map t ↦ ∫ z, φ z ∂(f t)
+is continuous on Set.Icc 0 T.
+
+Technical heart of the lscNarrow decomposition: approximate φ by compactly-supported
+smooth functions via ContDiffBump mollifiers, apply W1ContOn_integralContAt to each
+approximant, then pass to the limit via MeasureTheory.tendsto_integral_of_dominated_convergence
+with the integrable dominator ‖z‖ supplied by HasFiniteFirstMoment. -/
+lemma w1_lscNarrow_integralContOn_lip
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_lip : LipschitzWith 1 φ) :
+    ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) := by
+  sorry
+
+/-- For any 1-Lipschitz function φ, the map t ↦ ∫ φ d(f t) - ∫ φ d(g t) is
+ContinuousOn Set.Icc 0 T, as the difference of two applications of
+w1_lscNarrow_integralContOn_lip (one for f, one for g). -/
+lemma w1_lscNarrow_diff_contOn
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_lip : LipschitzWith 1 φ) :
+    ContinuousOn (fun t => ∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)) (Set.Icc 0 T) := by
+  sorry
+
+/-- For any 1-Lipschitz function φ, the map t ↦ ENNReal.ofReal (∫ φ d(f t) - ∫ φ d(g t))
+is LowerSemicontinuousOn Set.Icc 0 T: it is continuous (since ENNReal.ofReal is continuous
+and the inner map is continuous by w1_lscNarrow_diff_contOn), and continuous implies LSC
+via ContinuousOn.lowerSemicontinuousOn. -/
+lemma w1_lscNarrow_summand_lscOn
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (hg : IsVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_lip : LipschitzWith 1 φ) :
+    LowerSemicontinuousOn
+      (fun t => ENNReal.ofReal (∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)))
+      (Set.Icc 0 T) := by
+  sorry
+
+/-- Given per-1-Lipschitz LSC of each summand `t ↦ ENNReal.ofReal(∫φd(f t) - ∫φd(g t))`,
+the Wasserstein-1 distance `wasserstein1 (f t) (g t) = ⨆ φ (_ : LipschitzWith 1 φ), …`
+is LowerSemicontinuousOn `Set.Icc 0 T` as a double supremum of LSC functions
+via `lowerSemicontinuousOn_iSup` applied twice. -/
+lemma w1_lscNarrow_of_summands
+    {d : ℕ} [NeZero d]
+    (f g : ℝ → Measure (PhaseSpace d))
+    (T : ℝ)
+    (h_summands : ∀ (φ : PhaseSpace d → ℝ) (_hφ : LipschitzWith 1 φ),
+        LowerSemicontinuousOn
+          (fun t => ENNReal.ofReal (∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)))
+          (Set.Icc 0 T)) :
+    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
+  sorry
+
 -- Mathlib gap A: W₁ is lower semicontinuous under narrow convergence of measure curves.
 -- Requires KR duality for non-compactly-supported Lipschitz test functions;
 -- not available in Mathlib's stable OT/measure-valued-ODE API.
@@ -1239,8 +1314,11 @@ theorem MathlibTODO_W1ContOn_lscNarrow
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
-    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  sorry
+    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
+  -- Compose: per-φ LSC of the summand (H3) → LSC of the double sup (H4).
+  w1_lscNarrow_of_summands f g T
+    (fun φ hφ_lip =>
+      w1_lscNarrow_summand_lscOn gradW f g hf hg hf_prob hg_prob T hT φ hφ_lip)
 
 -- Mathlib gap B: W₁ is upper semicontinuous along Vlasov solution curves.
 -- Requires characteristic flow coupling argument and W₁ triangle inequality under pushforward;
