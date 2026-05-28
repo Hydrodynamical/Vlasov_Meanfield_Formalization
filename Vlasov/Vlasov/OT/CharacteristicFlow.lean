@@ -1824,36 +1824,63 @@ lemma vlasov_traj_chain_rule
     ring
   rwa [hval] at hchain
 
+/-- **Dominated-bundle data for SC.3.**
+
+Packages the four ancillary hypotheses required by Mathlib's
+`hasDerivAt_integral_of_dominated_loc_of_lip` (excluding the pointwise
+`HasDerivAt` which SC.2 already provides):
+  * a neighborhood `nhd ∈ nhds t` on which the dominated Lipschitz bound holds;
+  * eventual AE-strong-measurability of `(z ↦ φ ∘ flow_s)` for `s` near `t`;
+  * integrability of the integrand at `s = t`;
+  * AE-strong-measurability of the pointwise derivative as a function of `z`;
+  * a `bound : PhaseSpace d → ℝ` with `Integrable bound f₀` such that, ae-z,
+    the curve `s ↦ φ(charX s z, charV s z)` is `Real.nnabs (bound z)`-Lipschitz
+    on `nhd`.
+
+The dominated-bound clause is the technical heart: deriving it requires
+a uniform-in-`z` bound on the flow speed `(charV s z, V̇(s,z))` on the
+support of `φ`, which the eventual `vlasovWellPosedness` caller will
+produce from Picard-Lindelof local-flow boundedness + `HasCompactSupport φ`. -/
+def DiffUnderIntegralData
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (φ : PhaseSpace d → ℝ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (t : ℝ) : Prop :=
+  ∃ (nhd : Set ℝ) (bound : PhaseSpace d → ℝ),
+    nhd ∈ nhds t ∧
+    (∀ᶠ s' in nhds t,
+      AEStronglyMeasurable (fun z => φ (charX s' z, charV s' z)) f₀) ∧
+    Integrable (fun z => φ (charX t z, charV t z)) f₀ ∧
+    AEStronglyMeasurable
+      (fun z => @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+                - @inner ℝ (PhysSpace d) _
+                    (convolveFunctionMeasure gradW (ρ t) (charX t z))
+                    (gradVφ (charX t z, charV t z))) f₀ ∧
+    (∀ᵐ z ∂f₀,
+      LipschitzOnWith (Real.nnabs (bound z))
+        (fun s' => φ (charX s' z, charV s' z)) nhd) ∧
+    Integrable bound f₀
+
 /-- **SC.3: differentiation under the integral for the pushforward integral.**
 
 `HasDerivAt (s ↦ ∫ z, φ (charX s z, charV s z) ∂f₀) (∫ z, [pointwise deriv] ∂f₀) t`,
 where the pointwise derivative at `t` is the chain-rule formula from SC.2.
 
-**Status: sorry'd — diff-under-integral technical heart.**
+Proven by direct application of Mathlib's
+`hasDerivAt_integral_of_dominated_loc_of_lip`, given the
+`DiffUnderIntegralData` bundle and the pointwise derivative from SC.2.
 
-Closing this helper requires applying
-`Mathlib.Analysis.Calculus.ParametricIntegral.hasDerivAt_integral_of_dominated_loc_of_lip`,
-whose hypotheses are:
-  * AE-strong-measurability of `s ↦ φ (charX s ·, charV s ·)` for `s`
-    near `t` (uses `φ` smooth + flow measurability).
-  * Integrability of `φ ∘ flow_t` against `f₀` (uses `φ` compact
-    support + `f₀` finite).
-  * AE-strong-measurability of the pointwise derivative against `f₀`.
-  * A dominated Lipschitz bound: for ae-z, the curve
-    `s ↦ φ (charX s z, charV s z)` is Lipschitz on a neighborhood of
-    `t` with an `f₀`-integrable Lipschitz coefficient.  This requires
-    a uniform-in-`z` bound on the flow speed `(charV s z, V̇(s,z))` —
-    the missing ingredient is global integrability of the flow speed
-    against `f₀`, which would typically be supplied by the Picard-
-    wellposedness layer (bounded flow on the support of `φ`).
-  * Pointwise `HasDerivAt` ae-z (provided by SC.2).
-
-The closure path is straightforward modulo the dominated-bound
-hypothesis enrichment; the current `hflow`/`hself` package doesn't
-expose this bound, so closing the helper requires either
-(a) adding a hypothesis to Stage C's wrapper for the dominated bound,
-or (b) deriving it from a strengthened `IsCharacteristicFlow` that
-exposes a global flow-speed bound. -/
+The signature widening (taking `h_data : DiffUnderIntegralData ...` as a
+hypothesis) is the structural-close from the
+`clear-picture-now-the-starry-sparrow` plan: SC.3's body becomes a one-line
+Mathlib application; the burden of producing the dominated-bundle data
+moves to the caller (currently sorry'd inside Stage C's wrapper as a
+single bundled sub-sorry; eventually discharged by `vlasovWellPosedness`
+from compact support of `φ` plus Picard regularity). -/
 lemma vlasov_pushforward_hasDerivAt_under_integral
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1867,15 +1894,21 @@ lemma vlasov_pushforward_hasDerivAt_under_integral
       (@inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
        - @inner ℝ (PhysSpace d) _
           (convolveFunctionMeasure gradW (ρ t) (charX t z))
-          (gradVφ (charX t z, charV t z))) t) :
+          (gradVφ (charX t z, charV t z))) t)
+    (h_data : DiffUnderIntegralData gradW ρ charX charV f₀ φ gradXφ gradVφ t) :
     HasDerivAt (fun s => ∫ z, φ (charX s z, charV s z) ∂f₀)
       (∫ z, @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
             - @inner ℝ (PhysSpace d) _
                 (convolveFunctionMeasure gradW (ρ t) (charX t z))
                 (gradVφ (charX t z, charV t z))
           ∂f₀) t := by
-  -- See docstring above for the closure strategy.  Sorry'd.
-  sorry
+  obtain ⟨nhd, bound, hnhd, hF_meas, hF_int, hF'_meas, h_lipsch, h_bound_int⟩ := h_data
+  exact (hasDerivAt_integral_of_dominated_loc_of_lip
+    (μ := f₀) (x₀ := t) (bound := bound) (s := nhd)
+    (F := fun s' z => φ (charX s' z, charV s' z))
+    hnhd hF_meas hF_int hF'_meas
+    h_lipsch h_bound_int
+    (Filter.Eventually.of_forall h_pointwise)).2
 
 /-- **SC.4: push the chain-rule RHS back through `integral_map`.**
 
@@ -1978,10 +2011,21 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
   have h_pointwise := fun z =>
     vlasov_traj_chain_rule gradW ρ charX charV φ hφ_smooth
       gradXφ gradVφ hgradXφ hgradVφ hflow.2.1 hflow.2.2 t z
-  -- SC.3: lift to differentiation-under-integral.
+  -- SC.3: lift to differentiation-under-integral.  Requires the dominated
+  -- bundle data — neighborhood, integrability, AE-strong-measurability of
+  -- both the integrand at `t` and the pointwise derivative, plus the
+  -- dominated Lipschitz bound on `s ↦ φ(charX s z, charV s z)` with an
+  -- f₀-integrable Lipschitz coefficient.  This data is the structural-
+  -- boundary point of the Stage C decomposition: producing it requires
+  -- uniform-in-z control on the flow speed on the support of φ, which
+  -- the eventual `vlasovWellPosedness` caller will derive from Picard-
+  -- Lindelof local-flow boundedness + `HasCompactSupport φ`.  Sorry'd as
+  -- a single bundled sub-sorry pending that upstream regularity layer.
+  have h_diff_data : DiffUnderIntegralData gradW ρ charX charV f₀
+      φ gradXφ gradVφ t := by sorry
   have h_under_integral :=
     vlasov_pushforward_hasDerivAt_under_integral gradW ρ charX charV f₀
-      φ gradXφ gradVφ t h_pointwise
+      φ gradXφ gradVφ t h_pointwise h_diff_data
   -- SC.4: push the inner integral's value back through the pushforward.
   -- We need AE-strong-measurability of the integrand wrt the pushforward.
   -- The integrand uses gradXφ, gradVφ (continuous because φ is C∞), the
