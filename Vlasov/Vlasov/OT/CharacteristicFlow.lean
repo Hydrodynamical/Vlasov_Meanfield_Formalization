@@ -1867,10 +1867,17 @@ its weak-evolution `WeakEvolutionEq` formulation), closing the
 Lagrangian-Eulerian loop that Mathlib does not provide.
 
 **Hypothesis-widening (Stage C decomposition).**  Beyond `hflow` and
-`hself`, the wrapper requires AE-measurability of the joint flow map
-`(charX s, charV s)` for each `s`, which `IsCharacteristicFlow` does
-not currently expose.  Eventual callers (e.g. `vlasovWellPosedness`)
-will derive this from the regularity of Picard solutions. -/
+`hself`, the wrapper requires:
+  * `h_flow_meas` — AE-measurability of the joint flow map
+    `(charX s, charV s)` per `s`, used for `integral_map` change of
+    variables in SC.1/SC.4.
+  * `hgradW_cont` — continuity of the convolution kernel, used to
+    establish continuity (hence AE-strong-measurability) of the
+    convolution `x ↦ ∫ y, gradW (x - y) ∂(ρ t)` against the
+    pushforward measure.
+Eventual callers (e.g. `vlasovWellPosedness`) will derive these from
+the regularity of Picard solutions and from `[AssW W]`'s smoothness
+hypothesis on `W`. -/
 theorem vlasovSolutionViaPushforward_isVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1882,7 +1889,14 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
     (hself : IsCharacteristicFlowSelfConsistent charX f₀
               (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
     (h_flow_meas : ∀ s, AEMeasurable
-      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (hgradW_cont : Continuous gradW)
+    /- Continuity of the spatial-marginal convolution in x, for each time s.
+       Eventually derivable from hgradW_cont + integrability; added as a hypothesis
+       to keep the proof of h_integrand_aesm tractable. -/
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
     IsVlasovSolution gradW (vlasovSolutionViaPushforward charX charV f₀) := by
   -- Unfold IsVlasovSolution; for each test function φ, prove WeakEvolutionEq.
   intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
@@ -1919,12 +1933,50 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
         - @inner ℝ (PhysSpace d) _
             (convolveFunctionMeasure gradW (ρ t) y.1) (gradVφ y))
       (vlasovSolutionViaPushforward charX charV f₀ t) := by
-    -- The integrand is a difference of two products of continuous functions
-    -- of (y.1, y.2).  Each inner product is continuous and `convolveFunctionMeasure`
-    -- of a Lipschitz kernel against a fixed measure is continuous in x.
-    -- Sorry'd: detailed continuity threading (gradient of `ContDiff ⊤ φ` is
-    -- continuous, convolution-by-Lipschitz-kernel is continuous, inner is bilinear).
-    sorry
+    -- The integrand is a difference of two continuous functions, hence AEStronglyMeasurable.
+    apply Continuous.aestronglyMeasurable
+    apply Continuous.sub
+    · -- First term: ⟨y.2, gradXφ y⟩. Continuous since gradXφ is continuous.
+      apply Continuous.inner continuous_snd
+      -- gradXφ z = (toDual ℝ _).symm ((fderiv ℝ φ z).comp inl). Continuous.
+      have hfderiv_X : ∀ z : PhaseSpace d,
+          fderiv ℝ (fun x => φ (x, z.2)) z.1 =
+          (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) :=
+        fun z => by
+          have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+            (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+          have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
+              (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
+            hasFDerivAt_prodMk_left z.1 z.2
+          exact (h1.comp z.1 h2).fderiv
+      have heqX : gradXφ = fun z => gradient (fun x => φ (x, z.2)) z.1 := funext hgradXφ
+      simp_rw [heqX, gradient, hfderiv_X]
+      exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+        ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+          (hφ_smooth.continuous_fderiv (by simp)))
+    · -- Second term: ⟨convolveFunctionMeasure gradW (ρ t) y.1, gradVφ y⟩. Continuous.
+      apply Continuous.inner
+      · -- convolveFunctionMeasure gradW (ρ t) ∘ Prod.fst is continuous via hconv_cont.
+        -- ρ t = spatialMarginal (vlasovSolutionViaPushforward ...) by definition.
+        exact (hconv_cont t).comp continuous_fst
+      · -- gradVφ z = (toDual ℝ _).symm ((fderiv ℝ φ z).comp inr). Continuous.
+        have hfderiv_V : ∀ z : PhaseSpace d,
+            fderiv ℝ (fun v => φ (z.1, v)) z.2 =
+            (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) :=
+          fun z => by
+            have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+              (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+            have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
+                (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
+              hasFDerivAt_prodMk_right z.1 z.2
+            exact (h1.comp z.2 h2).fderiv
+        have heqV : gradVφ = fun z => gradient (fun v => φ (z.1, v)) z.2 := funext hgradVφ
+        simp_rw [heqV, gradient, hfderiv_V]
+        exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+          ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+            (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+            (hφ_smooth.continuous_fderiv (by simp)))
   have h_push_back :=
     vlasov_rhs_pushforward_back gradW charX charV f₀ t
       (h_flow_meas t) gradXφ gradVφ h_integrand_aesm
