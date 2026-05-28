@@ -581,47 +581,31 @@ lemma exists_vlasov_extend_one_window
     velocity bound) → Helper 3 (endpoint position bound).
 -/
 
-/-- **Helper 1: Picard window confinement.**
+/-- **Helper 1: Picard window confinement (projection from phase-space ball).**
 
 For a trajectory β satisfying the Vlasov ODE on a Picard window
 `[t_start, t_start + δ]` centered at `w`, the position component
 stays within the local force-bound ball:
 `(β s).1 ∈ closedBall w.1 (3a/2)` for `s` in the window.
 
-**Math sketch (supremum trick — method of continuity).**
+**Argument.**  The strengthened Picard-Lindelöf theorem
+`exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined`
+(`Vlasov.Mathlib.ODE.PicardLindelof`) exposes
+`FunSpace.compProj_mem_closedBall` at the public theorem level,
+delivering `β s ∈ closedBall w a` (phase-space ball of radius `a` —
+the outer Lipschitz radius) as a side product of the existence
+guarantee.  We project this to the position component via
+`Prod.dist_eq` + `le_max_left`, then loosen `a ≤ 3a/2` by arithmetic.
+The result is a 3-5 line projection.
 
-Define `g(s) := ‖β(s) - w‖` and `S := {s ∈ [t_start, t_start + δ] |
-g(s) ≤ L_pl · (s - t_start)}` where `L_pl := V_max + a + M`.  Note
-that the naive open-closed connectedness argument FAILS here: at a
-saturated point `s₀ ∈ S` (where `g(s₀) = L_pl · (s₀ - t_start)`),
-for `s < s₀` slightly less than `s₀`, continuity gives `g(s) ≈ g(s₀)`
-but the target `L_pl · (s - t_start) < L_pl · (s₀ - t_start)` is
-strictly smaller, so `g(s) ≤ L_pl · (s - t_start)` can fail.  The
-set S is closed but NOT open in `[t_start, t_start + δ]`.
-
-The correct argument is the supremum trick:
-
-  1. Let `s* := sup S`.  Well-defined: `t_start ∈ S` (since g(t_start)
-     = 0) and S ⊆ [t_start, t_start + δ].
-  2. `s* ∈ S` by closedness of S (Mathlib's `IsClosed.sSup_mem`).
-  3. `s* = t_start + δ` by contradiction: if `s* < t_start + δ`, then
-     `g(s*) ≤ L_pl · (s* - t_start) ≤ L_pl · δ ≤ a/2` (last from
-     Picard contraction `hδ_contract`).  So `β(s*) ∈ closedBall w (a/2)`,
-     hence `(β s*).1 ∈ closedBall w.1 (3a/2)`, so the field bound L_pl
-     applies at `β(s*)`.  By one-sided (right) mean-value on
-     `[s*, min(s* + ε, t_start + δ)]` for small ε > 0:
-     `g(s) - g(s*) ≤ L_pl · (s - s*)`.  Combined with `g(s*) ≤ L_pl · (s* - t_start)`:
-     `g(s) ≤ L_pl · (s - t_start)`, so `s ∈ S`.  Hence S contains points
-     strictly greater than `s*`, contradicting `s* = sup S`.
-  4. Therefore `s* = t_start + δ` and `S = [t_start, t_start + δ]`.
-
-**Status: deferred.**  The supremum-trick proof requires careful
-threading of Mathlib's `IsClosed.sSup_mem`, `IsLUB`, and one-sided
-mean-value APIs (~80-120 lines).  Path C of the plan was chosen:
-sorry the helper body with precisely-stated lemma + detailed strategy
-comment, then close in a focused follow-up.  Alternative closing path:
-modify `exists_vlasov_extend_one_window` to use `FunSpace` machinery
-directly and expose Mathlib's internal `compProj_mem_closedBall`. -/
+**Hypothesis `hβ_confined`** is supplied by Vlasov-side callers from
+the widened `exists_vlasov_extend_one_window` output (Stage 4 of the
+confinement-vendor refactor).  The other hypotheses (ODE, field
+bound, contraction inequality) are retained for genericity / call
+site compatibility; they are not consumed by the projection body but
+remain available for future call sites that want to re-derive the
+confinement directly (e.g. via supremum trick) without invoking
+the vendored Mathlib API. -/
 lemma vlasov_window_confinement
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -644,11 +628,19 @@ lemma vlasov_window_confinement
         (Set.Icc t_start (t_start + δ)) t ∧
       HasDerivWithinAt (fun s => (β s).2)
         (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
-        (Set.Icc t_start (t_start + δ)) t) :
+        (Set.Icc t_start (t_start + δ)) t)
+    (hβ_confined : ∀ s ∈ Set.Icc t_start (t_start + δ),
+      β s ∈ Metric.closedBall w (a : ℝ)) :
     ∀ s ∈ Set.Icc t_start (t_start + δ),
       (β s).1 ∈ Metric.closedBall w.1 (3 * (a : ℝ) / 2) := by
-  -- Supremum-trick proof per docstring.  Deferred: see status note above.
-  sorry
+  intro s hs
+  have h_phase : β s ∈ Metric.closedBall w (a : ℝ) := hβ_confined s hs
+  rw [Metric.mem_closedBall] at h_phase ⊢
+  -- dist (β s).1 w.1 ≤ dist (β s) w ≤ a ≤ 3a/2
+  have h_proj : dist (β s).1 w.1 ≤ dist (β s) w := by
+    rw [Prod.dist_eq]; exact le_max_left _ _
+  have h_a_nn : (0 : ℝ) ≤ (a : ℝ) := a.coe_nonneg
+  linarith
 
 /-- **Helper 2: Window-wide velocity bound.**
 
@@ -1114,19 +1106,12 @@ theorem exists_vlasov_characteristicFlow
         · rw [← hy_eq, h_γsucc_at_join, h_β_at_join]
         · exact h_γsucc_right y hy_lt
       -- ============================================================
-      -- LIFTED SHARED FACT: β stays in `closedBall (γ_k(k·δ)).1 (3a/2)`
-      -- throughout the window.  This is the chicken-and-egg of Phase 3 —
-      -- standard Picard guarantees the confinement (it's how the
-      -- contracting map is set up), but the public Mathlib API
-      -- `exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`
-      -- does NOT expose it (only the internal `FunSpace.mem_closedBall`
-      -- proves it).  To close this sub-sorry we need either:
-      --   - a refactor of `exists_vlasov_extend_one_window` to additionally
-      --     return the confinement (re-deriving from the public Picard via
-      --     a connectedness/continuity argument or Gronwall-style flow-
-      --     drift bound on the globally Lipschitz vector field), or
-      --   - a follow-up Mathlib PR that exposes the confinement publicly.
-      -- Closing this single helper discharges BOTH (s.7) substeps below.
+      -- SHARED FACT: β stays in `closedBall (γ_k(k·δ)).1 (3a/2)`
+      -- throughout the window.  Delivered by the strengthened
+      -- Picard-Lindelöf (`Vlasov.Mathlib.ODE.PicardLindelof`): the
+      -- widened `_extend_one_window` returns `hβ_confined`
+      -- (phase-space ball at radius `a`), which `vlasov_window_confinement`
+      -- projects to the position component at radius `3a/2`.
       -- ============================================================
       -- The two interval forms `Icc (k·δ) ((k+1)·δ)` and `Icc (k·δ) (k·δ + δ)`
       -- are equal in ℝ but not syntactically; convert via `h_kδ_succ_eq`.
@@ -1146,13 +1131,18 @@ theorem exists_vlasov_characteristicFlow
             (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
             (Set.Icc ((k : ℝ) * δ_uniform) ((k : ℝ) * δ_uniform + δ_uniform)) t := by
         rw [← h_sec_eq]; exact hβ_ode_Icc
+      -- Same δ' → δ_uniform interval conversion for `hβ_confined` from Stage 4.
+      have hβ_confined_unified : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform)
+                                      ((k : ℝ) * δ_uniform + δ_uniform),
+          β s ∈ Metric.closedBall (γ_k ((k : ℝ) * δ_uniform)) (a : ℝ) := by
+        rw [← h_sec_eq]; exact hβ_confined
       have h_β_in_ball_native : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform)
                                     ((k : ℝ) * δ_uniform + δ_uniform),
           (β s).1 ∈ Metric.closedBall (γ_k ((k : ℝ) * δ_uniform)).1 (3 * (a : ℝ) / 2) :=
         vlasov_window_confinement gradW L hL ρ h_int hρ_cont
           (γ_k ((k : ℝ) * δ_uniform)) a ha M V_max h_vel_Vmax
           ((k : ℝ) * δ_uniform) δ_uniform hδ_pos hδ_global_le_one hδ_global_le_ratio
-          hbound_local β hβ_init hβ_ode_Icc_unified
+          hbound_local β hβ_init hβ_ode_Icc_unified hβ_confined_unified
       have h_β_in_ball : ∀ s ∈ Set.Icc ((k : ℝ) * δ_uniform) (((k + 1 : ℕ) : ℝ) * δ_uniform),
           (β s).1 ∈ Metric.closedBall (γ_k ((k : ℝ) * δ_uniform)).1 (3 * (a : ℝ) / 2) := by
         intro s hs
