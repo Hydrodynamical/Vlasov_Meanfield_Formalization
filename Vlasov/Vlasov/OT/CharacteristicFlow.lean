@@ -2031,13 +2031,62 @@ lemma vlasov_pointwise_deriv_aestronglymeas
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
     (hconv_cont : ∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW (ρ s) x))
-    (t : ℝ) :
+    (t : ℝ)
+    (h_flow_meas_t : AEMeasurable
+      (fun z : PhaseSpace d => (charX t z, charV t z)) f₀) :
     AEStronglyMeasurable
       (fun z => @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
                 - @inner ℝ (PhysSpace d) _
                     (convolveFunctionMeasure gradW (ρ t) (charX t z))
                     (gradVφ (charX t z, charV t z))) f₀ := by
-  sorry
+  -- The integrand factors as g ∘ (fun z => (charX t z, charV t z)), where
+  -- g : PhaseSpace d → ℝ is the same continuous function as in the wrapper's
+  -- h_integrand_aesm (g y = ⟨y.2, gradXφ y⟩ - ⟨convolve y.1, gradVφ y⟩).
+  -- Step 1: establish that gradXφ and gradVφ are continuous (same argument as wrapper).
+  have hfderiv_X : ∀ z : PhaseSpace d,
+      fderiv ℝ (fun x => φ (x, z.2)) z.1 =
+      (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) :=
+    fun z => by
+      have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+        (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+      have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
+          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
+        hasFDerivAt_prodMk_left z.1 z.2
+      exact (h1.comp z.1 h2).fderiv
+  have heqX : gradXφ = fun z => gradient (fun x => φ (x, z.2)) z.1 := funext hgradXφ
+  have hfderiv_V : ∀ z : PhaseSpace d,
+      fderiv ℝ (fun v => φ (z.1, v)) z.2 =
+      (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) :=
+    fun z => by
+      have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+        (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+      have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
+          (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
+        hasFDerivAt_prodMk_right z.1 z.2
+      exact (h1.comp z.2 h2).fderiv
+  have heqV : gradVφ = fun z => gradient (fun v => φ (z.1, v)) z.2 := funext hgradVφ
+  -- Step 2: show that g : PhaseSpace d → ℝ is continuous.
+  have hg_cont : Continuous (fun y : PhaseSpace d =>
+      @inner ℝ (PhysSpace d) _ y.2 (gradXφ y)
+      - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) y.1) (gradVφ y)) := by
+    apply Continuous.sub
+    · apply Continuous.inner continuous_snd
+      simp_rw [heqX, gradient, hfderiv_X]
+      exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+        ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+          (hφ_smooth.continuous_fderiv (by simp)))
+    · apply Continuous.inner
+      · exact (hconv_cont t).comp continuous_fst
+      · simp_rw [heqV, gradient, hfderiv_V]
+        exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+          ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+            (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+            (hφ_smooth.continuous_fderiv (by simp)))
+  -- Step 3: the integrand equals g ∘ flow. Apply Continuous.comp_aestronglyMeasurable.
+  exact hg_cont.comp_aestronglyMeasurable h_flow_meas_t.aestronglyMeasurable
+
 
 /-- **SC.8: Dominated Lipschitz bound (the hard sub-helper).**
 
@@ -2156,7 +2205,7 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
     · exact vlasov_compose_flow_integrable_at charX charV f₀ φ
         hφ_cont hφ_compact t (h_flow_meas t)
     · exact vlasov_pointwise_deriv_aestronglymeas gradW ρ charX charV f₀
-        φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ hconv_cont t
+        φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ hconv_cont t (h_flow_meas t)
   have h_under_integral :=
     vlasov_pushforward_hasDerivAt_under_integral gradW ρ charX charV f₀
       φ gradXφ gradVφ t h_pointwise h_diff_data
