@@ -2004,11 +2004,14 @@ lemma vlasov_compose_flow_integrable_at
     (φ : PhaseSpace d → ℝ)
     (hφ_cont : Continuous φ)
     (hφ_compact : HasCompactSupport φ)
+    (t : ℝ)
     (h_flow_meas_t : AEMeasurable
-      (fun z : PhaseSpace d => (charX t z, charV t z)) f₀)
-    (t : ℝ) :
+      (fun z : PhaseSpace d => (charX t z, charV t z)) f₀) :
     Integrable (fun z => φ (charX t z, charV t z)) f₀ := by
-  sorry
+  obtain ⟨C, hC⟩ := hφ_cont.bounded_above_of_compact_support hφ_compact
+  exact Integrable.of_bound
+    (hφ_cont.comp_aestronglyMeasurable h_flow_meas_t.aestronglyMeasurable)
+    C (Filter.Eventually.of_forall (fun z => hC _))
 
 /-- **SC.7: AE-strong-measurability of the pointwise derivative.**
 
@@ -2151,7 +2154,7 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
     · exact vlasov_compose_flow_aestronglymeas charX charV f₀ φ
         hφ_cont h_flow_meas t
     · exact vlasov_compose_flow_integrable_at charX charV f₀ φ
-        hφ_cont hφ_compact (h_flow_meas t) t
+        hφ_cont hφ_compact t (h_flow_meas t)
     · exact vlasov_pointwise_deriv_aestronglymeas gradW ρ charX charV f₀
         φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ hconv_cont t
   have h_under_integral :=
