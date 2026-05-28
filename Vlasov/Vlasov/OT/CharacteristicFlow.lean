@@ -31,6 +31,7 @@ See `formalize/DESIGN.md` for the overall design.
 -/
 
 import Vlasov.Basic
+import Vlasov.Mathlib.ODE.PicardLindelof
 import Vlasov.OT.Coupling
 
 namespace Vlasov
@@ -444,7 +445,8 @@ lemma exists_vlasov_extend_one_window
           (Set.Icc t_start (t_start + δ)) t ∧
         HasDerivWithinAt (fun s => (β s).2)
           (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
-          (Set.Icc t_start (t_start + δ)) t) := by
+          (Set.Icc t_start (t_start + δ)) t) ∧
+      (∀ s ∈ Set.Icc t_start (t_start + δ), β s ∈ Metric.closedBall w (a : ℝ)) := by
   classical
   set K_pl : NNReal := max 1 L with hK_pl_def
   set r_pl : NNReal := a / 2 with hr_pl_def
@@ -520,12 +522,12 @@ lemma exists_vlasov_extend_one_window
               mul_le_mul_of_nonneg_right h_frac_le h_a_nn
           _ = (a : ℝ) / 2 := one_mul _
       linarith [h_step, h_rewrite ▸ h_step, h_bound]
-  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
+  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined
   have hw_in_r : w ∈ Metric.closedBall w ((r_pl : ℝ)) := by
     rw [Metric.mem_closedBall, dist_self]
     exact r_pl.coe_nonneg
   have hα_w := hα w hw_in_r
-  refine ⟨δ, hδ_pos, fun t => α w t, ?_, ?_, ?_, ?_⟩
+  refine ⟨δ, hδ_pos, fun t => α w t, ?_, ?_, ?_, ?_, ?_⟩
   · rfl
   · have h_init : α w (t₀ : ℝ) = w := hα_w.1
     have ht₀_eq : (t₀ : ℝ) = t_start := rfl
@@ -534,7 +536,7 @@ lemma exists_vlasov_extend_one_window
   · intro t ht
     have h_t_Icc : t ∈ Set.Icc t_start (t_start + δ) :=
       ⟨le_of_lt ht.1, le_of_lt ht.2⟩
-    have h_dw := hα_w.2 t h_t_Icc
+    have h_dw := hα_w.2.1 t h_t_Icc
     have h_icc_nhds : Set.Icc t_start (t_start + δ) ∈ nhds t := Icc_mem_nhds ht.1 ht.2
     have h_d : HasDerivAt (α w) (vlasovVectorField gradW ρ t (α w t)) t :=
       h_dw.hasDerivAt h_icc_nhds
@@ -548,7 +550,7 @@ lemma exists_vlasov_extend_one_window
         (hasFDerivAt_snd (E := PhysSpace d) (F := PhysSpace d)).comp_hasDerivAt t h_d
       simpa [vlasovVectorField] using h_proj
   · intro t ht
-    have h_dw := hα_w.2 t ht
+    have h_dw := hα_w.2.1 t ht
     refine ⟨?_, ?_⟩
     · have h_proj : HasDerivWithinAt (fun s => (α w s).1)
           (vlasovVectorField gradW ρ t (α w t)).1
@@ -560,6 +562,9 @@ lemma exists_vlasov_extend_one_window
           (Set.Icc t_start (t_start + δ)) t :=
         (hasFDerivAt_snd (E := PhysSpace d) (F := PhysSpace d)).comp_hasDerivWithinAt t h_dw
       simpa [vlasovVectorField] using h_proj
+  · -- confinement: β s ∈ closedBall w a (delivered by `_confined` variant)
+    intro s hs
+    exact hα_w.2.2 s hs
 
 /-! ### Per-window helpers for the N-window induction in
     `exists_vlasov_characteristicFlow`.
@@ -1069,7 +1074,11 @@ theorem exists_vlasov_characteristicFlow
           linarith [h_pos_chain]
         exact hbound t h_t_in_global x h_x_in_R
       -- (s.3) Apply `exists_vlasov_extend_one_window` at center γ_k(k·δ).
-      obtain ⟨δ', hδ'_pos, β, hδ'_eq, hβ_init, hβ_ode_Ioo, hβ_ode_Icc⟩ :=
+      -- The widened output now includes `hβ_confined` (phase-space ball
+      -- confinement), delivered by the strengthened Picard-Lindelöf in
+      -- `Vlasov.Mathlib.ODE.PicardLindelof`.  Stage 5 will project this
+      -- through `vlasov_window_confinement` to discharge `h_β_in_ball`.
+      obtain ⟨δ', hδ'_pos, β, hδ'_eq, hβ_init, hβ_ode_Ioo, hβ_ode_Icc, hβ_confined⟩ :=
         exists_vlasov_extend_one_window gradW L hL ρ h_int hρ_cont
           (γ_k ((k : ℝ) * δ_uniform)) a ha M V_max h_vel_Vmax
           ((k : ℝ) * δ_uniform) hbound_local
