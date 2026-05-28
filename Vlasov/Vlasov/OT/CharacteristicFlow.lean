@@ -1952,6 +1952,124 @@ lemma vlasov_rhs_pushforward_back
   unfold vlasovSolutionViaPushforward at h_integrand_aesm ⊢
   exact (integral_map h_meas h_integrand_aesm).symm
 
+/-! ## Stage C bundle sub-helpers (SC.5 – SC.8)
+
+Per the `clear-picture-now-the-starry-sparrow` plan, the
+`DiffUnderIntegralData` bundle inside Stage C's wrapper is decomposed
+into four named regularity sub-helpers:
+
+  * **SC.5** `vlasov_compose_flow_aestronglymeas` — eventual
+    AE-strong-measurability of `φ ∘ flow_s` near `t`.
+  * **SC.6** `vlasov_compose_flow_integrable_at` — integrability of
+    `φ ∘ flow_t` against `f₀` (uses `HasCompactSupport φ`).
+  * **SC.7** `vlasov_pointwise_deriv_aestronglymeas` — AE-strong-
+    measurability of the chain-rule pointwise derivative (same shape
+    as the wrapper's `h_integrand_aesm` proof).
+  * **SC.8** `vlasov_trajectory_lipschitz_bound` — the HARD one: the
+    dominated Lipschitz bound on `s ↦ φ(charX s z, charV s z)` with an
+    `f₀`-integrable Lipschitz coefficient.  Genuinely requires a
+    uniform velocity bound on `nhd × (flow_t)⁻¹(supp φ)`.
+
+SC.5/6/7 are intended to be closable by sorry-prover; SC.8 is the
+single named regularity gap pending future work. -/
+
+/-- **SC.5: AE-strong-measurability of `φ ∘ flow_s` for s near t.**
+
+The composition `z ↦ φ (charX s' z, charV s' z)` is AE-strongly-
+measurable wrt `f₀` for every `s'`, in particular for `s'` in any
+neighborhood of `t`.  Uses continuity of `φ` plus
+`h_flow_meas`'s AE-measurability of the flow pair. -/
+lemma vlasov_compose_flow_aestronglymeas
+    {d : ℕ} [NeZero d]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (φ : PhaseSpace d → ℝ) (hφ_cont : Continuous φ)
+    (h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (t : ℝ) :
+    ∀ᶠ s' in nhds t, AEStronglyMeasurable
+      (fun z => φ (charX s' z, charV s' z)) f₀ := by
+  sorry
+
+/-- **SC.6: Integrability of `φ ∘ flow_t` against `f₀`.**
+
+`HasCompactSupport φ` + `Continuous φ` give boundedness; combined with
+`[IsProbabilityMeasure f₀]` this yields integrability. -/
+lemma vlasov_compose_flow_integrable_at
+    {d : ℕ} [NeZero d]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (φ : PhaseSpace d → ℝ)
+    (hφ_cont : Continuous φ)
+    (hφ_compact : HasCompactSupport φ)
+    (h_flow_meas_t : AEMeasurable
+      (fun z : PhaseSpace d => (charX t z, charV t z)) f₀)
+    (t : ℝ) :
+    Integrable (fun z => φ (charX t z, charV t z)) f₀ := by
+  sorry
+
+/-- **SC.7: AE-strong-measurability of the pointwise derivative.**
+
+The chain-rule pointwise derivative integrand
+`⟨charV t z, gradXφ(flow_t z)⟩ - ⟨convolve_t(charX t z), gradVφ(flow_t z)⟩`
+is AE-strongly-measurable wrt `f₀`.  Same continuity argument as the
+wrapper's `h_integrand_aesm` proof. -/
+lemma vlasov_pointwise_deriv_aestronglymeas
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d))
+    (φ : PhaseSpace d → ℝ) (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW (ρ s) x))
+    (t : ℝ) :
+    AEStronglyMeasurable
+      (fun z => @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+                - @inner ℝ (PhysSpace d) _
+                    (convolveFunctionMeasure gradW (ρ t) (charX t z))
+                    (gradVφ (charX t z, charV t z))) f₀ := by
+  sorry
+
+/-- **SC.8: Dominated Lipschitz bound (the hard sub-helper).**
+
+The bundled existential: a neighborhood `nhd` of `t` plus a per-z
+Lipschitz coefficient `bound z` such that
+`s ↦ φ(charX s z, charV s z)` is `Real.nnabs (bound z)`-Lipschitz on
+`nhd` for ae-z, with `bound` `f₀`-integrable.
+
+**Status: sorry'd.**  Closing this helper requires a uniform-in-(s, z)
+bound on the trajectory speed `(charV s z, V̇(s, z))` on
+`nhd × (flow_t)⁻¹(supp φ)`.  Standard approach: compact image of flow
+under continuous map + uniform-in-s bound on the convolution.  May
+require widening with an `h_speed_bound` hypothesis at the wrapper
+level (deferred per the plan).
+
+In-project consumer: the Stage C wrapper's `h_diff_data` compose step. -/
+lemma vlasov_trajectory_lipschitz_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_compact : HasCompactSupport φ)
+    (hflow : IsCharacteristicFlow gradW ρ charX charV)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW (ρ s) x))
+    (t : ℝ) :
+    ∃ (nhd : Set ℝ) (bound : PhaseSpace d → ℝ),
+      nhd ∈ nhds t ∧
+      (∀ᵐ z ∂f₀, LipschitzOnWith (Real.nnabs (bound z))
+        (fun s' => φ (charX s' z, charV s' z)) nhd) ∧
+      Integrable bound f₀ := by
+  sorry
+
 /-- The Lagrangian → Eulerian equivalence: the pushforward of `f₀`
 under a characteristic flow satisfies the weak Vlasov equation.
 
@@ -1976,7 +2094,7 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
-    (f₀ : Measure (PhaseSpace d))
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hflow : IsCharacteristicFlow gradW
               (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
               charX charV)
@@ -2011,18 +2129,29 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
   have h_pointwise := fun z =>
     vlasov_traj_chain_rule gradW ρ charX charV φ hφ_smooth
       gradXφ gradVφ hgradXφ hgradVφ hflow.2.1 hflow.2.2 t z
-  -- SC.3: lift to differentiation-under-integral.  Requires the dominated
-  -- bundle data — neighborhood, integrability, AE-strong-measurability of
-  -- both the integrand at `t` and the pointwise derivative, plus the
-  -- dominated Lipschitz bound on `s ↦ φ(charX s z, charV s z)` with an
-  -- f₀-integrable Lipschitz coefficient.  This data is the structural-
-  -- boundary point of the Stage C decomposition: producing it requires
-  -- uniform-in-z control on the flow speed on the support of φ, which
-  -- the eventual `vlasovWellPosedness` caller will derive from Picard-
-  -- Lindelof local-flow boundedness + `HasCompactSupport φ`.  Sorry'd as
-  -- a single bundled sub-sorry pending that upstream regularity layer.
+  -- SC.3: lift to differentiation-under-integral.  The `DiffUnderIntegralData`
+  -- bundle is composed from the four named sub-helpers SC.5–SC.8 (defined
+  -- just above the wrapper):
+  --   * SC.5 supplies AE-strong-measurability of `φ ∘ flow_s` near t.
+  --   * SC.6 supplies integrability of `φ ∘ flow_t` against f₀.
+  --   * SC.7 supplies AE-strong-measurability of the pointwise derivative.
+  --   * SC.8 supplies the dominated Lipschitz bound + integrable coefficient,
+  --     plus the witness `nhd` and `bound` data.
+  -- Only SC.8 remains as a named regularity gap pending future work.
   have h_diff_data : DiffUnderIntegralData gradW ρ charX charV f₀
-      φ gradXφ gradVφ t := by sorry
+      φ gradXφ gradVφ t := by
+    -- Extract the hard sub-bundle from SC.8.
+    obtain ⟨nhd, bound, hnhd, h_lipsch, h_bound_int⟩ :=
+      vlasov_trajectory_lipschitz_bound gradW ρ charX charV f₀ φ
+        hφ_smooth hφ_compact hflow hgradW_cont hconv_cont t
+    -- Assemble: ⟨nhd, bound, hnhd, hF_meas, hF_int, hF'_meas, h_lipsch, h_bound_int⟩.
+    refine ⟨nhd, bound, hnhd, ?_, ?_, ?_, h_lipsch, h_bound_int⟩
+    · exact vlasov_compose_flow_aestronglymeas charX charV f₀ φ
+        hφ_cont h_flow_meas t
+    · exact vlasov_compose_flow_integrable_at charX charV f₀ φ
+        hφ_cont hφ_compact (h_flow_meas t) t
+    · exact vlasov_pointwise_deriv_aestronglymeas gradW ρ charX charV f₀
+        φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ hconv_cont t
   have h_under_integral :=
     vlasov_pushforward_hasDerivAt_under_integral gradW ρ charX charV f₀
       φ gradXφ gradVφ t h_pointwise h_diff_data
