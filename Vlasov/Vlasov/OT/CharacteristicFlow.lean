@@ -1989,7 +1989,9 @@ lemma vlasov_compose_flow_aestronglymeas
     (t : ℝ) :
     ∀ᶠ s' in nhds t, AEStronglyMeasurable
       (fun z => φ (charX s' z, charV s' z)) f₀ := by
-  sorry
+  apply Filter.Eventually.of_forall
+  intro s'
+  exact hφ_cont.comp_aestronglyMeasurable (h_flow_meas s').aestronglyMeasurable
 
 /-- **SC.6: Integrability of `φ ∘ flow_t` against `f₀`.**
 
