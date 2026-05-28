@@ -1300,7 +1300,8 @@ lemma w1_lscNarrow_of_summands
           (fun t => ENNReal.ofReal (∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)))
           (Set.Icc 0 T)) :
     LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  sorry
+  unfold wasserstein1
+  exact lowerSemicontinuousOn_biSup (fun φ hφ => h_summands φ hφ)
 
 -- Mathlib gap A: W₁ is lower semicontinuous under narrow convergence of measure curves.
 -- Requires KR duality for non-compactly-supported Lipschitz test functions;
