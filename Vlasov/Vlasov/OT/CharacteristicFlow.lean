@@ -106,6 +106,155 @@ lemma convolveFunctionMeasure_lipschitz_in_x
     _ = (L : ℝ) * ‖x - x'‖ := by
         simp [integral_const, measureReal_def, measure_univ]
 
+/-! ## Stage A.2 — Flow distance growth bound (Gronwall on the characteristic ODE)
+
+A standalone regularity theorem about `IsCharacteristicFlow`: solutions of
+the characteristic ODE have at most linear growth in their initial condition,
+with a constant depending on `T`, the Lipschitz constant of `gradW`, and a
+uniform first-moment bound on the measure curve `ρ`.
+
+**The common auxiliary** identified by the session's structural-failure
+datapoints (SC.8 and H1_lag both reduce to this bound).  Math content:
+Gronwall on the position-velocity pair, using
+  `‖(∇W ∗ ρ_t)(x)‖ ≤ ‖gradW 0‖ + L · (‖x‖ + ∫‖y‖dρ_t)`
+as the velocity-field bound. -/
+
+/-- **Flow distance growth bound** (`L`-Lipschitz `gradW`, uniform first moment
+on `ρ`).  Solutions of the characteristic ODE grow at most linearly in their
+initial condition: `‖(charX t z, charV t z)‖ ≤ C_T · (‖z‖ + 1)` for some
+`C_T` depending only on `T`, `L`, `‖gradW 0‖`, and the uniform first-moment
+bound `M_ρ`. -/
+theorem flow_distance_growth_bound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlow gradW ρ charX charV)
+    (T : ℝ) (hT : 0 ≤ T)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc 0 T, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
+    (h_y_int : ∀ t ∈ Set.Icc 0 T, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t))
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t)) :
+    ∃ C_T, 0 ≤ C_T ∧
+      ∀ t ∈ Set.Icc 0 T, ∀ z : PhaseSpace d,
+        ‖(charX t z, charV t z)‖ ≤ C_T * (‖z‖ + 1) := by
+  obtain ⟨hflow_init, hflow_x, hflow_v⟩ := hflow
+  -- Gronwall parameters: K = 1 + L, ε₀ = ‖gradW 0‖ + L * M_ρ
+  set K := 1 + (L : ℝ) with hK_def
+  set ε₀ := ‖gradW 0‖ + (L : ℝ) * M_ρ with hε₀_def
+  have hK_pos : 0 < K := by positivity
+  have hε₀_nn : 0 ≤ ε₀ := by positivity
+  -- Witness: C_T = gronwallBound 1 K ε₀ T
+  use gronwallBound 1 K ε₀ T
+  refine ⟨?_, ?_⟩
+  · -- C_T ≥ 0: since gronwallBound 1 K ε₀ 0 = 1 and it's monotone
+    have hmono := gronwallBound_mono (by norm_num : (0:ℝ) ≤ 1) hε₀_nn hK_pos.le hT
+    linarith [gronwallBound_x0 1 K ε₀]
+  · intro t ht z
+    -- Convolution bound: ‖(∇W ∗ ρ_t)(x)‖ ≤ ε₀ + L * ‖x‖
+    have h_conv_bound : ∀ s ∈ Set.Icc 0 T, ∀ x : PhysSpace d,
+        ‖convolveFunctionMeasure gradW (ρ s) x‖ ≤ ε₀ + (L : ℝ) * ‖x‖ := by
+      intro s hs x
+      unfold convolveFunctionMeasure
+      -- Integrability of ‖x - y‖ via h_y_int and triangle
+      have h_sub_int : Integrable (fun y => ‖x - y‖) (ρ s) :=
+        Integrable.mono' ((integrable_const ‖x‖).add (h_y_int s hs))
+          ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
+          (Filter.Eventually.of_forall fun y => by
+            simp only [Real.norm_of_nonneg (norm_nonneg _)]
+            exact norm_sub_le x y)
+      -- Integrability of the bound function
+      have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
+        (integrable_const _).add (h_sub_int.const_mul _)
+      -- Pointwise bound: ‖gradW(x-y)‖ ≤ ‖gradW 0‖ + L*‖x-y‖
+      have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+        intro y
+        have hd := hL.dist_le_mul (x - y) 0
+        simp only [dist_eq_norm, sub_zero] at hd
+        have h_tri : ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x - y) - gradW 0‖ := by
+          have := norm_add_le (gradW (x - y) - gradW 0) (gradW 0)
+          simp only [sub_add_cancel] at this; linarith
+        linarith
+      -- ‖∫ y, gradW(x - y) dρ_s‖ ≤ ∫ ‖gradW(x - y)‖ dρ_s ≤ ...
+      calc ‖∫ y, gradW (x - y) ∂(ρ s)‖
+          ≤ ∫ y, ‖gradW (x - y)‖ ∂(ρ s) := norm_integral_le_integral_norm _
+        _ ≤ ∫ y, (‖gradW 0‖ + (L : ℝ) * ‖x - y‖) ∂(ρ s) :=
+            integral_mono (h_int s x).norm h_bnd_int (fun y => h_pt y)
+        _ = ‖gradW 0‖ + (L : ℝ) * ∫ y, ‖x - y‖ ∂(ρ s) := by
+            rw [integral_add (integrable_const _) (h_sub_int.const_mul _)]
+            simp [integral_const, measureReal_def, measure_univ,
+                  integral_const_mul]
+        _ ≤ ε₀ + (L : ℝ) * ‖x‖ := by
+            have h_int_le : ∫ y, ‖x - y‖ ∂(ρ s) ≤ ‖x‖ + M_ρ := by
+              calc ∫ y, ‖x - y‖ ∂(ρ s)
+                  ≤ ∫ y, (‖x‖ + ‖y‖) ∂(ρ s) :=
+                    integral_mono h_sub_int ((integrable_const _).add (h_y_int s hs))
+                      (fun y => norm_sub_le x y)
+                _ = ‖x‖ + ∫ y, ‖y‖ ∂(ρ s) := by
+                    rw [integral_add (integrable_const _) (h_y_int s hs)]
+                    simp [integral_const, measureReal_def, measure_univ]
+                _ ≤ ‖x‖ + M_ρ := by linarith [hM_ρ s hs]
+            simp only [hε₀_def]
+            linarith [mul_le_mul_of_nonneg_left h_int_le (NNReal.coe_nonneg L)]
+    -- Gronwall: apply norm_le_gronwallBound_of_norm_deriv_right_le
+    -- f(s) = (charX s z, charV s z), f'(s) = (charV s z, -conv at charX s z)
+    have h_f_cont : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc 0 T) :=
+      continuousOn_of_forall_continuousAt fun s _ =>
+        (hflow_x s z).continuousAt.prodMk (hflow_v s z).continuousAt
+    have h_deriv : ∀ s ∈ Set.Ico 0 T,
+        HasDerivWithinAt (fun s => (charX s z, charV s z))
+          (charV s z, -convolveFunctionMeasure gradW (ρ s) (charX s z)) (Set.Ici s) s :=
+      fun s _ => ((hflow_x s z).prodMk (hflow_v s z)).hasDerivWithinAt
+    have h_init : ‖(charX 0 z, charV 0 z)‖ ≤ ‖z‖ := by
+      obtain ⟨hx0, hv0⟩ := hflow_init z
+      simp [hx0, hv0, Prod.norm_def]
+    have h_bound : ∀ s ∈ Set.Ico 0 T,
+        ‖(charV s z, -convolveFunctionMeasure gradW (ρ s) (charX s z))‖ ≤
+          K * ‖(charX s z, charV s z)‖ + ε₀ := by
+      intro s hs
+      have hs_mem : s ∈ Set.Icc 0 T := ⟨hs.1, le_of_lt hs.2⟩
+      simp only [Prod.norm_def, norm_neg]
+      have hFsz := le_max_left ‖charX s z‖ ‖charV s z‖
+      have hGsz := le_max_right ‖charX s z‖ ‖charV s z‖
+      have hM_nn : 0 ≤ max ‖charX s z‖ ‖charV s z‖ :=
+        le_max_iff.mpr (Or.inl (norm_nonneg _))
+      -- ‖charV s z‖ ≤ K * ‖f s‖ + ε₀
+      have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
+        calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
+          _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
+              le_mul_of_one_le_left hM_nn (by linarith)
+          _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ := le_add_of_nonneg_right hε₀_nn
+      -- ‖conv‖ ≤ K * ‖f s‖ + ε₀
+      have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
+          K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
+        calc ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖
+            ≤ ε₀ + (L : ℝ) * ‖charX s z‖ := h_conv_bound s hs_mem _
+          _ ≤ ε₀ + K * max ‖charX s z‖ ‖charV s z‖ := by
+              have hLK : (L : ℝ) ≤ K := le_add_of_nonneg_left zero_le_one
+              linarith [mul_le_mul_of_nonneg_left hFsz (NNReal.coe_nonneg L),
+                        mul_le_mul_of_nonneg_right hLK hM_nn]
+          _ = K * max ‖charX s z‖ ‖charV s z‖ + ε₀ := by ring
+      exact max_le h_v_le h_conv_le
+    -- Apply Gronwall
+    have h_grw := norm_le_gronwallBound_of_norm_deriv_right_le
+      h_f_cont h_deriv h_init h_bound t ht
+    simp only [sub_zero] at h_grw
+    -- gronwallBound ‖z‖ K ε₀ t ≤ gronwallBound 1 K ε₀ T * (‖z‖ + 1)
+    calc ‖(charX t z, charV t z)‖
+        ≤ gronwallBound ‖z‖ K ε₀ t := h_grw
+      _ ≤ gronwallBound ‖z‖ K ε₀ T :=
+          gronwallBound_mono (norm_nonneg _) hε₀_nn hK_pos.le ht.2
+      _ ≤ gronwallBound 1 K ε₀ T * (‖z‖ + 1) := by
+          rw [gronwallBound_of_K_ne_0 hK_pos.ne', gronwallBound_of_K_ne_0 hK_pos.ne']
+          simp only [one_mul]
+          have he1 : 0 ≤ Real.exp (K * T) - 1 :=
+            by linarith [Real.one_le_exp (mul_nonneg hK_pos.le hT)]
+          have hεK := div_nonneg hε₀_nn hK_pos.le
+          nlinarith [norm_nonneg z, Real.exp_nonneg (K * T),
+            mul_nonneg hεK he1, mul_nonneg (norm_nonneg z) (mul_nonneg hεK he1)]
+
 /-! ## Stage B — Characteristic flow existence (Picard-Lindelöf wrapper)
 
 This stage wraps Mathlib's parametric Picard-Lindelöf theorem to
