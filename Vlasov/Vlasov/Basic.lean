@@ -1120,6 +1120,43 @@ lemma wasserstein1_le_moments_sum
           integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
   linarith
 
+/-- **Mathlib-TODO: completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.**
+
+A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit
+in `𝒫_1`.  The proof routes through Prokhorov + tightness from the moment
+bound + narrow-to-W₁ upgrade under moment control.  Mathlib's
+narrow-tightness machinery for Polish spaces is not stable at time of
+writing; lifted to a placeholder until upstream catches up.
+
+**Used by**: Stage 4 of the well-posedness plan to lift the Picard
+iteration's Cauchy sequence (derived from the `Phi_supW1_contraction`
+contraction estimate) to a W₁-limit in the curve space.  The resulting
+limit is a fixed point of the Picard iteration, which yields a
+self-consistent characteristic flow + Vlasov solution on `[0, T₀]`.
+
+**Architectural rationale** (per plan's Stage 4 decision): treating this
+as a named placeholder is consistent with the project's strategic
+discipline.  The four existing `MathlibTODO_*` placeholders made the same
+trade — known-doable Mathlib-OT gap, deferred to a separate focused
+session, with the API in place so downstream consumers compose cleanly.
+Closure routes through Prokhorov + narrow-tightness for Polish spaces;
+substantial Mathlib-OT effort, treated as separate from the project's
+critical-path closure.
+
+**Sorry-count impact**: +1 (placeholder body) — planned per the plan's
+Stage 4 sorry-count trajectory `5 → 6`. -/
+theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
+    (ν : ℕ → Measure (PhysSpace d)) [∀ n, IsProbabilityMeasure (ν n)]
+    (M : ℝ) (hMom : ∀ n, ∫ y, ‖y‖ ∂(ν n) ≤ M)
+    (h_yint : ∀ n, Integrable (fun y : PhysSpace d => ‖y‖) (ν n))
+    (hCauchy : ∀ ε > 0, ∃ N, ∀ m n, N ≤ m → N ≤ n →
+                 (wasserstein1 (ν m) (ν n)).toReal < ε) :
+    ∃ μ : Measure (PhysSpace d), IsProbabilityMeasure μ ∧
+      Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
+      Filter.Tendsto (fun n => (wasserstein1 (ν n) μ).toReal)
+        Filter.atTop (nhds 0) := by
+  sorry
+
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/dobrushin.json`. -/
 
