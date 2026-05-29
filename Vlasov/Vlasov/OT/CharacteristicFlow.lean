@@ -3829,6 +3829,165 @@ theorem charFlow_measurable_via_gronwall
     rwa [dist_comm] at h_chain
   exact h_cont_z.measurable
 
+/-- **Stage 3 sub-piece: pointwise Gronwall on flow difference.**
+
+Given two characteristic flow trajectories `γ_ρ, γ_σ : ℝ → PhaseSpace d`
+starting at the same initial condition `z`, driven by *different* measure
+curves `ρ, σ` with `supW1On(Icc 0 T) ρ σ ≤ D`, the pointwise difference
+satisfies a Gronwall-type bound:
+`‖γ_ρ(t) - γ_σ(t)‖ ≤ gronwallBound 0 K (L · D) t`
+where `K := max(1, L)`.
+
+**Proof strategy** (Gronwall on the trajectory-difference function):
+* Set `f(s) := γ_ρ(s) - γ_σ(s)`.  Then `f(0) = 0` (both start at `z`).
+* `f'(s) = vlasovVectorField gradW ρ s (γ_ρ s) − vlasovVectorField gradW σ s (γ_σ s)`.
+* Split via triangle:
+  `f'(s) = [VF_ρ γ_ρ − VF_ρ γ_σ]  +  [VF_ρ γ_σ − VF_σ γ_σ]`
+* First bracket bounded by `K · ‖γ_ρ - γ_σ‖ = K · ‖f s‖` via
+  `vlasovVectorField_lipschitzWith`.
+* Second bracket: the velocity components cancel (`VF`'s first component is
+  `z.2`, identical in both); only the force components differ.  Bounded by
+  `L · W₁(ρ_s, σ_s).toReal ≤ L · D` via `MathlibTODO_convolveLipschitzEstimate`.
+* Apply `norm_le_gronwallBound_of_norm_deriv_right_le` with `δ := 0`,
+  `K := max(1, L)`, `ε := L · D`.
+
+**Boundary regularity** identical to `charFlow_measurable_via_gronwall`:
+`ContinuousOn (Icc 0 T)` + `HasDerivWithinAt` on `Ico 0 T` for each
+trajectory.  Stage 4's Picard construction discharges these hypotheses.
+
+Used by Stage 3's main contraction lemma (next commit) to bound
+`supW1On(Icc 0 T)(Phi ρ)(Phi σ)` by `K_contract(T) · supW1On(Icc 0 T) ρ σ`
+where `K_contract(T) := (L/K) · (exp(K·T) - 1) → 0` as `T → 0`. -/
+theorem flow_difference_gronwall_bound {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)] [∀ t, IsProbabilityMeasure (σ t)]
+    (h_int_ρ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (h_int_σ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (σ t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (D : ℝ) (hD_nn : 0 ≤ D)
+    (h_W1_fin : ∀ s ∈ Set.Icc (0 : ℝ) T, wasserstein1 (ρ s) (σ s) ≠ ⊤)
+    (h_W1_bound : ∀ s ∈ Set.Icc (0 : ℝ) T, (wasserstein1 (ρ s) (σ s)).toReal ≤ D)
+    (γ_ρ γ_σ : ℝ → PhaseSpace d)
+    (z : PhaseSpace d)
+    (h_init_ρ : γ_ρ 0 = z) (h_init_σ : γ_σ 0 = z)
+    (h_cont_ρ : ContinuousOn γ_ρ (Set.Icc (0 : ℝ) T))
+    (h_cont_σ : ContinuousOn γ_σ (Set.Icc (0 : ℝ) T))
+    (h_deriv_ρ : ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt γ_ρ (vlasovVectorField gradW ρ s (γ_ρ s)) (Set.Ici s) s)
+    (h_deriv_σ : ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt γ_σ (vlasovVectorField gradW σ s (γ_σ s)) (Set.Ici s) s) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ‖γ_ρ t - γ_σ t‖ ≤
+        gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * D) t := by
+  -- ============================================================
+  -- Setup: K = max(1, L), f(s) = γ_ρ(s) - γ_σ(s).
+  -- ============================================================
+  set K_NN : NNReal := max 1 L with hK_NN_def
+  set K_lip : ℝ := (K_NN : ℝ) with hK_lip_def
+  have hK_NN_eq : K_lip = ((max 1 L : NNReal) : ℝ) := rfl
+  set f : ℝ → PhaseSpace d := fun s => γ_ρ s - γ_σ s with hf_def
+  set f' : ℝ → PhaseSpace d := fun s =>
+    vlasovVectorField gradW ρ s (γ_ρ s) - vlasovVectorField gradW σ s (γ_σ s)
+    with hf'_def
+  -- ============================================================
+  -- Continuity + right-derivative of f on the relevant intervals.
+  -- ============================================================
+  have h_f_cont : ContinuousOn f (Set.Icc (0 : ℝ) T) := h_cont_ρ.sub h_cont_σ
+  have h_f_deriv : ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt f (f' s) (Set.Ici s) s := fun s hs =>
+    (h_deriv_ρ s hs).sub (h_deriv_σ s hs)
+  -- ============================================================
+  -- Initial: ‖f 0‖ = 0.
+  -- ============================================================
+  have h_f0 : ‖f 0‖ ≤ 0 := by
+    show ‖γ_ρ 0 - γ_σ 0‖ ≤ 0
+    rw [h_init_ρ, h_init_σ, sub_self, norm_zero]
+  -- ============================================================
+  -- Differential bound: ‖f'(s)‖ ≤ K_lip · ‖f(s)‖ + L · D for s ∈ Ico 0 T.
+  -- ============================================================
+  have h_f'_bound : ∀ s ∈ Set.Ico (0 : ℝ) T,
+      ‖f' s‖ ≤ K_lip * ‖f s‖ + (L : ℝ) * D := by
+    intro s hs
+    -- s ∈ Icc 0 T from s ∈ Ico 0 T
+    have hs_Icc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, le_of_lt hs.2⟩
+    -- ============================================================
+    -- Triangle split: f'(s) = [VF_ρ γ_ρ − VF_ρ γ_σ] + [VF_ρ γ_σ − VF_σ γ_σ]
+    -- ============================================================
+    have h_split : f' s =
+        (vlasovVectorField gradW ρ s (γ_ρ s) -
+         vlasovVectorField gradW ρ s (γ_σ s)) +
+        (vlasovVectorField gradW ρ s (γ_σ s) -
+         vlasovVectorField gradW σ s (γ_σ s)) := by
+      simp only [hf'_def]; abel
+    have h_tri : ‖f' s‖ ≤
+        ‖vlasovVectorField gradW ρ s (γ_ρ s) - vlasovVectorField gradW ρ s (γ_σ s)‖ +
+        ‖vlasovVectorField gradW ρ s (γ_σ s) - vlasovVectorField gradW σ s (γ_σ s)‖ := by
+      rw [h_split]; exact norm_add_le _ _
+    -- ============================================================
+    -- First bracket: ‖VF_ρ γ_ρ − VF_ρ γ_σ‖ ≤ K_lip · ‖γ_ρ - γ_σ‖.
+    -- ============================================================
+    have h_vf_lip := vlasovVectorField_lipschitzWith gradW L hL ρ h_int_ρ s
+    have h_first : ‖vlasovVectorField gradW ρ s (γ_ρ s) -
+                    vlasovVectorField gradW ρ s (γ_σ s)‖ ≤
+                   K_lip * ‖γ_ρ s - γ_σ s‖ := by
+      have h := h_vf_lip.dist_le_mul (γ_ρ s) (γ_σ s)
+      rw [dist_eq_norm, dist_eq_norm] at h
+      exact h
+    -- ============================================================
+    -- Second bracket: VF_ρ γ_σ − VF_σ γ_σ = (0, conv σ - conv ρ at γ_σ.1).
+    -- Norm = ‖conv ρ - conv σ at γ_σ.1‖ ≤ L * W₁(ρ_s, σ_s).toReal ≤ L * D.
+    -- ============================================================
+    have h_VF_diff_explicit :
+        vlasovVectorField gradW ρ s (γ_σ s) - vlasovVectorField gradW σ s (γ_σ s) =
+        (0, convolveFunctionMeasure gradW (σ s) (γ_σ s).1 -
+            convolveFunctionMeasure gradW (ρ s) (γ_σ s).1) := by
+      simp only [vlasovVectorField, Prod.mk_sub_mk, sub_self, neg_sub_neg]
+    have h_second_norm :
+        ‖vlasovVectorField gradW ρ s (γ_σ s) - vlasovVectorField gradW σ s (γ_σ s)‖ =
+        ‖convolveFunctionMeasure gradW (σ s) (γ_σ s).1 -
+         convolveFunctionMeasure gradW (ρ s) (γ_σ s).1‖ := by
+      rw [h_VF_diff_explicit]
+      simp [Prod.norm_def, max_eq_right (norm_nonneg _)]
+    have h_conv_lip := MathlibTODO_convolveLipschitzEstimate gradW L hL
+      (σ s) (ρ s) (γ_σ s).1
+      (by rw [wasserstein1_comm]; exact h_W1_fin s hs_Icc)
+      (h_int_σ s _) (h_int_ρ s _)
+    have h_W1_comm : (wasserstein1 (σ s) (ρ s)).toReal =
+                     (wasserstein1 (ρ s) (σ s)).toReal := by
+      rw [wasserstein1_comm]
+    have h_second : ‖vlasovVectorField gradW ρ s (γ_σ s) -
+                     vlasovVectorField gradW σ s (γ_σ s)‖ ≤ (L : ℝ) * D := by
+      rw [h_second_norm]
+      calc ‖convolveFunctionMeasure gradW (σ s) (γ_σ s).1 -
+            convolveFunctionMeasure gradW (ρ s) (γ_σ s).1‖
+          ≤ (L : ℝ) * (wasserstein1 (σ s) (ρ s)).toReal := h_conv_lip
+        _ = (L : ℝ) * (wasserstein1 (ρ s) (σ s)).toReal := by rw [h_W1_comm]
+        _ ≤ (L : ℝ) * D := by
+            apply mul_le_mul_of_nonneg_left (h_W1_bound s hs_Icc) L.coe_nonneg
+    -- ============================================================
+    -- Combine: ‖f'(s)‖ ≤ K_lip · ‖f(s)‖ + L · D.
+    -- ============================================================
+    calc ‖f' s‖
+        ≤ ‖vlasovVectorField gradW ρ s (γ_ρ s) -
+            vlasovVectorField gradW ρ s (γ_σ s)‖ +
+          ‖vlasovVectorField gradW ρ s (γ_σ s) -
+            vlasovVectorField gradW σ s (γ_σ s)‖ := h_tri
+      _ ≤ K_lip * ‖γ_ρ s - γ_σ s‖ + (L : ℝ) * D := by
+          linarith [h_first, h_second]
+      _ = K_lip * ‖f s‖ + (L : ℝ) * D := by
+          simp only [hf_def]
+  -- ============================================================
+  -- Apply norm_le_gronwallBound_of_norm_deriv_right_le.
+  -- ============================================================
+  intro t ht
+  have h := norm_le_gronwallBound_of_norm_deriv_right_le
+    h_f_cont h_f_deriv h_f0 h_f'_bound t ht
+  -- h : ‖f t‖ ≤ gronwallBound 0 K_lip (L · D) (t - 0)
+  simp only [sub_zero] at h
+  exact h
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
