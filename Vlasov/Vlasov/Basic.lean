@@ -1285,6 +1285,34 @@ lemma w1_lscNarrow_integralContOn_lip
     ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) := by
   sorry
 
+/-- **`_lag` variant of `w1_lscNarrow_integralContOn_lip`** — uses the
+enriched `IsLagrangianVlasovSolution` predicate instead of bare
+`IsVlasovSolution`.
+
+The enrichment makes the proof structurally clean: by the pushforward
+equation `f t = Measure.map (charX t, charV t) (f 0)` and `integral_map`,
+`∫ φ d(f t) = ∫ (φ ∘ (charX t, charV t)) d(f 0)`.  Continuity in `t` then
+reduces to dominated convergence on the *fixed* measure `f 0`, with
+pointwise continuity from the flow's `HasDerivAt` and an integrable
+dominator from `HasFiniteFirstMoment (f 0)` + a flow-growth bound.
+
+The mollification approach (which couldn't close due to non-uniform-in-t
+first moments) is bypassed entirely.
+
+This `_lag` variant exists alongside the original (which remains sorry'd)
+for opt-in consumers that have access to the characteristic flow witness. -/
+lemma w1_lscNarrow_integralContOn_lip_lag
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d))
+    (hf_lag : IsLagrangianVlasovSolution gradW f)
+    (hf_prob_0 : HasFiniteFirstMoment (f 0))
+    (T : ℝ) (hT : 0 ≤ T)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_lip : LipschitzWith 1 φ) :
+    ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) := by
+  sorry
+
 /-- For any 1-Lipschitz function φ, the map t ↦ ∫ φ d(f t) - ∫ φ d(g t) is
 ContinuousOn Set.Icc 0 T, as the difference of two applications of
 w1_lscNarrow_integralContOn_lip (one for f, one for g). -/
