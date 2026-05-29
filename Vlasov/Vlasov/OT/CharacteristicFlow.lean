@@ -2934,6 +2934,95 @@ lemma vlasovMeasureCurve_convCont {d : ℕ} [NeZero d]
         rw [hη_def]
         field_simp
 
+/-! ### Constant extension past `[0, T]`
+
+A `VlasovMeasureCurve d T M` has its structural properties (moment bound,
+integrability of `‖·‖`, W₁-continuity) only on `Icc 0 T`.  Stage 1.9's
+`exists_vlasov_characteristicFlow_global_smallT` takes universal-in-`t`
+hypotheses (the proof internally accesses `ρ` at `t ∈ Icc 0 (T + 1)` —
+see `exists_vlasov_perz_trajectory`'s `hbound_local` at L3143 — but the
+exposed signature is universal).
+
+The constant-extension wrapper `VlasovMeasureCurve.extend` produces a
+curve on all of `ℝ` by clamping `t` to `Icc 0 T`: `extend t := ρ.ρ (clamp t)`
+where `clamp t := max 0 (min t T)`.  Outside `Icc 0 T` the extended
+curve takes the boundary value (`ρ.ρ 0` for `t < 0`; `ρ.ρ T` for
+`t > T`).  This is the canonical mathematical extension — a Vlasov
+solution defined on a finite horizon is naturally extended by holding
+the endpoint value past the horizon — and it makes the structural
+properties hold universally without modifying Stage 1.9 itself.
+
+Discharge of `hρ_cont` (universal convolveFunctionMeasure continuity)
+routes through `vlasovMeasureCurve_convCont` precomposed with the
+continuous clamp via `ContinuousOn.comp_continuous`. -/
+
+/-- Clamp `t : ℝ` to `Icc 0 T`.  Used by `VlasovMeasureCurve.extend` to
+extend a curve from `Icc 0 T` to all of `ℝ`. -/
+def clampToIcc (T t : ℝ) : ℝ := max 0 (min t T)
+
+lemma clampToIcc_mem {T : ℝ} (hT : 0 ≤ T) (t : ℝ) :
+    clampToIcc T t ∈ Set.Icc (0 : ℝ) T := by
+  unfold clampToIcc
+  refine Set.mem_Icc.mpr ⟨le_max_left _ _, max_le hT (min_le_right _ _)⟩
+
+lemma clampToIcc_continuous (T : ℝ) : Continuous (clampToIcc T) := by
+  unfold clampToIcc
+  exact continuous_const.max (continuous_id.min continuous_const)
+
+/-- Constant extension of a `VlasovMeasureCurve d T M`'s underlying curve
+`ρ.ρ` from `Icc 0 T` to all of `ℝ`.  Defined as `ρ.ρ` composed with the
+clamp `max 0 (min t T)`.
+
+For `t ∈ Icc 0 T`: `extend t = ρ.ρ t`.
+For `t < 0`: `extend t = ρ.ρ 0`.
+For `t > T`: `extend t = ρ.ρ T`.
+
+The extension preserves all structural properties (`IsProbabilityMeasure`,
+moment bound, integrability of `‖·‖`) universally in `t`, and extends
+W₁-continuity to convolveFunctionMeasure-continuity universally in `t`
+via `clampToIcc_continuous` + `vlasovMeasureCurve_convCont`. -/
+noncomputable def VlasovMeasureCurve.extend {d : ℕ} [NeZero d] {T M : ℝ}
+    (ρ : VlasovMeasureCurve d T M) : ℝ → Measure (PhysSpace d) :=
+  fun t => ρ.ρ (clampToIcc T t)
+
+/-- The extended curve is a probability measure at every `t : ℝ`. -/
+instance VlasovMeasureCurve.extend_isProb {d : ℕ} [NeZero d] {T M : ℝ}
+    (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
+    IsProbabilityMeasure (ρ.extend t) :=
+  ρ.isProb _
+
+/-- The extended curve has `‖·‖` integrable at every `t : ℝ`. -/
+lemma VlasovMeasureCurve.extend_yIntegrable {d : ℕ} [NeZero d] {T M : ℝ}
+    (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
+    Integrable (fun y : PhysSpace d => ‖y‖) (ρ.extend t) :=
+  ρ.yIntegrable _ (clampToIcc_mem hT t)
+
+/-- The extended curve preserves the moment bound `M` universally in `t`. -/
+lemma VlasovMeasureCurve.extend_hasMoment {d : ℕ} [NeZero d] {T M : ℝ}
+    (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
+    ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M :=
+  ρ.hasMoment _ (clampToIcc_mem hT t)
+
+/-- Convolution continuity on the extended curve, universal in `t`.
+
+Composed from `vlasovMeasureCurve_convCont` (ContinuousOn on `Icc 0 T`)
+with `clampToIcc_continuous` via `ContinuousOn.comp_continuous`.  This
+provides Stage 1.9's universal `hρ_cont` hypothesis directly from a
+`VlasovMeasureCurve`'s structural fields. -/
+lemma VlasovMeasureCurve.extend_convCont {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    {T M : ℝ} (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M)
+    (x : PhysSpace d)
+    (h_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
+              Integrable (fun y => gradW (x - y)) (ρ.ρ t)) :
+    Continuous (fun t => convolveFunctionMeasure gradW (ρ.extend t) x) := by
+  -- The function decomposes as `(fun s => convolveFunctionMeasure gradW (ρ.ρ s) x) ∘ clamp`.
+  -- Inner is ContinuousOn (Icc 0 T) via vlasovMeasureCurve_convCont.
+  -- Clamp is continuous and lands in Icc 0 T.
+  have h_convCont := vlasovMeasureCurve_convCont gradW L hL ρ x h_int
+  exact h_convCont.comp_continuous (clampToIcc_continuous T) (clampToIcc_mem hT)
+
 /-- The constant curve at a probability measure with finite first moment is
 a valid `VlasovMeasureCurve` on `[0, T]` for any `T` and any moment
 bound `M ≥ ∫‖y‖dμ₀`. -/
