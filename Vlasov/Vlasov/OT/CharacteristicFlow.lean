@@ -487,6 +487,118 @@ lemma IsCharacteristicFlowOn.mono
   · exact h.2.1 t (hs_t ht) z (hs_z hz)
   · exact h.2.2 t (hs_t ht) z (hs_z hz)
 
+/-! ### Localized Vlasov-solution predicates on `[0, T]`
+
+The globally-quantified predicates `IsVlasovSolution` (Basic.lean L755) and
+`IsLagrangianVlasovSolution` (Basic.lean L862) require the weak PDE and the
+characteristic flow to hold *universally in `t : ℝ`*.  For local existence
+(Stage 4's `vlasovWellPosedness_local`), the Picard iteration only produces
+a solution on a small time window `[0, T₀]`; the underlying characteristic
+flow comes from Stage 1.9's `exists_vlasov_characteristicFlow_global_smallT`
+which exposes `IsCharacteristicFlowOn ... (Ioo 0 T) Set.univ` — open-interval
+ODE behaviour, not the universal-in-`t` form `IsCharacteristicFlow` demands.
+
+**Resolution** (Path 3 of the Stage 4 architectural decision, per the
+five-friction discussion): introduce `_On`-localized predicates that
+mirror the global ones with their quantification restricted to `[0, T]`.
+Stage 4 produces the localized predicate; Stage 6 / Stage 5's continuation
+glues local windows to recover the universal-in-`t` `IsLagrangianVlasovSolution`
+required by the marquee `vlasovWellPosedness` theorem.
+
+This is strictly additive: no existing predicate is modified, no closed
+infrastructure is perturbed.  The `_On` family lives in this file so it
+can compose with `IsCharacteristicFlowOn` (which lives here too); the
+global versions stay in `Basic.lean` as the abstract endpoints. -/
+
+/-- Localized weak Vlasov evolution equation on `[0, T]`.  Same as
+`WeakEvolutionEq` (Basic.lean L674) but with the derivative claim
+restricted to `t ∈ Set.Icc 0 T` via `HasDerivWithinAt` on `Set.Icc 0 T`. -/
+def WeakEvolutionEqOn {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (μ : ℝ → Measure (PhaseSpace d))
+    (φ : PhaseSpace d → ℝ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (R_N : ℝ → ℝ) (T : ℝ) : Prop :=
+  ∀ t ∈ Set.Icc (0 : ℝ) T,
+    HasDerivWithinAt (fun s => ∫ z, φ z ∂μ s)
+      (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+              @inner ℝ (PhysSpace d) _
+                (convolveFunctionMeasure gradW (spatialMarginal (μ t)) z.1)
+                (gradVφ z))
+        ∂μ t
+        + R_N t) (Set.Icc 0 T) t
+
+/-- Localized Vlasov solution on `[0, T]`.  Mirror of `IsVlasovSolution`
+with the weak PDE restricted to `[0, T]` via `WeakEvolutionEqOn`. -/
+def IsVlasovSolutionOn {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) : Prop :=
+  ∀ (φ : PhaseSpace d → ℝ),
+    ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+    ∀ (gradXφ gradVφ : PhaseSpace d → PhysSpace d),
+      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
+      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
+      WeakEvolutionEqOn gradW f φ gradXφ gradVφ (fun _ => 0) T
+
+/-- Localized Lagrangian Vlasov solution on `[0, T]`.  Mirror of
+`IsLagrangianVlasovSolution` (Basic.lean L862) with:
+
+* the weak PDE restricted to `[0, T]` (via `IsVlasovSolutionOn`),
+* the characteristic flow restricted to `IsCharacteristicFlowOn ... (Ioo 0 T)
+  Set.univ` (the natural output shape of Stage 1.9),
+* the initial-condition clause stated explicitly (since `IsCharacteristicFlowOn`'s
+  initial-condition clause is over `s_z`, here `Set.univ`, so it gives the
+  same content; we restate it for direct usability),
+* the pushforward equation restricted to `t ∈ Set.Icc 0 T`,
+* the AEMeasurability clause restricted to `s ∈ Set.Icc 0 T`.
+
+Strict additivity: every conjunct is the localized analogue of
+`IsLagrangianVlasovSolution`'s.  Stage 6 will bridge to the global predicate
+by gluing local windows via Stage 5's continuation. -/
+def IsLagrangianVlasovSolutionOn {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) : Prop :=
+  IsVlasovSolutionOn gradW f T ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ ∧
+    (∀ t ∈ Set.Icc (0 : ℝ) T,
+      f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0))
+
+/-- A global `IsVlasovSolution` restricts to `IsVlasovSolutionOn T` for any
+`T : ℝ`.  Uses `HasDerivAt.hasDerivWithinAt` to project the universal
+HasDerivAt claim onto the restricted set. -/
+lemma IsVlasovSolution.toOn {d : ℕ} [NeZero d]
+    {gradW : PhysSpace d → PhysSpace d}
+    {f : ℝ → Measure (PhaseSpace d)} (h : IsVlasovSolution gradW f) (T : ℝ) :
+    IsVlasovSolutionOn gradW f T := by
+  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
+  intro t _ht
+  exact (h φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t).hasDerivWithinAt
+
+/-- A global `IsLagrangianVlasovSolution` restricts to
+`IsLagrangianVlasovSolutionOn T` for any `T : ℝ`.
+
+The flow witness restricts via `IsCharacteristicFlowOn`'s natural relationship
+to the universal `IsCharacteristicFlow` (open Ioo ⊆ ℝ).  The pushforward and
+AEMeasurability conjuncts restrict trivially since the originals are
+universal. -/
+lemma IsLagrangianVlasovSolution.toOn {d : ℕ} [NeZero d]
+    {gradW : PhysSpace d → PhysSpace d}
+    {f : ℝ → Measure (PhaseSpace d)}
+    (h : IsLagrangianVlasovSolution gradW f) (T : ℝ) :
+    IsLagrangianVlasovSolutionOn gradW f T := by
+  obtain ⟨h_sol, charX, charV, h_flow, h_push, h_meas⟩ := h
+  refine ⟨h_sol.toOn T, charX, charV, ?_, ?_, ?_⟩
+  · -- IsCharacteristicFlowOn from IsCharacteristicFlow.
+    exact ⟨fun z _ => h_flow.1 z,
+           fun t _ z _ => h_flow.2.1 t z,
+           fun t _ z _ => h_flow.2.2 t z⟩
+  · intro t _; exact h_push t
+  · intro s _; exact h_meas s
+
 /-- Global Lipschitz constant for the Vlasov phase-space vector field.
 `b_t(x, v) = (v, -(∇W ∗ ρ_t)(x))` is `max(1, L)`-Lipschitz when
 `gradW` is `L`-Lipschitz: the velocity-side projection `(x, v) ↦ v`
