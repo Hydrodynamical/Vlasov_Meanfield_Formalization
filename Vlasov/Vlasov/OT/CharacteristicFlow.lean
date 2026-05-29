@@ -2914,6 +2914,80 @@ def constantCurve {d : ℕ} [NeZero d] {T M : ℝ}
     rw [h_zero]
     exact continuousWithinAt_const
 
+/-- **Stage 1.7 of the well-posedness plan: parametric global-on-ball
+characteristic flow.**
+
+A convenience wrapper around `exists_vlasov_characteristicFlow` that
+instantiates the per-ball flow theorem with the trivial center
+`z₀ = 0 : PhaseSpace d` and ball radius `a := 2 * R₀`.  The resulting flow
+is defined for every initial condition in `closedBall (0 : PhaseSpace d) R₀`,
+on time `Ioo 0 T`.
+
+**Surprisingly cheap by design**.  The plan originally envisioned a finite-
+cover + `ODE_solution_unique` stitching argument; in fact
+`exists_vlasov_characteristicFlow` is already parametric in *both* the ball
+center `z₀` and the radius `a`, so the "lift from a single small ball to a
+larger initial-condition ball" is just a re-parameterisation, not an honest
+stitching.  ~30 lines of cast/algebra instead of ~150 lines of cover
+construction.
+
+Used by Stage 2 of the well-posedness plan to discharge the flow-existence
+hypothesis when constructing the map Φ on `VlasovMeasureCurve`s, and by
+Stage 5's continuation step (re-invoked with shifted initial data) and
+Stage 8's uniqueness argument (where two competing solutions both produce
+flows over a common ball). -/
+theorem exists_vlasov_characteristicFlow_global_on_ball
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (R₀ : NNReal) (hR₀ : 0 < R₀)
+    (M : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (R : NNReal)
+    (hR : 4 * (R₀ : ℝ) + (R₀ : ℝ) * (T + 1) + (M : ℝ) * (T + 1) ^ 2 ≤ R)
+    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
+              ∀ x ∈ Metric.closedBall (0 : PhysSpace d) (R : ℝ),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M) :
+    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
+      IsCharacteristicFlowOn gradW ρ charX charV
+        (Set.Ioo 0 T) (Metric.closedBall (0 : PhaseSpace d) (R₀ : ℝ)) := by
+  -- Instantiate `exists_vlasov_characteristicFlow` with z₀ = 0 and a := 2 R₀.
+  have ha : (0 : NNReal) < 2 * R₀ := by
+    have h2 : (0 : NNReal) < 2 := by norm_num
+    exact mul_pos h2 hR₀
+  -- closedBall 0 ((2 R₀ : NNReal) : ℝ) / 2) = closedBall 0 R₀.
+  have h_ball_eq : Metric.closedBall (0 : PhaseSpace d) (((2 * R₀ : NNReal) : ℝ) / 2)
+                   = Metric.closedBall (0 : PhaseSpace d) (R₀ : ℝ) := by
+    congr 1
+    push_cast
+    ring
+  rw [← h_ball_eq]
+  -- Invoke the per-ball theorem.
+  apply exists_vlasov_characteristicFlow W gradW hgradW L hL ρ h_int hρ_cont
+    (0 : PhaseSpace d) (2 * R₀) ha M T hT R
+  · -- hR (per-ball): 2a + (‖z₀.2‖ + a/2)(T+1) + M(T+1)² ≤ R, with z₀ = 0, a = 2R₀.
+    -- = 4R₀ + (0 + R₀)(T+1) + M(T+1)² = 4R₀ + R₀(T+1) + M(T+1)² ≤ R (from hR).
+    show 2 * ((2 * R₀ : NNReal) : ℝ)
+        + (‖(0 : PhaseSpace d).2‖ + ((2 * R₀ : NNReal) : ℝ) / 2) * (T + 1)
+        + (M : ℝ) * (T + 1) ^ 2 ≤ R
+    have h_snd_zero : (0 : PhaseSpace d).2 = 0 := rfl
+    rw [h_snd_zero, norm_zero, zero_add]
+    push_cast
+    calc 2 * (2 * (R₀ : ℝ)) + (2 * (R₀ : ℝ) / 2) * (T + 1) + (M : ℝ) * (T + 1) ^ 2
+        = 4 * (R₀ : ℝ) + (R₀ : ℝ) * (T + 1) + (M : ℝ) * (T + 1) ^ 2 := by ring
+      _ ≤ (R : ℝ) := hR
+  · -- hbound (per-ball): force bound on closedBall z₀.1 R = closedBall 0 R.
+    intro t ht x hx
+    have h_fst_zero : (0 : PhaseSpace d).1 = 0 := rfl
+    rw [h_fst_zero] at hx
+    exact hbound t ht x hx
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
