@@ -2988,6 +2988,260 @@ theorem exists_vlasov_characteristicFlow_global_on_ball
     rw [h_fst_zero] at hx
     exact hbound t ht x hx
 
+/-- **Stage 1.9 helper: per-z trajectory existence for small T.**
+
+For each `z : PhaseSpace d`, produces a trajectory `γ : ℝ → PhaseSpace d` with
+`γ 0 = z` satisfying the Vlasov ODE on `Ioo 0 T`.
+
+**Smallness constraint**: `L · (T+1)² < 1`.  Comes from `exists_vlasov_characteristicFlow`'s
+`hR` inequality, whose `M·(T+1)²` term has quadratic-in-T growth.  Solving
+the algebraic constraint per-z yields a finite `R(z)` and `M(z)`, with the
+existence-bound on `T` driven by `L·(T+1)² < 1`.
+
+Stage 5's continuation argument extends to arbitrary T via shifted initial
+data; for Stages 2–4 we only need the small-T regime where the contraction
+operates. -/
+theorem exists_vlasov_perz_trajectory
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (h_y_int : ∀ t, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
+    (T : ℝ) (hT : 0 ≤ T)
+    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (z : PhaseSpace d) :
+    ∃ γ : ℝ → PhaseSpace d,
+      γ 0 = z ∧
+      ∀ t ∈ Set.Ioo (0 : ℝ) T,
+        HasDerivAt (fun s => (γ s).1) (γ t).2 t ∧
+        HasDerivAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t := by
+  -- ============================================================
+  -- Compute R(z), M(z) from the algebraic constraint:
+  --   R ≥ 2·1 + (‖z.2‖ + 1/2)(T+1) + M·(T+1)²
+  --   M ≤ ‖gradW(0)‖ + L·(R + ‖z.1‖ + M_ρ)         (from L-Lipschitz)
+  -- Substituting: R·(1 - L·(T+1)²) ≥ N(z)
+  --   where N(z) := 2 + (‖z.2‖ + 1/2)(T+1)
+  --                + (‖gradW(0)‖ + L·‖z.1‖ + L·M_ρ)·(T+1)²
+  -- Use R := N(z) / (1 - L·(T+1)²)  (positive since hTL).
+  -- ============================================================
+  set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
+  -- N(z) is the right-hand-side numerator; non-negative.
+  set N_z : ℝ := 2 + (‖z.2‖ + 1 / 2) * (T + 1)
+                 + (‖gradW 0‖ + (L : ℝ) * ‖z.1‖ + (L : ℝ) * M_ρ) * (T + 1) ^ 2
+    with hN_z_def
+  have hN_z_nn : 0 ≤ N_z := by
+    have h1 : 0 ≤ ‖z.2‖ + 1 / 2 := by positivity
+    have h2 : 0 ≤ ‖gradW 0‖ + (L : ℝ) * ‖z.1‖ + (L : ℝ) * M_ρ := by
+      have hgW : 0 ≤ ‖gradW 0‖ := norm_nonneg _
+      have hLz1 : 0 ≤ (L : ℝ) * ‖z.1‖ := mul_nonneg L.coe_nonneg (norm_nonneg _)
+      have hLMρ : 0 ≤ (L : ℝ) * M_ρ := mul_nonneg L.coe_nonneg hM_ρ_nn
+      linarith
+    have hT1nn : 0 ≤ T + 1 := by linarith
+    have hT1sq : 0 ≤ (T + 1) ^ 2 := sq_nonneg _
+    have := mul_nonneg h1 hT1nn
+    have := mul_nonneg h2 hT1sq
+    rw [hN_z_def]; positivity
+  -- R_real := N(z) / (1 - L·(T+1)²)
+  set R_real : ℝ := N_z / (1 - (L : ℝ) * (T + 1) ^ 2) with hR_real_def
+  have hR_real_nn : 0 ≤ R_real := div_nonneg hN_z_nn (le_of_lt hTL_pos)
+  set R : NNReal := Real.toNNReal R_real with hR_def
+  have hR_eq : (R : ℝ) = R_real := Real.coe_toNNReal _ hR_real_nn
+  -- M_real := ‖gradW(0)‖ + L · (R + ‖z.1‖ + M_ρ)
+  set M_real : ℝ :=
+    ‖gradW 0‖ + (L : ℝ) * ((R : ℝ) + ‖z.1‖ + M_ρ) with hM_real_def
+  have hM_real_nn : 0 ≤ M_real := by
+    have : 0 ≤ (L : ℝ) * ((R : ℝ) + ‖z.1‖ + M_ρ) := by
+      apply mul_nonneg L.coe_nonneg
+      have hR_nn : 0 ≤ (R : ℝ) := NNReal.coe_nonneg R
+      have : 0 ≤ ‖z.1‖ := norm_nonneg _
+      linarith
+    linarith [norm_nonneg (gradW 0)]
+  set M : NNReal := Real.toNNReal M_real with hM_def
+  have hM_eq : (M : ℝ) = M_real := Real.coe_toNNReal _ hM_real_nn
+  -- ============================================================
+  -- Verify hR_local: 2·a + (‖z.2‖ + a/2)(T+1) + M·(T+1)² ≤ R
+  -- with a = 1.
+  -- After substitution: this is N_z ≤ R = R_real * (1 - L·(T+1)²) + correction.
+  -- The construction gives R · (1 - L·(T+1)²) = N_z, so the inequality is tight.
+  -- ============================================================
+  have ha : (0 : NNReal) < 1 := by norm_num
+  have hR_local : 2 * ((1 : NNReal) : ℝ)
+                  + (‖z.2‖ + ((1 : NNReal) : ℝ) / 2) * (T + 1)
+                  + (M : ℝ) * (T + 1) ^ 2 ≤ R := by
+    -- Prove the equivalent inequality in real form, then transport via hM_eq, hR_eq.
+    have hne : 1 - (L : ℝ) * (T + 1) ^ 2 ≠ 0 := ne_of_gt hTL_pos
+    have h_R_rel : R_real * (1 - (L : ℝ) * (T + 1) ^ 2) = N_z := by
+      simp only [hR_real_def]
+      field_simp
+    have h_LHS_eq : (2 : ℝ) + (‖z.2‖ + 1 / 2) * (T + 1) + M_real * (T + 1) ^ 2
+                  = N_z + (L : ℝ) * R_real * (T + 1) ^ 2 := by
+      -- M_real contains (R : ℝ); substitute via hR_eq before ring.
+      simp only [hM_real_def, hN_z_def, hR_eq]; ring
+    have h_target_eq : N_z + (L : ℝ) * R_real * (T + 1) ^ 2 = R_real := by
+      nlinarith [h_R_rel]
+    have h_real : (2 : ℝ) + (‖z.2‖ + 1 / 2) * (T + 1) + M_real * (T + 1) ^ 2 ≤ R_real := by
+      linarith [h_LHS_eq, h_target_eq]
+    -- Cast to NNReal form: ((1 : NNReal) : ℝ) = 1 and 2 * 1 = 2.
+    have h_one : ((1 : NNReal) : ℝ) = 1 := by norm_cast
+    rw [hM_eq, hR_eq, h_one]
+    linarith [h_real]
+  -- ============================================================
+  -- Verify hbound_local: force bound on closedBall z.1 R for t ∈ Icc 0 (T+1).
+  -- Uses ‖conv(ρ t, x)‖ ≤ ‖gradW(0)‖ + L · ∫‖x-y‖ dρ_t ≤ ‖gradW(0)‖ + L·(‖x‖ + M_ρ).
+  -- For x ∈ closedBall z.1 R: ‖x‖ ≤ R + ‖z.1‖, so bound ≤ M_real = M.
+  -- ============================================================
+  have hbound_local : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
+                     ∀ x ∈ Metric.closedBall z.1 (R : ℝ),
+                     ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M := by
+    intro t _ht x hx
+    have hx_norm : ‖x‖ ≤ (R : ℝ) + ‖z.1‖ := by
+      have hdx : dist x z.1 ≤ (R : ℝ) := hx
+      have hxz : ‖x - z.1‖ ≤ (R : ℝ) := by rwa [dist_eq_norm] at hdx
+      have h_tri := norm_add_le (x - z.1) z.1
+      rw [sub_add_cancel] at h_tri
+      linarith
+    -- ‖∫ gradW(x - y) dρ_t(y)‖ ≤ ∫ ‖gradW(x - y)‖ dρ_t(y).
+    have h_sub_int : Integrable (fun y => ‖x - y‖) (ρ t) := by
+      have habs_meas : AEStronglyMeasurable (fun y : PhysSpace d => ‖x - y‖) (ρ t) :=
+        ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id).norm
+      refine Integrable.mono' ((integrable_const ‖x‖).add (h_y_int t)) habs_meas ?_
+      refine Filter.Eventually.of_forall fun y => ?_
+      simp only [Real.norm_of_nonneg (norm_nonneg _)]
+      exact norm_sub_le x y
+    have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ t) :=
+      (integrable_const _).add (h_sub_int.const_mul _)
+    have h_pt : ∀ y : PhysSpace d,
+        ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this
+        linarith
+      linarith
+    rw [hM_eq, hM_real_def]
+    calc ‖convolveFunctionMeasure gradW (ρ t) x‖
+        = ‖∫ y, gradW (x - y) ∂(ρ t)‖ := rfl
+      _ ≤ ∫ y, ‖gradW (x - y)‖ ∂(ρ t) := norm_integral_le_integral_norm _
+      _ ≤ ∫ y, (‖gradW 0‖ + (L : ℝ) * ‖x - y‖) ∂(ρ t) :=
+          integral_mono (h_int t x).norm h_bnd_int h_pt
+      _ = ‖gradW 0‖ + (L : ℝ) * ∫ y, ‖x - y‖ ∂(ρ t) := by
+          rw [integral_add (integrable_const _) (h_sub_int.const_mul _)]
+          simp [integral_const, measureReal_def, measure_univ, integral_const_mul]
+      _ ≤ ‖gradW 0‖ + (L : ℝ) * (‖x‖ + M_ρ) := by
+          have hint_bd : ∫ y, ‖x - y‖ ∂(ρ t) ≤ ‖x‖ + M_ρ := by
+            calc ∫ y, ‖x - y‖ ∂(ρ t)
+                ≤ ∫ y, (‖x‖ + ‖y‖) ∂(ρ t) :=
+                  integral_mono h_sub_int
+                    ((integrable_const _).add (h_y_int t))
+                    (fun y => norm_sub_le x y)
+              _ = ‖x‖ + ∫ y, ‖y‖ ∂(ρ t) := by
+                  rw [integral_add (integrable_const _) (h_y_int t)]
+                  simp [integral_const, measureReal_def, measure_univ]
+              _ ≤ ‖x‖ + M_ρ := by linarith [hM_ρ t]
+          have := mul_le_mul_of_nonneg_left hint_bd L.coe_nonneg
+          linarith
+      _ ≤ ‖gradW 0‖ + (L : ℝ) * ((R : ℝ) + ‖z.1‖ + M_ρ) := by
+          have hL_nn : 0 ≤ (L : ℝ) := L.coe_nonneg
+          have hMρ_nn : 0 ≤ M_ρ := hM_ρ_nn
+          have h_bound : ‖x‖ + M_ρ ≤ (R : ℝ) + ‖z.1‖ + M_ρ := by linarith
+          have := mul_le_mul_of_nonneg_left h_bound hL_nn
+          linarith
+  -- ============================================================
+  -- Apply exists_vlasov_characteristicFlow with z₀ = z, a = 1.
+  -- ============================================================
+  obtain ⟨charX, charV, hflow⟩ := exists_vlasov_characteristicFlow W gradW hgradW L hL
+    ρ h_int hρ_cont z 1 ha M T hT R hR_local hbound_local
+  -- Extract trajectory at w = z (z is the center of the ball, trivially in it).
+  have hz_in : z ∈ Metric.closedBall z (((1 : NNReal) : ℝ) / 2) := by
+    rw [Metric.mem_closedBall, dist_self]
+    have : ((1 : NNReal) : ℝ) / 2 = (1 : ℝ) / 2 := by push_cast; ring
+    linarith
+  obtain ⟨hinit, hode_x, hode_v⟩ := hflow
+  refine ⟨fun t => (charX t z, charV t z), ?_, ?_⟩
+  · -- γ 0 = z
+    have h0 := hinit z hz_in
+    exact Prod.ext h0.1 h0.2
+  · -- ODE on Ioo 0 T.
+    intro t ht
+    exact ⟨hode_x t ht z hz_in, hode_v t ht z hz_in⟩
+
+/-- **Stage 1.9: True global-in-z characteristic flow on a small-T interval.**
+
+For `L · (T+1)² < 1`, produces a characteristic flow `(charX, charV)` defined
+for *every* `z : PhaseSpace d` (not just z in a ball), satisfying the Vlasov
+ODE on `Ioo 0 T`.
+
+This is the foundation Stage 2's Φ pushforward construction depends on.
+Stage 5's continuation extends to arbitrary T via shifted-initial-data
+iteration.
+
+**Architecture**: per-z application of `exists_vlasov_characteristicFlow`
+with `z₀ = z, a = 1` (via `exists_vlasov_perz_trajectory` helper), bundled
+into a global flow via `Classical.choose`.  See helper's docstring for the
+algebraic R(z), M(z) computation.
+
+**Measurability**: NOT exposed.  The per-z Classical.choose bundling
+doesn't propagate continuity-in-z.  Stage 1.8's placeholder
+(`exists_vlasov_characteristicFlow_global_on_ball_measurable`) covers
+the analogous question for the ball-localized variant; a parallel
+`_global_smallT_measurable` companion can be added when needed, or the
+measurability question can be addressed once (along with continuity-in-z)
+by the Path-A real proof of Stage 1.8. -/
+theorem exists_vlasov_characteristicFlow_global_smallT
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (h_y_int : ∀ t, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
+    (T : ℝ) (hT : 0 ≤ T)
+    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
+    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
+      IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ := by
+  classical
+  -- Per-z trajectory existence.
+  have h_perZ : ∀ z : PhaseSpace d, ∃ γ : ℝ → PhaseSpace d,
+      γ 0 = z ∧
+      ∀ t ∈ Set.Ioo (0 : ℝ) T,
+        HasDerivAt (fun s => (γ s).1) (γ t).2 t ∧
+        HasDerivAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t := by
+    intro z
+    exact exists_vlasov_perz_trajectory W gradW hgradW L hL ρ h_int hρ_cont
+      h_y_int M_ρ hM_ρ_nn hM_ρ T hT hTL z
+  -- Bundle via Classical.choose.
+  let γ_func : PhaseSpace d → ℝ → PhaseSpace d := fun z =>
+    Classical.choose (h_perZ z)
+  refine ⟨fun t z => (γ_func z t).1, fun t z => (γ_func z t).2, ?_, ?_, ?_⟩
+  · -- (i) Initial condition: γ_func z 0 = z for all z (Set.univ).
+    intro z _
+    have h_init : γ_func z 0 = z := (Classical.choose_spec (h_perZ z)).1
+    exact ⟨congrArg Prod.fst h_init, congrArg Prod.snd h_init⟩
+  · -- (ii) Position ODE at t ∈ Ioo 0 T.
+    intro t ht z _
+    exact ((Classical.choose_spec (h_perZ z)).2 t ht).1
+  · -- (iii) Velocity ODE at t ∈ Ioo 0 T.
+    intro t ht z _
+    exact ((Classical.choose_spec (h_perZ z)).2 t ht).2
+
 /-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
 
 Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
