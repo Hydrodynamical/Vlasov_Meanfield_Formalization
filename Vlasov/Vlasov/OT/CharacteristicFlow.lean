@@ -4487,6 +4487,257 @@ theorem picard_iterate_isCauchy_of_contraction {d : ℕ} [NeZero d] (S : Set ℝ
           (ENNReal.ofReal_lt_ofReal_iff hε_real_pos).mpr h_bound_real_lt
       _ = ε := ENNReal.ofReal_toReal hε_top
 
+/-- **Stage 4 helper: pointwise W₁ bounded by `supW1On`**.
+
+For `t ∈ S`, the per-`t` Wasserstein-1 distance is bounded by the sup-W₁
+over `S`.  Routine `le_iSup` chain.  Mirror image of the `supW1On`-shape
+lemmas (`supW1On_triangle`, `supW1On_self`) — the per-point extraction
+from the sup. -/
+lemma wasserstein1_le_supW1On {d : ℕ} [NeZero d]
+    (S : Set ℝ) (ρ σ : ℝ → Measure (PhysSpace d))
+    (t : ℝ) (ht : t ∈ S) :
+    wasserstein1 (ρ t) (σ t) ≤ supW1On S ρ σ := by
+  unfold supW1On
+  exact le_iSup_of_le t (le_iSup_of_le ht le_rfl)
+
+/-- **Stage 4 helper: uniform-in-`t` W₁-tendsto from supW1On Cauchy + per-`t`
+pointwise W₁-tendsto**.
+
+Given a sequence `x n : ℝ → Measure (PhysSpace d)` Cauchy in `supW1On S` and
+per-`t` pointwise W₁-tendsto to `y t`, the convergence is uniform in `t ∈ S`:
+for every `ε : ENNReal` with `0 < ε`, there is `N` such that
+`wasserstein1 (x n t) (y t) ≤ ε` for all `n ≥ N` and `t ∈ S`.
+
+**Proof idea**: triangle through `x m t` for arbitrarily large `m`:
+`wasserstein1 (x n t) (y t) ≤ wasserstein1 (x n t) (x m t) + wasserstein1 (x m t) (y t)`.
+The first term `≤ supW1On (x n) (x m) < ε` by Cauchy; the second `→ 0` by
+pointwise tendsto.  Apply `ENNReal.le_of_forall_pos_le_add` for the limit
+passage. -/
+lemma picard_iterate_limit_uniform_tendsto {d : ℕ} [NeZero d]
+    (S : Set ℝ) (x : ℕ → ℝ → Measure (PhysSpace d))
+    (y : ℝ → Measure (PhysSpace d))
+    (h_cauchy : ∀ ε : ENNReal, 0 < ε → ∃ N, ∀ m n, N ≤ m → N ≤ n →
+                supW1On S (x m) (x n) < ε)
+    (h_pointwise : ∀ t ∈ S,
+        Filter.Tendsto (fun n => wasserstein1 (x n t) (y t)) Filter.atTop (nhds 0)) :
+    ∀ ε : ENNReal, 0 < ε → ∃ N, ∀ n, N ≤ n → ∀ t ∈ S,
+        wasserstein1 (x n t) (y t) ≤ ε := by
+  intro ε hε
+  obtain ⟨N, hN⟩ := h_cauchy ε hε
+  refine ⟨N, fun n hn t ht => ?_⟩
+  -- Use ENNReal.le_of_forall_pos_le_add to reduce to `≤ ε + ε'` for ε' > 0.
+  apply ENNReal.le_of_forall_pos_le_add
+  intro ε' hε'_pos _
+  -- Pick m ≥ N such that wasserstein1 (x m t) (y t) ≤ ε'.
+  have h_tend := h_pointwise t ht
+  rw [ENNReal.tendsto_atTop_zero] at h_tend
+  have hε'_ennreal_pos : (0 : ENNReal) < (ε' : ENNReal) := by
+    exact_mod_cast hε'_pos
+  obtain ⟨M, hM⟩ := h_tend (ε' : ENNReal) hε'_ennreal_pos
+  let m := max N M
+  have hmN : N ≤ m := le_max_left _ _
+  have hmM : M ≤ m := le_max_right _ _
+  -- Apply triangle inequality.
+  calc wasserstein1 (x n t) (y t)
+      ≤ wasserstein1 (x n t) (x m t) + wasserstein1 (x m t) (y t) :=
+        wasserstein1_triangle _ _ _
+    _ ≤ supW1On S (x n) (x m) + wasserstein1 (x m t) (y t) :=
+        add_le_add (wasserstein1_le_supW1On S (x n) (x m) t ht) le_rfl
+    _ ≤ ε + (ε' : ENNReal) := by
+        gcongr
+        · exact le_of_lt (hN n m hn hmN)
+        · exact hM m hmM
+
+/-- **Stage 4 main: bundle the Picard iteration's W₁-limit as a `VlasovMeasureCurve`**.
+
+Given a sequence of `VlasovMeasureCurve d T M` iterates with the geometric
+contraction property `supW1On (x k) (x (k+1)) ≤ ofReal (q^k * D₀)`,
+produce a limit `ρ_lim : VlasovMeasureCurve d T M` such that
+`wasserstein1 ((x n).ρ t) (ρ_lim.ρ t) → 0` pointwise (and, by the helper
+`picard_iterate_limit_uniform_tendsto`, uniformly) in `t ∈ Icc 0 T`.
+
+**Proof strategy** (Path (a) per the well-posedness plan, Stage 4):
+
+1. Apply `picard_iterate_isCauchy_of_contraction` to get supW1On Cauchy.
+2. Per-`t ∈ Icc 0 T`, the pointwise sequence `n ↦ (x n).ρ t` is Cauchy in
+   W₁ (by `wasserstein1_le_supW1On` from the sup-Cauchy).
+3. Invoke `MathlibTODO_cauchyW1_hasNarrowLimit` per-`t` to obtain the
+   pointwise limit `ρ_lim t` (with probability, integrability, moment bound,
+   W₁-tendsto, all from the strengthened placeholder).
+4. Extend `ρ_lim` to all of `ℝ` by `(x 0).ρ` outside `Icc 0 T` (so the
+   `isProb` field — universal in `t` — holds).
+5. Verify the four `VlasovMeasureCurve` fields:
+   * `isProb`: from the placeholder (inside `Icc 0 T`) + `(x 0).isProb`
+     (outside).
+   * `hasMoment`: from the placeholder's strengthened moment-preservation
+     conjunct (`∫‖y‖ ∂μ ≤ M`).
+   * `yIntegrable`: from the placeholder.
+   * `hW1Cont`: ε/3 triangle through `x N`, using
+     `picard_iterate_limit_uniform_tendsto` for the uniform tendsto +
+     `(x N).hW1Cont` for the middle term. -/
+theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
+    {T M : ℝ}
+    (x : ℕ → VlasovMeasureCurve d T M)
+    (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
+    (D₀ : ℝ) (hD₀_nn : 0 ≤ D₀)
+    (h_contract : ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
+                       ENNReal.ofReal (q ^ k * D₀)) :
+    ∃ ρ_lim : VlasovMeasureCurve d T M,
+      ∀ t ∈ Set.Icc (0 : ℝ) T,
+        Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) (ρ_lim.ρ t))
+          Filter.atTop (nhds 0) := by
+  -- Step 1: supW1On-Cauchy from the contraction.
+  have h_cauchy := picard_iterate_isCauchy_of_contraction
+    (Set.Icc (0:ℝ) T) (fun n => (x n).ρ) q hq_nn hq_lt D₀ hD₀_nn h_contract
+  -- Step 2: per-t Cauchy from the supW1On bound.
+  have h_per_t_cauchy : ∀ t ∈ Set.Icc (0:ℝ) T, ∀ ε : ENNReal, 0 < ε →
+      ∃ N, ∀ m n, N ≤ m → N ≤ n →
+        wasserstein1 ((x m).ρ t) ((x n).ρ t) < ε := by
+    intro t ht ε hε
+    obtain ⟨N, hN⟩ := h_cauchy ε hε
+    refine ⟨N, fun m n hm hn => ?_⟩
+    exact lt_of_le_of_lt (wasserstein1_le_supW1On _ _ _ t ht) (hN m n hm hn)
+  -- Step 3: per-t Classical.choose to extract the limit measure.
+  have h_per_t : ∀ t ∈ Set.Icc (0:ℝ) T, ∃ μ : Measure (PhysSpace d),
+      IsProbabilityMeasure μ ∧
+      Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
+      ∫ y, ‖y‖ ∂μ ≤ M ∧
+      Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) μ) Filter.atTop (nhds 0) := by
+    intro t ht
+    haveI : ∀ n, IsProbabilityMeasure ((x n).ρ t) := fun n => (x n).isProb t
+    exact MathlibTODO_cauchyW1_hasNarrowLimit (fun n => (x n).ρ t) M
+      (fun n => (x n).hasMoment t ht) (fun n => (x n).yIntegrable t ht)
+      (h_per_t_cauchy t ht)
+  -- Step 4: define ρ_lim via dependent choice on whether t ∈ Icc 0 T.
+  let ρ_lim : ℝ → Measure (PhysSpace d) := fun t =>
+    if ht : t ∈ Set.Icc (0:ℝ) T then Classical.choose (h_per_t t ht)
+    else (x 0).ρ t
+  -- Helper accessor on Icc.
+  have hρ_spec : ∀ t (ht : t ∈ Set.Icc (0:ℝ) T),
+      ρ_lim t = Classical.choose (h_per_t t ht) := by
+    intro t ht
+    simp only [ρ_lim, dif_pos ht]
+  -- Step 5: verify the four VlasovMeasureCurve fields.
+  -- isProb: universal in t.
+  have h_isProb : ∀ t, IsProbabilityMeasure (ρ_lim t) := by
+    intro t
+    by_cases ht : t ∈ Set.Icc (0:ℝ) T
+    · rw [hρ_spec t ht]
+      exact (Classical.choose_spec (h_per_t t ht)).1
+    · simp only [ρ_lim, dif_neg ht]
+      exact (x 0).isProb t
+  -- hasMoment: from the placeholder's strengthened conclusion.
+  have h_hasMoment : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ_lim t) ≤ M := by
+    intro t ht
+    rw [hρ_spec t ht]
+    exact (Classical.choose_spec (h_per_t t ht)).2.2.1
+  -- yIntegrable: from the placeholder.
+  have h_yIntegrable : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (ρ_lim t) := by
+    intro t ht
+    rw [hρ_spec t ht]
+    exact (Classical.choose_spec (h_per_t t ht)).2.1
+  -- Pointwise tendsto on Icc 0 T (also part of the conclusion).
+  have h_tendsto : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) (ρ_lim t))
+        Filter.atTop (nhds 0) := by
+    intro t ht
+    have h_spec := (Classical.choose_spec (h_per_t t ht)).2.2.2
+    rw [hρ_spec t ht]
+    exact h_spec
+  -- Uniform tendsto from the helper.
+  have h_uniform := picard_iterate_limit_uniform_tendsto
+    (Set.Icc (0:ℝ) T) (fun n => (x n).ρ) ρ_lim h_cauchy h_tendsto
+  -- hW1Cont: ε/3 argument through x N.
+  have h_hW1Cont : ∀ s ∈ Set.Icc (0:ℝ) T,
+      ContinuousWithinAt (fun t => (wasserstein1 (ρ_lim s) (ρ_lim t)).toReal)
+                         (Set.Icc 0 T) s := by
+    intro s hs
+    rw [Metric.continuousWithinAt_iff]
+    intro ε hε
+    -- Self-distance at t = s is 0.
+    have h_self : (wasserstein1 (ρ_lim s) (ρ_lim s)).toReal = 0 := by
+      rw [wasserstein1_self]; rfl
+    -- Pick N via uniform tendsto for tolerance ENNReal.ofReal (ε/3).
+    have hε3 : 0 < ε / 3 := by linarith
+    have hε3_nn : 0 < ENNReal.ofReal (ε / 3) := by
+      exact_mod_cast ENNReal.ofReal_pos.mpr hε3
+    obtain ⟨N, hN_uniform⟩ := h_uniform (ENNReal.ofReal (ε / 3)) hε3_nn
+    -- Use (x N).hW1Cont for the middle term.
+    have hN_cont := (x N).hW1Cont s hs
+    rw [Metric.continuousWithinAt_iff] at hN_cont
+    have h_self_N : (wasserstein1 ((x N).ρ s) ((x N).ρ s)).toReal = 0 := by
+      rw [wasserstein1_self]; rfl
+    obtain ⟨δ, hδ_pos, hδ_bound⟩ := hN_cont (ε / 3) hε3
+    refine ⟨δ, hδ_pos, fun t ht hdist => ?_⟩
+    -- Triangle bound in ENNReal then toReal.
+    have h_W1_first : wasserstein1 (ρ_lim s) ((x N).ρ s) ≤ ENNReal.ofReal (ε / 3) := by
+      rw [wasserstein1_comm]
+      exact hN_uniform N le_rfl s hs
+    have h_W1_third : wasserstein1 ((x N).ρ t) (ρ_lim t) ≤ ENNReal.ofReal (ε / 3) :=
+      hN_uniform N le_rfl t ht
+    -- Finiteness of the limit's W₁.
+    haveI hPs_inf : IsProbabilityMeasure (ρ_lim s) := h_isProb s
+    haveI hPt_inf : IsProbabilityMeasure (ρ_lim t) := h_isProb t
+    have h_finite : wasserstein1 (ρ_lim s) (ρ_lim t) ≠ ⊤ :=
+      wasserstein1_ne_top_of_finite_moment _ _
+        (h_yIntegrable s hs) (h_yIntegrable t ht)
+    -- Triangle.
+    have h_tri : wasserstein1 (ρ_lim s) (ρ_lim t) ≤
+        wasserstein1 (ρ_lim s) ((x N).ρ s) + wasserstein1 ((x N).ρ s) ((x N).ρ t) +
+          wasserstein1 ((x N).ρ t) (ρ_lim t) := by
+      calc wasserstein1 (ρ_lim s) (ρ_lim t)
+          ≤ wasserstein1 (ρ_lim s) ((x N).ρ t) + wasserstein1 ((x N).ρ t) (ρ_lim t) :=
+            wasserstein1_triangle _ _ _
+        _ ≤ (wasserstein1 (ρ_lim s) ((x N).ρ s) + wasserstein1 ((x N).ρ s) ((x N).ρ t))
+              + wasserstein1 ((x N).ρ t) (ρ_lim t) :=
+            add_le_add (wasserstein1_triangle _ _ _) le_rfl
+    -- Bound the middle term via hδ_bound.
+    have h_mid_lt : (wasserstein1 ((x N).ρ s) ((x N).ρ t)).toReal < ε / 3 := by
+      have hδb := hδ_bound ht hdist
+      rw [h_self_N, Real.dist_eq, sub_zero] at hδb
+      have h_nn : 0 ≤ (wasserstein1 ((x N).ρ s) ((x N).ρ t)).toReal :=
+        ENNReal.toReal_nonneg
+      rwa [abs_of_nonneg h_nn] at hδb
+    -- Convert toReal and bound by ε/3 + ε/3 + ε/3 = ε.
+    have h_W1_first_ne_top : wasserstein1 (ρ_lim s) ((x N).ρ s) ≠ ⊤ :=
+      ne_top_of_le_ne_top ENNReal.ofReal_ne_top h_W1_first
+    have h_W1_third_ne_top : wasserstein1 ((x N).ρ t) (ρ_lim t) ≠ ⊤ :=
+      ne_top_of_le_ne_top ENNReal.ofReal_ne_top h_W1_third
+    haveI hPNs : IsProbabilityMeasure ((x N).ρ s) := (x N).isProb s
+    haveI hPNt : IsProbabilityMeasure ((x N).ρ t) := (x N).isProb t
+    have h_mid_ne_top : wasserstein1 ((x N).ρ s) ((x N).ρ t) ≠ ⊤ :=
+      wasserstein1_ne_top_of_finite_moment _ _
+        ((x N).yIntegrable s hs) ((x N).yIntegrable t ht)
+    have h_W1_first_real : (wasserstein1 (ρ_lim s) ((x N).ρ s)).toReal ≤ ε / 3 := by
+      have := ENNReal.toReal_mono ENNReal.ofReal_ne_top h_W1_first
+      rwa [ENNReal.toReal_ofReal hε3.le] at this
+    have h_W1_third_real : (wasserstein1 ((x N).ρ t) (ρ_lim t)).toReal ≤ ε / 3 := by
+      have := ENNReal.toReal_mono ENNReal.ofReal_ne_top h_W1_third
+      rwa [ENNReal.toReal_ofReal hε3.le] at this
+    -- Apply ENNReal.toReal to the triangle.
+    have h_tri_real : (wasserstein1 (ρ_lim s) (ρ_lim t)).toReal ≤
+        (wasserstein1 (ρ_lim s) ((x N).ρ s)).toReal +
+          (wasserstein1 ((x N).ρ s) ((x N).ρ t)).toReal +
+          (wasserstein1 ((x N).ρ t) (ρ_lim t)).toReal := by
+      have h_add_ne_top : wasserstein1 (ρ_lim s) ((x N).ρ s) +
+                          wasserstein1 ((x N).ρ s) ((x N).ρ t) +
+                          wasserstein1 ((x N).ρ t) (ρ_lim t) ≠ ⊤ := by
+        simp [h_W1_first_ne_top, h_mid_ne_top, h_W1_third_ne_top]
+      have := ENNReal.toReal_mono h_add_ne_top h_tri
+      rw [ENNReal.toReal_add (ENNReal.add_ne_top.mpr ⟨h_W1_first_ne_top, h_mid_ne_top⟩)
+            h_W1_third_ne_top,
+          ENNReal.toReal_add h_W1_first_ne_top h_mid_ne_top] at this
+      exact this
+    rw [Real.dist_eq, h_self, sub_zero,
+        abs_of_nonneg ENNReal.toReal_nonneg]
+    linarith [h_tri_real, h_mid_lt, h_W1_first_real, h_W1_third_real]
+  -- Bundle.
+  refine ⟨{ρ := ρ_lim, isProb := h_isProb, hasMoment := h_hasMoment,
+           yIntegrable := h_yIntegrable, hW1Cont := h_hW1Cont}, ?_⟩
+  intro t ht
+  exact h_tendsto t ht
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------

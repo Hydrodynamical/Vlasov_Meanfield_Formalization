@@ -1156,6 +1156,13 @@ theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
                  wasserstein1 (ν m) (ν n) < ε) :
     ∃ μ : Measure (PhysSpace d), IsProbabilityMeasure μ ∧
       Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
+      -- Moment-preservation: the bound `M` passes to the limit by
+      -- lower-semicontinuity of `∫ ‖·‖ ∂·` under W₁-convergence.  Standard
+      -- consequence of W₁-convergence + uniform moment control; included
+      -- in the placeholder's conclusion so downstream consumers
+      -- (`picard_iterate_bundlesAs_VlasovMeasureCurve`) can re-use the
+      -- same moment bound for the limit's `VlasovMeasureCurve` packaging.
+      ∫ y, ‖y‖ ∂μ ≤ M ∧
       -- Conclusion also in ENNReal form; downstream consumers project
       -- to ℝ when matching `VlasovMeasureCurve.hW1Cont`'s `.toReal` interface.
       Filter.Tendsto (fun n => wasserstein1 (ν n) μ)
