@@ -510,23 +510,31 @@ infrastructure is perturbed.  The `_On` family lives in this file so it
 can compose with `IsCharacteristicFlowOn` (which lives here too); the
 global versions stay in `Basic.lean` as the abstract endpoints. -/
 
-/-- Localized weak Vlasov evolution equation on `[0, T]`.  Same as
+/-- Localized weak Vlasov evolution equation on `Ioo 0 T`.  Same as
 `WeakEvolutionEq` (Basic.lean L674) but with the derivative claim
-restricted to `t ∈ Set.Icc 0 T` via `HasDerivWithinAt` on `Set.Icc 0 T`. -/
+restricted to the *open* interval `t ∈ Set.Ioo 0 T`.
+
+**Why `Ioo` not `Icc`**: Stage 1.9's characteristic flow only provides
+ODE behaviour on `Ioo 0 T` (the boundary derivatives at `t = 0` and
+`t = T` are genuinely unavailable from open-interval HasDerivAt alone).
+The Vlasov solution's weak PDE inherits the same regularity: it holds on
+the open interval where the characteristic flow is differentiable, and
+the initial condition at `t = 0` is captured separately by the
+pushforward equation in `IsLagrangianVlasovSolutionOn`. -/
 def WeakEvolutionEqOn {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (μ : ℝ → Measure (PhaseSpace d))
     (φ : PhaseSpace d → ℝ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (R_N : ℝ → ℝ) (T : ℝ) : Prop :=
-  ∀ t ∈ Set.Icc (0 : ℝ) T,
-    HasDerivWithinAt (fun s => ∫ z, φ z ∂μ s)
+  ∀ t ∈ Set.Ioo (0 : ℝ) T,
+    HasDerivAt (fun s => ∫ z, φ z ∂μ s)
       (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
               @inner ℝ (PhysSpace d) _
                 (convolveFunctionMeasure gradW (spatialMarginal (μ t)) z.1)
                 (gradVφ z))
         ∂μ t
-        + R_N t) (Set.Icc 0 T) t
+        + R_N t) t
 
 /-- Localized Vlasov solution on `[0, T]`.  Mirror of `IsVlasovSolution`
 with the weak PDE restricted to `[0, T]` via `WeakEvolutionEqOn`. -/
@@ -568,15 +576,16 @@ def IsLagrangianVlasovSolutionOn {d : ℕ} [NeZero d]
       AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0))
 
 /-- A global `IsVlasovSolution` restricts to `IsVlasovSolutionOn T` for any
-`T : ℝ`.  Uses `HasDerivAt.hasDerivWithinAt` to project the universal
-HasDerivAt claim onto the restricted set. -/
+`T : ℝ`.  Projects the universal HasDerivAt claim onto `Ioo 0 T` by direct
+specialization (the restricted set is open, so HasDerivAt and
+HasDerivWithinAt coincide there). -/
 lemma IsVlasovSolution.toOn {d : ℕ} [NeZero d]
     {gradW : PhysSpace d → PhysSpace d}
     {f : ℝ → Measure (PhaseSpace d)} (h : IsVlasovSolution gradW f) (T : ℝ) :
     IsVlasovSolutionOn gradW f T := by
   intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
   intro t _ht
-  exact (h φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t).hasDerivWithinAt
+  exact h φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
 
 /-- A global `IsLagrangianVlasovSolution` restricts to
 `IsLagrangianVlasovSolutionOn T` for any `T : ℝ`.
@@ -2935,6 +2944,123 @@ theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolution
     have h_init : (fun z : PhaseSpace d => (charX 0 z, charV 0 z)) = id := by
       funext z
       have h := hflow.1 z
+      exact Prod.ext h.1 h.2
+    have h0 : vlasovSolutionViaPushforward charX charV f₀ 0 = f₀ := by
+      simp [vlasovSolutionViaPushforward, h_init, Measure.map_id]
+    rw [h0]
+    exact h_flow_meas s
+
+/-- **`_On`-flavored Stage C producer for `IsVlasovSolutionOn`**.
+
+The `_on` analog of `vlasovSolutionViaPushforward_isVlasovSolution`
+(L2735), taking the characteristic flow in `IsCharacteristicFlowOn ...
+(Set.Ioo 0 T) Set.univ` form (Stage 1.9's natural output) and producing
+the weak Vlasov PDE in localized `IsVlasovSolutionOn` form (also on
+`Ioo 0 T`, per the predicate's revision in commit `966a9e6+`).
+
+**Proof strategy** (deferred — substantive ~150-200 lines of careful
+adaptation of the global L2735 proof body):
+
+The original L2735 proof's structure transports cleanly to the `_On`
+form:
+* `intro t` becomes `intro t ht` with `ht : t ∈ Set.Ioo 0 T`.
+* `hflow.2.1 t z` (HasDerivAt universal) becomes
+  `hflow_on.2.1 t ht z (Set.mem_univ z)` (HasDerivAt at the specific
+  `t ∈ Ioo 0 T`, `z ∈ Set.univ`).
+* Conclusion stays at `HasDerivAt` (since `t ∈ Ioo` is an interior
+  point of the predicate's quantification set; no `HasDerivWithinAt`
+  conversion needed).
+* The sub-helpers `vlasov_traj_chain_rule`, `vlasov_compose_flow_*`,
+  `vlasov_pushforward_hasDerivAt_under_integral`,
+  `vlasov_rhs_pushforward_back` all consume flow hypotheses at a
+  *specific `t`*, not universally, so they transport unchanged after
+  threading the `ht : t ∈ Ioo 0 T` constraint.
+
+**Sorry rationale**: deferred to a focused follow-up commit.  The
+substantive PDE-proof transport is a careful copy-edit task on the
+~150-line L2735 body, easier as a focused unit than mid-Stage-4-closure.
+Treating it as a named gap (analogous to `MathlibTODO_*` placeholders)
+keeps Stage 4's structural assembly unblocked.  The downstream consumer
+(`vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` below)
+needs this as a black box; with this signature in place, the wrapper
+composes cleanly. -/
+theorem vlasovSolutionViaPushforward_isVlasovSolutionOn
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (T : ℝ)
+    (hflow_on : IsCharacteristicFlowOn gradW
+                (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+                charX charV (Set.Ioo 0 T) Set.univ)
+    (hself : IsCharacteristicFlowSelfConsistent charX f₀
+              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
+    (h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+    IsVlasovSolutionOn gradW (vlasovSolutionViaPushforward charX charV f₀) T := by
+  sorry
+
+/-- **`_On`-flavored Stage C producer for `IsLagrangianVlasovSolutionOn`**.
+
+Same hypothesis package as the global `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`
+(L2895), but takes the characteristic flow in `IsCharacteristicFlowOn ...
+(Set.Ioo 0 T) Set.univ` form (Stage 1.9's natural output) and produces
+the strictly stronger `IsLagrangianVlasovSolutionOn` predicate.
+
+**Composes**:
+* `vlasovSolutionViaPushforward_isVlasovSolutionOn` (above) for the
+  weak-PDE conjunct.
+* Stage 1.9's flow output for the flow-witness conjunct.
+* Trivial pushforward + AEMeasurability bundling for the remaining
+  conjuncts (identical to the global wrapper's body at L2920-L2951,
+  adapted to use `IsCharacteristicFlowOn`'s initial-condition clause).
+
+This is the **packaging layer** of Stage 4's `_On` Stage C closure;
+the substantive PDE proof lives in the sorry'd
+`vlasovSolutionViaPushforward_isVlasovSolutionOn` above. -/
+theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (T : ℝ)
+    (hflow_on : IsCharacteristicFlowOn gradW
+                (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+                charX charV (Set.Ioo 0 T) Set.univ)
+    (hself : IsCharacteristicFlowSelfConsistent charX f₀
+              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
+    (h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+    IsLagrangianVlasovSolutionOn gradW
+      (vlasovSolutionViaPushforward charX charV f₀) T := by
+  refine ⟨vlasovSolutionViaPushforward_isVlasovSolutionOn gradW charX charV f₀ T
+            hflow_on hself h_flow_meas hgradW_cont hconv_cont,
+          charX, charV, hflow_on, ?_, ?_⟩
+  · -- Pushforward equation: f t = (flow_t)_# (f 0) for t ∈ Icc 0 T.
+    -- Identical to the global wrapper's body, using IsCharacteristicFlowOn's
+    -- initial-condition clause `hflow_on.1 z (Set.mem_univ z)`.
+    have h_init : (fun z : PhaseSpace d => (charX 0 z, charV 0 z)) = id := by
+      funext z
+      have h := hflow_on.1 z (Set.mem_univ z)
+      exact Prod.ext h.1 h.2
+    have h0 : vlasovSolutionViaPushforward charX charV f₀ 0 = f₀ := by
+      simp [vlasovSolutionViaPushforward, h_init, Measure.map_id]
+    intro t _ht
+    rw [h0]
+    rfl
+  · -- AEMeasurability on Icc 0 T.  Same h0 step as above.
+    intro s _hs
+    have h_init : (fun z : PhaseSpace d => (charX 0 z, charV 0 z)) = id := by
+      funext z
+      have h := hflow_on.1 z (Set.mem_univ z)
       exact Prod.ext h.1 h.2
     have h0 : vlasovSolutionViaPushforward charX charV f₀ 0 = f₀ := by
       simp [vlasovSolutionViaPushforward, h_init, Measure.map_id]
