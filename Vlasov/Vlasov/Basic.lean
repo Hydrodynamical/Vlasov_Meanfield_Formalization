@@ -773,31 +773,14 @@ def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
 def HasFiniteFirstMoment (μ : Measure (PhaseSpace d)) : Prop :=
   IsProbabilityMeasure μ ∧ Integrable (fun z : PhaseSpace d => ‖z‖) μ
 
-/-- (tex: thm:vlasov-wp)
-Existence and uniqueness for the Vlasov equation.
-
-Let f_0 ∈ 𝒫_1(ℝ^d × ℝ^d) be a probability measure with finite first moment.
-Under Assumption ass:W, there exists a unique narrowly continuous curve
-t ↦ f_t ∈ 𝒫_1(ℝ^d × ℝ^d) satisfying eq:vlasov in the distributional sense
-with f_{t=0} = f_0.
--/
-theorem vlasovWellPosedness
-    (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    (f₀ : Measure (PhaseSpace d))
-    (hf₀ : HasFiniteFirstMoment f₀) :
-    ∃! f : ℝ → Measure (PhaseSpace d),
-      -- initial condition
-      f 0 = f₀ ∧
-      -- each f_t has finite first moment
-      (∀ t, HasFiniteFirstMoment (f t)) ∧
-      -- f solves the Vlasov equation
-      IsVlasovSolution gradW f ∧
-      -- f is narrowly continuous: t ↦ ∫ g df_t is continuous for every bounded continuous g
-      (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
-        Continuous (fun t => ∫ z, g z ∂f t)) := by
-  sorry
+-- The §9 statement `vlasovWellPosedness` (tex: thm:vlasov-wp) has been
+-- relocated to `Vlasov/OT/CharacteristicFlow.lean` so its proof can compose
+-- directly with the characteristic-flow infrastructure
+-- (`exists_vlasov_characteristicFlow`, `flow_distance_growth_bound`,
+-- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`).  See the
+-- declaration site in `CharacteristicFlow.lean` for the full statement and
+-- proof status; the `HasFiniteFirstMoment` predicate above stays here, used
+-- by `vlasovWellPosedness`'s hypothesis and by the `_lag` cascade.
 
 -- ---------------------------------------------------------------------------
 -- §10  Equation (Characteristic / mean-field ODE)   (tex: eq:char)
