@@ -3483,6 +3483,240 @@ theorem wasserstein1_Phi_le_integral_diff {d : ℕ} [NeZero d]
     linarith [abs_le.mp h_lip |>.2]
   exact integral_mono (hφ_comp_int_s.sub hφ_comp_int_t) h_diff_int h_pt
 
+/-- **Stage 2c sub-piece: DCT step — the integral `∫ z, ‖charX s z - charX t z‖ ∂f₀`
+tends to 0 as `t → s` within `Icc 0 T`.**
+
+Combines pointwise continuity `t ↦ charX t z` (from the flow's HasDerivAt
+→ ContinuousAt) with a uniform dominator `2·C_T·(‖z‖+1)` (from the per-z
+growth bound) via Mathlib's filter-DCT.
+
+**Implementation discipline** (L7): the dominator integrability is built
+as a named `have` before the DCT call. -/
+theorem Phi_integral_diff_tendsto_zero {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (T : ℝ) (hT : 0 ≤ T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX t z‖ ≤ C_T * (‖z‖ + 1))
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    -- Continuity of t ↦ charX t z at base s (from HasDerivAt).
+    (s : ℝ) (hs : s ∈ Set.Icc (0 : ℝ) T)
+    (h_charX_cont : ∀ z, ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s) :
+    Filter.Tendsto (fun t => ∫ z, ‖charX s z - charX t z‖ ∂f₀)
+      (nhdsWithin s (Set.Icc 0 T)) (nhds 0) := by
+  -- ============================================================
+  -- Dominator: `bound z := 2 * C_T * (‖z‖ + 1)` integrable wrt f₀.
+  -- ============================================================
+  set bound : PhaseSpace d → ℝ :=
+    fun z => 2 * C_T * (‖z‖ + 1) with hbound_def
+  have h_bound_int : Integrable bound f₀ := by
+    have h1 : Integrable (fun z : PhaseSpace d => ‖z‖ + 1) f₀ :=
+      h_f₀_int.add (integrable_const _)
+    exact h1.const_mul _
+  -- ============================================================
+  -- AE strong measurability of (fun z => ‖charX s z - charX t z‖) wrt f₀, eventually in t.
+  -- ============================================================
+  have h_F_meas : ∀ᶠ t in nhdsWithin s (Set.Icc 0 T),
+      AEStronglyMeasurable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀ := by
+    refine Filter.Eventually.of_forall fun t => ?_
+    exact ((h_meas s).sub (h_meas t)).norm.aestronglyMeasurable
+  -- ============================================================
+  -- Pointwise bound: ‖‖charX s z - charX t z‖‖ ≤ bound z eventually.
+  -- ============================================================
+  have h_F_bound : ∀ᶠ t in nhdsWithin s (Set.Icc 0 T),
+      ∀ᵐ z ∂f₀, ‖‖charX s z - charX t z‖‖ ≤ bound z := by
+    refine Filter.eventually_iff_exists_mem.mpr ⟨Set.Icc 0 T, ?_, ?_⟩
+    · exact self_mem_nhdsWithin
+    · intro t ht
+      refine Filter.Eventually.of_forall fun z => ?_
+      rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+      have h_tri := norm_sub_le (charX s z) (charX t z)
+      have h_s := h_growth s hs z
+      have h_t := h_growth t ht z
+      have h_C_nn_2 : 0 ≤ 2 * C_T := by linarith
+      have hz_nn : 0 ≤ ‖z‖ + 1 := by linarith [norm_nonneg z]
+      calc ‖charX s z - charX t z‖
+          ≤ ‖charX s z‖ + ‖charX t z‖ := h_tri
+        _ ≤ C_T * (‖z‖ + 1) + C_T * (‖z‖ + 1) := by linarith
+        _ = 2 * C_T * (‖z‖ + 1) := by ring
+  -- ============================================================
+  -- Pointwise limit: ‖charX s z - charX t z‖ → 0 as t → s within Icc 0 T.
+  -- ============================================================
+  have h_F_lim : ∀ᵐ z ∂f₀, Filter.Tendsto
+      (fun t => ‖charX s z - charX t z‖) (nhdsWithin s (Set.Icc 0 T)) (nhds 0) := by
+    refine Filter.Eventually.of_forall fun z => ?_
+    -- t ↦ charX s z - charX t z → 0 as t → s, because charX(·) z → charX s z.
+    have h_tendsto : Filter.Tendsto (fun t => charX t z) (nhdsWithin s (Set.Icc 0 T))
+                       (nhds (charX s z)) := h_charX_cont z
+    have h_sub : Filter.Tendsto (fun t => charX s z - charX t z)
+                   (nhdsWithin s (Set.Icc 0 T)) (nhds 0) := by
+      have h_cancel : (charX s z - charX s z : PhysSpace d) = 0 := sub_self _
+      rw [← h_cancel]
+      exact (tendsto_const_nhds (x := charX s z)).sub h_tendsto
+    have h_norm_tendsto :
+        Filter.Tendsto (fun t => ‖charX s z - charX t z‖)
+          (nhdsWithin s (Set.Icc 0 T)) (nhds ‖(0 : PhysSpace d)‖) :=
+      (continuous_norm.tendsto 0).comp h_sub
+    simpa using h_norm_tendsto
+  -- ============================================================
+  -- Apply Mathlib's filter-DCT.
+  -- ============================================================
+  have h_dct := MeasureTheory.tendsto_integral_filter_of_dominated_convergence (μ := f₀)
+    bound h_F_meas h_F_bound h_bound_int h_F_lim
+  -- h_dct : Tendsto (fun t => ∫ z, ‖charX s z - charX t z‖ ∂f₀)
+  --   (nhdsWithin s (Icc 0 T)) (nhds (∫ z, 0 ∂f₀))
+  -- ∫ z, 0 ∂f₀ = 0
+  simp only [integral_zero] at h_dct
+  exact h_dct
+
+/-- **Stage 2c sub-piece: W₁-continuity of `t ↦ Phi charX f₀ t` at every base
+point `s ∈ Icc 0 T`.**
+
+Composes the W₁ bound (`wasserstein1_Phi_le_integral_diff`) with the DCT step
+(`Phi_integral_diff_tendsto_zero`) to conclude that
+`(wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t)).toReal → 0` as `t → s`. -/
+theorem Phi_hW1Cont {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (h_int_charX : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀)
+    (T : ℝ) (hT : 0 ≤ T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX t z‖ ≤ C_T * (‖z‖ + 1))
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (h_charX_cont : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z,
+      ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ContinuousWithinAt
+        (fun t => (wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t)).toReal)
+        (Set.Icc 0 T) s := by
+  intro s hs
+  -- ContinuousWithinAt at s ↔ Tendsto · → value-at-s within filter.
+  -- Value at t = s: wasserstein1_self = 0.
+  rw [ContinuousWithinAt]
+  have h_value_at_s : (wasserstein1 (Phi charX f₀ s) (Phi charX f₀ s)).toReal = 0 := by
+    rw [wasserstein1_self]; rfl
+  rw [h_value_at_s]
+  -- DCT gives ∫-tendsto-zero.
+  have h_dct := Phi_integral_diff_tendsto_zero charX f₀ h_meas T hT C_T hC_T_nn
+    h_growth h_f₀_int s hs (h_charX_cont s hs)
+  -- Build the ‖charX s z - charX t z‖-diff-integrability eventually.
+  have h_diff_int_eventually : ∀ᶠ t in nhdsWithin s (Set.Icc 0 T),
+      Integrable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀ := by
+    refine Filter.eventually_iff_exists_mem.mpr ⟨Set.Icc 0 T, self_mem_nhdsWithin, ?_⟩
+    intro t ht
+    have h_dom_int : Integrable (fun z : PhaseSpace d => 2 * C_T * (‖z‖ + 1)) f₀ :=
+      (h_f₀_int.add (integrable_const _)).const_mul _
+    refine Integrable.mono' h_dom_int
+      (((h_meas s).sub (h_meas t)).norm.aestronglyMeasurable) ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+    have h_tri := norm_sub_le (charX s z) (charX t z)
+    have h_s := h_growth s hs z
+    have h_t := h_growth t ht z
+    calc ‖charX s z - charX t z‖
+        ≤ ‖charX s z‖ + ‖charX t z‖ := h_tri
+      _ ≤ C_T * (‖z‖ + 1) + C_T * (‖z‖ + 1) := by linarith
+      _ = 2 * C_T * (‖z‖ + 1) := by ring
+  -- Combine: W₁ bound ⇒ toReal bound ⇒ tendsto-zero.
+  -- Strategy: bound the W₁.toReal by the integral via wasserstein1_Phi_le_integral_diff.
+  -- Then use squeeze on Tendsto.
+  rw [Metric.tendsto_nhdsWithin_nhds]
+  intro ε hε
+  -- From h_dct: ∃ δ, ∀ t ∈ Icc 0 T, dist t s < δ → |∫ ...| < ε.
+  rw [Metric.tendsto_nhdsWithin_nhds] at h_dct
+  obtain ⟨δ, hδ_pos, hδ_bd⟩ := h_dct ε hε
+  -- Use the same δ.
+  refine ⟨δ, hδ_pos, fun t ht hdt => ?_⟩
+  -- Goal: dist ((wasserstein1 (Phi s) (Phi t)).toReal) 0 < ε.
+  rw [Real.dist_eq, sub_zero]
+  -- |(W₁ s t).toReal| ≤ |∫ ...|.
+  haveI hΦs_prob : IsProbabilityMeasure (Phi charX f₀ s) :=
+    Phi_isProbabilityMeasure charX f₀ h_meas s
+  haveI hΦt_prob : IsProbabilityMeasure (Phi charX f₀ t) :=
+    Phi_isProbabilityMeasure charX f₀ h_meas t
+  have h_yint_s : Integrable (fun y : PhysSpace d => ‖y‖) (Phi charX f₀ s) :=
+    Phi_yIntegrable charX f₀ h_meas T hT C_T hC_T_nn h_growth h_f₀_int s hs
+  have h_yint_t : Integrable (fun y : PhysSpace d => ‖y‖) (Phi charX f₀ t) :=
+    Phi_yIntegrable charX f₀ h_meas T hT C_T hC_T_nn h_growth h_f₀_int t ht
+  have h_W1_finite : wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t) ≠ ⊤ :=
+    wasserstein1_ne_top_of_finite_moment _ _ h_yint_s h_yint_t
+  have h_diff_int_t : Integrable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀ := by
+    -- Inline the integrability proof to avoid the `Filter.eventually_iff_exists_mem`
+    -- destructuring's metavariable mismatch.
+    have h_dom_int : Integrable (fun z : PhaseSpace d => 2 * C_T * (‖z‖ + 1)) f₀ :=
+      (h_f₀_int.add (integrable_const _)).const_mul _
+    refine Integrable.mono' h_dom_int
+      (((h_meas s).sub (h_meas t)).norm.aestronglyMeasurable) ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+    have h_tri := norm_sub_le (charX s z) (charX t z)
+    have h_s := h_growth s hs z
+    have h_t := h_growth t ht z
+    calc ‖charX s z - charX t z‖
+        ≤ ‖charX s z‖ + ‖charX t z‖ := h_tri
+      _ ≤ C_T * (‖z‖ + 1) + C_T * (‖z‖ + 1) := by linarith
+      _ = 2 * C_T * (‖z‖ + 1) := by ring
+  have h_W1_le := wasserstein1_Phi_le_integral_diff charX f₀ h_meas h_int_charX
+    s t h_diff_int_t
+  -- |∫ ‖charX s z - charX t z‖ ∂f₀| < ε from hδ_bd.
+  have h_int_bd := hδ_bd ht hdt
+  rw [Real.dist_eq, sub_zero] at h_int_bd
+  -- Combine: (W₁ s t).toReal ≤ ofReal(∫ ‖...‖).toReal ≤ |∫ ‖...‖| < ε.
+  have h_int_nn : 0 ≤ ∫ z, ‖charX s z - charX t z‖ ∂f₀ :=
+    integral_nonneg (fun _ => norm_nonneg _)
+  have h_toReal_le : (wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t)).toReal ≤
+      ∫ z, ‖charX s z - charX t z‖ ∂f₀ := by
+    have h_ofReal_eq : (ENNReal.ofReal (∫ z, ‖charX s z - charX t z‖ ∂f₀)).toReal
+                      = ∫ z, ‖charX s z - charX t z‖ ∂f₀ := by
+      rw [ENNReal.toReal_ofReal h_int_nn]
+    rw [← h_ofReal_eq]
+    exact ENNReal.toReal_mono ENNReal.ofReal_ne_top h_W1_le
+  have h_toReal_nn : 0 ≤ (wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t)).toReal :=
+    ENNReal.toReal_nonneg
+  rw [abs_of_nonneg h_toReal_nn]
+  calc (wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t)).toReal
+      ≤ ∫ z, ‖charX s z - charX t z‖ ∂f₀ := h_toReal_le
+    _ < ε := by
+        have h_abs_eq : |∫ z, ‖charX s z - charX t z‖ ∂f₀|
+                      = ∫ z, ‖charX s z - charX t z‖ ∂f₀ := abs_of_nonneg h_int_nn
+        linarith [h_int_bd, h_abs_eq.symm.le, abs_nonneg (∫ z, ‖charX s z - charX t z‖ ∂f₀)]
+
+/-- **Stage 2c: full bundling of Φ into a `VlasovMeasureCurve`.**
+
+Given the four hypothesis bundles (measurability, growth, f₀'s integrability,
+flow continuity), bundles Stage 2a's three properties + Stage 2c's `Phi_hW1Cont`
+into a `VlasovMeasureCurve d T M'` where `M' := C_T · (M_f₀ + 1)`.
+
+This is the structured output that Stage 3's contraction estimate and Stage 4's
+Banach iteration consume. -/
+noncomputable def Phi_asVlasovMeasureCurve {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (h_int_charX : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀)
+    (T : ℝ) (hT : 0 ≤ T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX t z‖ ≤ C_T * (‖z‖ + 1))
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
+    (h_charX_cont : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z,
+      ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s) :
+    VlasovMeasureCurve d T (C_T * (M_f₀ + 1)) where
+  ρ := Phi charX f₀
+  isProb := Phi_isProbabilityMeasure charX f₀ h_meas
+  hasMoment := fun t ht =>
+    Phi_hasMoment_le charX f₀ h_meas T hT C_T hC_T_nn h_growth h_f₀_int M_f₀ hM_f₀ t ht
+  yIntegrable := fun t ht =>
+    Phi_yIntegrable charX f₀ h_meas T hT C_T hC_T_nn h_growth h_f₀_int t ht
+  hW1Cont :=
+    Phi_hW1Cont charX f₀ h_meas h_int_charX T hT C_T hC_T_nn h_growth h_f₀_int
+      h_charX_cont
+
 /-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
 
 Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
