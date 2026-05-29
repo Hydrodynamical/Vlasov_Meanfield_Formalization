@@ -2988,6 +2988,84 @@ theorem exists_vlasov_characteristicFlow_global_on_ball
     rw [h_fst_zero] at hx
     exact hbound t ht x hx
 
+/-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
+
+Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
+additionally bundling a measurability conjunct `Measurable (fun z =>
+(charX t z, charV t z))` for each `t ∈ Icc 0 T` — exactly the shape
+`Measure.map`, `IsLagrangianVlasovSolution`'s third conjunct, and Stage
+2's Φ all consume.
+
+**Proof status: deferred.**  The body invokes Stage 1.7 to extract the
+flow, then `sorry`s on the measurability claim.  The deferral is
+architecturally analogous to the four existing `MathlibTODO_*`
+placeholders: a known-doable gap whose closure is treated as separate
+focused work, with the API in place so downstream consumers compose
+cleanly.
+
+**Proof recipe (for the eventual closure session)**:
+
+The vendored Picard-Lindelöf theorem exposes Lipschitz-in-initial-point
+at `Vlasov/Mathlib/ODE/PicardLindelof.lean` line 53
+(`exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined`).
+The existing downstream chain `exists_vlasov_characteristicFlow_local`
+(L401) → `exists_vlasov_characteristicFlow` (L957) → Stage 1.7's wrapper
+uses the *thin* wrapper (`_forall_mem_Icc_hasDerivWithinAt_confined`,
+PL L95) which drops the Lipschitz-in-z conjunct.  Two paths to restore
+it:
+
+* **Path (a)** — modify the existing infrastructure to propagate
+  Lipschitz constants through `exists_vlasov_characteristicFlow_local`,
+  `exists_vlasov_extend_one_window`, and the N-window glueing in
+  `exists_vlasov_characteristicFlow`.  ~100–200 lines of careful constant
+  composition; architecturally honest.
+
+* **Path (b)** — re-derive the flow from scratch for the single ball
+  `closedBall 0 R₀` by direct invocation of PL's full
+  `_lipschitzOnWith_confined`, then use `ODE_solution_unique`
+  (Mathlib.Analysis.ODE.Gronwall L379) to identify it with Stage 1.7's
+  flow (pointwise equality from ODE uniqueness + matching initial
+  data).  Transfers the Lipschitz-in-z property by transport along
+  equality.  ~50–80 lines, more clever but more isolated.
+
+Both paths conclude with `Continuous.measurable` (continuity-in-z on
+a closedBall in a second-countable Euclidean space gives Borel
+measurability of the joint `z ↦ (charX t z, charV t z)`).
+
+Sorry-count impact: +1 (placeholder body) — treated as known-doable
+deferred work.  The Stage 1.7 lemma itself remains fully proved. -/
+theorem exists_vlasov_characteristicFlow_global_on_ball_measurable
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (R₀ : NNReal) (hR₀ : 0 < R₀)
+    (M : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (R : NNReal)
+    (hR : 4 * (R₀ : ℝ) + (R₀ : ℝ) * (T + 1) + (M : ℝ) * (T + 1) ^ 2 ≤ R)
+    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
+              ∀ x ∈ Metric.closedBall (0 : PhysSpace d) (R : ℝ),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M) :
+    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
+      IsCharacteristicFlowOn gradW ρ charX charV
+        (Set.Ioo 0 T) (Metric.closedBall (0 : PhaseSpace d) (R₀ : ℝ)) ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) T,
+        Measurable (fun z : PhaseSpace d => (charX t z, charV t z))) := by
+  obtain ⟨charX, charV, hFlow⟩ :=
+    exists_vlasov_characteristicFlow_global_on_ball W gradW hgradW L hL ρ
+      h_int hρ_cont R₀ hR₀ M T hT R hR hbound
+  refine ⟨charX, charV, hFlow, ?_⟩
+  -- TODO(stage 1.8 proper): derive joint measurability via PL's
+  -- Lipschitz-in-initial-point conclusion (PicardLindelof.lean L53).
+  -- Two proof paths documented in the docstring above.
+  sorry
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
