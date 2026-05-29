@@ -4199,6 +4199,128 @@ theorem Phi_pointwise_contraction {d : ℕ} [NeZero d]
   rw [ENNReal.toReal_ofReal hC_T_nn] at h_W1_le_ofReal
   exact h_W1_le_ofReal
 
+/-- **Stage 3c: sup-W₁ contraction estimate over `Icc 0 T`.**
+
+The final Stage 3 deliverable, combining Stage 3b's pointwise contraction
+with `gronwallBound`'s monotonicity in `t` to derive:
+`(supW1On(Icc 0 T) Phi_ρ Phi_σ).toReal ≤ gronwallBound 0 K (L·D) T`
+where `K := max(1, L)` and `D := supW1On(Icc 0 T) ρ σ` bound.
+
+**For Stage 4's Banach fixed-point**: expanding `gronwallBound`'s explicit
+form `(ε/K)·(exp(K·t) − 1)`, the bound is `(L·D/K) · (exp(K·T) − 1) =
+D · K_contract(T)` where `K_contract(T) := (L/K)·(exp(K·T) − 1) → 0` as
+`T → 0`.  This is the contraction factor Stage 4's Banach iteration
+exploits. -/
+theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)] [∀ t, IsProbabilityMeasure (σ t)]
+    (h_int_ρ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (h_int_σ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (σ t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (D : ℝ) (hD_nn : 0 ≤ D)
+    (h_W1_fin : ∀ s ∈ Set.Icc (0 : ℝ) T, wasserstein1 (ρ s) (σ s) ≠ ⊤)
+    (h_W1_bound : ∀ s ∈ Set.Icc (0 : ℝ) T, (wasserstein1 (ρ s) (σ s)).toReal ≤ D)
+    (charX_ρ charV_ρ charX_σ charV_σ : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas_ρ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
+    (h_meas_σ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
+    (h_int_charX_ρ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
+    (h_int_charX_σ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
+    -- The pushforwards have finite first moments (for W₁ finiteness).
+    (h_yint_Phi_ρ : ∀ t,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (Measure.map (fun z => charX_ρ t z) f₀))
+    (h_yint_Phi_σ : ∀ t,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (Measure.map (fun z => charX_σ t z) f₀))
+    -- Per-z trajectory regularity (Stage 4's Picard discharges).
+    (h_init_ρ : ∀ z, (charX_ρ 0 z, charV_ρ 0 z) = z)
+    (h_init_σ : ∀ z, (charX_σ 0 z, charV_σ 0 z) = z)
+    (h_cont_ρ : ∀ z,
+      ContinuousOn (fun s => (charX_ρ s z, charV_ρ s z)) (Set.Icc (0 : ℝ) T))
+    (h_cont_σ : ∀ z,
+      ContinuousOn (fun s => (charX_σ s z, charV_σ s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_ρ : ∀ z, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX_ρ s' z, charV_ρ s' z))
+        (vlasovVectorField gradW ρ s (charX_ρ s z, charV_ρ s z))
+        (Set.Ici s) s)
+    (h_deriv_σ : ∀ z, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX_σ s' z, charV_σ s' z))
+        (vlasovVectorField gradW σ s (charX_σ s z, charV_σ s z))
+        (Set.Ici s) s) :
+    (supW1On (Set.Icc (0 : ℝ) T)
+        (fun t => Measure.map (fun z => charX_ρ t z) f₀)
+        (fun t => Measure.map (fun z => charX_σ t z) f₀)).toReal ≤
+      gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * D) T := by
+  -- ============================================================
+  -- Setup.
+  -- ============================================================
+  set K_lip : ℝ := ((max 1 L : NNReal) : ℝ) with hK_lip_def
+  set C_T : ℝ := gronwallBound 0 K_lip ((L : ℝ) * D) T with hC_T_def
+  have h_LD_nn : 0 ≤ (L : ℝ) * D := mul_nonneg L.coe_nonneg hD_nn
+  have h_K_pos : 0 ≤ K_lip := by
+    have h_max_le : (1 : ℝ) ≤ K_lip := by push_cast; exact le_max_left _ _
+    linarith
+  have hC_T_nn : 0 ≤ C_T := by
+    have := gronwallBound_mono (δ := (0 : ℝ)) (K := K_lip) (ε := (L : ℝ) * D)
+      (le_refl 0) h_LD_nn h_K_pos hT
+    rw [gronwallBound_x0] at this
+    exact this
+  -- ============================================================
+  -- Pointwise bound (from Stage 3b): for each t ∈ Icc 0 T,
+  --   wasserstein1 (Phi_ρ t) (Phi_σ t) ≤ ENNReal.ofReal C_T.
+  -- ============================================================
+  have h_pt_bound : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
+                   (Measure.map (fun z => charX_σ t z) f₀) ≤
+      ENNReal.ofReal C_T := by
+    intro t ht
+    haveI hΦρ_t : IsProbabilityMeasure (Measure.map (fun z => charX_ρ t z) f₀) :=
+      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_ρ t)
+    haveI hΦσ_t : IsProbabilityMeasure (Measure.map (fun z => charX_σ t z) f₀) :=
+      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_σ t)
+    -- W₁ is finite (probability + finite first moment).
+    have h_W1_t_ne_top :
+        wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
+                     (Measure.map (fun z => charX_σ t z) f₀) ≠ ⊤ :=
+      wasserstein1_ne_top_of_finite_moment _ _ (h_yint_Phi_ρ t) (h_yint_Phi_σ t)
+    -- Pointwise contraction at time t.
+    have h_pt := Phi_pointwise_contraction gradW L hL ρ σ h_int_ρ h_int_σ
+      T hT D hD_nn h_W1_fin h_W1_bound
+      charX_ρ charV_ρ charX_σ charV_σ f₀
+      h_meas_ρ h_meas_σ h_int_charX_ρ h_int_charX_σ
+      h_init_ρ h_init_σ h_cont_ρ h_cont_σ h_deriv_ρ h_deriv_σ t ht
+    -- h_pt : (W₁ ...).toReal ≤ gronwallBound 0 K_lip (L*D) t
+    -- Monotonicity of gronwallBound in t: t ≤ T ⇒ value at t ≤ value at T = C_T.
+    have h_gronwall_mono : gronwallBound 0 K_lip ((L : ℝ) * D) t ≤ C_T := by
+      apply gronwallBound_mono (le_refl 0) h_LD_nn h_K_pos ht.2
+    have h_W1_real_le : (wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
+                                       (Measure.map (fun z => charX_σ t z) f₀)).toReal ≤ C_T :=
+      le_trans h_pt h_gronwall_mono
+    -- Lift from .toReal-bound to ENNReal bound (using W₁ ≠ ⊤).
+    rw [← ENNReal.ofReal_toReal h_W1_t_ne_top]
+    exact ENNReal.ofReal_le_ofReal h_W1_real_le
+  -- ============================================================
+  -- supW1On ≤ ENNReal.ofReal C_T.
+  -- ============================================================
+  have h_sup_bound : supW1On (Set.Icc (0 : ℝ) T)
+        (fun t => Measure.map (fun z => charX_ρ t z) f₀)
+        (fun t => Measure.map (fun z => charX_σ t z) f₀) ≤
+      ENNReal.ofReal C_T := by
+    unfold supW1On
+    refine iSup_le fun t => iSup_le fun ht => h_pt_bound t ht
+  -- ============================================================
+  -- .toReal: (supW1On ...).toReal ≤ C_T.
+  -- ============================================================
+  calc (supW1On (Set.Icc (0 : ℝ) T)
+          (fun t => Measure.map (fun z => charX_ρ t z) f₀)
+          (fun t => Measure.map (fun z => charX_σ t z) f₀)).toReal
+      ≤ (ENNReal.ofReal C_T).toReal :=
+        ENNReal.toReal_mono ENNReal.ofReal_ne_top h_sup_bound
+    _ = C_T := ENNReal.toReal_ofReal hC_T_nn
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
