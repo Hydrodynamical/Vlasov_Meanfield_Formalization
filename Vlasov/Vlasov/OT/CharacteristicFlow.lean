@@ -3367,6 +3367,122 @@ theorem Phi_yIntegrable {d : ℕ} [NeZero d]
     rw [Real.norm_of_nonneg (norm_nonneg _)]
     exact hbd
 
+/-- **Stage 2b: W₁ bound on Φ pushforwards via 1-Lipschitz test functions.**
+
+For any two time points `s, t`, the Wasserstein-1 distance between
+`Phi charX f₀ s` and `Phi charX f₀ t` is bounded by the integral
+`∫ z, ‖charX s z - charX t z‖ ∂f₀`.
+
+**Proof strategy** (KR-dual direct): for each 1-Lipschitz `φ : PhysSpace d → ℝ`,
+`integral_map` converts `∫ φ d(charX_·)#f₀` to `∫ z, φ(charX_· z) ∂f₀`.
+The integral diff is bounded pointwise by `‖charX s z - charX t z‖` (1-Lipschitz
+of φ), then by integral monotonicity.
+
+**Architectural note**: `wasserstein1_pushforward_le_iInf` (Coupling.lean L270)
+requires endomaps `Φ Ψ : α → α`.  Our `charX t : PhaseSpace d → PhysSpace d`
+is cross-type, so we work directly with the KR-dual sup — cleaner than
+re-deriving the coupling theory.
+
+**Implementation discipline** (CLAUDE.md L7 + L8): all `Integrable.mono'`
+dominator facts are built as named `have` statements BEFORE the call (no
+inline `?_`).  The `integrable_map_measure` bridge uses `.mpr` to handle
+the `g ∘ f` ↔ `fun z => g (f z)` syntactic mismatch.
+
+Used by Stage 2b's follow-on `Phi_hW1Cont` (next swing) to bound W₁(Φ_s,
+Φ_t) by an integral that DCT controls as `t → s`. -/
+theorem wasserstein1_Phi_le_integral_diff {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    -- ‖charX t z‖ integrable wrt f₀ for each t.
+    (h_int_charX : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀)
+    (s t : ℝ)
+    -- ‖charX s z - charX t z‖ integrable wrt f₀ (follows from h_int_charX s, t + triangle).
+    (h_diff_int : Integrable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀) :
+    wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t) ≤
+      ENNReal.ofReal (∫ z, ‖charX s z - charX t z‖ ∂f₀) := by
+  unfold wasserstein1 Phi
+  refine iSup_le fun φ => iSup_le fun hφ => ?_
+  apply ENNReal.ofReal_le_ofReal
+  -- ============================================================
+  -- Setup: φ is 1-Lipschitz; AEStronglyMeasurable wrt each pushforward.
+  -- ============================================================
+  have hφ_cont : Continuous φ := hφ.continuous
+  have hφ_meas_νs : AEStronglyMeasurable φ (Measure.map (fun z => charX s z) f₀) :=
+    hφ_cont.aestronglyMeasurable
+  have hφ_meas_νt : AEStronglyMeasurable φ (Measure.map (fun z => charX t z) f₀) :=
+    hφ_cont.aestronglyMeasurable
+  -- ============================================================
+  -- 1-Lipschitz dominator: |φ y| ≤ |φ 0| + ‖y‖.
+  -- ============================================================
+  have hφ_abs_bound : ∀ y : PhysSpace d, |φ y| ≤ |φ 0| + ‖y‖ := fun y => by
+    have h_lip := hφ.dist_le_mul y 0
+    rw [Real.dist_eq, dist_zero_right, NNReal.coe_one, one_mul] at h_lip
+    calc |φ y| = |(φ y - φ 0) + φ 0| := by ring_nf
+      _ ≤ |φ y - φ 0| + |φ 0| := abs_add_le _ _
+      _ ≤ ‖y‖ + |φ 0| := by linarith
+      _ = |φ 0| + ‖y‖ := by ring
+  -- ============================================================
+  -- EXPLICIT DOMINATOR CONSTRUCTION (CLAUDE.md L7).
+  -- Build h_norm_int_νs and h_norm_int_νt via `.mpr` (CLAUDE.md L8) —
+  -- this avoids the `g ∘ f` ↔ `fun z => g (f z)` rewrite mismatch.
+  -- ============================================================
+  have h_norm_int_νs : Integrable (fun y : PhysSpace d => ‖y‖)
+      (Measure.map (fun z => charX s z) f₀) :=
+    (integrable_map_measure (Continuous.aestronglyMeasurable continuous_norm)
+      (h_meas s)).mpr (h_int_charX s)
+  have h_norm_int_νt : Integrable (fun y : PhysSpace d => ‖y‖)
+      (Measure.map (fun z => charX t z) f₀) :=
+    (integrable_map_measure (Continuous.aestronglyMeasurable continuous_norm)
+      (h_meas t)).mpr (h_int_charX t)
+  -- Dominator `|φ 0| + ‖y‖` integrable wrt each pushforward.
+  have h_dom_νs : Integrable (fun y : PhysSpace d => |φ 0| + ‖y‖)
+      (Measure.map (fun z => charX s z) f₀) :=
+    (integrable_const _).add h_norm_int_νs
+  have h_dom_νt : Integrable (fun y : PhysSpace d => |φ 0| + ‖y‖)
+      (Measure.map (fun z => charX t z) f₀) :=
+    (integrable_const _).add h_norm_int_νt
+  -- φ integrable wrt each pushforward (via `Integrable.mono'` with explicit dominator).
+  have hφ_int_νs : Integrable φ (Measure.map (fun z => charX s z) f₀) := by
+    refine Integrable.mono' h_dom_νs hφ_meas_νs ?_
+    refine Filter.Eventually.of_forall fun y => ?_
+    have h_dom_nn : 0 ≤ |φ 0| + ‖y‖ :=
+      add_nonneg (abs_nonneg _) (norm_nonneg _)
+    rw [Real.norm_eq_abs]
+    exact hφ_abs_bound y
+  have hφ_int_νt : Integrable φ (Measure.map (fun z => charX t z) f₀) := by
+    refine Integrable.mono' h_dom_νt hφ_meas_νt ?_
+    refine Filter.Eventually.of_forall fun y => ?_
+    have h_dom_nn : 0 ≤ |φ 0| + ‖y‖ :=
+      add_nonneg (abs_nonneg _) (norm_nonneg _)
+    rw [Real.norm_eq_abs]
+    exact hφ_abs_bound y
+  -- ============================================================
+  -- Convert pushforward integrals via `integral_map`.
+  -- The RHS of `integral_map` is point-full `f (g x)` (NOT `(f ∘ g) x`),
+  -- so no L8 bridge needed here.
+  -- ============================================================
+  rw [integral_map (h_meas s) hφ_meas_νs,
+      integral_map (h_meas t) hφ_meas_νt]
+  -- Goal: ∫ z, φ (charX s z) ∂f₀ - ∫ z, φ (charX t z) ∂f₀
+  --        ≤ ∫ z, ‖charX s z - charX t z‖ ∂f₀.
+  -- ============================================================
+  -- Pull-back integrability of `fun z => φ (charX · z)` to wrt f₀ via `.mp`.
+  -- ============================================================
+  have hφ_comp_int_s : Integrable (fun z : PhaseSpace d => φ (charX s z)) f₀ :=
+    (integrable_map_measure hφ_meas_νs (h_meas s)).mp hφ_int_νs
+  have hφ_comp_int_t : Integrable (fun z : PhaseSpace d => φ (charX t z)) f₀ :=
+    (integrable_map_measure hφ_meas_νt (h_meas t)).mp hφ_int_νt
+  -- Combine into single integral; bound by Lipschitz inequality.
+  rw [← integral_sub hφ_comp_int_s hφ_comp_int_t]
+  have h_pt : ∀ z : PhaseSpace d,
+      φ (charX s z) - φ (charX t z) ≤ ‖charX s z - charX t z‖ := fun z => by
+    have h_lip := hφ.dist_le_mul (charX s z) (charX t z)
+    rw [Real.dist_eq, dist_eq_norm, NNReal.coe_one, one_mul] at h_lip
+    -- h_lip : |φ (charX s z) - φ (charX t z)| ≤ ‖charX s z - charX t z‖.
+    linarith [abs_le.mp h_lip |>.2]
+  exact integral_mono (hφ_comp_int_s.sub hφ_comp_int_t) h_diff_int h_pt
+
 /-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
 
 Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
