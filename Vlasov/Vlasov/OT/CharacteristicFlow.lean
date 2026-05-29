@@ -4362,6 +4362,131 @@ theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
         ENNReal.toReal_mono ENNReal.ofReal_ne_top h_sup_bound
     _ = C_T := ENNReal.toReal_ofReal hC_T_nn
 
+/-- **Stage 4 sub-piece: Picard-iteration geometric bound.**
+
+Given a sequence with geometric contraction `supW1On (x k) (x (k+1)) ≤
+ENNReal.ofReal (q^k * D₀)` for `0 ≤ q < 1`, the iterated triangle
+inequality + `ENNReal.ofReal_sum_of_nonneg` + Mathlib's `geom_sum_Ico_le_of_lt_one`
+gives:
+`supW1On (x m) (x n) ≤ ENNReal.ofReal (D₀ * q^m / (1 - q))` for `m ≤ n`.
+
+**M1 design principle applied**: pure ENNReal modulo one cleanly-localized
+`ENNReal.ofReal` boundary at the bridge between the structural argument
+(supW1On in ENNReal) and the closed-form algebra (real geometric series).
+The Finset partial sum bound comes from `Mathlib/Algebra/Order/Field/GeomSum.lean`'s
+`geom_sum_Ico_le_of_lt_one` — no case-split on `q = 0` vs `q > 0` needed,
+no shifting tricks via `Finset.sum_Ico_eq_sum_range`. -/
+lemma picard_iterate_geometric_bound {d : ℕ} [NeZero d] (S : Set ℝ)
+    (x : ℕ → ℝ → Measure (PhysSpace d))
+    (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
+    (D₀ : ℝ) (hD₀_nn : 0 ≤ D₀)
+    (h_contract : ∀ k, supW1On S (x k) (x (k+1)) ≤ ENNReal.ofReal (q^k * D₀))
+    (m n : ℕ) (hmn : m ≤ n) :
+    supW1On S (x m) (x n) ≤ ENNReal.ofReal (D₀ * q^m / (1 - q)) := by
+  -- Iterated triangle gives the sum bound.
+  have h_tri := supW1On_iterated_triangle S x m n hmn
+  have h_sum_bound :
+      ∑ k ∈ Finset.Ico m n, supW1On S (x k) (x (k+1)) ≤
+      ∑ k ∈ Finset.Ico m n, ENNReal.ofReal (q^k * D₀) :=
+    Finset.sum_le_sum (fun k _ => h_contract k)
+  -- ENNReal.ofReal of finite sum (all non-negative).
+  have h_qk_D₀_nn : ∀ k ∈ Finset.Ico m n, (0 : ℝ) ≤ q^k * D₀ := fun k _ =>
+    mul_nonneg (pow_nonneg hq_nn k) hD₀_nn
+  have h_sum_eq :
+      ∑ k ∈ Finset.Ico m n, ENNReal.ofReal (q^k * D₀) =
+      ENNReal.ofReal (∑ k ∈ Finset.Ico m n, q^k * D₀) :=
+    (ENNReal.ofReal_sum_of_nonneg h_qk_D₀_nn).symm
+  -- Real-valued geometric bound: factor D₀ + apply geom_sum_Ico_le_of_lt_one.
+  have h1mq_pos : 0 < 1 - q := by linarith
+  have h_real_bound : ∑ k ∈ Finset.Ico m n, q^k * D₀ ≤ D₀ * q^m / (1 - q) := by
+    have h_factor : ∑ k ∈ Finset.Ico m n, q^k * D₀ =
+                    D₀ * ∑ k ∈ Finset.Ico m n, q^k := by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro k _
+      ring
+    rw [h_factor]
+    calc D₀ * ∑ k ∈ Finset.Ico m n, q^k
+        ≤ D₀ * (q^m / (1 - q)) :=
+          mul_le_mul_of_nonneg_left (geom_sum_Ico_le_of_lt_one hq_nn hq_lt) hD₀_nn
+      _ = D₀ * q^m / (1 - q) := by ring
+  -- Chain everything.
+  calc supW1On S (x m) (x n)
+      ≤ ∑ k ∈ Finset.Ico m n, supW1On S (x k) (x (k+1)) := h_tri
+    _ ≤ ∑ k ∈ Finset.Ico m n, ENNReal.ofReal (q^k * D₀) := h_sum_bound
+    _ = ENNReal.ofReal (∑ k ∈ Finset.Ico m n, q^k * D₀) := h_sum_eq
+    _ ≤ ENNReal.ofReal (D₀ * q^m / (1 - q)) :=
+        ENNReal.ofReal_le_ofReal h_real_bound
+
+/-- **Stage 4 sub-piece: Picard iteration is Cauchy from contraction.**
+
+Standard Banach-fixed-point Cauchy condition derived from the geometric
+contraction.
+
+**Output form** matches `MathlibTODO_cauchyW1_hasNarrowLimit`'s ENNReal-form
+Cauchy hypothesis: for every `ε : ENNReal` with `0 < ε`, there is `N` such
+that `supW1On (x m) (x n) < ε` for all `m, n ≥ N`.
+
+**Proof sketch**: for the symmetric case (m > n), use `supW1On_comm`.
+For `ε = ⊤`, any N works.  For `ε < ⊤`, pick N such that
+`D₀ * q^N / (1-q) < ε.toReal`; combine with the geometric bound. -/
+theorem picard_iterate_isCauchy_of_contraction {d : ℕ} [NeZero d] (S : Set ℝ)
+    (x : ℕ → ℝ → Measure (PhysSpace d))
+    (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
+    (D₀ : ℝ) (hD₀_nn : 0 ≤ D₀)
+    (h_contract : ∀ k, supW1On S (x k) (x (k+1)) ≤ ENNReal.ofReal (q^k * D₀)) :
+    ∀ ε : ENNReal, 0 < ε → ∃ N, ∀ m n, N ≤ m → N ≤ n → supW1On S (x m) (x n) < ε := by
+  intro ε hε
+  have h1mq_pos : 0 < 1 - q := by linarith
+  -- Helper: bound supW1On(x m, x n) in both orderings.
+  have h_bound_both : ∀ m n, supW1On S (x m) (x n) ≤
+      ENNReal.ofReal (D₀ * q^(min m n) / (1 - q)) := by
+    intro m n
+    by_cases h_order : m ≤ n
+    · rw [min_eq_left h_order]
+      exact picard_iterate_geometric_bound S x q hq_nn hq_lt D₀ hD₀_nn h_contract m n h_order
+    · rw [supW1On_comm, min_eq_right (le_of_lt (not_le.mp h_order))]
+      exact picard_iterate_geometric_bound S x q hq_nn hq_lt D₀ hD₀_nn h_contract n m
+        (le_of_lt (not_le.mp h_order))
+  -- Case split on ε = ⊤.
+  by_cases hε_top : ε = ⊤
+  · refine ⟨0, fun m n _ _ => ?_⟩
+    rw [hε_top]
+    exact lt_of_le_of_lt (h_bound_both m n) ENNReal.ofReal_lt_top
+  · -- ε < ⊤ case.
+    have hε_real_pos : 0 < ε.toReal := by
+      rw [ENNReal.toReal_pos_iff]
+      exact ⟨hε, lt_top_iff_ne_top.mpr hε_top⟩
+    -- Tendsto of q^N → 0 gives existence of N.
+    have h_pow_tendsto : Filter.Tendsto (fun n : ℕ => D₀ * q^n / (1 - q))
+                          Filter.atTop (nhds 0) := by
+      have h_pow : Filter.Tendsto (fun n : ℕ => q^n) Filter.atTop (nhds 0) :=
+        tendsto_pow_atTop_nhds_zero_of_lt_one hq_nn hq_lt
+      have h_factored : (fun n : ℕ => D₀ * q^n / (1 - q)) =
+                       fun n : ℕ => (D₀ / (1 - q)) * q^n := by
+        funext n; ring
+      rw [h_factored]
+      have h_zero_eq : (0 : ℝ) = (D₀ / (1 - q)) * 0 := by ring
+      rw [h_zero_eq]
+      exact h_pow.const_mul _
+    rw [Metric.tendsto_atTop] at h_pow_tendsto
+    obtain ⟨N, hN⟩ := h_pow_tendsto ε.toReal hε_real_pos
+    refine ⟨N, fun m n hm hn => ?_⟩
+    -- Apply the bound and the tendsto-induced threshold.
+    have h_min_ge : N ≤ min m n := le_min hm hn
+    have h_bound_real_lt : D₀ * q^(min m n) / (1 - q) < ε.toReal := by
+      have h_dist := hN (min m n) h_min_ge
+      rw [Real.dist_eq] at h_dist
+      have h_val_nn : 0 ≤ D₀ * q^(min m n) / (1 - q) :=
+        div_nonneg (mul_nonneg hD₀_nn (pow_nonneg hq_nn _)) (le_of_lt h1mq_pos)
+      rw [abs_sub_lt_iff] at h_dist
+      linarith [h_dist.1]
+    calc supW1On S (x m) (x n)
+        ≤ ENNReal.ofReal (D₀ * q^(min m n) / (1 - q)) := h_bound_both m n
+      _ < ENNReal.ofReal ε.toReal :=
+          (ENNReal.ofReal_lt_ofReal_iff hε_real_pos).mpr h_bound_real_lt
+      _ = ε := ENNReal.ofReal_toReal hε_top
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
