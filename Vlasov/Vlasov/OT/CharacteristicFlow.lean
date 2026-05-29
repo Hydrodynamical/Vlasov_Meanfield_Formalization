@@ -3717,83 +3717,117 @@ noncomputable def Phi_asVlasovMeasureCurve {d : ℕ} [NeZero d]
     Phi_hW1Cont charX f₀ h_meas h_int_charX T hT C_T hC_T_nn h_growth h_f₀_int
       h_charX_cont
 
-/-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
+/-- **Stage 1.8 (re-stated for Stage 1.9's flow): measurability of a
+characteristic flow given Picard-style boundary regularity.**
 
-Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
-additionally bundling a measurability conjunct `Measurable (fun z =>
-(charX t z, charV t z))` for each `t ∈ Icc 0 T` — exactly the shape
-`Measure.map`, `IsLagrangianVlasovSolution`'s third conjunct, and Stage
-2's Φ all consume.
+Given a flow `(charX, charV)` that:
+* matches the initial condition at `t = 0`,
+* is continuous in `t` on `Icc 0 T` for each `z` (i.e. Picard-solution
+  regularity at the boundary),
+* satisfies the Vlasov ODE in `HasDerivWithinAt`-on-`Ico` form,
 
-**Proof status: deferred.**  The body invokes Stage 1.7 to extract the
-flow, then `sorry`s on the measurability claim.  The deferral is
-architecturally analogous to the four existing `MathlibTODO_*`
-placeholders: a known-doable gap whose closure is treated as separate
-focused work, with the API in place so downstream consumers compose
-cleanly.
+we prove that for each `t ∈ Icc 0 T`, the map `z ↦ (charX t z, charV t z)`
+is Borel-measurable on `PhaseSpace d`.
 
-**Proof recipe (for the eventual closure session)**:
+**Proof strategy** (Gronwall on flow difference, via Mathlib's
+`dist_le_of_trajectories_ODE`):  the Vlasov vector field is
+`max(1, L)`-Lipschitz uniformly in `t` (`vlasovVectorField_lipschitzWith`),
+so two trajectories `f, g : ℝ → PhaseSpace d` starting from `z₁, z₂` satisfy
+`dist (f t) (g t) ≤ dist(z₁, z₂) · exp(max(1, L) · t)` for `t ∈ Icc 0 T`.
+This is exp(K·t)-Lipschitz-in-`z`, hence continuous in `z`, hence Borel-
+measurable.
 
-The vendored Picard-Lindelöf theorem exposes Lipschitz-in-initial-point
-at `Vlasov/Mathlib/ODE/PicardLindelof.lean` line 53
-(`exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined`).
-The existing downstream chain `exists_vlasov_characteristicFlow_local`
-(L401) → `exists_vlasov_characteristicFlow` (L957) → Stage 1.7's wrapper
-uses the *thin* wrapper (`_forall_mem_Icc_hasDerivWithinAt_confined`,
-PL L95) which drops the Lipschitz-in-z conjunct.  Two paths to restore
-it:
+**Why the boundary regularity is taken as hypothesis**: Stage 1.9's
+`IsCharacteristicFlowOn ... (Ioo 0 T) Set.univ` gives `HasDerivAt` only on
+the open interval `Ioo 0 T`.  Mathlib's `dist_le_of_trajectories_ODE`
+requires `ContinuousOn` on `Icc 0 T` plus `HasDerivWithinAt` on `Ico 0 T`
+(closed at the left endpoint).  The boundary regularity at `t = 0` is a
+property of the underlying Picard construction, not derivable from
+`IsCharacteristicFlowOn` alone.  Stage 4's Picard iteration discharges
+these hypotheses from the concrete construction.
 
-* **Path (a)** — modify the existing infrastructure to propagate
-  Lipschitz constants through `exists_vlasov_characteristicFlow_local`,
-  `exists_vlasov_extend_one_window`, and the N-window glueing in
-  `exists_vlasov_characteristicFlow`.  ~100–200 lines of careful constant
-  composition; architecturally honest.
+**Supersedes the original Stage 1.8 placeholder** (which targeted the
+ball-localized Stage 1.7 flow that Stage 2 doesn't use).  The previous
+sorry'd lemma — `exists_vlasov_characteristicFlow_global_on_ball_measurable`
+— is removed since it's not on the project's critical path.  This new
+lemma is what Stage 4's Picard construction will plug into the Φ
+pipeline.
 
-* **Path (b)** — re-derive the flow from scratch for the single ball
-  `closedBall 0 R₀` by direct invocation of PL's full
-  `_lipschitzOnWith_confined`, then use `ODE_solution_unique`
-  (Mathlib.Analysis.ODE.Gronwall L379) to identify it with Stage 1.7's
-  flow (pointwise equality from ODE uniqueness + matching initial
-  data).  Transfers the Lipschitz-in-z property by transport along
-  equality.  ~50–80 lines, more clever but more isolated.
-
-Both paths conclude with `Continuous.measurable` (continuity-in-z on
-a closedBall in a second-countable Euclidean space gives Borel
-measurability of the joint `z ↦ (charX t z, charV t z)`).
-
-Sorry-count impact: +1 (placeholder body) — treated as known-doable
-deferred work.  The Stage 1.7 lemma itself remains fully proved. -/
-theorem exists_vlasov_characteristicFlow_global_on_ball_measurable
+**Sorry count**: this commit DECREASES the project's sorry count from
+6 to 5 (the old Stage 1.8 placeholder is removed, the new lemma is fully
+proved). -/
+theorem charFlow_measurable_via_gronwall
     {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d))
     [∀ t, IsProbabilityMeasure (ρ t)]
     (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
-    (hρ_cont : ∀ x : PhysSpace d,
-      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
-    (R₀ : NNReal) (hR₀ : 0 < R₀)
-    (M : NNReal) (T : ℝ) (hT : 0 ≤ T)
-    (R : NNReal)
-    (hR : 4 * (R₀ : ℝ) + (R₀ : ℝ) * (T + 1) + (M : ℝ) * (T + 1) ^ 2 ≤ R)
-    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
-              ∀ x ∈ Metric.closedBall (0 : PhysSpace d) (R : ℝ),
-              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M) :
-    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
-      IsCharacteristicFlowOn gradW ρ charX charV
-        (Set.Ioo 0 T) (Metric.closedBall (0 : PhaseSpace d) (R₀ : ℝ)) ∧
-      (∀ t ∈ Set.Icc (0 : ℝ) T,
-        Measurable (fun z : PhaseSpace d => (charX t z, charV t z))) := by
-  obtain ⟨charX, charV, hFlow⟩ :=
-    exists_vlasov_characteristicFlow_global_on_ball W gradW hgradW L hL ρ
-      h_int hρ_cont R₀ hR₀ M T hT R hR hbound
-  refine ⟨charX, charV, hFlow, ?_⟩
-  -- TODO(stage 1.8 proper): derive joint measurability via PL's
-  -- Lipschitz-in-initial-point conclusion (PicardLindelof.lean L53).
-  -- Two proof paths documented in the docstring above.
-  sorry
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 ≤ T)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ico : ∀ z, ∀ t ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (vlasovVectorField gradW ρ t (charX t z, charV t z))
+        (Set.Ici t) t) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+        Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+  intro t ht
+  -- ============================================================
+  -- Vector field is max(1, L)-Lipschitz uniformly in t.
+  -- ============================================================
+  set K : NNReal := max 1 L with hK_def
+  have h_vf_lip : ∀ s, LipschitzWith K (vlasovVectorField gradW ρ s) := fun s =>
+    vlasovVectorField_lipschitzWith gradW L hL ρ h_int s
+  -- ============================================================
+  -- Gronwall on flow difference: dist-bound on Icc 0 T.
+  -- ============================================================
+  have h_dist_bound : ∀ z₁ z₂ : PhaseSpace d,
+      dist ((charX t z₁, charV t z₁) : PhaseSpace d) (charX t z₂, charV t z₂) ≤
+      dist z₁ z₂ * Real.exp ((K : ℝ) * (t - 0)) := by
+    intro z₁ z₂
+    -- Apply dist_le_of_trajectories_ODE with f, g = per-z trajectories.
+    have h := dist_le_of_trajectories_ODE
+      (v := fun s => vlasovVectorField gradW ρ s)
+      (f := fun s => (charX s z₁, charV s z₁))
+      (g := fun s => (charX s z₂, charV s z₂))
+      (K := K) (a := 0) (b := T)
+      (δ := dist z₁ z₂)
+      h_vf_lip
+      (h_cont_Icc z₁) (h_deriv_Ico z₁)
+      (h_cont_Icc z₂) (h_deriv_Ico z₂)
+      ?_ t ht
+    · exact h
+    · -- dist (f 0) (g 0) = dist z₁ z₂ via h_init.  Need to beta-reduce first.
+      show dist ((charX 0 z₁, charV 0 z₁) : PhaseSpace d) (charX 0 z₂, charV 0 z₂)
+           ≤ dist z₁ z₂
+      rw [h_init z₁, h_init z₂]
+  -- ============================================================
+  -- Convert dist-bound to continuity in z via Metric.continuous_iff.
+  -- ============================================================
+  have h_cont_z : Continuous (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+    rw [Metric.continuous_iff]
+    intro z₀ ε hε
+    -- Lipschitz constant exp(K * t); pick δ := ε / exp(K * t).
+    have h_exp_pos : 0 < Real.exp ((K : ℝ) * (t - 0)) := Real.exp_pos _
+    refine ⟨ε / Real.exp ((K : ℝ) * (t - 0)), div_pos hε h_exp_pos, ?_⟩
+    intro z hz
+    -- dist (f z₀) (f z) ≤ exp(K*t) * dist z₀ z < exp(K*t) * (ε / exp(K*t)) = ε.
+    have h_bd := h_dist_bound z₀ z
+    -- Note: dist_bound gives `dist (f z₀) (f z)`, but `Metric.continuous_iff`
+    -- gives `dist z z₀ < δ → dist (f z) (f z₀) < ε`.  Symmetric: use dist_comm.
+    rw [dist_comm] at hz
+    have h_chain : dist ((charX t z₀, charV t z₀) : PhaseSpace d) (charX t z, charV t z)
+                  < ε := by
+      calc dist ((charX t z₀, charV t z₀) : PhaseSpace d) (charX t z, charV t z)
+          ≤ dist z₀ z * Real.exp ((K : ℝ) * (t - 0)) := h_bd
+        _ < (ε / Real.exp ((K : ℝ) * (t - 0))) * Real.exp ((K : ℝ) * (t - 0)) :=
+            mul_lt_mul_of_pos_right hz h_exp_pos
+        _ = ε := div_mul_cancel₀ ε (ne_of_gt h_exp_pos)
+    rwa [dist_comm] at h_chain
+  exact h_cont_z.measurable
 
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
