@@ -3988,6 +3988,217 @@ theorem flow_difference_gronwall_bound {d : ℕ} [NeZero d]
   simp only [sub_zero] at h
   exact h
 
+/-- **Stage 3b sub-piece 1: W₁ pushforward bound for two arbitrary maps.**
+
+Generalizes `wasserstein1_Phi_le_integral_diff` (which handled a single
+flow at two times) to two arbitrary maps `f, g : PhaseSpace d → PhysSpace d`.
+For pushforwards of the same initial measure `f₀`:
+`W₁(f_# f₀, g_# f₀) ≤ ENNReal.ofReal (∫ z, ‖f z - g z‖ ∂f₀)`.
+
+**Proof structure** parallel to `wasserstein1_Phi_le_integral_diff`: KR-
+dual direct, with `integral_map` converting pushforward integrals + the
+1-Lipschitz bound `|φ y - φ y'| ≤ ‖y - y'‖`.  Explicit-dominator discipline
+(L7) + `.mp/.mpr` bridge for `_map_measure` (L8) applied throughout.
+
+Used by Stage 3b's `Phi_pointwise_contraction` (below) with
+`f := charX_ρ t, g := charX_σ t` to bound the pushforward W₁ in terms of
+the pointwise flow difference. -/
+theorem wasserstein1_pushforward_pair_le_integral_norm_diff {d : ℕ} [NeZero d]
+    (f g : PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas_f : AEMeasurable f f₀) (h_meas_g : AEMeasurable g f₀)
+    (h_int_f : Integrable (fun z : PhaseSpace d => ‖f z‖) f₀)
+    (h_int_g : Integrable (fun z : PhaseSpace d => ‖g z‖) f₀)
+    (h_diff_int : Integrable (fun z : PhaseSpace d => ‖f z - g z‖) f₀) :
+    wasserstein1 (Measure.map f f₀) (Measure.map g f₀) ≤
+      ENNReal.ofReal (∫ z, ‖f z - g z‖ ∂f₀) := by
+  unfold wasserstein1
+  refine iSup_le fun φ => iSup_le fun hφ => ?_
+  apply ENNReal.ofReal_le_ofReal
+  have hφ_cont : Continuous φ := hφ.continuous
+  have hφ_meas_νf : AEStronglyMeasurable φ (Measure.map f f₀) :=
+    hφ_cont.aestronglyMeasurable
+  have hφ_meas_νg : AEStronglyMeasurable φ (Measure.map g f₀) :=
+    hφ_cont.aestronglyMeasurable
+  have hφ_abs_bound : ∀ y : PhysSpace d, |φ y| ≤ |φ 0| + ‖y‖ := fun y => by
+    have h_lip := hφ.dist_le_mul y 0
+    rw [Real.dist_eq, dist_zero_right, NNReal.coe_one, one_mul] at h_lip
+    calc |φ y| = |(φ y - φ 0) + φ 0| := by ring_nf
+      _ ≤ |φ y - φ 0| + |φ 0| := abs_add_le _ _
+      _ ≤ ‖y‖ + |φ 0| := by linarith
+      _ = |φ 0| + ‖y‖ := by ring
+  have h_norm_int_νf : Integrable (fun y : PhysSpace d => ‖y‖)
+      (Measure.map f f₀) :=
+    (integrable_map_measure (Continuous.aestronglyMeasurable continuous_norm)
+      h_meas_f).mpr h_int_f
+  have h_norm_int_νg : Integrable (fun y : PhysSpace d => ‖y‖)
+      (Measure.map g f₀) :=
+    (integrable_map_measure (Continuous.aestronglyMeasurable continuous_norm)
+      h_meas_g).mpr h_int_g
+  have h_dom_νf : Integrable (fun y : PhysSpace d => |φ 0| + ‖y‖)
+      (Measure.map f f₀) :=
+    (integrable_const _).add h_norm_int_νf
+  have h_dom_νg : Integrable (fun y : PhysSpace d => |φ 0| + ‖y‖)
+      (Measure.map g f₀) :=
+    (integrable_const _).add h_norm_int_νg
+  have hφ_int_νf : Integrable φ (Measure.map f f₀) := by
+    refine Integrable.mono' h_dom_νf hφ_meas_νf ?_
+    refine Filter.Eventually.of_forall fun y => ?_
+    rw [Real.norm_eq_abs]
+    exact hφ_abs_bound y
+  have hφ_int_νg : Integrable φ (Measure.map g f₀) := by
+    refine Integrable.mono' h_dom_νg hφ_meas_νg ?_
+    refine Filter.Eventually.of_forall fun y => ?_
+    rw [Real.norm_eq_abs]
+    exact hφ_abs_bound y
+  rw [integral_map h_meas_f hφ_meas_νf, integral_map h_meas_g hφ_meas_νg]
+  have hφ_comp_int_f : Integrable (fun z : PhaseSpace d => φ (f z)) f₀ :=
+    (integrable_map_measure hφ_meas_νf h_meas_f).mp hφ_int_νf
+  have hφ_comp_int_g : Integrable (fun z : PhaseSpace d => φ (g z)) f₀ :=
+    (integrable_map_measure hφ_meas_νg h_meas_g).mp hφ_int_νg
+  rw [← integral_sub hφ_comp_int_f hφ_comp_int_g]
+  have h_pt : ∀ z : PhaseSpace d,
+      φ (f z) - φ (g z) ≤ ‖f z - g z‖ := fun z => by
+    have h_lip := hφ.dist_le_mul (f z) (g z)
+    rw [Real.dist_eq, dist_eq_norm, NNReal.coe_one, one_mul] at h_lip
+    linarith [abs_le.mp h_lip |>.2]
+  exact integral_mono (hφ_comp_int_f.sub hφ_comp_int_g) h_diff_int h_pt
+
+/-- **Stage 3b sub-piece 2: pointwise contraction estimate at time t.**
+
+Composes Stage 3a's pointwise Gronwall (`flow_difference_gronwall_bound`)
+with the W₁ pair bound to get:
+`(wasserstein1 (charX_ρ t # f₀) (charX_σ t # f₀)).toReal ≤ gronwallBound 0 K (L·D) t`
+for `t ∈ Icc 0 T`, where `K := max(1, L)` and `D := supW1On(Icc 0 T) ρ σ`.
+
+**Proof**: Stage 3a gives `‖charX_ρ t z - charX_σ t z‖ ≤ gronwallBound 0 K (L·D) t`
+uniformly in z.  Integrating over f₀ (a probability measure) gives the same
+bound on `∫ ‖charX_ρ t z - charX_σ t z‖ ∂f₀`.  The W₁ pair bound then
+transfers to the Wasserstein side.
+
+The remaining Stage 3 piece (next commit) takes sup over `t ∈ Icc 0 T` to
+derive the contraction `supW1On(Phi_ρ)(Phi_σ) ≤ K_contract(T) · D` where
+`K_contract(T) := (L/K)·(exp(K·T)−1) → 0` as `T → 0`. -/
+theorem Phi_pointwise_contraction {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ σ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)] [∀ t, IsProbabilityMeasure (σ t)]
+    (h_int_ρ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (h_int_σ : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (σ t))
+    (T : ℝ) (hT : 0 ≤ T)
+    (D : ℝ) (hD_nn : 0 ≤ D)
+    (h_W1_fin : ∀ s ∈ Set.Icc (0 : ℝ) T, wasserstein1 (ρ s) (σ s) ≠ ⊤)
+    (h_W1_bound : ∀ s ∈ Set.Icc (0 : ℝ) T, (wasserstein1 (ρ s) (σ s)).toReal ≤ D)
+    -- Two flows (ρ-driven and σ-driven) starting at f₀-distributed initials.
+    (charX_ρ charV_ρ charX_σ charV_σ : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas_ρ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
+    (h_meas_σ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
+    (h_int_charX_ρ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
+    (h_int_charX_σ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
+    -- Per-z trajectories satisfy boundary regularity (Stage 4's Picard discharges).
+    -- Phrased per-z, but uniformly across z : PhaseSpace d.
+    (h_init_ρ : ∀ z, (charX_ρ 0 z, charV_ρ 0 z) = z)
+    (h_init_σ : ∀ z, (charX_σ 0 z, charV_σ 0 z) = z)
+    (h_cont_ρ : ∀ z,
+      ContinuousOn (fun s => (charX_ρ s z, charV_ρ s z)) (Set.Icc (0 : ℝ) T))
+    (h_cont_σ : ∀ z,
+      ContinuousOn (fun s => (charX_σ s z, charV_σ s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_ρ : ∀ z, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX_ρ s' z, charV_ρ s' z))
+        (vlasovVectorField gradW ρ s (charX_ρ s z, charV_ρ s z))
+        (Set.Ici s) s)
+    (h_deriv_σ : ∀ z, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX_σ s' z, charV_σ s' z))
+        (vlasovVectorField gradW σ s (charX_σ s z, charV_σ s z))
+        (Set.Ici s) s)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    (wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
+                  (Measure.map (fun z => charX_σ t z) f₀)).toReal ≤
+      gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * D) t := by
+  -- ============================================================
+  -- Pointwise Gronwall bound: applies for each z, uniformly.
+  -- ============================================================
+  set K_lip : ℝ := ((max 1 L : NNReal) : ℝ) with hK_lip_def
+  set C_T : ℝ := gronwallBound 0 K_lip ((L : ℝ) * D) t with hC_T_def
+  have h_pt_bound : ∀ z : PhaseSpace d,
+      ‖(charX_ρ t z, charV_ρ t z) - (charX_σ t z, charV_σ t z)‖ ≤ C_T := by
+    intro z
+    have h := flow_difference_gronwall_bound gradW L hL ρ σ h_int_ρ h_int_σ
+      T hT D hD_nn h_W1_fin h_W1_bound
+      (fun s => (charX_ρ s z, charV_ρ s z))
+      (fun s => (charX_σ s z, charV_σ s z))
+      z (h_init_ρ z) (h_init_σ z) (h_cont_ρ z) (h_cont_σ z)
+      (h_deriv_ρ z) (h_deriv_σ z) t ht
+    exact h
+  -- ============================================================
+  -- Project to position component: ‖charX_ρ t z - charX_σ t z‖ ≤ C_T.
+  -- ============================================================
+  have h_proj_bound : ∀ z : PhaseSpace d,
+      ‖charX_ρ t z - charX_σ t z‖ ≤ C_T := fun z => by
+    have h := h_pt_bound z
+    -- ‖charX_ρ - charX_σ‖ ≤ ‖(charX_ρ, charV_ρ) - (charX_σ, charV_σ)‖.
+    have h_proj :
+        ‖charX_ρ t z - charX_σ t z‖ ≤
+        ‖((charX_ρ t z, charV_ρ t z) - (charX_σ t z, charV_σ t z) : PhaseSpace d)‖ := by
+      rw [Prod.norm_def]
+      simp only [Prod.fst_sub]
+      exact le_max_left _ _
+    linarith
+  -- ============================================================
+  -- C_T is non-negative (gronwallBound at 0 with δ = 0 and ε ≥ 0).
+  -- ============================================================
+  have hC_T_nn : 0 ≤ C_T := by
+    have h_LD_nn : 0 ≤ (L : ℝ) * D := mul_nonneg L.coe_nonneg hD_nn
+    have h_K_pos : 0 ≤ K_lip := by
+      have h_max_le : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+        push_cast
+        exact le_max_left _ _
+      linarith
+    have ht_nn : 0 ≤ t := ht.1
+    -- gronwallBound monotone in x from x = 0
+    have := gronwallBound_mono (δ := (0 : ℝ)) (K := K_lip) (ε := (L : ℝ) * D)
+      (le_refl 0) h_LD_nn h_K_pos ht_nn
+    rw [gronwallBound_x0] at this
+    exact this
+  -- ============================================================
+  -- Integrability of `‖charX_ρ t z - charX_σ t z‖` wrt f₀.
+  -- ============================================================
+  have h_diff_int_f₀ : Integrable (fun z : PhaseSpace d =>
+      ‖charX_ρ t z - charX_σ t z‖) f₀ := by
+    -- Bounded by C_T (constant), integrable on probability measure.
+    refine Integrable.mono' (integrable_const C_T)
+      (((h_meas_ρ t).sub (h_meas_σ t)).norm.aestronglyMeasurable) ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+    exact h_proj_bound z
+  -- ============================================================
+  -- Apply the W₁ pair bound.
+  -- ============================================================
+  have h_W1 := wasserstein1_pushforward_pair_le_integral_norm_diff
+    (fun z => charX_ρ t z) (fun z => charX_σ t z) f₀
+    (h_meas_ρ t) (h_meas_σ t) (h_int_charX_ρ t) (h_int_charX_σ t) h_diff_int_f₀
+  -- ============================================================
+  -- ∫ z, ‖charX_ρ t z - charX_σ t z‖ ∂f₀ ≤ C_T.
+  -- ============================================================
+  have h_integral_bound : ∫ z, ‖charX_ρ t z - charX_σ t z‖ ∂f₀ ≤ C_T := by
+    calc ∫ z, ‖charX_ρ t z - charX_σ t z‖ ∂f₀
+        ≤ ∫ _, C_T ∂f₀ := integral_mono h_diff_int_f₀ (integrable_const _) h_proj_bound
+      _ = C_T := by
+          simp [integral_const, measureReal_def, measure_univ]
+  -- ============================================================
+  -- Convert ENNReal.ofReal bound to .toReal bound.
+  -- ============================================================
+  have h_W1_le_ofReal : (wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
+                                       (Measure.map (fun z => charX_σ t z) f₀)).toReal ≤
+                       (ENNReal.ofReal C_T).toReal := by
+    apply ENNReal.toReal_mono ENNReal.ofReal_ne_top
+    refine le_trans h_W1 ?_
+    exact ENNReal.ofReal_le_ofReal h_integral_bound
+  rw [ENNReal.toReal_ofReal hC_T_nn] at h_W1_le_ofReal
+  exact h_W1_le_ofReal
+
 -- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
