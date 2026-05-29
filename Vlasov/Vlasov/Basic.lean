@@ -850,9 +850,10 @@ Proved producers:
     (`Vlasov/OT/CharacteristicFlow.lean`) — trivially, since the Stage C
     wrapper already takes the flow as a hypothesis and the pushforward
     equation holds by `vlasovSolutionViaPushforward`'s definition.
-  * `vlasovWellPosedness` (currently sorry'd) will produce
-    `IsLagrangianVlasovSolution` when its Banach fixed-point existence
-    half is proved — the construction explicitly builds the flow.
+  * `vlasovWellPosedness` produces `IsLagrangianVlasovSolution` from a
+    Banach fixed-point construction on spatial marginals — the characteristic
+    flow falls out of the existence proof as a byproduct, so the predicate's
+    stronger conclusion is free of additional infrastructure cost.
 
 Strict additivity: `IsLagrangianVlasovSolution gradW f → IsVlasovSolution gradW f`
 by `.1`.  No existing `IsVlasovSolution` consumer needs to migrate; opt-in

@@ -2944,8 +2944,14 @@ theorem vlasovWellPosedness
       f 0 = f₀ ∧
       -- each f_t has finite first moment
       (∀ t, HasFiniteFirstMoment (f t)) ∧
-      -- f solves the Vlasov equation
-      IsVlasovSolution gradW f ∧
+      -- f solves the Vlasov equation IN THE LAGRANGIAN SENSE — bundles the
+      -- characteristic flow witness alongside the weak-PDE conjunct
+      -- (`.1 : IsVlasovSolution`).  Strengthened from `IsVlasovSolution` to
+      -- the bundled-flow predicate at Stage 1.5 of the well-posedness plan,
+      -- because the Banach fixed-point construction produces the flow as
+      -- a byproduct and downstream `_lag` consumers (uscNarrow_lag,
+      -- derivBound_lag, H1_lag, SC.8_lag) need it.
+      IsLagrangianVlasovSolution gradW f ∧
       -- f is narrowly continuous: t ↦ ∫ g df_t is continuous for every bounded continuous g
       (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f t)) := by
