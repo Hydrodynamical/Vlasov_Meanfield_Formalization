@@ -163,6 +163,69 @@ prose mandate. If the example shows
 target. If the example is loose, the model uses whatever
 target seems convenient — including the same file it's editing.
 
+### L7. Inline `?_` placeholders inside chained Mathlib-API calls are fragile
+
+**Failure mode**: when a proof writes `Foo.mono' ((bar_const x).add ?_)`,
+Lean's elaborator is asked to synthesize the `?_`'s type by reasoning
+*backward* through `Foo.mono'`'s expected first argument's shape, which
+in turn depends on `bar_const x .add ?_`'s output type. With two or more
+implicit arguments threading through nested API calls, the elaborator
+gives up and reports "don't know how to synthesize implicit argument."
+
+**Empirical confirmation**: 2026-05-29 Stage 2b W₁-bound-by-integral
+proof attempt. The dominator construction inside `Integrable.mono'
+((integrable_const |φ 0|).add ?_) hφ_meas_phys (Filter.Eventually.of_forall fun y => ?_)`
+produced 5 errors of "don't know how to synthesize implicit argument
+`g`" / "`p`", each at the inline `?_` site. The proof's algebra was
+correct; the issue was purely elaboration. Reverted the ~85-line attempt.
+
+**Fix**: build intermediate facts via named `have` statements *before*
+passing to chained API calls. Replace
+`Integrable.mono' ((bar_const x).add ?_)` with
+`have h_dom : Integrable (fun y => |φ 0| + ‖y‖) ν := (integrable_const _).add h_norm_int` and
+then `refine Integrable.mono' h_dom hφ_meas (...)`. Each `have` gives
+Lean a fully-typed term to work with.
+
+**Generalisation**: any construct asking Lean to synthesize more than
+one implicit argument backward through nested API calls is a candidate
+for explicit-intermediate refactoring. The rule of thumb: when a proof
+has ≥2 threads of Bochner-integrability or AEStronglyMeasurable
+synthesis, name them. Particularly for the
+`Integrable.mono' / Integrable.add / integrable_const`-family inside
+Bochner-integral proofs.
+
+### L8. Mathlib's `_map_measure` family has `g ∘ f` ↔ `fun z => g (f z)` syntactic mismatch
+
+**Failure mode**: `integral_map`, `integrable_map_measure`, and
+`lintegral_map` produce conclusions in the form `Integrable (g ∘ f) μ`
+or `∫ x, g x ∂(μ.map f) = ∫ x, (g ∘ f) x ∂μ`, while our hypotheses are
+typically written as `Integrable (fun z => g (f z)) μ` or
+`fun z => g (f z)`. Definitionally these are equal, but Lean's `rw`
+doesn't match `(fun z => g (f z))` against the pattern `(g ∘ f)` (or
+vice versa) — leaving the rewrite step stuck with "Did not find an
+occurrence of the pattern."
+
+**Empirical confirmation**: 2026-05-29 Stage 2b W₁-bound proof's two
+`rw [← integrable_map_measure ...]` calls failed for this reason. Also
+surfaced earlier in Stage C's chain-rule work (where `(diff ∘ flow)` vs
+`fun z => diff (flow z)` was the same mismatch).
+
+**Fix**: use `show ... from ...` to bridge the syntactic form, or use
+`convert` instead of `rw` when consuming `_map_measure` family lemmas.
+Example: instead of
+`rw [← integrable_map_measure hφ_meas (h_meas s)]; exact h_phi_int_s`,
+write
+`have : Integrable (fun z => φ (charX s z)) f₀ :=
+   (integrable_map_measure hφ_meas (h_meas s)).mp h_phi_int_s; exact this`
+(which uses the iff-version's `.mp` projection directly).
+
+**Generalisation**: when consuming Mathlib's `_map_measure` family,
+expect the source-vs-target syntactic forms to need an explicit bridge.
+The general pattern: `_map_measure` lemmas in Mathlib are written in
+"point-free" `(g ∘ f)` form, project code usually writes "point-full"
+`fun z => g (f z)` form, and the bridge is `show` / `convert` / `.mp` /
+`.mpr` rather than `rw`.
+
 ## Vlasov-specific design choices
 
 (See `formalize/DESIGN.md` for the full version. Highlights:)
