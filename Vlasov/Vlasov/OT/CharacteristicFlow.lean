@@ -2273,6 +2273,178 @@ lemma vlasov_trajectory_lipschitz_bound
       Integrable bound f₀ := by
   sorry
 
+/-- **`_lag` variant of SC.8** — `vlasov_trajectory_lipschitz_bound` with the
+flow-growth prerequisites supplied as explicit hypotheses, enabling the
+dominated Lipschitz bound to be derived via Gronwall on the characteristic
+ODE (see `flow_distance_growth_bound` above).  Used by future `_lag` variants
+of the Stage C chain that route through `IsLagrangianVlasovSolution`. -/
+lemma vlasov_trajectory_lipschitz_bound_lag
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_compact : HasCompactSupport φ)
+    (hflow : IsCharacteristicFlow gradW ρ charX charV)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW (ρ s) x))
+    (t : ℝ) (ht_pos : 0 < t)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ s ∈ Set.Icc 0 (t + 1), ∫ y, ‖y‖ ∂(ρ s) ≤ M_ρ)
+    (h_y_int : ∀ s ∈ Set.Icc 0 (t + 1),
+      Integrable (fun y : PhysSpace d => ‖y‖) (ρ s))
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s)) :
+    ∃ (nhd : Set ℝ) (bound : PhaseSpace d → ℝ),
+      nhd ∈ nhds t ∧
+      (∀ᵐ z ∂f₀, LipschitzOnWith (Real.nnabs (bound z))
+        (fun s' => φ (charX s' z, charV s' z)) nhd) ∧
+      Integrable bound f₀ := by
+  obtain ⟨hflow_init, hflow_x, hflow_v⟩ := hflow
+  -- Step 1: Get Gronwall growth bound C_T on [0, t+1]
+  obtain ⟨C_T, hC_T_nn, hC_T⟩ := flow_distance_growth_bound gradW L hL ρ charX charV
+      ⟨hflow_init, hflow_x, hflow_v⟩ (t + 1) (by linarith) M_ρ hM_ρ_nn hM_ρ h_y_int h_int
+  -- Step 2: Bound ‖fderiv ℝ φ‖ uniformly (compact support + continuous fderiv)
+  have hφ_diff : Differentiable ℝ φ := hφ_smooth.differentiable (by norm_num)
+  have hfderiv_cont : Continuous (fderiv ℝ φ) :=
+    hφ_smooth.continuous_fderiv (by norm_num)
+  have hfderiv_compact : HasCompactSupport (fderiv ℝ φ) :=
+    HasCompactSupport.fderiv (𝕜 := ℝ) hφ_compact
+  obtain ⟨M_φ, hM_φ⟩ := hfderiv_cont.bounded_above_of_compact_support hfderiv_compact
+  have hM_φ_nn : 0 ≤ M_φ :=
+    le_trans (norm_nonneg (fderiv ℝ φ (0 : PhaseSpace d))) (hM_φ _)
+  -- Gronwall constants: K = 1 + L, ε₀ = ‖gradW 0‖ + L * M_ρ
+  set K := 1 + (L : ℝ)
+  set ε₀ := ‖gradW 0‖ + (L : ℝ) * M_ρ
+  have hK_pos : 0 < K := by positivity
+  have hε₀_nn : 0 ≤ ε₀ := by positivity
+  -- Convolution bound (same derivation as flow_distance_growth_bound)
+  have h_conv_bound : ∀ s ∈ Set.Icc 0 (t + 1), ∀ x : PhysSpace d,
+      ‖convolveFunctionMeasure gradW (ρ s) x‖ ≤ ε₀ + (L : ℝ) * ‖x‖ := by
+    intro s hs x
+    unfold convolveFunctionMeasure
+    have h_sub_int : Integrable (fun y => ‖x - y‖) (ρ s) :=
+      Integrable.mono' ((integrable_const ‖x‖).add (h_y_int s hs))
+        ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
+        (Filter.Eventually.of_forall fun y => by
+          simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
+    have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      linarith
+    have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
+      (integrable_const _).add (h_sub_int.const_mul _)
+    calc ‖∫ y, gradW (x - y) ∂(ρ s)‖
+        ≤ ∫ y, ‖gradW (x - y)‖ ∂(ρ s) := norm_integral_le_integral_norm _
+      _ ≤ ∫ y, (‖gradW 0‖ + (L : ℝ) * ‖x - y‖) ∂(ρ s) :=
+          integral_mono (h_int s x).norm h_bnd_int (fun y => h_pt y)
+      _ = ‖gradW 0‖ + (L : ℝ) * ∫ y, ‖x - y‖ ∂(ρ s) := by
+          rw [integral_add (integrable_const _) (h_sub_int.const_mul _)]
+          simp [integral_const, measureReal_def, measure_univ, integral_const_mul]
+      _ ≤ ε₀ + (L : ℝ) * ‖x‖ := by
+          have h_int_le : ∫ y, ‖x - y‖ ∂(ρ s) ≤ ‖x‖ + M_ρ := by
+            calc ∫ y, ‖x - y‖ ∂(ρ s)
+                ≤ ∫ y, (‖x‖ + ‖y‖) ∂(ρ s) :=
+                  integral_mono h_sub_int ((integrable_const _).add (h_y_int s hs))
+                    (fun y => norm_sub_le x y)
+              _ = ‖x‖ + ∫ y, ‖y‖ ∂(ρ s) := by
+                  rw [integral_add (integrable_const _) (h_y_int s hs)]
+                  simp [integral_const, measureReal_def, measure_univ]
+              _ ≤ ‖x‖ + M_ρ := by linarith [hM_ρ s hs]
+          simp only [ε₀]; linarith [mul_le_mul_of_nonneg_left h_int_le (NNReal.coe_nonneg L)]
+  -- Step 3: Choose neighborhood nhd = Ioo (t/2) (t + 1/2) ⊆ Icc 0 (t+1)
+  refine ⟨Set.Ioo (t / 2) (t + 1 / 2),
+    fun z => M_φ * (K * C_T + ε₀) * (‖z‖ + 1), ?_, ?_, ?_⟩
+  · -- nhd ∈ nhds t
+    exact Ioo_mem_nhds (by linarith) (by linarith)
+  · -- LipschitzOnWith for ae-z
+    apply Filter.Eventually.of_forall
+    intro z
+    -- For each z, apply MVT on convex nhd
+    -- For each z, prove the derivative bound then apply MVT
+    -- Define the derivative value as a function
+    let deriv_val : ℝ → PhaseSpace d → ℝ := fun s z =>
+      (fderiv ℝ φ (charX s z, charV s z))
+        (charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z)))
+    -- The derivative witness function f' for lipschitzOnWith_of_nnnorm_hasDerivWithin_le
+    apply Convex.lipschitzOnWith_of_nnnorm_hasDerivWithin_le (convex_Ioo _ _)
+      (f' := fun s => deriv_val s z)
+    · -- HasDerivWithinAt for each s ∈ nhd
+      intro s hs
+      have h_flow_deriv : HasDerivAt (fun s' => (charX s' z, charV s' z))
+          (charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z))) s :=
+        (hflow_x s z).prodMk (hflow_v s z)
+      have h_φ_fderiv : HasFDerivAt φ (fderiv ℝ φ (charX s z, charV s z))
+          (charX s z, charV s z) :=
+        hφ_diff (charX s z, charV s z) |>.hasFDerivAt
+      exact (h_φ_fderiv.comp_hasDerivAt s h_flow_deriv).hasDerivWithinAt
+    · -- Bound ‖deriv_val s z‖₊ ≤ Real.nnabs (M_φ * (K * C_T + ε₀) * (‖z‖ + 1))
+      intro s hs
+      rw [← NNReal.coe_le_coe]
+      simp only [coe_nnnorm']
+      have hs_mem : s ∈ Set.Icc 0 (t + 1) :=
+        ⟨le_of_lt (by linarith [hs.1]),
+         le_of_lt (by linarith [hs.2])⟩
+      have h_flow_bnd : ‖(charX s z, charV s z)‖ ≤ C_T * (‖z‖ + 1) :=
+        hC_T s hs_mem z
+      have h_x_bnd : ‖charX s z‖ ≤ C_T * (‖z‖ + 1) := by
+        have hpn : ‖(charX s z, charV s z)‖ = max ‖charX s z‖ ‖charV s z‖ :=
+          Prod.norm_def _
+        linarith [le_max_left ‖charX s z‖ ‖charV s z‖, hpn ▸ h_flow_bnd]
+      have h_v_bnd2 : ‖charV s z‖ ≤ C_T * (‖z‖ + 1) := by
+        have hpn : ‖(charX s z, charV s z)‖ = max ‖charX s z‖ ‖charV s z‖ :=
+          Prod.norm_def _
+        linarith [le_max_right ‖charX s z‖ ‖charV s z‖, hpn ▸ h_flow_bnd]
+      have h_c_bnd : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
+          ε₀ + (L : ℝ) * C_T * (‖z‖ + 1) := by
+        have := h_conv_bound s hs_mem (charX s z)
+        linarith [mul_le_mul_of_nonneg_left h_x_bnd (NNReal.coe_nonneg L)]
+      have h_vel_bnd : ‖(charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z)))‖
+          ≤ K * C_T * (‖z‖ + 1) + ε₀ := by
+        rw [Prod.norm_def]
+        simp only [Prod.fst, Prod.snd, norm_neg]
+        have hK1 : (1 : ℝ) ≤ K := by linarith [NNReal.coe_nonneg L]
+        have hz1 : (0 : ℝ) ≤ ‖z‖ + 1 := by linarith [norm_nonneg z]
+        apply max_le
+        · -- ‖charV s z‖ ≤ K * C_T * (‖z‖ + 1) + ε₀
+          have h1 : C_T * (‖z‖ + 1) ≤ K * C_T * (‖z‖ + 1) := by
+            have := mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hK1 hC_T_nn) hz1
+            linarith
+          linarith
+        · -- ‖conv‖ ≤ K * C_T * (‖z‖ + 1) + ε₀
+          have hLK : (L : ℝ) ≤ K := by linarith [NNReal.coe_nonneg L]
+          have h2 : (L : ℝ) * C_T * (‖z‖ + 1) ≤ K * C_T * (‖z‖ + 1) := by
+            have := mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hLK hC_T_nn) hz1
+            linarith
+          linarith
+      rw [Real.coe_nnabs, abs_of_nonneg (by positivity)]
+      calc ‖deriv_val s z‖
+          ≤ ‖fderiv ℝ φ (charX s z, charV s z)‖ *
+            ‖(charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z)))‖ :=
+            ContinuousLinearMap.le_opNorm _ _
+        _ ≤ M_φ * (K * C_T * (‖z‖ + 1) + ε₀) := by
+            apply mul_le_mul (hM_φ _) h_vel_bnd (norm_nonneg _) hM_φ_nn
+        _ ≤ M_φ * (K * C_T + ε₀) * (‖z‖ + 1) := by
+            have hz1 : 1 ≤ ‖z‖ + 1 := by linarith [norm_nonneg z]
+            nlinarith [mul_nonneg hM_φ_nn hε₀_nn,
+                       mul_nonneg (mul_nonneg hM_φ_nn hε₀_nn) (by linarith [norm_nonneg z] : (0:ℝ) ≤ ‖z‖),
+                       mul_nonneg hM_φ_nn hC_T_nn]
+  · -- Integrable bound z
+    have h_bound_eq : (fun z : PhaseSpace d => M_φ * (K * C_T + ε₀) * (‖z‖ + 1)) =
+        fun z => M_φ * (K * C_T + ε₀) * ‖z‖ + M_φ * (K * C_T + ε₀) := by
+      ext z; ring
+    rw [h_bound_eq]
+    exact (hf₀_fm.const_mul _).add (integrable_const _)
+
 /-- The Lagrangian → Eulerian equivalence: the pushforward of `f₀`
 under a characteristic flow satisfies the weak Vlasov equation.
 
