@@ -1149,11 +1149,16 @@ theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
     (ν : ℕ → Measure (PhysSpace d)) [∀ n, IsProbabilityMeasure (ν n)]
     (M : ℝ) (hMom : ∀ n, ∫ y, ‖y‖ ∂(ν n) ≤ M)
     (h_yint : ∀ n, Integrable (fun y : PhysSpace d => ‖y‖) (ν n))
-    (hCauchy : ∀ ε > 0, ∃ N, ∀ m n, N ≤ m → N ≤ n →
-                 (wasserstein1 (ν m) (ν n)).toReal < ε) :
+    -- Cauchy hypothesis in ENNReal form (per M-series design principle:
+    -- ENNReal-valued algebraic arguments stay in ENNReal; project to ℝ
+    -- via `.toReal` only at the boundary or not at all).
+    (hCauchy : ∀ ε : ENNReal, 0 < ε → ∃ N, ∀ m n, N ≤ m → N ≤ n →
+                 wasserstein1 (ν m) (ν n) < ε) :
     ∃ μ : Measure (PhysSpace d), IsProbabilityMeasure μ ∧
       Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
-      Filter.Tendsto (fun n => (wasserstein1 (ν n) μ).toReal)
+      -- Conclusion also in ENNReal form; downstream consumers project
+      -- to ℝ when matching `VlasovMeasureCurve.hW1Cont`'s `.toReal` interface.
+      Filter.Tendsto (fun n => wasserstein1 (ν n) μ)
         Filter.atTop (nhds 0) := by
   sorry
 

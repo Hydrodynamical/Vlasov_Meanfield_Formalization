@@ -2780,6 +2780,47 @@ lemma supW1On_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
         · exact le_iSup_of_le t (le_iSup_of_le ht le_rfl)
         · exact le_iSup_of_le t (le_iSup_of_le ht le_rfl)
 
+/-- **Iterated triangle inequality for `supW1On` over a sequence**.
+
+For any sequence `x : ℕ → ℝ → Measure (PhysSpace d)` and `m ≤ n`:
+`supW1On S (x m) (x n) ≤ ∑ k ∈ Ico m n, supW1On S (x k) (x (k+1))`.
+
+**Generic structural lemma** — stated over an arbitrary sequence and time
+set `S`, not specialised to Picard iteration.  Downstream consumers (Stage
+4's Cauchy-from-contraction argument, Stage 5's continuation, possibly
+Stage 6's uniqueness) compose against this generic form.
+
+**Per the M1 design principle** (registered this session): the entire
+proof stays in ENNReal — `supW1On` is ENNReal-valued, the sum is in
+ENNReal, ENNReal addition is well-defined with `⊤` as absorbing element,
+no finiteness side conditions arise.  This is the recommended pattern
+for any ENNReal-valued algebraic argument over a sequence: do the
+induction in ENNReal, project to ℝ via `.toReal` only at the boundary
+(or not at all, as in the upcoming Stage 4 ENNReal-form Cauchy argument).
+
+Proof: induction on `n` starting from `n = m` via `Nat.le_induction`.
+Base case is the empty sum via `supW1On_self`.  Inductive step combines
+`supW1On_triangle` with `Finset.sum_Ico_succ_top`. -/
+lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
+    (x : ℕ → ℝ → Measure (PhysSpace d))
+    (m n : ℕ) (hmn : m ≤ n) :
+    supW1On S (x m) (x n) ≤
+      ∑ k ∈ Finset.Ico m n, supW1On S (x k) (x (k+1)) := by
+  induction n, hmn using Nat.le_induction with
+  | base =>
+    -- Empty sum: Ico m m = ∅.
+    rw [Finset.Ico_self, Finset.sum_empty]
+    rw [supW1On_self]
+  | succ n hmn ih =>
+    calc supW1On S (x m) (x (n+1))
+        ≤ supW1On S (x m) (x n) + supW1On S (x n) (x (n+1)) :=
+          supW1On_triangle S (x m) (x n) (x (n+1))
+      _ ≤ (∑ k ∈ Finset.Ico m n, supW1On S (x k) (x (k+1))) +
+          supW1On S (x n) (x (n+1)) := by
+          exact add_le_add ih (le_refl _)
+      _ = ∑ k ∈ Finset.Ico m (n+1), supW1On S (x k) (x (k+1)) := by
+          rw [Finset.sum_Ico_succ_top hmn]
+
 /-- Admissible Vlasov measure curves on `[0, T]`: a curve of probability
 measures on `PhysSpace d` with uniform first-moment bound `M`, pointwise
 integrability of `‖·‖`, and W₁-continuity at every time in `[0, T]`.
