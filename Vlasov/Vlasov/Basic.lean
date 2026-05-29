@@ -987,6 +987,138 @@ lemma wasserstein1_ne_top_of_finite_moment
     wasserstein1 μ ν ≠ ⊤ :=
   (wasserstein1_lt_top_of_finite_moment μ ν hμ hν).ne
 
+/-! ### Basic algebra of `wasserstein1`
+
+The KR-dual sup-formula makes `wasserstein1` a pseudometric on `Measure α` (we
+only get a *pseudo*-metric, not a metric, because `wasserstein1 μ ν = 0` does
+not characterise `μ = ν` in this generality).  The three lemmas below are
+self-distance / symmetry / triangle, all derived directly from the sup-formula.
+Together they make `wasserstein1` usable as the codomain of a sup-W₁ pseudo-
+distance on time-indexed measure curves (see `supW1On` in
+`Vlasov/OT/CharacteristicFlow.lean`). -/
+
+/-- Self-distance is zero: `wasserstein1 μ μ = 0`. -/
+lemma wasserstein1_self {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ : Measure α) : wasserstein1 μ μ = 0 := by
+  unfold wasserstein1
+  apply le_antisymm _ (zero_le _)
+  refine iSup_le fun _ => iSup_le fun _ => ?_
+  simp
+
+/-- Symmetry: `wasserstein1 μ ν = wasserstein1 ν μ`. -/
+lemma wasserstein1_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) : wasserstein1 μ ν = wasserstein1 ν μ := by
+  -- Use the bijection `f ↦ -f` on 1-Lipschitz functions: it sends the integral
+  -- diff `∫f dμ − ∫f dν` to its negation `∫f dν − ∫f dμ`, and ENNReal.ofReal
+  -- of both expressions agree after rearrangement.
+  unfold wasserstein1
+  apply le_antisymm
+  · refine iSup_le fun f => iSup_le fun hf => ?_
+    refine le_iSup_of_le (-f) (le_iSup_of_le hf.neg (le_of_eq ?_))
+    simp only [Pi.neg_apply, integral_neg]
+    congr 1; ring
+  · refine iSup_le fun f => iSup_le fun hf => ?_
+    refine le_iSup_of_le (-f) (le_iSup_of_le hf.neg (le_of_eq ?_))
+    simp only [Pi.neg_apply, integral_neg]
+    congr 1; ring
+
+/-- Triangle inequality: `wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ`. -/
+lemma wasserstein1_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν τ : Measure α) :
+    wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ := by
+  unfold wasserstein1
+  refine iSup_le fun f => iSup_le fun hf => ?_
+  have hsplit : ∫ x, f x ∂μ - ∫ x, f x ∂τ =
+      (∫ x, f x ∂μ - ∫ x, f x ∂ν) + (∫ x, f x ∂ν - ∫ x, f x ∂τ) := by ring
+  rw [hsplit]
+  calc ENNReal.ofReal _
+      ≤ ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
+          + ENNReal.ofReal (∫ x, f x ∂ν - ∫ x, f x ∂τ) :=
+        ENNReal.ofReal_add_le
+    _ ≤ (⨆ (g : α → ℝ) (_ : LipschitzWith 1 g),
+            ENNReal.ofReal (∫ x, g x ∂μ - ∫ x, g x ∂ν))
+        + (⨆ (g : α → ℝ) (_ : LipschitzWith 1 g),
+            ENNReal.ofReal (∫ x, g x ∂ν - ∫ x, g x ∂τ)) := by
+        gcongr
+        · exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+        · exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+
+/-- Quantitative finite-moment bound for `wasserstein1`: the W₁ distance is
+bounded by the sum of the two measures' first moments.
+
+This refines `wasserstein1_lt_top_of_finite_moment` (which only states ≠⊤)
+by providing the explicit upper bound `∫‖y‖dμ + ∫‖y‖dν`.  Used by the sup-W₁
+pseudodistance on `VlasovMeasureCurve`s to derive finiteness from the
+uniform first-moment bound. -/
+lemma wasserstein1_le_moments_sum
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
+    [BorelSpace E]
+    (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrable (fun y => ‖y‖) ν) :
+    wasserstein1 μ ν ≤ ENNReal.ofReal (∫ y, ‖y‖ ∂μ + ∫ y, ‖y‖ ∂ν) := by
+  -- Same shape of proof as `wasserstein1_lt_top_of_finite_moment`, but
+  -- producing the bound `ofReal M` itself instead of the consequent `< ⊤`.
+  refine iSup_le fun φ => iSup_le fun hφ => ?_
+  apply ENNReal.ofReal_le_ofReal
+  have hψ_bound : ∀ y, |φ y - φ 0| ≤ ‖y‖ := fun y => by
+    have h_lip := hφ.dist_le_mul y 0
+    rw [Real.dist_eq, dist_zero_right, NNReal.coe_one, one_mul] at h_lip
+    exact h_lip
+  have hφ_cont : Continuous φ := hφ.continuous
+  have hφ_meas_μ : AEStronglyMeasurable φ μ := hφ_cont.aestronglyMeasurable
+  have hφ_meas_ν : AEStronglyMeasurable φ ν := hφ_cont.aestronglyMeasurable
+  have h_bound_abs : ∀ y, |φ y| ≤ |φ 0| + ‖y‖ := fun y => by
+    calc |φ y| = |(φ y - φ 0) + φ 0| := by ring_nf
+      _ ≤ |φ y - φ 0| + |φ 0| := abs_add_le _ _
+      _ ≤ ‖y‖ + |φ 0| := by linarith [hψ_bound y]
+      _ = |φ 0| + ‖y‖ := by ring
+  have h_dom_μ : Integrable (fun y => |φ 0| + ‖y‖) μ :=
+    (integrable_const _).add hμ
+  have h_dom_ν : Integrable (fun y => |φ 0| + ‖y‖) ν :=
+    (integrable_const _).add hν
+  have hφ_int_μ : Integrable φ μ :=
+    h_dom_μ.mono hφ_meas_μ (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) (norm_nonneg _))]
+      exact h_bound_abs y)
+  have hφ_int_ν : Integrable φ ν :=
+    h_dom_ν.mono hφ_meas_ν (Filter.Eventually.of_forall fun y => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (add_nonneg (abs_nonneg _) (norm_nonneg _))]
+      exact h_bound_abs y)
+  have h_int_μ_const : ∫ _ : E, φ 0 ∂μ = φ 0 := by
+    simp [integral_const, measure_univ]
+  have h_int_ν_const : ∫ _ : E, φ 0 ∂ν = φ 0 := by
+    simp [integral_const, measure_univ]
+  have h_int_μ_sub : ∫ y, (φ y - φ 0) ∂μ = ∫ y, φ y ∂μ - φ 0 := by
+    rw [integral_sub hφ_int_μ (integrable_const _), h_int_μ_const]
+  have h_int_ν_sub : ∫ y, (φ y - φ 0) ∂ν = ∫ y, φ y ∂ν - φ 0 := by
+    rw [integral_sub hφ_int_ν (integrable_const _), h_int_ν_const]
+  have h_diff_eq : ∫ y, φ y ∂μ - ∫ y, φ y ∂ν =
+      ∫ y, (φ y - φ 0) ∂μ - ∫ y, (φ y - φ 0) ∂ν := by
+    rw [h_int_μ_sub, h_int_ν_sub]; ring
+  rw [h_diff_eq]
+  have hψ_int_μ : Integrable (fun y => φ y - φ 0) μ :=
+    hφ_int_μ.sub (integrable_const _)
+  have hψ_int_ν : Integrable (fun y => φ y - φ 0) ν :=
+    hφ_int_ν.sub (integrable_const _)
+  have h_bound_μ : ∫ y, (φ y - φ 0) ∂μ ≤ ∫ y, ‖y‖ ∂μ := by
+    calc ∫ y, (φ y - φ 0) ∂μ
+        ≤ ∫ y, |φ y - φ 0| ∂μ :=
+          integral_mono_ae hψ_int_μ hψ_int_μ.abs
+            (Filter.Eventually.of_forall fun _ => le_abs_self _)
+      _ ≤ ∫ y, ‖y‖ ∂μ :=
+          integral_mono_ae hψ_int_μ.abs hμ (Filter.Eventually.of_forall hψ_bound)
+  have h_bound_ν : -∫ y, (φ y - φ 0) ∂ν ≤ ∫ y, ‖y‖ ∂ν := by
+    rw [← integral_neg]
+    calc ∫ y, -(φ y - φ 0) ∂ν
+        ≤ ∫ y, |φ y - φ 0| ∂ν :=
+          integral_mono_ae hψ_int_ν.neg hψ_int_ν.abs
+            (Filter.Eventually.of_forall fun y => neg_le_abs _)
+      _ ≤ ∫ y, ‖y‖ ∂ν :=
+          integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
+  linarith
+
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/dobrushin.json`. -/
 

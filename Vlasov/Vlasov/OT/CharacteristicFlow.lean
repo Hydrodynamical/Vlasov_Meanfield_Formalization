@@ -2722,6 +2722,199 @@ theorem wasserstein1_lagrangian_pushforward_bound
     h_meas_f h_meas_g f₀ g₀ x₀ h_fmpr_f h_fmpr_g h_fm_f h_fm_g
 
 -- ---------------------------------------------------------------------------
+-- Banach fixed-point scaffolding for `vlasovWellPosedness`
+-- ---------------------------------------------------------------------------
+-- Stage 1 of the well-posedness plan.  The infrastructure here makes Stages
+-- 2 (Φ well-defined), 3 (Gronwall contraction) and 4 (Picard iteration)
+-- compose cleanly:
+--   * `VlasovMeasureCurve T M`: admissible curves of probability measures
+--     on `PhysSpace d` with uniform first-moment bound `M` on `[0, T]`.
+--     The four structural fields are exactly what `Φ` preserves.
+--   * `supW1On`: sup-W₁ pseudodistance over a set of times; the natural
+--     contraction metric for the Picard iteration.
+--   * `vlasovMeasureCurve_convCont`: convolution continuity in `t` derived
+--     from the W₁-continuity field via `MathlibTODO_convolveLipschitzEstimate`.
+--   * `constantCurve`: the constant curve `t ↦ μ₀`, used as the Picard
+--     iteration's starting point and as a sanity-check witness that the
+--     structure is inhabited.
+
+/-- The sup-W₁ pseudodistance between two curves of measures over a set of
+times `S`.  Returns `⨆ t ∈ S, wasserstein1 (ρ t) (σ t)` in `ℝ≥0∞`.
+
+* Symmetric (`supW1On_comm`) and satisfies the triangle inequality
+  (`supW1On_triangle`).
+* Finite (≠ ⊤) when both curves are `VlasovMeasureCurve`s on `[0, T]` with
+  the same moment bound, via `supW1On_ne_top_of_VlasovMeasureCurve`.
+
+Used as the contraction metric for the Picard iteration in Stage 4 of the
+well-posedness plan. -/
+noncomputable def supW1On {d : ℕ} [NeZero d]
+    (S : Set ℝ) (ρ σ : ℝ → Measure (PhysSpace d)) : ℝ≥0∞ :=
+  ⨆ (t : ℝ) (_ : t ∈ S), wasserstein1 (ρ t) (σ t)
+
+lemma supW1On_comm {d : ℕ} [NeZero d] (S : Set ℝ)
+    (ρ σ : ℝ → Measure (PhysSpace d)) :
+    supW1On S ρ σ = supW1On S σ ρ := by
+  unfold supW1On
+  refine iSup_congr fun t => ?_
+  refine iSup_congr fun _ => ?_
+  exact wasserstein1_comm _ _
+
+lemma supW1On_self {d : ℕ} [NeZero d] (S : Set ℝ)
+    (ρ : ℝ → Measure (PhysSpace d)) :
+    supW1On S ρ ρ = 0 := by
+  unfold supW1On
+  simp [wasserstein1_self]
+
+lemma supW1On_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
+    (ρ σ τ : ℝ → Measure (PhysSpace d)) :
+    supW1On S ρ τ ≤ supW1On S ρ σ + supW1On S σ τ := by
+  unfold supW1On
+  refine iSup_le fun t => iSup_le fun ht => ?_
+  calc wasserstein1 (ρ t) (τ t)
+      ≤ wasserstein1 (ρ t) (σ t) + wasserstein1 (σ t) (τ t) :=
+        wasserstein1_triangle _ _ _
+    _ ≤ (⨆ s ∈ S, wasserstein1 (ρ s) (σ s))
+        + (⨆ s ∈ S, wasserstein1 (σ s) (τ s)) := by
+        gcongr
+        · exact le_iSup_of_le t (le_iSup_of_le ht le_rfl)
+        · exact le_iSup_of_le t (le_iSup_of_le ht le_rfl)
+
+/-- Admissible Vlasov measure curves on `[0, T]`: a curve of probability
+measures on `PhysSpace d` with uniform first-moment bound `M`, pointwise
+integrability of `‖·‖`, and W₁-continuity at every time in `[0, T]`.
+
+The W₁-continuity field is phrased per-base-point `s ∈ [0, T]` as
+`ContinuousWithinAt` of `t ↦ W₁(ρ s, ρ t).toReal` at `s` (which equals 0 at
+`t = s`).  This is strictly stronger than naive ContinuousOn on the diagonal
+— it gives the dominator we need for derived convolution continuity
+(`vlasovMeasureCurve_convCont`) and for the Picard limit's bundling
+(Stage 4).
+
+`d` is an explicit parameter so that `VlasovMeasureCurve d T M` is fully
+determined at use sites (otherwise `NeZero d` cannot be resolved from the
+non-discriminating real-valued T, M alone). -/
+structure VlasovMeasureCurve (d : ℕ) [NeZero d] (T M : ℝ) where
+  ρ : ℝ → Measure (PhysSpace d)
+  isProb : ∀ t, IsProbabilityMeasure (ρ t)
+  hasMoment : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(ρ t) ≤ M
+  yIntegrable : ∀ t ∈ Set.Icc (0 : ℝ) T, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t)
+  hW1Cont : ∀ s ∈ Set.Icc (0 : ℝ) T,
+    ContinuousWithinAt (fun t => (wasserstein1 (ρ s) (ρ t)).toReal)
+                       (Set.Icc 0 T) s
+
+/-- `supW1On` of two `VlasovMeasureCurve`s on `[0, T]` with moment bound `M`
+is bounded by `2M`, hence finite.
+
+Combines pointwise `wasserstein1_le_moments_sum` with `iSup_le` over the
+compact time set. -/
+lemma supW1On_le_two_moment_of_VlasovMeasureCurve {d : ℕ} [NeZero d]
+    {T M : ℝ} (ρ σ : VlasovMeasureCurve d T M) :
+    supW1On (Set.Icc 0 T) ρ.ρ σ.ρ ≤ ENNReal.ofReal (2 * M) := by
+  unfold supW1On
+  refine iSup_le fun t => iSup_le fun ht => ?_
+  -- Pointwise: W₁(ρ_t, σ_t) ≤ ofReal(∫‖y‖d(ρ_t) + ∫‖y‖d(σ_t)) ≤ ofReal(M + M)
+  have h_bound : wasserstein1 (ρ.ρ t) (σ.ρ t) ≤
+      ENNReal.ofReal (∫ y, ‖y‖ ∂(ρ.ρ t) + ∫ y, ‖y‖ ∂(σ.ρ t)) := by
+    haveI : IsProbabilityMeasure (ρ.ρ t) := ρ.isProb t
+    haveI : IsProbabilityMeasure (σ.ρ t) := σ.isProb t
+    exact wasserstein1_le_moments_sum (ρ.ρ t) (σ.ρ t)
+      (ρ.yIntegrable t ht) (σ.yIntegrable t ht)
+  refine h_bound.trans ?_
+  apply ENNReal.ofReal_le_ofReal
+  have hρ_t : ∫ y, ‖y‖ ∂(ρ.ρ t) ≤ M := ρ.hasMoment t ht
+  have hσ_t : ∫ y, ‖y‖ ∂(σ.ρ t) ≤ M := σ.hasMoment t ht
+  linarith
+
+/-- `supW1On` of two `VlasovMeasureCurve`s is finite (≠ ⊤). -/
+lemma supW1On_ne_top_of_VlasovMeasureCurve {d : ℕ} [NeZero d] {T M : ℝ}
+    (ρ σ : VlasovMeasureCurve d T M) :
+    supW1On (Set.Icc 0 T) ρ.ρ σ.ρ ≠ ⊤ :=
+  ne_of_lt ((supW1On_le_two_moment_of_VlasovMeasureCurve ρ σ).trans_lt
+            ENNReal.ofReal_lt_top)
+
+/-- Convolution continuity in time, derived from the structural
+`hW1Cont` field via `MathlibTODO_convolveLipschitzEstimate`.
+
+For each `x ∈ PhysSpace d`, the map `t ↦ (∇W ∗ ρ_t)(x)` is continuous on
+`[0, T]`.  Used inside `Φ`'s well-definedness proof (Stage 2) to discharge
+the convolution-continuity hypothesis of `exists_vlasov_characteristicFlow`. -/
+lemma vlasovMeasureCurve_convCont {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    {T M : ℝ} (ρ : VlasovMeasureCurve d T M)
+    (x : PhysSpace d)
+    (h_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
+              Integrable (fun y => gradW (x - y)) (ρ.ρ t)) :
+    ContinuousOn (fun t => convolveFunctionMeasure gradW (ρ.ρ t) x)
+                 (Set.Icc 0 T) := by
+  -- Strategy: at every base `s ∈ [0, T]`, the Lipschitz convolution estimate
+  --   ‖conv(ρ_s, x) - conv(ρ_t, x)‖ ≤ L · W₁(ρ_s, ρ_t).toReal
+  -- composes with the hW1Cont field (W₁(ρ_s, ρ_t).toReal → 0 as t → s within
+  -- [0, T]) to give ContinuousWithinAt at s.
+  intro s hs
+  haveI hPs : IsProbabilityMeasure (ρ.ρ s) := ρ.isProb s
+  rw [Metric.continuousWithinAt_iff]
+  intro ε hε
+  have hCont := ρ.hW1Cont s hs
+  rw [Metric.continuousWithinAt_iff] at hCont
+  have h_self : (wasserstein1 (ρ.ρ s) (ρ.ρ s)).toReal = 0 := by
+    rw [wasserstein1_self]; rfl
+  -- Pick δ from hCont for tolerance ε / (L + 1)  (so that L · δ < ε)
+  set η : ℝ := ε / ((L : ℝ) + 1) with hη_def
+  have hLp1_pos : (0 : ℝ) < (L : ℝ) + 1 := by
+    have : (0 : ℝ) ≤ L := L.coe_nonneg
+    linarith
+  have hη_pos : 0 < η := div_pos hε hLp1_pos
+  obtain ⟨δ, hδ_pos, hδ_bound⟩ := hCont η hη_pos
+  refine ⟨δ, hδ_pos, fun t ht hdist => ?_⟩
+  have hδb := hδ_bound ht hdist
+  rw [h_self, Real.dist_eq, sub_zero] at hδb
+  have hW1_nn : 0 ≤ (wasserstein1 (ρ.ρ s) (ρ.ρ t)).toReal := ENNReal.toReal_nonneg
+  have hW1_lt : (wasserstein1 (ρ.ρ s) (ρ.ρ t)).toReal < η := by
+    rwa [abs_of_nonneg hW1_nn] at hδb
+  haveI hPt : IsProbabilityMeasure (ρ.ρ t) := ρ.isProb t
+  have h_finite : wasserstein1 (ρ.ρ s) (ρ.ρ t) ≠ ⊤ :=
+    wasserstein1_ne_top_of_finite_moment _ _
+      (ρ.yIntegrable s hs) (ρ.yIntegrable t ht)
+  have h_lip := MathlibTODO_convolveLipschitzEstimate gradW L hL
+    (ρ.ρ s) (ρ.ρ t) x h_finite (h_int s hs) (h_int t ht)
+  -- h_lip : ‖conv(ρ_s, x) - conv(ρ_t, x)‖ ≤ L · W₁(ρ_s, ρ_t).toReal
+  rw [dist_eq_norm]
+  calc ‖convolveFunctionMeasure gradW (ρ.ρ t) x
+        - convolveFunctionMeasure gradW (ρ.ρ s) x‖
+      = ‖convolveFunctionMeasure gradW (ρ.ρ s) x
+          - convolveFunctionMeasure gradW (ρ.ρ t) x‖ := norm_sub_rev _ _
+    _ ≤ (L : ℝ) * (wasserstein1 (ρ.ρ s) (ρ.ρ t)).toReal := h_lip
+    _ ≤ (L : ℝ) * η := by
+        apply mul_le_mul_of_nonneg_left (le_of_lt hW1_lt) L.coe_nonneg
+    _ < ((L : ℝ) + 1) * η := by nlinarith
+    _ = ε := by
+        rw [hη_def]
+        field_simp
+
+/-- The constant curve at a probability measure with finite first moment is
+a valid `VlasovMeasureCurve` on `[0, T]` for any `T` and any moment
+bound `M ≥ ∫‖y‖dμ₀`. -/
+def constantCurve {d : ℕ} [NeZero d] {T M : ℝ}
+    (μ₀ : Measure (PhysSpace d)) [IsProbabilityMeasure μ₀]
+    (hμ_int : Integrable (fun y : PhysSpace d => ‖y‖) μ₀)
+    (hM : ∫ y, ‖y‖ ∂μ₀ ≤ M) :
+    VlasovMeasureCurve d T M where
+  ρ := fun _ => μ₀
+  isProb := fun _ => inferInstance
+  hasMoment := fun _ _ => hM
+  yIntegrable := fun _ _ => hμ_int
+  hW1Cont := fun s _ => by
+    -- The function `t ↦ (wasserstein1 μ₀ μ₀).toReal` is identically 0;
+    -- ContinuousWithinAt of a constant is immediate.
+    have h_zero : (fun t : ℝ => (wasserstein1 μ₀ μ₀).toReal)
+                  = fun _ => (0 : ℝ) := by
+      funext _; rw [wasserstein1_self]; rfl
+    rw [h_zero]
+    exact continuousWithinAt_const
+
+-- ---------------------------------------------------------------------------
 -- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
 -- ---------------------------------------------------------------------------
 -- Relocated from `Vlasov/Basic.lean` (Stage 0 of the well-posedness plan) so
