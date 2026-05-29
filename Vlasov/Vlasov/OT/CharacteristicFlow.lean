@@ -3242,6 +3242,131 @@ theorem exists_vlasov_characteristicFlow_global_smallT
     intro t ht z _
     exact ((Classical.choose_spec (h_perZ z)).2 t ht).2
 
+-- ---------------------------------------------------------------------------
+-- Stage 2 — Define the map Φ and prove well-defined (partial: def + first three fields)
+-- ---------------------------------------------------------------------------
+-- The pushforward operator Φ takes a characteristic flow `charX : ℝ → PhaseSpace
+-- d → PhysSpace d` and an initial measure `f₀ : Measure (PhaseSpace d)`, and
+-- produces a time-indexed curve of measures on `PhysSpace d` via
+-- `Φ charX f₀ t := Measure.map (fun z => charX t z) f₀`.
+--
+-- This file's Stage 2 covers:
+--   * `Phi`: the bare definition.
+--   * `Phi_isProbabilityMeasure`: under AEMeasurable hypothesis.
+--   * `Phi_hasMoment_le`: under measurability + per-z growth-bound hypothesis.
+--   * `Phi_yIntegrable`: derived from hasMoment_le.
+--
+-- Deferred to Stage 2b (next session):
+--   * `Phi_hW1Cont`: W₁-continuity via DCT (substantive ~60 lines).
+--   * `Phi_asVlasovMeasureCurve`: the full bundling into a `VlasovMeasureCurve d T M`.
+--
+-- The measurability + growth-bound hypotheses are passed through as inputs; their
+-- discharge happens at the call site (Stage 4's Picard iteration), where the
+-- concrete flow is constructed and the hypotheses follow from the construction.
+
+/-- The Φ pushforward operator: maps a characteristic flow + initial measure to
+the time-indexed pushforward measure on `PhysSpace d`. -/
+noncomputable def Phi {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) : ℝ → Measure (PhysSpace d) :=
+  fun t => Measure.map (fun z => charX t z) f₀
+
+/-- `Phi charX f₀ t` is a probability measure when `charX t` is AE-measurable
+wrt `f₀`. -/
+theorem Phi_isProbabilityMeasure {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (t : ℝ) :
+    IsProbabilityMeasure (Phi charX f₀ t) := by
+  unfold Phi
+  exact MeasureTheory.Measure.isProbabilityMeasure_map (h_meas t)
+
+/-- Uniform first-moment bound on `Phi charX f₀` under a per-z position growth
+hypothesis `‖charX t z‖ ≤ C_T · (‖z‖ + 1)`.
+
+Composes `integral_map` (which exchanges the pushforward) with the pointwise
+growth bound + linearity of integration over `f₀`. -/
+theorem Phi_hasMoment_le {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (T : ℝ) (hT : 0 ≤ T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX t z‖ ≤ C_T * (‖z‖ + 1))
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    ∫ y, ‖y‖ ∂(Phi charX f₀ t) ≤ C_T * (M_f₀ + 1) := by
+  unfold Phi
+  -- ∫ y ‖y‖ ∂(Measure.map (charX t) f₀) = ∫ z ‖charX t z‖ ∂f₀  via integral_map.
+  rw [integral_map (h_meas t) (Continuous.aestronglyMeasurable continuous_norm)]
+  -- ≤ ∫ z (C_T·(‖z‖+1)) ∂f₀  via pointwise growth bound.
+  have h_growth_t := h_growth t ht
+  -- Both sides integrable; use integral_mono.
+  have h_growth_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+    have : Integrable (fun z : PhaseSpace d => ‖z‖ + 1) f₀ :=
+      h_f₀_int.add (integrable_const _)
+    exact this.const_mul _
+  have h_lhs_int : Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀ := by
+    refine Integrable.mono' h_growth_int ((h_meas t).norm.aestronglyMeasurable) ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    have hbd := h_growth_t z
+    have h_rhs_nn : 0 ≤ C_T * (‖z‖ + 1) := by
+      apply mul_nonneg hC_T_nn
+      linarith [norm_nonneg z]
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    linarith
+  calc ∫ z, ‖charX t z‖ ∂f₀
+      ≤ ∫ z, C_T * (‖z‖ + 1) ∂f₀ :=
+        integral_mono h_lhs_int h_growth_int (fun z => h_growth_t z)
+    _ = C_T * ∫ z, (‖z‖ + 1) ∂f₀ := by
+        rw [integral_const_mul]
+    _ = C_T * (∫ z, ‖z‖ ∂f₀ + 1) := by
+        congr 1
+        rw [integral_add h_f₀_int (integrable_const _)]
+        simp [integral_const, measureReal_def, measure_univ]
+    _ ≤ C_T * (M_f₀ + 1) := by
+        have h_M_nn : 0 ≤ M_f₀ + 1 := by
+          have : 0 ≤ ∫ z, ‖z‖ ∂f₀ := integral_nonneg (fun _ => norm_nonneg _)
+          linarith [hM_f₀]
+        apply mul_le_mul_of_nonneg_left _ hC_T_nn
+        linarith
+
+/-- `‖·‖` is integrable wrt `Phi charX f₀ t` under the growth hypothesis. -/
+theorem Phi_yIntegrable {d : ℕ} [NeZero d]
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀)
+    (T : ℝ) (hT : 0 ≤ T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX t z‖ ≤ C_T * (‖z‖ + 1))
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    Integrable (fun y : PhysSpace d => ‖y‖) (Phi charX f₀ t) := by
+  -- Integrable wrt pushforward iff ‖·‖ ∘ (charX t) is integrable wrt f₀.
+  unfold Phi
+  rw [integrable_map_measure (Continuous.aestronglyMeasurable continuous_norm)
+      (h_meas t)]
+  -- Now integrable wrt f₀.
+  have h_growth_t := h_growth t ht
+  have h_growth_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+    have : Integrable (fun z : PhaseSpace d => ‖z‖ + 1) f₀ :=
+      h_f₀_int.add (integrable_const _)
+    exact this.const_mul _
+  refine Integrable.mono' h_growth_int ?_ ?_
+  · -- AEStronglyMeasurable of ‖·‖ ∘ charX t.
+    exact ((h_meas t).aestronglyMeasurable.norm)
+  · refine Filter.Eventually.of_forall fun z => ?_
+    have hbd := h_growth_t z
+    -- Goal shape: ‖((fun a => ‖a‖) ∘ (fun z => charX t z)) z‖ ≤ C_T * (‖z‖ + 1).
+    -- The composition simplifies to ‖‖charX t z‖‖, then Real.norm_of_nonneg.
+    simp only [Function.comp_apply]
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact hbd
+
 /-- **Stage 1.8: measurability of the Stage 1.7 parametric flow (placeholder).**
 
 Same conclusion as `exists_vlasov_characteristicFlow_global_on_ball`,
