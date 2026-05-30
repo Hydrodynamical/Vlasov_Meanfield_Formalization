@@ -6133,7 +6133,19 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       -- Continuity of the convolution force in `x` (uniformly in `s`).
       (∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW
-          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) := by
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) ∧
+      -- **AEMeasurable witness** (Stage 1.8 territory, projected from the
+      -- Picard fixed-point construction's continuity-in-z) — closes the
+      -- `h_aemeas` sub-sub-sorries in downstream `_finalAssembly_*`.
+      (∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) ∧
+      -- **Universal-in-s convolution integrability**.  For `s ∈ Icc 0 T`
+      -- follows from `h_y_int_ρ` + Lipschitz of `gradW`; the extension to
+      -- all `s` requires constant-extension (clamp) past T inside the
+      -- Picard construction.  Closes the `h_int_conv` sub-sub-sorries
+      -- in downstream `_finalAssembly_*`.
+      (∀ s (x : PhysSpace d),
+        Integrable (fun y => gradW (x - y))
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))) := by
   -- ============================================================
   -- Step 1: Spatial marginal setup.
   -- μ₀ := spatialMarginal f₀ = Measure.map Prod.fst f₀.
@@ -6359,8 +6371,20 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       convolveFunctionMeasure gradW
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x_pt) := by
     sorry
+  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).  The discharge
+  -- requires continuity-in-z of the Picard fixed-point construction.
+  have h_aemeas_out : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
+    sorry
+  -- Sub-sub-sorry: universal-in-s convolution integrability.  For
+  -- s ∈ Icc 0 T follows from h_y_int_ρ + Lipschitz of gradW; for s outside
+  -- requires constant-extension (clamp) past T inside the Picard construction.
+  have h_int_conv_out : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    sorry
   exact ⟨charX, charV, M, hM_nn, hflow_on, h_boundary, hM_ρ_bound, h_y_int_ρ,
-         hconv_cont⟩
+         hconv_cont, h_aemeas_out, h_int_conv_out⟩
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — moment-bound transport.
 
@@ -6410,19 +6434,16 @@ theorem vlasovWellPosedness_local_finalAssembly_moment
     (hconv_cont : ∀ s, Continuous (fun x =>
       convolveFunctionMeasure gradW
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x))
+    -- Passed from `_picard_fixedPointFlow`'s enriched output (post-refactor):
+    -- the AEMeasurable witness + universal-in-s convolution integrability.
+    -- These were previously sub-sub-sorries inside this body; the refactor
+    -- moves them to explicit hypotheses, closing this body's internal sorries.
+    (h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (h_int_conv : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
     (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     HasFiniteFirstMoment (vlasovSolutionViaPushforward charX charV f₀ t) := by
-  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).
-  -- The discharge requires the Stage 1.8 placeholder closure.
-  have h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
-    sorry
-  -- Sub-sub-sorry: universal-in-s convolution integrability.
-  -- For s ∈ Icc 0 T this follows from h_y_int_ρ + Lipschitz of gradW;
-  -- the extension to all s requires a clamp argument.
-  have h_int_conv : ∀ s (x : PhysSpace d),
-      Integrable (fun y => gradW (x - y))
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-    sorry
   -- IsProbabilityMeasure for the spatial marginal (needed for Stage_1_9 typeclass).
   -- spatialMarginal μ = Measure.map Prod.fst μ, so IsProbabilityMeasure_map needs
   -- AEMeasurable Prod.fst (Measure.map ... f₀). Since Prod.fst is measurable,
@@ -6538,20 +6559,17 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
     (hconv_cont : ∀ s, Continuous (fun x =>
       convolveFunctionMeasure gradW
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x))
+    -- Passed from `_picard_fixedPointFlow`'s enriched output (post-refactor):
+    -- the AEMeasurable witness + universal-in-s convolution integrability.
+    -- These were previously sub-sub-sorries inside this body; the refactor
+    -- moves them to explicit hypotheses, closing this body's internal sorries.
+    (h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀)
+    (h_int_conv : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))) :
     IsLagrangianVlasovSolutionOn gradW
       (vlasovSolutionViaPushforward charX charV f₀) T := by
-  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).
-  -- The discharge requires the Stage 1.8 placeholder closure.
-  have h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
-    sorry
-  -- Sub-sub-sorry: universal-in-s convolution integrability.
-  -- For s ∈ Icc 0 T this follows from h_y_int_ρ + Lipschitz of gradW;
-  -- the extension to all s requires a clamp argument.
-  have h_int_conv : ∀ s (x : PhysSpace d),
-      Integrable (fun y => gradW (x - y))
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-    sorry
   -- IsProbabilityMeasure for the spatial marginal (needed for the target typeclass).
   haveI hρ_prob : ∀ s, IsProbabilityMeasure
       (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
@@ -6769,9 +6787,12 @@ theorem vlasovWellPosedness_local
   -- P3 cross-session-context-loading discipline.
   obtain ⟨hf₀_prob, hf₀_int⟩ := hf₀
   haveI : IsProbabilityMeasure f₀ := hf₀_prob
-  -- Sub-helper invocation: produces the self-consistent flow + regularity.
+  -- Sub-helper invocation: produces the self-consistent flow + regularity
+  -- + AEMeasurable witness + universal-in-s convolution integrability
+  -- (the last two added in the 2026-05-29 refactor closing the
+  -- `_finalAssembly_*` bodies' internal sub-sub-sorries).
   obtain ⟨charX, charV, _M_ρ, _hM_ρ_nn, _hflow_on, _h_boundary,
-          _hM_ρ_bound, _h_y_int_ρ, _hconv_cont⟩ :=
+          _hM_ρ_bound, _h_y_int_ρ, _hconv_cont, _h_aemeas, _h_int_conv⟩ :=
     vlasovWellPosedness_local_picard_fixedPointFlow W gradW hgradW L hL
       f₀ hf₀_int hT hTL
   -- Bundle the f-shape result.
@@ -6801,6 +6822,7 @@ theorem vlasovWellPosedness_local
     exact vlasovWellPosedness_local_finalAssembly_moment W gradW hgradW L hL
       f₀ hf₀_int hT hTL charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
+      _h_aemeas _h_int_conv
       t ht
   · -- (c) IsLagrangianVlasovSolutionOn gradW f T.  Deferred to the
     -- _finalAssembly sub-helper: it derives the AEMeasurable witness
@@ -6811,6 +6833,7 @@ theorem vlasovWellPosedness_local
     exact vlasovWellPosedness_local_finalAssembly_isLagrangian W gradW hgradW L hL
       f₀ hf₀_int hT hTL charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
+      _h_aemeas _h_int_conv
 
 -- ---------------------------------------------------------------------------
 -- §9.5  Stage 5 — variable-`T_target` continuation via fixed-`T_0` iteration
