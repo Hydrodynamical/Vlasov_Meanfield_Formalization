@@ -7505,8 +7505,191 @@ theorem vlasovWellPosedness
       -- Sub-sorry 2 (L ≥ 1 regime).
       sorry
   · -- Case: L = 0 (gradW is constant; explicit constant-force solution).
-    -- Sub-sorry 2 (L = 0 regime).
-    sorry
+    -- Step L0-1: L = 0 as an NNReal.
+    have hL_zero : L = 0 := by
+      apply NNReal.coe_eq_zero.mp
+      exact le_antisymm (not_lt.mp hL_pos) (NNReal.coe_nonneg L)
+    -- Step L0-2: gradW ≡ 0 everywhere (LipschitzWith 0 means constant;
+    -- gradient_zero_of_even gives gradW 0 = 0; so gradW ≡ 0).
+    have hgradW_zero : ∀ x, gradW x = 0 := by
+      intro x
+      have hconst : ∀ a b, gradW a = gradW b := by
+        rw [hL_zero] at hL_gradW
+        exact (LipschitzWith.zero_iff gradW).mp hL_gradW
+      have h0 : gradW 0 = 0 := by
+        rw [hgradW 0]; exact gradient_zero_of_even W
+      calc gradW x = gradW 0 := hconst x 0
+        _ = 0 := h0
+    -- Step L0-3: convolveFunctionMeasure gradW ρ x = 0 for any ρ, x.
+    have hconv_zero : ∀ (ρ : Measure (PhysSpace d)) (x : PhysSpace d),
+        convolveFunctionMeasure gradW ρ x = 0 := by
+      intros ρ x
+      simp only [convolveFunctionMeasure]
+      have : (fun y => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
+        funext y; exact hgradW_zero (x - y)
+      rw [this, integral_zero]
+    -- Step L0-4: Define the explicit affine solution.
+    let charX : ℝ → PhaseSpace d → PhysSpace d := fun t z => z.1 + t • z.2
+    let charV : ℝ → PhaseSpace d → PhysSpace d := fun _ z => z.2
+    let f_sol : ℝ → Measure (PhaseSpace d) :=
+      fun t => Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) f₀
+    -- Step L0-5: f_sol 0 = f₀.
+    have hf_init : f_sol 0 = f₀ := by
+      simp only [f_sol, charX, charV]
+      have : (fun z : PhaseSpace d => (z.1 + (0 : ℝ) • z.2, z.2)) = id := by
+        funext z; simp
+      rw [this, Measure.map_id]
+    -- Step L0-6: Each f_sol t has finite first moment.
+    have hf_mom : ∀ t, HasFiniteFirstMoment (f_sol t) := by
+      intro t
+      constructor
+      · -- IsProbabilityMeasure: pushforward of a probability measure under measurable map.
+        haveI := hf₀.1
+        apply Measure.isProbabilityMeasure_map
+        fun_prop
+      · -- Integrable ‖·‖: reduce to f₀ via integral_map, then bound by (1+|t|)·‖z‖.
+        haveI := hf₀.1
+        rw [integrable_map_measure (by fun_prop) (by fun_prop)]
+        apply Integrable.mono' (hf₀.2.const_mul (1 + |t|))
+        · fun_prop
+        · apply Filter.Eventually.of_forall; intro z
+          simp only [Function.comp_apply, charX, charV]
+          -- Goal: ‖‖(z.1+t•z.2, z.2)‖‖ ≤ (1+|t|) * ‖z‖
+          rw [Real.norm_of_nonneg (norm_nonneg _)]
+          -- Goal: ‖(z.1+t•z.2, z.2)‖ ≤ (1+|t|) * ‖z‖
+          have hle1 : ‖z.1‖ ≤ ‖z‖ := norm_fst_le z
+          have hle2 : ‖z.2‖ ≤ ‖z‖ := norm_snd_le z
+          have htabs : 0 ≤ |t| := abs_nonneg t
+          have hsmul : ‖t • z.2‖ = |t| * ‖z.2‖ := by rw [norm_smul, Real.norm_eq_abs]
+          have htri := norm_add_le z.1 (t • z.2)
+          have hn : 0 ≤ ‖z‖ := norm_nonneg _
+          have h1 : ‖z.1 + t • z.2‖ ≤ (1 + |t|) * ‖z‖ := by
+            have := mul_le_mul_of_nonneg_left hle2 htabs; rw [hsmul] at htri; nlinarith
+          have h2 : ‖z.2‖ ≤ (1 + |t|) * ‖z‖ := by nlinarith
+          rw [Prod.norm_def]
+          exact max_le_iff.mpr ⟨h1, h2⟩
+    -- Step L0-7: IsLagrangianVlasovSolution gradW f_sol.
+    -- Use vlasovSolutionViaPushforward_isLagrangianVlasovSolution since
+    -- f_sol = vlasovSolutionViaPushforward charX charV f₀.
+    have hf_eq : f_sol = fun t => vlasovSolutionViaPushforward charX charV f₀ t := rfl
+    have hf_lag : IsLagrangianVlasovSolution gradW f_sol := by
+      rw [hf_eq]
+      haveI := hf₀.1
+      apply vlasovSolutionViaPushforward_isLagrangianVlasovSolution
+      · -- IsCharacteristicFlow
+        refine ⟨?_, ?_, ?_⟩
+        · intro z; simp [charX, charV, vlasovSolutionViaPushforward]
+        · intro t z
+          have h1 : HasDerivAt (fun s => z.1 + s • z.2) z.2 t := by
+            have h1' : HasDerivAt (fun _ : ℝ => z.1) 0 t := hasDerivAt_const t z.1
+            have h2' : HasDerivAt (fun s : ℝ => s • z.2) ((1 : ℝ) • z.2) t :=
+              (hasDerivAt_id (𝕜 := ℝ) t).smul_const z.2
+            have := h1'.add h2'; simp only [zero_add, one_smul] at this; exact this
+          exact h1
+        · intro t z
+          simp only [vlasovSolutionViaPushforward, charX, charV]
+          rw [hconv_zero, neg_zero]
+          exact hasDerivAt_const t z.2
+      · -- IsCharacteristicFlowSelfConsistent
+        intro t
+        simp only [vlasovSolutionViaPushforward, spatialMarginal, charX, charV]
+        rw [Measure.map_map (by fun_prop) (by fun_prop)]
+        congr 1
+      · -- AEMeasurability
+        intro s; fun_prop
+      · -- Continuous gradW (≡ 0)
+        have : gradW = fun _ => 0 := funext hgradW_zero
+        rw [this]; exact continuous_const
+      · -- Continuous convolveFunctionMeasure gradW ... (≡ 0)
+        intro s
+        have : (fun x => convolveFunctionMeasure gradW
+            (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) =
+            fun _ => 0 := funext (hconv_zero _)
+        rw [this]; exact continuous_const
+    -- Step L0-8: Narrow continuity.
+    have hf_cont : ∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
+        Continuous (fun t => ∫ z, g z ∂f_sol t) := by
+      intro g hg_cont hg_bdd
+      -- Extract uniform bound C: ∀ x, ‖g x‖ ≤ C.
+      obtain ⟨C, hC⟩ := hg_bdd.exists_norm_le
+      have hC_range : ∀ x : PhaseSpace d, ‖g x‖ ≤ C :=
+        fun x => hC (g x) (Set.mem_range_self x)
+      -- Rewrite via integral_map: ∫ g df_sol(t) = ∫ z, g(z.1+t•z.2, z.2) df₀.
+      have h_rw : ∀ t, ∫ z, g z ∂f_sol t = ∫ z, g (z.1 + t • z.2, z.2) ∂f₀ := by
+        intro t
+        simp only [f_sol, charX, charV]
+        rw [integral_map (by fun_prop) (by fun_prop)]
+      simp_rw [h_rw]
+      -- Apply continuous_of_dominated.
+      haveI := hf₀.1
+      apply continuous_of_dominated
+      · intro t; exact (hg_cont.comp (by fun_prop)).aestronglyMeasurable
+      · intro t; apply Filter.Eventually.of_forall; intro z
+        exact hC_range _
+      · exact integrable_const C
+      · apply Filter.Eventually.of_forall; intro z
+        exact hg_cont.comp (by fun_prop)
+    -- Step L0-9: Uniqueness.
+    have hf_uniq : ∀ g : ℝ → Measure (PhaseSpace d),
+        g 0 = f₀ ∧ (∀ t, HasFiniteFirstMoment (g t)) ∧
+        IsLagrangianVlasovSolution gradW g ∧
+        (∀ (h : PhaseSpace d → ℝ), Continuous h → Bornology.IsBounded (Set.range h) →
+          Continuous (fun t => ∫ z, h z ∂g t)) →
+        g = f_sol := by
+      intro g ⟨hg_init, _, hg_lag, _⟩
+      obtain ⟨_, cX, cV, h_flow, h_push, _⟩ := hg_lag
+      -- cV is constant in t: velocity ODE gives d/dt(cV(t,z)) = -conv(0,...) = 0.
+      have hcV_const : ∀ (t : ℝ) (z : PhaseSpace d), cV t z = z.2 := by
+        intro t z
+        have hderiv : ∀ s, HasDerivAt (fun u => cV u z) 0 s := by
+          intro s
+          have := h_flow.2.2 s z
+          rw [hconv_zero] at this
+          simpa using this
+        have hdiff : Differentiable ℝ (fun s => cV s z) :=
+          fun s => (hderiv s).differentiableAt
+        have hfderiv : ∀ s, fderiv ℝ (fun u => cV u z) s = 0 :=
+          fun s => by rw [← toSpanSingleton_deriv, (hderiv s).deriv]; simp
+        have heq := is_const_of_fderiv_eq_zero hdiff hfderiv t 0
+        simp only [heq, h_flow.1 z |>.2]
+      -- cX satisfies d/dt(cX(t,z)) = cV(t,z) = z.2, cX(0,z) = z.1.
+      have hcX_affine : ∀ (t : ℝ) (z : PhaseSpace d), cX t z = z.1 + t • z.2 := by
+        intro t z
+        -- d/dt (cX(t,z) - z.1 - t•z.2) = z.2 - z.2 = 0.
+        have hderiv_cX : ∀ s, HasDerivAt (fun u => cX u z) (z.2) s := by
+          intro s
+          have := h_flow.2.1 s z
+          rw [← hcV_const s z]
+          exact this
+        have hderiv_affine : ∀ s, HasDerivAt (fun u : ℝ => z.1 + u • z.2) z.2 s := by
+          intro s
+          have h1 : HasDerivAt (fun _ : ℝ => z.1) 0 s := hasDerivAt_const s z.1
+          have h2 : HasDerivAt (fun u : ℝ => u • z.2) ((1 : ℝ) • z.2) s :=
+            (hasDerivAt_id (𝕜 := ℝ) s).smul_const z.2
+          have := h1.add h2
+          simp only [zero_add, one_smul] at this; exact this
+        have hderiv_diff : ∀ s, HasDerivAt (fun u => cX u z - (z.1 + u • z.2)) 0 s :=
+          fun s => by
+            have := (hderiv_cX s).sub (hderiv_affine s); simp at this; exact this
+        have hdiff : Differentiable ℝ (fun u => cX u z - (z.1 + u • z.2)) :=
+          fun s => (hderiv_diff s).differentiableAt
+        have hfderiv : ∀ s, fderiv ℝ (fun u => cX u z - (z.1 + u • z.2)) s = 0 :=
+          fun s => by rw [← toSpanSingleton_deriv, (hderiv_diff s).deriv]; simp
+        have heq := is_const_of_fderiv_eq_zero hdiff hfderiv t 0
+        have h0 : cX 0 z - (z.1 + (0 : ℝ) • z.2) = 0 := by
+          simp [h_flow.1 z |>.1]
+        exact sub_eq_zero.mp (heq.trans h0)
+      -- Now g t = Measure.map (cX t, cV t) (g 0) = Measure.map (z.1+t•z.2, z.2) f₀ = f_sol t.
+      funext t
+      have := h_push t
+      rw [hg_init] at this
+      rw [this]
+      congr 1
+      funext z
+      simp only [hcX_affine t z, hcV_const t z, charX, charV, f_sol]
+    -- Assemble ∃!.
+    exact ⟨f_sol, ⟨hf_init, hf_mom, hf_lag, hf_cont⟩,
+      fun g hg => hf_uniq g hg⟩
 
 /-! ## Phase 1 callsite probe
 
