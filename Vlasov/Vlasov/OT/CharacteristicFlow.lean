@@ -4418,6 +4418,148 @@ theorem Stage_1_9_flow_boundary_regularity
         (Set.Ici s) s) := by
   sorry
 
+/-- **Stage 4 Bridge #3: single Picard step `VlasovMeasureCurve d T M → VlasovMeasureCurve d T M'`**.
+
+Composes Stage 1.9 + `Stage_1_9_flow_boundary_regularity` (Friction 5
+helper) + `flow_distance_growth_bound_on` (Bridge #1) +
+`charFlow_measurable_via_gronwall` + `Phi_asVlasovMeasureCurve` into a
+single Picard step.
+
+**Output bundle** (sigma form): the flow + growth constant + bundled
+output curve + local pushforward equation on `Icc 0 T`.  Internally,
+`σ.ρ = Phi charX_clamped f₀` where `charX_clamped t := charX (clampToIcc T t)`;
+on `Icc 0 T` the clamp is the identity so the pushforward equation
+holds with the un-clamped `charX`.
+
+**No new sorries** (this commit): indirectly invokes the sorry'd
+`Stage_1_9_flow_boundary_regularity` (Friction 5).  All other
+intermediates are fully proved by composition. -/
+theorem Phi_step
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
+    {T M : ℝ} (hT : 0 ≤ T) (hM_nn : 0 ≤ M)
+    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (ρ : VlasovMeasureCurve d T M)
+    (h_int_ext : ∀ t (x : PhysSpace d),
+                  Integrable (fun y => gradW (x - y)) (ρ.extend t)) :
+    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (C_T : ℝ),
+      0 ≤ C_T ∧
+      IsCharacteristicFlowOn gradW ρ.extend charX charV (Set.Ioo 0 T) Set.univ ∧
+      ∃ σ : VlasovMeasureCurve d T (C_T * (M_f₀ + 1)),
+        ∀ t ∈ Set.Icc (0:ℝ) T,
+          σ.ρ t = Measure.map (fun z : PhaseSpace d => charX t z) f₀ := by
+  haveI hExt_prob : ∀ t, IsProbabilityMeasure (ρ.extend t) :=
+    VlasovMeasureCurve.extend_isProb ρ
+  have hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ.extend t) x) := by
+    intro x
+    have h_int_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
+        Integrable (fun y => gradW (x - y)) (ρ.ρ t) := by
+      intro t ht
+      have h_eq : ρ.extend t = ρ.ρ t := by
+        unfold VlasovMeasureCurve.extend clampToIcc
+        congr 1
+        rw [min_eq_left ht.2, max_eq_right ht.1]
+      rw [← h_eq]; exact h_int_ext t x
+    exact VlasovMeasureCurve.extend_convCont gradW L hL hT ρ x h_int_Icc
+  have h_y_int : ∀ t, Integrable (fun y : PhysSpace d => ‖y‖) (ρ.extend t) :=
+    fun t => VlasovMeasureCurve.extend_yIntegrable hT ρ t
+  have hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M :=
+    fun t => VlasovMeasureCurve.extend_hasMoment hT ρ t
+  obtain ⟨charX, charV, hflow_on⟩ :=
+    exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
+      ρ.extend h_int_ext hρ_cont h_y_int M hM_nn hM_ρ T hT hTL
+  obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT hflow_on
+  obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
+    flow_distance_growth_bound_on gradW L hL ρ.extend charX charV T hT
+      h_init h_cont_Icc h_deriv_Ico M hM_nn
+      (fun t _ => hM_ρ t) (fun t _ => h_y_int t) h_int_ext
+  have h_meas_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) :=
+    charFlow_measurable_via_gronwall gradW L hL ρ.extend h_int_ext charX charV
+      T hT h_init h_cont_Icc h_deriv_Ico
+  let charX_clamped : ℝ → PhaseSpace d → PhysSpace d :=
+    fun t z => charX (clampToIcc T t) z
+  have h_meas_clamped : ∀ t,
+      AEMeasurable (fun z : PhaseSpace d => charX_clamped t z) f₀ := by
+    intro t
+    have h_clamp_mem := clampToIcc_mem hT t
+    have h_meas_full := h_meas_Icc (clampToIcc T t) h_clamp_mem
+    exact (measurable_fst.comp h_meas_full).aemeasurable
+  have h_growth_clamped : ∀ t ∈ Set.Icc (0:ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX_clamped t z‖ ≤ C_T * (‖z‖ + 1) := by
+    intro t ht z
+    have h_clamp_eq : clampToIcc T t = t := by
+      unfold clampToIcc
+      rw [min_eq_left ht.2, max_eq_right ht.1]
+    show ‖charX (clampToIcc T t) z‖ ≤ _
+    rw [h_clamp_eq]
+    have h_full := h_growth t ht z
+    have h_proj : ‖charX t z‖ ≤ ‖(charX t z, charV t z)‖ := by
+      simp [Prod.norm_def]
+    linarith
+  have h_int_charX_clamped : ∀ t,
+      Integrable (fun z : PhaseSpace d => ‖charX_clamped t z‖) f₀ := by
+    intro t
+    have h_clamp_mem := clampToIcc_mem hT t
+    have h_bound : ∀ z, ‖charX_clamped t z‖ ≤ C_T * (‖z‖ + 1) := by
+      intro z
+      show ‖charX (clampToIcc T t) z‖ ≤ _
+      have h_full := h_growth (clampToIcc T t) h_clamp_mem z
+      have h_proj : ‖charX (clampToIcc T t) z‖ ≤
+                    ‖(charX (clampToIcc T t) z, charV (clampToIcc T t) z)‖ := by
+        simp [Prod.norm_def]
+      linarith
+    have h_dom_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+      have h1 : Integrable (fun z : PhaseSpace d => C_T * ‖z‖) f₀ :=
+        h_f₀_int.const_mul C_T
+      have h2 : Integrable (fun _ : PhaseSpace d => C_T) f₀ := integrable_const _
+      have h_eq : (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) =
+                  fun z => C_T * ‖z‖ + C_T := by funext z; ring
+      rw [h_eq]; exact h1.add h2
+    have h_aesm : AEStronglyMeasurable
+        (fun z : PhaseSpace d => ‖charX_clamped t z‖) f₀ :=
+      (h_meas_clamped t).norm.aestronglyMeasurable
+    refine h_dom_int.mono' h_aesm ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact h_bound z
+  have h_charX_cont_clamped : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ z,
+      ContinuousWithinAt (fun t => charX_clamped t z) (Set.Icc 0 T) s := by
+    intro s hs z
+    have h_full := (h_cont_Icc z).continuousWithinAt hs
+    have h_charX_cwn : ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s :=
+      h_full.fst
+    have h_eq_on : ∀ t ∈ Set.Icc (0:ℝ) T, charX_clamped t z = charX t z := by
+      intro t ht
+      show charX (clampToIcc T t) z = charX t z
+      have h_clamp_eq : clampToIcc T t = t := by
+        unfold clampToIcc
+        rw [min_eq_left ht.2, max_eq_right ht.1]
+      rw [h_clamp_eq]
+    exact h_charX_cwn.congr h_eq_on (h_eq_on s hs)
+  let σ : VlasovMeasureCurve d T (C_T * (M_f₀ + 1)) :=
+    Phi_asVlasovMeasureCurve charX_clamped f₀ h_meas_clamped h_int_charX_clamped
+      T hT C_T hC_T_nn h_growth_clamped h_f₀_int M_f₀ hM_f₀ h_charX_cont_clamped
+  refine ⟨charX, charV, C_T, hC_T_nn, hflow_on, σ, ?_⟩
+  intro t ht
+  show Phi charX_clamped f₀ t = Measure.map (fun z => charX t z) f₀
+  unfold Phi
+  have h_clamp_eq : clampToIcc T t = t := by
+    unfold clampToIcc
+    rw [min_eq_left ht.2, max_eq_right ht.1]
+  congr 1
+  funext z
+  show charX (clampToIcc T t) z = charX t z
+  rw [h_clamp_eq]
+
 /-- **Stage 3 sub-piece: pointwise Gronwall on flow difference.**
 
 Given two characteristic flow trajectories `γ_ρ, γ_σ : ℝ → PhaseSpace d`
