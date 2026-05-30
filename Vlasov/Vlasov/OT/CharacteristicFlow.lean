@@ -2249,6 +2249,106 @@ lemma vlasov_traj_chain_rule
     ring
   rwa [hval] at hchain
 
+/-- **`_at` variant of SC.2: pointwise chain rule at a specific `(t, z)`**.
+
+Mirror of `vlasov_traj_chain_rule` (just above), generalized to take the
+flow's HasDerivAt hypotheses at the specific `(t, z)` of interest rather
+than universally `∀ t z`.  This is the form needed by the `_On` Stage C
+PDE transport: Stage 1.9 produces `IsCharacteristicFlowOn ... (Ioo 0 T)
+Set.univ` which gives HasDerivAt only at `t ∈ Ioo 0 T`, so the universal-
+`t` form can't be supplied.
+
+**Discharge route for Stage 4 Bridge #2 PDE**: this `_at` variant is the
+foundation; downstream `_on` variants of the SC.5-SC.8 helpers and the
+`vlasov_pushforward_hasDerivAt_under_integral` consumer all compose
+against this one.
+
+**Proof body**: identical to `vlasov_traj_chain_rule`'s body modulo the
+hypothesis-naming.  The original uses `hX_deriv t z`, `hV_deriv t z`
+exactly once each (at the `prodMk` step); we replace these with
+`hX_deriv_at`, `hV_deriv_at` directly.  All other steps are
+specific-`(t, z)` already. -/
+lemma vlasov_traj_chain_rule_at
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
+    (t : ℝ) (z : PhaseSpace d)
+    (hX_deriv_at : HasDerivAt (fun s => charX s z) (charV t z) t)
+    (hV_deriv_at : HasDerivAt (fun s => charV s z)
+        (-(convolveFunctionMeasure gradW (ρ t) (charX t z))) t) :
+    HasDerivAt (fun s => φ (charX s z, charV s z))
+      (@inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+       - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) (charX t z))
+          (gradVφ (charX t z, charV t z))) t := by
+  -- Step (a): joint pair HasDerivAt — uses hX_deriv_at, hV_deriv_at directly.
+  have hpair : HasDerivAt (fun s => (charX s z, charV s z))
+      (charV t z, -(convolveFunctionMeasure gradW (ρ t) (charX t z))) t :=
+    hX_deriv_at.prodMk hV_deriv_at
+  -- Step (b): φ has FDeriv at the image point.
+  have hFDeriv : HasFDerivAt φ (fderiv ℝ φ (charX t z, charV t z)) (charX t z, charV t z) :=
+    (hφ_smooth.differentiable (by simp) _).hasFDerivAt
+  -- Step (c): chain rule.
+  have hchain : HasDerivAt (fun s => φ (charX s z, charV s z))
+      ((fderiv ℝ φ (charX t z, charV t z))
+        (charV t z, -(convolveFunctionMeasure gradW (ρ t) (charX t z)))) t :=
+    hFDeriv.comp_hasDerivAt t hpair
+  -- Step (d): compute the value equality (identical to original).
+  have hval : (fderiv ℝ φ (charX t z, charV t z))
+      (charV t z, -(convolveFunctionMeasure gradW (ρ t) (charX t z))) =
+      @inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+       - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) (charX t z))
+          (gradVφ (charX t z, charV t z)) := by
+    set z₀ := (charX t z, charV t z)
+    have hdiffφ : DifferentiableAt ℝ φ z₀ :=
+      hφ_smooth.differentiable (by simp) z₀
+    have hfderiv_X : fderiv ℝ (fun x => φ (x, z₀.2)) z₀.1 =
+        (fderiv ℝ φ z₀).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
+      have h1 : HasFDerivAt φ (fderiv ℝ φ z₀) z₀ := hdiffφ.hasFDerivAt
+      have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z₀.2))
+          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z₀.1 :=
+        hasFDerivAt_prodMk_left z₀.1 z₀.2
+      exact (h1.comp z₀.1 h2).fderiv
+    have hfderiv_V : fderiv ℝ (fun v => φ (z₀.1, v)) z₀.2 =
+        (fderiv ℝ φ z₀).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
+      have h1 : HasFDerivAt φ (fderiv ℝ φ z₀) z₀ := hdiffφ.hasFDerivAt
+      have h2 : HasFDerivAt (fun v : PhysSpace d => (z₀.1, v))
+          (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z₀.2 :=
+        hasFDerivAt_prodMk_right z₀.1 z₀.2
+      exact (h1.comp z₀.2 h2).fderiv
+    set F := fderiv ℝ φ z₀
+    set a := charV t z
+    set b := -(convolveFunctionMeasure gradW (ρ t) (charX t z))
+    have hdecomp : F (a, b) = F (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) a) +
+        F (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) := by
+      rw [ContinuousLinearMap.inl_apply, ContinuousLinearMap.inr_apply]
+      simp [← F.map_add]
+    have hdiffX : DifferentiableAt ℝ (fun x => φ (x, z₀.2)) z₀.1 :=
+      hdiffφ.comp z₀.1 (differentiableAt_id.prodMk (differentiableAt_const z₀.2))
+    have hdiffV : DifferentiableAt ℝ (fun v => φ (z₀.1, v)) z₀.2 :=
+      hdiffφ.comp z₀.2 ((differentiableAt_const z₀.1).prodMk differentiableAt_id)
+    have hX_inner : (fderiv ℝ φ z₀) (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) a) =
+        @inner ℝ (PhysSpace d) _ a (gradXφ z₀) := by
+      have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) a) =
+          fderiv ℝ (fun x => φ (x, z₀.2)) z₀.1 a := by rw [hfderiv_X]; rfl
+      rw [hstep, ← inner_gradient_left hdiffX, ← hgradXφ z₀, real_inner_comm]
+    have hV_inner : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
+        @inner ℝ (PhysSpace d) _ b (gradVφ z₀) := by
+      have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
+          fderiv ℝ (fun v => φ (z₀.1, v)) z₀.2 b := by rw [hfderiv_V]; rfl
+      rw [hstep, ← inner_gradient_left hdiffV, ← hgradVφ z₀, real_inner_comm]
+    rw [hdecomp, hX_inner, hV_inner, show b = -(convolveFunctionMeasure gradW (ρ t) (charX t z))
+        from rfl, inner_neg_left]
+    ring
+  rwa [hval] at hchain
+
 /-- **Dominated-bundle data for SC.3.**
 
 Packages the four ancillary hypotheses required by Mathlib's
