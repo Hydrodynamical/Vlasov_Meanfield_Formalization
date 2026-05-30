@@ -7075,7 +7075,50 @@ theorem vlasovWellPosedness_glue_step
       -- for t ∈ Ioo T (T+T_0) use h_g_vlasov shifted (f_next t = g (t-T));
       -- at t = T use continuity of t ↦ ∫ φ ∂f_next t from both sides.
       have h_vlasov_glue : IsVlasovSolutionOn gradW f_next (T + T_0) := by
-        sorry
+        intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t ht
+        by_cases ht_lt : t < T
+        · -- t ∈ Ioo 0 T: use h_prev_vlasov (f_next = f_prev near t)
+          have ht_prev : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht.1, ht_lt⟩
+          -- f_next = f_prev on a neighborhood of t (since t < T)
+          have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t]
+              (fun s => ∫ z, φ z ∂f_prev s) := by
+            apply Filter.Eventually.mono (eventually_lt_nhds ht_lt)
+            intro s hs; simp [f_next, le_of_lt hs]
+          have h_fnext_t : f_next t = f_prev t := if_pos (le_of_lt ht_lt)
+          have h_deriv := h_prev_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
+              hgradXφ hgradVφ t ht_prev
+          rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero] at h_deriv
+          rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
+          exact h_deriv.congr_of_eventuallyEq h_ev
+        · by_cases ht_gt : T < t
+          · -- t ∈ Ioo T (T + T_0): use h_g_vlasov shifted by T
+            have ht_g : t - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
+            -- f_next = g (· - T) on a neighborhood of t (since t > T)
+            have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t]
+                (fun s => ∫ z, φ z ∂g (s - T)) := by
+              apply Filter.Eventually.mono (eventually_gt_nhds ht_gt)
+              intro s hs; simp [f_next, not_le.mpr hs]
+            have h_fnext_t : f_next t = g (t - T) := if_neg (not_le.mpr ht_gt)
+            -- HasDerivAt for fun r => ∫ φ ∂g r at (t - T)
+            have h_g_deriv := h_g_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
+                hgradXφ hgradVφ (t - T) ht_g
+            rw [show (fun _ => (0 : ℝ)) (t - T) = 0 from rfl, add_zero] at h_g_deriv
+            -- Chain rule: HasDerivAt (fun s => ∫ φ ∂g (s - T)) at t
+            have h_sub : HasDerivAt (· - T) 1 t := (hasDerivAt_id' t).sub_const T
+            have h_chain : HasDerivAt (fun s => ∫ z, φ z ∂g (s - T))
+                (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                  @inner ℝ (PhysSpace d) _
+                    (convolveFunctionMeasure gradW (spatialMarginal (g (t - T))) z.1)
+                    (gradVφ z)) ∂g (t - T)) t := by
+              have := HasDerivAt.comp_of_eq t h_g_deriv h_sub rfl
+              simpa [Function.comp, mul_one] using this
+            -- Match spatialMarginal (f_next t) with spatialMarginal (g (t - T))
+            rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
+            exact h_chain.congr_of_eventuallyEq h_ev
+          · -- t = T: boundary case — structural debt
+            -- At t = T ∈ Ioo 0 (T + T_0), both pieces meet but boundary regularity
+            -- requires HasDerivAt from both sides, deferred to focused session.
+            sorry
       exact h_vlasov_glue
     · -- IsCharacteristicFlowOn for the glued flow
       -- Sub-sorry: flow initial condition + HasDerivAt for piecewise flow
@@ -7092,22 +7135,82 @@ theorem vlasovWellPosedness_glue_step
           simp only [charX_next, charV_next]
           by_cases ht_le : t ≤ T
           · simp only [if_pos ht_le]
-            -- t ∈ Ioo 0 T (since t < T as t ≤ T and t ∈ Ioo; boundary handled separately)
-            -- Use h_prev_flow.2.1 — but need t ∈ Ioo 0 T
-            -- For t < T this is direct; for t = T it's the boundary
-            sorry
+            -- Sub-case: t < T (strict interior) vs t = T (boundary)
+            by_cases ht_lt : t < T
+            · -- t < T strict: piecewise function = charX_p · z near t
+              have h_ev : (fun s => if s ≤ T then charX_p s z
+                  else charX_g (s - T) (charX_p T z, charV_p T z)) =ᶠ[nhds t]
+                  (fun s => charX_p s z) := by
+                apply Filter.Eventually.mono (eventually_lt_nhds ht_lt)
+                intro s hs; simp [le_of_lt hs]
+              exact ((h_prev_flow.2.1 t ⟨ht.1, ht_lt⟩ z (Set.mem_univ z)).congr_of_eventuallyEq
+                h_ev)
+            · -- t = T: boundary HasDerivAt — structural debt, deferred
+              push_neg at ht_lt
+              -- ht_le : t ≤ T, ht_lt : T ≤ t, so t = T
+              sorry
           · simp only [if_neg ht_le]
             push_neg at ht_le
-            -- t > T: use h_g_flow.2.1 at (t - T)
-            sorry
+            -- t > T: use h_g_flow.2.1 at (t - T) with chain rule for (s ↦ s - T)
+            have htT_mem : t - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
+            have h_g_deriv := h_g_flow.2.1 (t - T) htT_mem
+                (charX_p T z, charV_p T z) (Set.mem_univ _)
+            have h_sub : HasDerivAt (· - T) 1 t := (hasDerivAt_id' t).sub_const T
+            have h_chain : HasDerivAt (fun s => charX_g (s - T) (charX_p T z, charV_p T z))
+                (charV_g (t - T) (charX_p T z, charV_p T z)) t := by
+              have := HasDerivAt.scomp_of_eq t h_g_deriv h_sub rfl
+              simpa [Function.comp, one_smul] using this
+            have h_ev : (fun s => if s ≤ T then charX_p s z
+                else charX_g (s - T) (charX_p T z, charV_p T z)) =ᶠ[nhds t]
+                (fun s => charX_g (s - T) (charX_p T z, charV_p T z)) := by
+              apply Filter.Eventually.mono (eventually_gt_nhds ht_le)
+              intro s hs; simp [not_le.mpr hs]
+            exact h_chain.congr_of_eventuallyEq h_ev
         · -- HasDerivAt charV_next at t for t ∈ Ioo 0 (T + T_0)
           intro t ht z _
           simp only [charX_next, charV_next]
           by_cases ht_le : t ≤ T
           · simp only [if_pos ht_le]
-            sorry
+            -- Sub-case: t < T (strict interior) vs t = T (boundary)
+            by_cases ht_lt : t < T
+            · -- t < T strict: piecewise function = charV_p · z near t
+              have h_ev : (fun s => if s ≤ T then charV_p s z
+                  else charV_g (s - T) (charX_p T z, charV_p T z)) =ᶠ[nhds t]
+                  (fun s => charV_p s z) := by
+                apply Filter.Eventually.mono (eventually_lt_nhds ht_lt)
+                intro s hs; simp [le_of_lt hs]
+              have h_fnext_t : f_next t = f_prev t := if_pos ht_le
+              have h_prev_deriv := h_prev_flow.2.2 t ⟨ht.1, ht_lt⟩ z (Set.mem_univ z)
+              -- h_prev_deriv uses spatialMarginal (f_prev t); goal uses spatialMarginal (f_next t)
+              have h_eq_marg : spatialMarginal (f_prev t) = spatialMarginal (f_next t) :=
+                congrArg spatialMarginal h_fnext_t.symm
+              simp only [h_eq_marg] at h_prev_deriv
+              exact h_prev_deriv.congr_of_eventuallyEq h_ev
+            · -- t = T: boundary HasDerivAt — structural debt, deferred
+              push_neg at ht_lt
+              sorry
           · simp only [if_neg ht_le]
-            sorry
+            push_neg at ht_le
+            -- t > T: use h_g_flow.2.2 at (t - T)
+            have htT_mem : t - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
+            have h_g_deriv := h_g_flow.2.2 (t - T) htT_mem
+                (charX_p T z, charV_p T z) (Set.mem_univ _)
+            have h_sub : HasDerivAt (· - T) 1 t := (hasDerivAt_id' t).sub_const T
+            have h_chain : HasDerivAt (fun s => charV_g (s - T) (charX_p T z, charV_p T z))
+                (-(convolveFunctionMeasure gradW (spatialMarginal (g (t - T)))
+                    (charX_g (t - T) (charX_p T z, charV_p T z)))) t := by
+              have := HasDerivAt.scomp_of_eq t h_g_deriv h_sub rfl
+              simpa [Function.comp, one_smul] using this
+            -- f_next t = g (t - T) when t > T
+            have h_fnext_t : f_next t = g (t - T) := if_neg (not_le.mpr ht_le)
+            -- Rewrite derivative value: g (t-T) → f_next t
+            rw [← congrArg spatialMarginal h_fnext_t] at h_chain
+            have h_ev : (fun s => if s ≤ T then charV_p s z
+                else charV_g (s - T) (charX_p T z, charV_p T z)) =ᶠ[nhds t]
+                (fun s => charV_g (s - T) (charX_p T z, charV_p T z)) := by
+              apply Filter.Eventually.mono (eventually_gt_nhds ht_le)
+              intro s hs; simp [not_le.mpr hs]
+            exact h_chain.congr_of_eventuallyEq h_ev
       exact h_flow_glue
     · -- Pushforward equation for f_next on Icc 0 (T + T_0)
       -- Sub-sorry: piecewise pushforward
@@ -7122,12 +7225,24 @@ theorem vlasovWellPosedness_glue_step
         -- f_prev t = Measure.map (charX_p t, charV_p t) (f_prev 0)
         -- f_next 0 = f_prev 0 (since 0 ≤ T)
         -- Need: f_prev t = Measure.map (fun z => (charX_next t z, charV_next t z)) (f_next 0)
-        sorry
+        simp only [if_pos hT_pos.le]
+        exact heq
       · simp only [if_neg ht_le]
         push_neg at ht_le
-        -- f_next t = g (t - T), which pushes forward (f_prev T) via charX_g, charV_g
-        -- Need to connect to f_next 0 = f₀ via the composition of flows
-        sorry
+        -- f_next t = g (t - T), pushes forward (f_prev T) via charX_g, charV_g
+        -- g (t-T) = Measure.map (charX_g (t-T), charV_g (t-T)) (g 0)
+        --         = Measure.map (charX_g (t-T), charV_g (t-T)) (f_prev T)  [by hg_init]
+        --         = Measure.map (charX_g (t-T), charV_g (t-T)) (Measure.map (charX_p T, charV_p T) (f_prev 0))
+        --         = Measure.map ((charX_g (t-T), charV_g (t-T)) ∘ (charX_p T, charV_p T)) (f_prev 0)
+        simp only [if_pos hT_pos.le]
+        have hT_mem : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+        have htT_mem : t - T ∈ Set.Icc (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
+        rw [h_g_push (t - T) htT_mem, hg_init, h_prev_push T hT_mem]
+        have h_prev_T_aemeas := h_prev_aemeas T hT_mem
+        have h_g_at_tT := h_g_aemeas (t - T) htT_mem
+        rw [hg_init, h_prev_push T hT_mem] at h_g_at_tT
+        rw [AEMeasurable.map_map_of_aemeasurable h_g_at_tT h_prev_T_aemeas]
+        rfl
     · -- AEMeasurability on Icc 0 (T + T_0)
       -- Sub-sorry: piecewise AEMeasurability
       -- Key: f_next 0 = f_prev 0 (since 0 ≤ T, so if_pos applies)
@@ -7143,8 +7258,15 @@ theorem vlasovWellPosedness_glue_step
         push_neg at hs_le
         -- AEMeasurability of (charX_g (s - T) ∘ (charX_p T, charV_p T), ...)
         -- w.r.t. f_next 0 = f_prev 0 = f₀
-        -- This requires AEMeasurability composition
-        sorry
+        rw [h_next_0]
+        have hT_mem : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+        have hsT_mem : s - T ∈ Set.Icc (0 : ℝ) T_0 := ⟨by linarith, by linarith [hs.2]⟩
+        have h_prev_T_aemeas := h_prev_aemeas T hT_mem
+        -- h_g_aemeas gives AEMeasurability w.r.t. g 0 = f_prev T
+        -- = Measure.map (charX_p T, charV_p T) (f_prev 0)
+        have h_g_at_sT := h_g_aemeas (s - T) hsT_mem
+        rw [hg_init, h_prev_push T hT_mem] at h_g_at_sT
+        exact h_g_at_sT.comp_aemeasurable h_prev_T_aemeas
 
 /-- **Stage 5: forward iteration to arbitrary `T_target`.**
 
