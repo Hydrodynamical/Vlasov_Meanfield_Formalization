@@ -5999,6 +5999,67 @@ theorem vlasovWellPosedness_local
       f 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0:ℝ) T, HasFiniteFirstMoment (f t)) ∧
       IsLagrangianVlasovSolutionOn gradW f T := by
+  -- **Substantive discharge plan** (~250-350 lines, focused follow-up session):
+  --
+  -- Step 1 — Spatial marginal setup (~20 lines):
+  --   obtain ⟨hf₀_prob, hf₀_int⟩ := hf₀
+  --   let μ₀ := spatialMarginal f₀  -- IsProbabilityMeasure + Integrable ‖·‖
+  --   let M_f₀ := ∫ z, ‖z‖ ∂f₀  -- finite by hf₀.2
+  --   Pick M ≥ flow_distance_growth_bound's `C_T * (M_f₀ + 1)` to absorb
+  --   Phi_step's moment growth across iterations.
+  --
+  -- Step 2 — Picard sequence (~40-60 lines):
+  --   let x : ℕ → VlasovMeasureCurve d T M := fun n =>
+  --     n.rec (constantCurve μ₀ hμ₀_int hM_init)
+  --           (fun _ prev => Classical.choose (Phi_step ... prev ...))
+  --   The Phi_step application extracts (charX_n, charV_n, σ_n) from prev's flow.
+  --
+  -- Step 3 — Contraction verification (~50-80 lines):
+  --   Pick q := gronwallBound 0 (max 1 L) (L * D₀) T < 1 (where D₀ is the
+  --   initial supW1On bound).  By Phi_supW1_contraction applied to (x n)'s
+  --   and (x (n+1))'s flows: supW1On (Set.Icc 0 T) (x n).ρ (x (n+1)).ρ ≤
+  --   ENNReal.ofReal (q ^ n * D₀).  Threading the ~24 hypotheses of
+  --   Phi_supW1_contraction through each (x n, x (n+1)) pair.
+  --
+  -- Step 4 — Limit extraction (~20 lines):
+  --   obtain ⟨ρ_lim, h_tendsto⟩ :=
+  --     picard_iterate_bundlesAs_VlasovMeasureCurve x q hq_nn hq_lt D₀
+  --       hD₀_nn h_contract
+  --
+  -- Step 5 — Self-consistency `Φ(ρ_lim) = ρ_lim` (~30-50 lines):
+  --   Triangle through ρ_n: supW1On (Φ ρ_lim) ρ_lim ≤
+  --     supW1On (Φ ρ_lim) (Φ ρ_n) + supW1On (Φ ρ_n) ρ_n +
+  --     supW1On ρ_n ρ_lim
+  --   First and third → 0 via uniform tendsto (Φ continuous on
+  --   VlasovMeasureCurves); middle = supW1On (x_{n+1}) (x_n) ≤ q^n · D₀ → 0.
+  --
+  -- Step 6 — Flow construction (~30 lines):
+  --   obtain ⟨charX, charV, hflow_on⟩ :=
+  --     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
+  --       ρ_lim.extend ... hT.le (by linarith [hTL])
+  --   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
+  --     Stage_1_9_flow_boundary_regularity gradW ρ_lim.extend charX charV T
+  --       hT.le hflow_on
+  --
+  -- Step 7 — Final assembly (~50-80 lines):
+  --   Define f := vlasovSolutionViaPushforward charX charV f₀.
+  --   Verify:
+  --   * f 0 = f₀ (from `IsCharacteristicFlowOn`'s initial-condition clause +
+  --     `Measure.map_id`).
+  --   * HasFiniteFirstMoment (f t) on Icc 0 T (from
+  --     `flow_distance_growth_bound_on` + `hf₀.2`).
+  --   * IsLagrangianVlasovSolutionOn gradW f T via
+  --     `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` (now
+  --     requires 22 hypotheses after the Bridge #2 PDE transport's
+  --     signature expansion in commit `b77290c`).  Threading ρ-regularity
+  --     (M_ρ, hM_ρ, h_y_int, h_int) for the pushforward's spatial marginal
+  --     is the longest step here.
+  --
+  -- **Why deferred**: realistic substantive close is 250-350 lines across
+  -- 7 composition steps, with two genuinely complex pieces (contraction
+  -- threading at step 3 and ρ-regularity threading at step 7) that
+  -- benefit from a focused session with full context budget.  Per P2 +
+  -- the user-authorized API-lock-vs-substantive-proof discipline.
   sorry
 
 /-- (tex: thm:vlasov-wp)
