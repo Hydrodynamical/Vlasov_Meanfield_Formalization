@@ -669,22 +669,48 @@ indefinite watch-listing):
   P-series entry.  Either way, register it as a healthy operational
   cadence that the project should preserve.
 * **Cumulative-trajectory honesty in API-lock commit framing**:
-  1 sighting (Stage 5 commit-framing critique, 2026-05-29).
-  Diagnostic: per-turn commit messages using "structural content
-  improved without net sorry growth" framing are honest about the
-  *immediate* turn but obscure the *cumulative* trajectory when
-  API-lock-pattern (P4) accumulates over many sessions.  Empirical
-  arc: project went from 7 sorries (post-Friction-5) to 11 sorries
-  (post-Stage-5) via four discipline-correct API-lock commits;
-  each individual framing was honest at the per-turn level, but
-  the multi-session cumulative effect of +4 sorries was not
-  explicitly named.  Fix: in commit messages for API-lock work,
-  include an explicit cumulative-trajectory line ("project sorry
-  count: 7 → 11 across the post-Friction-5 arc; pending substantive
-  closes: N") in addition to the per-turn delta.  This keeps
-  honest framing visible at every commit, not just visible if a
-  reader manually integrates across many commit messages.
-  Trigger: 2 more sightings.  Promotion candidate as a P-series
+  2 sightings (Stage 5 commit-framing critique 2026-05-29 +
+  substantive-close-phase declaration-vs-sub-sub-sorry distinction
+  2026-05-30).  Diagnostic: per-turn commit messages using
+  "structural content improved without net sorry growth" framing are
+  honest about the *immediate* turn but obscure the *cumulative*
+  trajectory when API-lock-pattern (P4) accumulates over many
+  sessions.  Empirical arc: project went from 7 sorries (post-
+  Friction-5) to 11 sorries (post-Stage-5) via four discipline-
+  correct API-lock commits; each individual framing was honest at
+  the per-turn level, but the multi-session cumulative effect of
+  +4 sorries was not explicitly named.
+
+  **Refinement from 2026-05-30 substantive-close phase**: the
+  pattern recurses — substantive body closes that don't reduce
+  declaration count.  The original API-lock pattern was "commit a
+  sorry'd signature, discharge the body later."  The recursive
+  pattern is "discharge a body, surfacing sub-sub-sorries that
+  replace the parent sorry."  Each iteration improves structural
+  content (the body's mathematical content is now visible and
+  composable) without reducing the warning count.  This is genuine
+  progress as long as each iteration's sub-sub-sorries are strictly
+  more tractable than the parent sorry — empirically validated by
+  the Friction 5, sub-helper enrichment, `_finalAssembly_*`
+  consolidation, and Stage 6 `h_agree` retirements.
+
+  Fix (two-part):
+  1. In commit messages for API-lock work, include an explicit
+     cumulative-trajectory line ("project sorry count: X → Y across
+     the post-Z arc; pending substantive closes: N") in addition to
+     the per-turn delta.
+  2. **Track two metrics**, not one:
+     - *Declaration count*: count of sorry-using declarations
+       (externally visible in the file's warning output).
+     - *Sub-sub-sorry count*: total sorries including those inside
+       laid-out bodies (honest measure of remaining work).
+
+     The two diverge during the substantive-close phase: declaration
+     count holds flat while sub-sub-sorry count fluctuates as bodies
+     decompose and individual sub-claims retire.  The full picture
+     requires both.
+
+  Trigger: 1 more sighting.  Promotion candidate as a P-series
   addendum to P4 (communication-discipline companion to the
   commit-pattern discipline P4 names) or as its own P-series entry
   (calibration-honesty discipline) — decide at promotion.
