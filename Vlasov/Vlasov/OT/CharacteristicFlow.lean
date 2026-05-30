@@ -1263,7 +1263,21 @@ theorem exists_vlasov_characteristicFlow
               ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       IsCharacteristicFlowOn gradW ρ charX charV
-        (Set.Ioo 0 T) (Metric.closedBall z₀ ((a : ℝ) / 2)) := by
+        (Set.Ioo 0 T) (Metric.closedBall z₀ ((a : ℝ) / 2)) ∧
+      -- **Boundary regularity bundle** (Friction 5 surgery): expose the
+      -- HasDerivWithinAt on `Set.Icc 0 T` that the proof internally builds
+      -- at L1889-1897, L1910-1919 but otherwise discards via `.hasDerivAt`.
+      -- This conjunct closes the boundary case at t = 0 (and any t = T) so
+      -- consumers like `flow_distance_growth_bound_on` can establish
+      -- ContinuousOn-on-Icc + HasDerivWithinAt-on-Ico without a separate
+      -- boundary regularity helper.
+      (∀ z ∈ Metric.closedBall z₀ ((a : ℝ) / 2),
+        ∀ t ∈ Set.Icc (0 : ℝ) T,
+          HasDerivWithinAt (fun s => charX s z) (charV t z)
+            (Set.Icc (0 : ℝ) T) t ∧
+          HasDerivWithinAt (fun s => charV s z)
+            (-(convolveFunctionMeasure gradW (ρ t) (charX t z)))
+            (Set.Icc (0 : ℝ) T) t) := by
   classical
   -- ============================================================
   -- Parameter setup (uniform across all windows and initial z).
@@ -1860,7 +1874,41 @@ theorem exists_vlasov_characteristicFlow
     if hz : z ∈ Metric.closedBall z₀ ((a : ℝ) / 2)
     then Classical.choose (h_perZ z hz)
     else (fun _ => z)
-  refine ⟨fun t z => (γ_func z t).1, fun t z => (γ_func z t).2, ?_, ?_, ?_⟩
+  -- Containment: Icc 0 T ⊆ Icc 0 (N · δ_uniform), via T ≤ N · δ_uniform.
+  have h_Icc_T_sub : Set.Icc (0 : ℝ) T ⊆ Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) :=
+    fun t ht => ⟨ht.1, le_trans ht.2 hN_cover⟩
+  -- Reusable per-z within-derivative extractor on Icc 0 (N · δ_uniform).
+  -- Given z in the ball and t ∈ Icc 0 (N · δ_uniform), produce position and
+  -- velocity HasDerivWithinAt clauses on that big set.
+  have h_dw_on_big :
+      ∀ z ∈ Metric.closedBall z₀ ((a : ℝ) / 2),
+        ∀ t ∈ Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform),
+          HasDerivWithinAt (fun s => (γ_func z s).1) (γ_func z t).2
+            (Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform)) t ∧
+          HasDerivWithinAt (fun s => (γ_func z s).2)
+            (-(convolveFunctionMeasure gradW (ρ t) (γ_func z t).1))
+            (Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform)) t := by
+    intro z hz t ht
+    have h_func_eq : γ_func z = Classical.choose (h_perZ z hz) := by
+      simp only [γ_func, dif_pos hz]
+    have h_ode := (Classical.choose_spec (h_perZ z hz)).2
+    have h_pos_dw := (h_ode t ht).1
+    have h_vel_dw := (h_ode t ht).2
+    have h_eq_fun_pos : (fun s => (γ_func z s).1)
+        = (fun s => ((Classical.choose (h_perZ z hz)) s).1) := by
+      funext s; rw [h_func_eq]
+    have h_eq_fun_vel : (fun s => (γ_func z s).2)
+        = (fun s => ((Classical.choose (h_perZ z hz)) s).2) := by
+      funext s; rw [h_func_eq]
+    have h_eq_pt_vel : (γ_func z t).2 = (Classical.choose (h_perZ z hz) t).2 := by
+      rw [h_func_eq]
+    have h_eq_pt_pos : (γ_func z t).1 = (Classical.choose (h_perZ z hz) t).1 := by
+      rw [h_func_eq]
+    refine ⟨?_, ?_⟩
+    · rw [h_eq_fun_pos, h_eq_pt_vel]; exact h_pos_dw
+    · rw [h_eq_fun_vel, h_eq_pt_pos]; exact h_vel_dw
+  refine ⟨fun t z => (γ_func z t).1, fun t z => (γ_func z t).2,
+         ⟨?_, ?_, ?_⟩, ?_⟩
   · -- (i) Initial condition: γ_func z 0 = z for z in the ball.
     intro z hz
     have h_init : Classical.choose (h_perZ z hz) 0 = z :=
@@ -1875,49 +1923,29 @@ theorem exists_vlasov_characteristicFlow
   · -- (ii) Position ODE on Ioo 0 T: extract HasDerivWithinAt from
     --     the per-z curve, promote to HasDerivAt via Icc_mem_nhds.
     intro t ht z hz
-    have h_func_eq : γ_func z = Classical.choose (h_perZ z hz) := by
-      simp only [γ_func, dif_pos hz]
-    have h_ode := (Classical.choose_spec (h_perZ z hz)).2
     have h_t_in : t ∈ Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) := by
       refine ⟨le_of_lt ht.1, le_trans (le_of_lt ht.2) hN_cover⟩
-    have h_dw := (h_ode t h_t_in).1
     have hT_lt_N : t < (N : ℝ) * δ_uniform := lt_of_lt_of_le ht.2 hN_cover
     have h_icc_nhds : Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) ∈ nhds t :=
       Icc_mem_nhds ht.1 hT_lt_N
-    -- Goal: HasDerivAt (fun s => (γ_func z s).1) ((γ_func z t).2) t.
-    -- Use h_func_eq to rewrite γ_func z to Classical.choose ... .
-    have h_d_within :
-        HasDerivWithinAt (fun s => (γ_func z s).1) (γ_func z t).2
-          (Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform)) t := by
-      have h_eq_fun : (fun s => (γ_func z s).1)
-          = (fun s => ((Classical.choose (h_perZ z hz)) s).1) := by
-        funext s; rw [h_func_eq]
-      have h_eq_pt : (γ_func z t).2 = (Classical.choose (h_perZ z hz) t).2 := by
-        rw [h_func_eq]
-      rw [h_eq_fun, h_eq_pt]; exact h_dw
-    exact h_d_within.hasDerivAt h_icc_nhds
+    exact ((h_dw_on_big z hz t h_t_in).1).hasDerivAt h_icc_nhds
   · -- (iii) Velocity ODE on Ioo 0 T: same pattern.
     intro t ht z hz
-    have h_func_eq : γ_func z = Classical.choose (h_perZ z hz) := by
-      simp only [γ_func, dif_pos hz]
-    have h_ode := (Classical.choose_spec (h_perZ z hz)).2
     have h_t_in : t ∈ Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) := by
       refine ⟨le_of_lt ht.1, le_trans (le_of_lt ht.2) hN_cover⟩
-    have h_dw := (h_ode t h_t_in).2
     have hT_lt_N : t < (N : ℝ) * δ_uniform := lt_of_lt_of_le ht.2 hN_cover
     have h_icc_nhds : Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) ∈ nhds t :=
       Icc_mem_nhds ht.1 hT_lt_N
-    have h_d_within :
-        HasDerivWithinAt (fun s => (γ_func z s).2)
-          (-(convolveFunctionMeasure gradW (ρ t) (γ_func z t).1))
-          (Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform)) t := by
-      have h_eq_fun : (fun s => (γ_func z s).2)
-          = (fun s => ((Classical.choose (h_perZ z hz)) s).2) := by
-        funext s; rw [h_func_eq]
-      have h_eq_pt : (γ_func z t).1 = (Classical.choose (h_perZ z hz) t).1 := by
-        rw [h_func_eq]
-      rw [h_eq_fun, h_eq_pt]; exact h_dw
-    exact h_d_within.hasDerivAt h_icc_nhds
+    exact ((h_dw_on_big z hz t h_t_in).2).hasDerivAt h_icc_nhds
+  · -- (iv) **Boundary regularity bundle**: HasDerivWithinAt on Icc 0 T
+    -- for every t ∈ Icc 0 T (including t = 0 and t = T).
+    -- Derived by restricting the per-z curve's HasDerivWithinAt on the
+    -- bigger Icc 0 (N · δ_uniform) via `.mono` (since Icc 0 T ⊆ Icc 0 (N · δ_uniform)).
+    intro z hz t ht
+    have h_t_in_big : t ∈ Set.Icc (0 : ℝ) ((N : ℝ) * δ_uniform) :=
+      h_Icc_T_sub ht
+    obtain ⟨h_pos_big, h_vel_big⟩ := h_dw_on_big z hz t h_t_in_big
+    exact ⟨h_pos_big.mono h_Icc_T_sub, h_vel_big.mono h_Icc_T_sub⟩
 
 /-- **Two-window** characteristic-flow existence.
 
@@ -3957,25 +3985,32 @@ theorem exists_vlasov_characteristicFlow_global_on_ball
     push_cast
     ring
   rw [← h_ball_eq]
-  -- Invoke the per-ball theorem.
-  apply exists_vlasov_characteristicFlow W gradW hgradW L hL ρ h_int hρ_cont
-    (0 : PhaseSpace d) (2 * R₀) ha M T hT R
-  · -- hR (per-ball): 2a + (‖z₀.2‖ + a/2)(T+1) + M(T+1)² ≤ R, with z₀ = 0, a = 2R₀.
-    -- = 4R₀ + (0 + R₀)(T+1) + M(T+1)² = 4R₀ + R₀(T+1) + M(T+1)² ≤ R (from hR).
-    show 2 * ((2 * R₀ : NNReal) : ℝ)
+  -- Invoke the per-ball theorem.  Note: the per-ball theorem's enriched
+  -- conclusion (post-Friction-5 surgery) bundles `IsCharacteristicFlowOn`
+  -- with a boundary-regularity conjunct.  This caller (Stage 1.7) only
+  -- needs the IsCharacteristicFlowOn piece; the boundary conjunct is
+  -- discarded here but propagates through Stage 1.9's separate caller.
+  have h_perBall : 2 * ((2 * R₀ : NNReal) : ℝ)
         + (‖(0 : PhaseSpace d).2‖ + ((2 * R₀ : NNReal) : ℝ) / 2) * (T + 1)
-        + (M : ℝ) * (T + 1) ^ 2 ≤ R
+        + (M : ℝ) * (T + 1) ^ 2 ≤ R := by
+    -- = 4R₀ + (0 + R₀)(T+1) + M(T+1)² = 4R₀ + R₀(T+1) + M(T+1)² ≤ R (from hR).
     have h_snd_zero : (0 : PhaseSpace d).2 = 0 := rfl
     rw [h_snd_zero, norm_zero, zero_add]
     push_cast
     calc 2 * (2 * (R₀ : ℝ)) + (2 * (R₀ : ℝ) / 2) * (T + 1) + (M : ℝ) * (T + 1) ^ 2
         = 4 * (R₀ : ℝ) + (R₀ : ℝ) * (T + 1) + (M : ℝ) * (T + 1) ^ 2 := by ring
       _ ≤ (R : ℝ) := hR
-  · -- hbound (per-ball): force bound on closedBall z₀.1 R = closedBall 0 R.
+  have h_bnd : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
+                ∀ x ∈ Metric.closedBall (0 : PhaseSpace d).1 (R : ℝ),
+                ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M := by
     intro t ht x hx
     have h_fst_zero : (0 : PhaseSpace d).1 = 0 := rfl
     rw [h_fst_zero] at hx
     exact hbound t ht x hx
+  obtain ⟨charX, charV, hflow, _⟩ :=
+    exists_vlasov_characteristicFlow W gradW hgradW L hL ρ h_int hρ_cont
+      (0 : PhaseSpace d) (2 * R₀) ha M T hT R h_perBall h_bnd
+  exact ⟨charX, charV, hflow⟩
 
 /-- **Stage 1.9 helper: per-z trajectory existence for small T.**
 
@@ -4009,10 +4044,18 @@ theorem exists_vlasov_perz_trajectory
     (z : PhaseSpace d) :
     ∃ γ : ℝ → PhaseSpace d,
       γ 0 = z ∧
-      ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      (∀ t ∈ Set.Ioo (0 : ℝ) T,
         HasDerivAt (fun s => (γ s).1) (γ t).2 t ∧
         HasDerivAt (fun s => (γ s).2)
-          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t := by
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t) ∧
+      -- **Boundary regularity** (Friction 5 surgery): HasDerivWithinAt on
+      -- `Icc 0 T` for every t ∈ Icc 0 T, derived from the per-ball flow's
+      -- enriched conjunct.  Closes the t = 0 (and t = T) boundary case for
+      -- consumers like `flow_distance_growth_bound_on`.
+      (∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => (γ s).1) (γ t).2 (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) (Set.Icc 0 T) t) := by
   -- ============================================================
   -- Compute R(z), M(z) from the algebraic constraint:
   --   R ≥ 2·1 + (‖z.2‖ + 1/2)(T+1) + M·(T+1)²
@@ -4149,21 +4192,26 @@ theorem exists_vlasov_perz_trajectory
   -- ============================================================
   -- Apply exists_vlasov_characteristicFlow with z₀ = z, a = 1.
   -- ============================================================
-  obtain ⟨charX, charV, hflow⟩ := exists_vlasov_characteristicFlow W gradW hgradW L hL
-    ρ h_int hρ_cont z 1 ha M T hT R hR_local hbound_local
+  obtain ⟨charX, charV, hflow, h_boundary⟩ :=
+    exists_vlasov_characteristicFlow W gradW hgradW L hL
+      ρ h_int hρ_cont z 1 ha M T hT R hR_local hbound_local
   -- Extract trajectory at w = z (z is the center of the ball, trivially in it).
   have hz_in : z ∈ Metric.closedBall z (((1 : NNReal) : ℝ) / 2) := by
     rw [Metric.mem_closedBall, dist_self]
     have : ((1 : NNReal) : ℝ) / 2 = (1 : ℝ) / 2 := by push_cast; ring
     linarith
   obtain ⟨hinit, hode_x, hode_v⟩ := hflow
-  refine ⟨fun t => (charX t z, charV t z), ?_, ?_⟩
+  refine ⟨fun t => (charX t z, charV t z), ?_, ?_, ?_⟩
   · -- γ 0 = z
     have h0 := hinit z hz_in
     exact Prod.ext h0.1 h0.2
   · -- ODE on Ioo 0 T.
     intro t ht
     exact ⟨hode_x t ht z hz_in, hode_v t ht z hz_in⟩
+  · -- Boundary regularity on Icc 0 T: lifted from the per-ball flow's
+    -- enriched conjunct h_boundary.
+    intro t ht
+    exact h_boundary z hz_in t ht
 
 /-- **Stage 1.9: True global-in-z characteristic flow on a small-T interval.**
 
@@ -4204,32 +4252,48 @@ theorem exists_vlasov_characteristicFlow_global_smallT
     (T : ℝ) (hT : 0 ≤ T)
     (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
-      IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ := by
+      IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ ∧
+      -- **Boundary regularity bundle** (Friction 5 surgery): expose the
+      -- HasDerivWithinAt on `Icc 0 T` for every z and t ∈ Icc 0 T.  Lifted
+      -- from the per-z trajectory's boundary-regularity conjunct.
+      (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charV s z)
+          (-(convolveFunctionMeasure gradW (ρ t) (charX t z)))
+          (Set.Icc 0 T) t) := by
   classical
-  -- Per-z trajectory existence.
+  -- Per-z trajectory existence (with boundary regularity).
   have h_perZ : ∀ z : PhaseSpace d, ∃ γ : ℝ → PhaseSpace d,
       γ 0 = z ∧
-      ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      (∀ t ∈ Set.Ioo (0 : ℝ) T,
         HasDerivAt (fun s => (γ s).1) (γ t).2 t ∧
         HasDerivAt (fun s => (γ s).2)
-          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t := by
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) t) ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => (γ s).1) (γ t).2 (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) (Set.Icc 0 T) t) := by
     intro z
     exact exists_vlasov_perz_trajectory W gradW hgradW L hL ρ h_int hρ_cont
       h_y_int M_ρ hM_ρ_nn hM_ρ T hT hTL z
   -- Bundle via Classical.choose.
   let γ_func : PhaseSpace d → ℝ → PhaseSpace d := fun z =>
     Classical.choose (h_perZ z)
-  refine ⟨fun t z => (γ_func z t).1, fun t z => (γ_func z t).2, ?_, ?_, ?_⟩
+  refine ⟨fun t z => (γ_func z t).1, fun t z => (γ_func z t).2,
+         ⟨?_, ?_, ?_⟩, ?_⟩
   · -- (i) Initial condition: γ_func z 0 = z for all z (Set.univ).
     intro z _
     have h_init : γ_func z 0 = z := (Classical.choose_spec (h_perZ z)).1
     exact ⟨congrArg Prod.fst h_init, congrArg Prod.snd h_init⟩
   · -- (ii) Position ODE at t ∈ Ioo 0 T.
     intro t ht z _
-    exact ((Classical.choose_spec (h_perZ z)).2 t ht).1
+    exact ((Classical.choose_spec (h_perZ z)).2.1 t ht).1
   · -- (iii) Velocity ODE at t ∈ Ioo 0 T.
     intro t ht z _
-    exact ((Classical.choose_spec (h_perZ z)).2 t ht).2
+    exact ((Classical.choose_spec (h_perZ z)).2.1 t ht).2
+  · -- (iv) Boundary regularity bundle on Icc 0 T for every z.
+    intro z t ht
+    exact (Classical.choose_spec (h_perZ z)).2.2 t ht
 
 -- ---------------------------------------------------------------------------
 -- Stage 2 — Define the map Φ and prove well-defined (partial: def + first three fields)
@@ -4877,11 +4941,19 @@ Specifically:
      and similarly for interior `s ∈ Ico 0 T` (where both sets agree
      locally).
 
-**Pragmatic status**: closure cost is ~50-80 lines of careful additive
-surgery on closed proofs (per-ball flow + per-z trajectory + Stage 1.9
-all need conclusion enrichment).  Treated as a placeholder in the
-`MathlibTODO_*`-style discipline pending the focused session that
-performs the surgery. -/
+**Closure status (2026-05-29 surgery)**: closed by Friction 5 surgery —
+the per-ball flow → per-z trajectory → Stage 1.9 chain was enriched to
+expose the HasDerivWithinAt-on-`Icc 0 T` form at every t ∈ Icc 0 T.
+This theorem now takes that boundary regularity as an explicit
+hypothesis (`h_boundary`) and discharges its conclusion by structural
+transport:
+
+* `h_init` from `hflow.1 z (Set.mem_univ z)` (initial-condition clause).
+* `h_cont_Icc` from `h_boundary`'s HasDerivWithinAt → ContinuousWithinAt
+  → ContinuousOn (with `Prod.continuousWithinAt_iff` to join components).
+* `h_deriv_Ico` from `h_boundary`'s HasDerivWithinAt-on-Icc lifted to
+  HasDerivWithinAt-on-Ici at boundary points via
+  `mono_of_mem_nhdsWithin` (the local-equivalence-of-filters argument). -/
 theorem Stage_1_9_flow_boundary_regularity
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -4890,7 +4962,17 @@ theorem Stage_1_9_flow_boundary_regularity
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (T : ℝ) (hT : 0 ≤ T)
     (hflow : IsCharacteristicFlowOn gradW ρ charX charV
-                                    (Set.Ioo 0 T) Set.univ) :
+                                    (Set.Ioo 0 T) Set.univ)
+    -- **Friction 5 surgery (2026-05-29)**: the boundary regularity is now
+    -- an explicit input.  The Stage 1.9 → per-z → per-ball chain produces
+    -- it as a separate conjunct alongside `IsCharacteristicFlowOn`; this
+    -- helper transports the input forward into the precise form the
+    -- Gronwall growth bound needs.
+    (h_boundary : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charV s z)
+          (-(convolveFunctionMeasure gradW (ρ t) (charX t z)))
+          (Set.Icc 0 T) t) :
     (∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z) ∧
     (∀ z : PhaseSpace d,
       ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) ∧
@@ -4898,7 +4980,58 @@ theorem Stage_1_9_flow_boundary_regularity
       HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
         (vlasovVectorField gradW ρ s (charX s z, charV s z))
         (Set.Ici s) s) := by
-  sorry
+  refine ⟨?_, ?_, ?_⟩
+  · -- h_init: from hflow's initial-condition clause at every z ∈ univ.
+    intro z
+    obtain ⟨hX, hV⟩ := hflow.1 z (Set.mem_univ z)
+    exact Prod.ext hX hV
+  · -- h_cont_Icc: from h_boundary's HasDerivWithinAt → ContinuousWithinAt →
+    -- ContinuousOn, joined componentwise via Prod.
+    intro z
+    intro s hs
+    obtain ⟨h_pos_dw, h_vel_dw⟩ := h_boundary z s hs
+    have h_pos_cwn : ContinuousWithinAt (fun s' => charX s' z) (Set.Icc 0 T) s :=
+      h_pos_dw.continuousWithinAt
+    have h_vel_cwn : ContinuousWithinAt (fun s' => charV s' z) (Set.Icc 0 T) s :=
+      h_vel_dw.continuousWithinAt
+    exact h_pos_cwn.prodMk h_vel_cwn
+  · -- h_deriv_Ico: from h_boundary's HasDerivWithinAt-on-Icc lifted to Ici.
+    -- For s ∈ Ico 0 T, Icc 0 T ∈ 𝓝[Ici s] s (since [s, s+ε) ⊆ Icc 0 T
+    -- for small ε), so HasDerivWithinAt _ _ (Icc 0 T) s implies
+    -- HasDerivWithinAt _ _ (Ici s) s via mono_of_mem_nhdsWithin.
+    intro z s hs
+    have hs_Icc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, le_of_lt hs.2⟩
+    obtain ⟨h_pos_dw, h_vel_dw⟩ := h_boundary z s hs_Icc
+    -- Membership: Icc 0 T ∈ nhdsWithin (Ici s) s.  Witness: take the
+    -- open neighborhood `Iio T` ∋ s (since s < T from hs.2); then
+    -- `Iio T ∩ Ici s = [s, T) ⊆ [0, T] = Icc 0 T`.
+    have h_mem : Set.Icc (0 : ℝ) T ∈ nhdsWithin s (Set.Ici s) := by
+      rw [mem_nhdsWithin_iff_exists_mem_nhds_inter]
+      refine ⟨Set.Iio T, Iio_mem_nhds hs.2, ?_⟩
+      intro u hu
+      refine ⟨?_, ?_⟩
+      · -- u ≥ 0: from u ∈ Ici s ⊆ Ici 0 (since s ≥ 0 by hs.1).
+        exact le_trans hs.1 hu.2
+      · -- u ≤ T: from u ∈ Iio T (so u < T).
+        exact le_of_lt hu.1
+    have h_pos_Ici : HasDerivWithinAt (fun s' => charX s' z) (charV s z)
+                       (Set.Ici s) s :=
+      h_pos_dw.mono_of_mem_nhdsWithin h_mem
+    have h_vel_Ici : HasDerivWithinAt (fun s' => charV s' z)
+                       (-(convolveFunctionMeasure gradW (ρ s) (charX s z)))
+                       (Set.Ici s) s :=
+      h_vel_dw.mono_of_mem_nhdsWithin h_mem
+    -- Join componentwise into the joint Prod-valued HasDerivWithinAt.
+    -- vlasovVectorField gradW ρ s (charX s z, charV s z)
+    --   = (charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z))).
+    have h_prod : HasDerivWithinAt
+        (fun s' : ℝ => (charX s' z, charV s' z))
+        (charV s z, -(convolveFunctionMeasure gradW (ρ s) (charX s z)))
+        (Set.Ici s) s := h_pos_Ici.prodMk h_vel_Ici
+    -- Convert from componentwise to the vector-field form.
+    show HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+            (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s
+    convert h_prod using 1
 
 /-- **Stage 4 Bridge #3: single Picard step `VlasovMeasureCurve d T M → VlasovMeasureCurve d T M'`**.
 
@@ -4954,11 +5087,12 @@ theorem Phi_step
     fun t => VlasovMeasureCurve.extend_yIntegrable hT ρ t
   have hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M :=
     fun t => VlasovMeasureCurve.extend_hasMoment hT ρ t
-  obtain ⟨charX, charV, hflow_on⟩ :=
+  obtain ⟨charX, charV, hflow_on, h_boundary⟩ :=
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
       ρ.extend h_int_ext hρ_cont h_y_int M hM_nn hM_ρ T hT hTL
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT hflow_on
+    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
+      hflow_on h_boundary
   obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
     flow_distance_growth_bound_on gradW L hL ρ.extend charX charV T hT
       h_init h_cont_Icc h_deriv_Ico M hM_nn

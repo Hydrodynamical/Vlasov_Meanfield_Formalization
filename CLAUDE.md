@@ -534,6 +534,32 @@ indefinite watch-listing):
   API specification from substantive proof; commit each as its
   own focused unit."  Trigger: 1 more sighting (close to
   threshold).  Promotion candidate as P3.
+* **Additive offsets in smallness constraints are structurally
+  fatal**: 1 sighting (Stage 1.9's `L · (T+1)² < 1` constraint,
+  diagnosed 2026-05-29 via comparison with Dobrushin 1979).
+  Diagnostic: smallness constraints with shape `L · (T + c)^α < 1`
+  for *additive* `c > 0` are unable to be satisfied for any
+  `L ≥ c^{-α}` regardless of `T`, since `(T + c)^α ≥ c^α`.
+  Constraints with shape `L · T^α < 1` (no additive offset) are
+  satisfiable for any `L > 0` by taking `T < L^{-1/α}`.  In the
+  Vlasov well-posedness arc, the `(T+1)²` offset traces to two
+  sources in the per-ball flow construction: (a) the working
+  interval `[0, T+1]` used to dodge the HasDerivWithinAt boundary
+  issue (≡ Friction 5's surgery target), and (b) per-window
+  position-drift bookkeeping that collapses linear and quadratic
+  terms.  Sources (a) and (b) are independent; fixing (a) alone
+  via Friction 5 surgery moves the constraint from `L·(T+1)² < 1`
+  to `L · T² < 1`, which still satisfies the Dobrushin-style
+  "small enough T wins" property for any `L > 0`.  Net scope
+  consequence: leaving the `+1` in place silently restricts
+  well-posedness to `L < 1`; removing it (Friction 5 surgery) is
+  the load-bearing precondition for the Stage 5 continuation
+  tower to work for arbitrary Lipschitz constants.
+  Trigger: 2 more sightings.  Promotion candidate as B-series
+  (architectural — "remove additive offsets rather than absorb")
+  or M-series (mathematical — "the +1 destroys the limit-shrinking
+  property of the constraint"); decide at promotion based on
+  whether subsequent sightings are architectural or proof-shape.
 
 ## Vlasov-specific design choices
 
