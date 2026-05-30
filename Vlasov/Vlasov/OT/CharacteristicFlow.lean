@@ -6222,8 +6222,28 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   -- The construction uses Phi_step + induction.
   -- The contraction uses Phi_supW1_contraction applied to consecutive iterates.
   -- ============================================================
-  -- Contraction factor: q_T := gronwallBound 0 (max 1 L : ℝ) (L * (2*M)) T.
-  -- For T small enough (from hTL), q_T < 1.
+  -- **Structural-debt note (2026-05-29 sorry-prover analysis)**: the q
+  -- definition below uses `(L · (2·M))` as the gronwallBound ε₀-input.  Per
+  -- `Phi_supW1_contraction`'s actual output shape, the genuine contraction
+  -- ratio is `gronwallBound 0 (max 1 L) (L · D) T / D` where D is the
+  -- *input W₁ bound* — INDEPENDENT of M.  The current `(2·M)` is the
+  -- placeholder D for `supW1On (constantCurve) (Φ constantCurve)`, but it
+  -- conflates the contraction factor itself with this initial distance.
+  --
+  -- The TRUE contraction constraint is `L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
+  -- (equivalent to `L · (exp T - 1) < 1` when `L < 1`).  This is *not* a
+  -- consequence of `hTL : L · (T+1)² < 1` — the two constraints have
+  -- different shapes (quadratic vs exponential in T), and for very small `L`
+  -- the smallness `hTL` permits T_0 large enough that `L · (exp T_0 - 1)`
+  -- exceeds 1.
+  --
+  -- Cleanest fix: add `hTL_contraction : L · (exp T - 1) < 1` as an
+  -- additional hypothesis to this theorem and propagate through Stage 5
+  -- (`vlasovWellPosedness_local`, `_glue_step`, `_forward`).  Recorded as
+  -- a structural-debt item for a focused refactor session.
+  --
+  -- Until the refactor, the q below is the wrong formula but compiles;
+  -- `hq_lt` is sorry'd with the structural-debt comment above.
   let q : ℝ := gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * (2 * M)) T
   have hq_nn : 0 ≤ q := by
     have hK_nn : (0 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := NNReal.coe_nonneg _
