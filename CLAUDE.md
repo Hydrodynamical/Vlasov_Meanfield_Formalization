@@ -466,6 +466,70 @@ contrast to tail-end discovery-of-surgery being unreliable.  The
 pattern makes the discipline framework's productivity compound
 across sessions rather than reset each session.
 
+### P4. API-lock-vs-substantive-proof: separate signature commitment from body discharge in dense composition arcs
+
+**Failure mode**: when a theorem's body requires a substantive
+multi-step composition that exceeds a single session's budget, the
+natural attempt is to inline the full composition.  This produces
+either (a) elaborator fragility (per L7) from threading 20+ hypotheses
+in a single goal-state, (b) cascading sub-sorries that proliferate
+within the inline body and prevent clean commit-checkpointing, or
+(c) the previous-session failure mode where 200+ lines of inline
+work get reverted because they fail to compile end-to-end.  Conversely,
+deferring the entire theorem (signature included) blocks downstream
+consumers from composing.
+
+**Empirical confirmation** (three sightings):
+
+1. Stage C `_On` packaging (commit `de1eb0f`): the localized
+   `IsVlasovSolutionOn` predicate was committed with its signature
+   locked and the substantive PDE-proof body sorry'd.  The signature
+   commit let Stage 4's body draft composition while the PDE proof was
+   handled in a separate focused session (`b77290c`).
+2. Friction 5 helper (commit `fffde95`): the
+   `Stage_1_9_flow_boundary_regularity` theorem was committed with
+   signature locked and body sorry'd.  Two subsequent sessions
+   attempted tail-end substantive close and converted to documentation;
+   the third session (with the precise surgery path documented from
+   the prior commits) closed the body substantively (`4b024ee`).
+3. `vlasovWellPosedness_local` body (commits `94573e9`, `3623b5c`):
+   the marquee local-existence theorem was first committed with
+   its 7-step composition plan documented and body sorry'd, then
+   structurally closed by decomposition into three named sub-helpers
+   (`_picard_fixedPointFlow`, `_finalAssembly_moment`,
+   `_finalAssembly_isLagrangian`) each with locked signature and
+   sorry'd body.  The body's glue composition (~40 lines) is closed.
+
+**Fix**: in dense composition arcs where a theorem's body requires
+≥150 lines of substantive composition, separate the work into two
+commits:
+
+* **API-lock commit**: signature + documented proof strategy + sorry'd
+  body.  Locks the interface so downstream consumers can compose
+  against it.  Typical size: ≤50 lines including extensive docstring.
+* **Substantive close commit(s)**: focused session(s) discharging the
+  body.  Can be one session or multiple per the body's natural
+  decomposition.
+
+The trade-off: temporary sorry-count increase.  But the alternative
+(inline-and-revert) costs more in wall-clock and produces nothing
+durable.
+
+**Generalisation**: P4 is the cross-session companion to L7+L8
+elaboration discipline.  L7+L8 say "write small, explicit intermediate
+steps within a proof body"; P4 says "at the theorem level, split
+the API specification from the substantive body discharge."  Both
+discipline the same underlying issue (elaborator fragility under
+high-complexity composition) but at different scales.
+
+**Composition with P3**: P3 says diagnostic work in one session loads
+context for next-session execution.  P4 makes this discipline
+operationally concrete: the diagnostic work IS the API-lock commit,
+the targeted execution IS the substantive close commit.  Together
+the two patterns produce the project's empirical productivity
+compounding across sessions — P3 (the cognitive pattern) +
+P4 (the commit-level pattern) = reliable session-bounded progress.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
@@ -584,12 +648,6 @@ indefinite watch-listing):
   Promotion candidate as L-series (tactical Lean pattern) or
   M-series (mathematical structure of clamping); decide at
   promotion.
-* **API-lock-vs-substantive-proof**: 2 sightings (Bridge #2
-  Stage C `_On` packaging + Friction 5 boundary regularity
-  helper).  Diagnostic: "in dense composition arcs, separate
-  API specification from substantive proof; commit each as its
-  own focused unit."  Trigger: 1 more sighting (close to
-  threshold).  Promotion candidate as P3.
 * **Additive offsets in smallness constraints are structurally
   fatal**: 1 sighting (Stage 1.9's `L · (T+1)² < 1` constraint,
   diagnosed 2026-05-29 via comparison with Dobrushin 1979).
