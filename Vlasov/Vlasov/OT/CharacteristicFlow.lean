@@ -5438,6 +5438,103 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
 -- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`.  The
 -- `HasFiniteFirstMoment` predicate remains in `Basic.lean`.
 
+/-- **Stage 4 structural closure: local existence of a Vlasov solution
+on `[0, T]`.**
+
+Under the Friction-2 / Route-1 joint constraint `L · (T + 1)² < 1` (which
+silently restricts to the small-`L` regime — `L < 1` is necessary for
+`T > 0` to exist), produces a local-time Vlasov solution
+`f : ℝ → Measure (PhaseSpace d)` on `[0, T]` satisfying initial
+condition + local finite first moment + `IsLagrangianVlasovSolutionOn`.
+
+Stage 5's continuation (deferred) extends from local `T` to arbitrary
+`T_target` via variable-`T_n` induction; Stage 6 then bridges from
+`IsLagrangianVlasovSolutionOn` (local) to `IsLagrangianVlasovSolution`
+(global) via gluing.
+
+**Proof strategy** (the substantive body is deferred per the
+post-closure discharge schedule; signature and strategy locked here so
+downstream consumers compose against the right interface):
+
+1. Initial spatial marginal: `μ₀ := spatialMarginal f₀`.  By
+   `HasFiniteFirstMoment f₀`, `μ₀` is a probability measure with
+   `Integrable ‖·‖`.  Let `M_f₀ := ∫ ‖z‖ ∂f₀` (finite by
+   `hf₀.2.integral_norm_le`).
+
+2. Picard sequence on spatial marginals:
+   - `ρ_0 := constantCurve μ₀`.
+   - `ρ_{n+1}` obtained via `Phi_step` applied to `ρ_n`'s flow.
+
+   Each `ρ_n` lives in `VlasovMeasureCurve d T M` for an appropriate
+   `M` chosen so that the growth bound from
+   `flow_distance_growth_bound_on` stays within `M` across iterations
+   (the M-preservation constraint discussed in the Stage 4 plan
+   process notes #5).
+
+3. Contraction estimate via `Phi_supW1_contraction`:
+   `supW1On (ρ_n.ρ) (ρ_{n+1}.ρ) ≤ ENNReal.ofReal (q^n * D₀)`
+   for `q := gronwallBound 0 (max 1 L) (L · D) T < 1` (since `T` is
+   small enough per the joint constraint).
+
+4. Apply `picard_iterate_isCauchy_of_contraction` to get the ENNReal-form
+   Cauchy condition on the `supW1On` pseudodistance.
+
+5. Apply `picard_iterate_bundlesAs_VlasovMeasureCurve` to extract the
+   limit `ρ_lim : VlasovMeasureCurve d T M` plus pointwise W₁-tendsto.
+
+6. Self-consistency `Φ(ρ_lim) = ρ_lim`: triangle through `ρ_n` using
+   the uniform-tendsto helper, contraction, and pointwise tendsto.
+
+7. Apply Stage 1.9 (`exists_vlasov_characteristicFlow_global_smallT`)
+   to `ρ_lim.extend` to get the characteristic flow `(charX, charV)`
+   against the self-consistent limit.
+
+8. Define `f := vlasovSolutionViaPushforward charX charV f₀`.  Verify:
+   - `f 0 = f₀` (from `IsCharacteristicFlowOn`'s initial-condition
+     clause + `Measure.map_id`).
+   - `HasFiniteFirstMoment (f t)` on `[0, T]` (from
+     `flow_distance_growth_bound_on` applied to `(charX, charV)` +
+     `hf₀.2`).
+   - `IsLagrangianVlasovSolutionOn gradW f T` via
+     `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn`
+     (which carries the sorry'd PDE-proof internally).
+
+**Hypothesis-discharge dependencies** (each line of #1-#8 above
+composes against an already-landed bridge):
+
+* `VlasovMeasureCurve.extend` (commit `fc9d45a`).
+* `flow_distance_growth_bound_on` (commit `974bbf2`).
+* `_On` predicates + `.toOn` projections (commit `966a9e6`).
+* `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` (commit
+  `de1eb0f`, with deferred PDE sorry inside).
+* `Stage_1_9_flow_boundary_regularity` (commit `fffde95`, sorry'd).
+* `Phi_step` (commit `9d54126`).
+* `picard_iterate_*` family (commits before this arc).
+
+**Per the user-authorized API-lock-vs-substantive-proof discipline**:
+this commit locks the theorem's signature with a documented proof
+strategy; the substantive proof body is on the post-closure discharge
+schedule.  Once landed, the discharge becomes one focused session of
+~150-200 lines stitching the 8 steps above.
+
+Sorry count contribution: +1 (one named sorry for the deferred
+substantive body). -/
+theorem vlasovWellPosedness_local
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀)
+    {T : ℝ} (hT : 0 < T)
+    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
+    ∃ f : ℝ → Measure (PhaseSpace d),
+      f 0 = f₀ ∧
+      (∀ t ∈ Set.Icc (0:ℝ) T, HasFiniteFirstMoment (f t)) ∧
+      IsLagrangianVlasovSolutionOn gradW f T := by
+  sorry
+
 /-- (tex: thm:vlasov-wp)
 Existence and uniqueness for the Vlasov equation.
 
