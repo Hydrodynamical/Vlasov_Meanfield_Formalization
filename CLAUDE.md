@@ -685,7 +685,34 @@ The pattern is **recursive** across architectural layers: Friction 5
 was at the per-ball-flow layer; `_glue_step` boundary was at the
 `vlasovWellPosedness_local` layer; Stage 6 narrow continuity is at
 the `_universal_existence` layer.  Each layer's surgery is the same
-shape but at a higher level of composition.
+shape but at a higher level of composition.  This is a **fractal
+property of the architecture**: the same kind of mismatch exists at
+multiple scales, requiring the same kind of work at each scale.
+
+**B2-prophylaxis (forward-looking corollary)**: when defining new
+localized predicates that quantify over open or half-open intervals
+(`∀ t ∈ Ioo 0 T, ...`, `∀ s ∈ Ico 0 T, ...`), expose boundary data
+in the initial definition rather than reactively at consumer time.
+This is the inverse of B2 operating preemptively — enrich at
+predicate-definition time so that downstream consumers don't trigger
+B2 surgery cascades.
+
+The cost is a single extra conjunct at definition time; the benefit
+is avoiding the recursive enrichment work that B2's empirical history
+shows is required whenever any downstream consumer crosses a boundary.
+
+Pragmatically: when introducing a new `IsXxxOn` predicate family in
+the project (or in cleanup-phase work), the predicate's definition
+should include:
+1. The universal-on-`Ioo` ODE/PDE claim (matching the open-interval
+   regularity the construction produces).
+2. **The boundary-data claim** at endpoints (HasDerivWithinAt on
+   `Icc 0 T` at t = 0 and t = T, or equivalent boundary regularity
+   for the predicate's content).
+
+The cleanup document should reference this prophylactic rule for any
+post-cleanup architectural work to avoid relitigating the B2 surgery
+at new layers.
 
 ## Watch-list
 
