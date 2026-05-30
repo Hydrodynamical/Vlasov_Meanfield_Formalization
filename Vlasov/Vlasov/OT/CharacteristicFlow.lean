@@ -7813,15 +7813,151 @@ theorem vlasovWellPosedness_universal_existence
     refine ⟨ht_nn, ?_⟩
     exact le_trans (Nat.le_ceil t) (by push_cast; linarith)
   -- Conjunct 3: ∀ T_target > 0, IsLagrangianVlasovSolutionOn gradW f T_target
-  · -- Sub-sub-sorry: derive per-T_target IsLagrangianVlasovSolutionOn for the
-    -- glued f.  Forward only — backward time is no longer in scope.  This is
-    -- a piecewise-pushforward composition along the Nat-indexed Picard tower;
-    -- substantively closeable in a follow-up session.
-    sorry
+  · -- For T_target > 0, let N = ⌈T_target⌉₊.  The solution sol N exists on [0, N+1]
+    -- with N+1 ≥ T_target.  Agreement h_agree gives f t = sol N t on [0, T_target].
+    -- Restrict sol N's IsLagrangianVlasovSolutionOn to [0, T_target] and convert to f.
+    intro T_target hT_target_pos
+    set N := ⌈T_target⌉₊ with hN_def
+    have hT_le_N : T_target ≤ (N : ℝ) := Nat.le_ceil T_target
+    -- Agreement: f t = sol N t for t ∈ [0, T_target]
+    have h_agree_fN : ∀ t ∈ Set.Icc (0 : ℝ) T_target, f t = sol N t := by
+      intro t ht
+      have ht_nn : (0 : ℝ) ≤ t := ht.1
+      show (if 0 ≤ t then sol ⌈t⌉₊ t else f₀) = sol N t
+      simp only [ht_nn, ↓reduceIte]
+      exact h_agree ⌈t⌉₊ N (Nat.ceil_mono ht.2) t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
+    -- Extract components from h_sol_lag N
+    obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N⟩ := h_sol_lag N
+    -- Compute f 0 = sol N 0
+    have h_f0_solN : f 0 = sol N 0 :=
+      h_agree_fN 0 ⟨le_refl 0, hT_target_pos.le⟩
+    refine ⟨?_, charX_N, charV_N, ?_, ?_, ?_⟩
+    · -- IsVlasovSolutionOn gradW f T_target: for each t ∈ Ioo 0 T_target,
+      -- f and sol N agree near t, so HasDerivAt transfers via EventuallyEq.
+      intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t ht
+      have ht_lt_N1 : t < (N : ℝ) + 1 := lt_of_lt_of_le ht.2 (by linarith)
+      have h_from_N := h_pde_N φ hφ_smooth hφ_compact gradXφ gradVφ
+        hgradXφ hgradVφ t ⟨ht.1, ht_lt_N1⟩
+      -- The functions fun s => ∫ φ ∂(f s) and fun s => ∫ φ ∂(sol N s) agree near t
+      have h_eq : (fun s => ∫ z, φ z ∂(f s)) =ᶠ[nhds t] (fun s => ∫ z, φ z ∂(sol N s)) := by
+        apply Filter.Eventually.mono (Ioo_mem_nhds ht.1 ht.2)
+        intro s hs
+        show ∫ z, φ z ∂f s = ∫ z, φ z ∂sol N s
+        congr 1
+        exact h_agree_fN s ⟨le_of_lt hs.1, le_of_lt hs.2⟩
+      -- After congr_of_eventuallyEq, the derivative body still refers to sol N t.
+      -- Rewrite the goal: f t = sol N t (h_agree_fN) so the derivative bodies match.
+      have h_result := h_from_N.congr_of_eventuallyEq h_eq
+      simp only [h_agree_fN t ⟨le_of_lt ht.1, ht.2.le⟩]
+      exact h_result
+    · -- IsCharacteristicFlowOn on Ioo 0 T_target.
+      -- h_flow_N uses ρ = spatialMarginal ∘ sol N; we need ρ = spatialMarginal ∘ f.
+      -- On Ioo 0 T_target, f t = sol N t (from h_agree_fN), so spatialMarginals agree.
+      refine ⟨h_flow_N.1, ?_, ?_⟩
+      · intro t ht z _
+        exact h_flow_N.2.1 t (Set.Ioo_subset_Ioo le_rfl (by linarith) ht) z (Set.mem_univ z)
+      · intro t ht z _
+        simp only [h_agree_fN t ⟨le_of_lt ht.1, ht.2.le⟩]
+        exact h_flow_N.2.2 t (Set.Ioo_subset_Ioo le_rfl (by linarith) ht) z (Set.mem_univ z)
+    · -- Pushforward: f t = Measure.map (charX_N t, charV_N t) (f 0) for t ∈ Icc 0 T_target
+      intro t ht
+      rw [h_agree_fN t ht, h_f0_solN]
+      exact h_push_N t ⟨ht.1, le_trans ht.2 (by linarith)⟩
+    · -- AEMeasurable on Icc 0 T_target: h_aemeas_N gives w.r.t. sol N 0 = f 0.
+      intro s hs
+      rw [h_f0_solN]
+      exact h_aemeas_N s ⟨hs.1, le_trans hs.2 (by linarith)⟩
   -- Conjunct 4: narrow continuity on Ici 0
-  · -- Sub-sub-sorry: t ↦ ∫ g df_t is ContinuousOn (Ici 0) for bounded continuous g.
-    -- DCT using moment bound; no t = 0 boundary gluing needed (one-sided).
-    sorry
+  · -- Strategy: ContinuousOn (Ici 0) = ∀ t₀ ≥ 0, ContinuousWithinAt at t₀.
+    -- For t₀ > 0: use flow continuity from HasDerivAt (interior) + integral_map + DCT.
+    -- For t₀ = 0: sub-sub-sorry (right-continuity of flow at t = 0 not exposed by
+    --             IsCharacteristicFlowOn; requires boundary regularity from the ODE).
+    intro g hg_cont hg_bdd
+    -- Extract probability measure structure from hf₀
+    obtain ⟨hf₀_prob, hf₀_int⟩ := hf₀
+    haveI hf₀_prob_inst : IsProbabilityMeasure f₀ := hf₀_prob
+    -- Extract a uniform bound C for g from the bounded-range hypothesis
+    obtain ⟨C, hg_range⟩ := hg_bdd.subset_closedBall (0 : ℝ)
+    -- C is a non-negative bound: ∀ z, ‖g z‖ ≤ C
+    have hgC : ∀ z : PhaseSpace d, ‖g z‖ ≤ C := fun z => by
+      have h := Metric.mem_closedBall.mp (hg_range (Set.mem_range_self z))
+      simp only [Real.dist_eq, sub_zero] at h
+      rwa [Real.norm_eq_abs]
+    -- Show ContinuousOn by checking ContinuousWithinAt at each point
+    intro t₀ ht₀
+    have ht₀_nn := Set.mem_Ici.mp ht₀
+    rcases ht₀_nn.eq_or_lt with h_eq | ht₀_pos
+    · -- h_eq : 0 = t₀, so t₀ = 0.  Right-continuity at t = 0 sub-sub-sorry.
+      -- The right-continuity of t ↦ ∫ g ∂(f t) at t = 0 requires that
+      -- the characteristic flow (charX t z, charV t z) → z as t → 0⁺,
+      -- which in turn needs boundary ODE regularity at t = 0 beyond what
+      -- IsCharacteristicFlowOn exposes (only HasDerivAt on Ioo 0 T is given).
+      -- This is a genuine sub-sub-sorry; the boundary regularity fix aligns
+      -- with the Friction-5 / B-series watch-list pattern.
+      rw [← h_eq]; sorry
+    · -- t₀ > 0: t₀ ∈ Ioi 0.  Use the interior flow continuity.
+      -- Choose N so that t₀ is in the interior of [0, N].
+      set N := ⌈t₀⌉₊ + 1 with hN_def
+      have hN_cast_pos : (0 : ℝ) < (N : ℝ) := by positivity
+      have ht₀_lt_N : t₀ < (N : ℝ) := by
+        push_cast [hN_def]
+        exact lt_add_of_le_of_pos (Nat.le_ceil t₀) one_pos
+      -- Agreement: f t = sol N t for t ∈ [0, N]
+      have h_agree_fN : ∀ t ∈ Set.Icc (0 : ℝ) (N : ℝ), f t = sol N t := by
+        intro t ht
+        have ht_nn := ht.1
+        show (if 0 ≤ t then sol ⌈t⌉₊ t else f₀) = sol N t
+        simp only [ht_nn, ↓reduceIte]
+        exact h_agree ⌈t⌉₊ N ((Nat.ceil_mono ht.2).trans_eq (Nat.ceil_natCast N))
+          t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
+      -- Extract flow witnesses from h_sol_lag N
+      obtain ⟨_h_pde, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N⟩ := h_sol_lag N
+      -- The integral ∫ g ∂(f t) = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
+      -- for all t ∈ Icc 0 N (via pushforward formula + h_agree).
+      have h_integral_eq : ∀ t ∈ Set.Icc 0 (N : ℝ),
+          ∫ z, g z ∂(f t) = ∫ z, g (charX_N t z, charV_N t z) ∂f₀ := by
+        intro t ht_Icc
+        rw [h_agree_fN t ht_Icc]
+        have ht_ext : t ∈ Set.Icc (0 : ℝ) ((N : ℝ) + 1) :=
+          ⟨ht_Icc.1, le_trans ht_Icc.2 (le_add_of_nonneg_right one_pos.le)⟩
+        rw [h_push_N t ht_ext, ← h_sol_init N]
+        exact integral_map (h_aemeas_N t ht_ext) hg_cont.measurable.aestronglyMeasurable
+      -- The set Icc 0 N is a neighborhood of t₀ within Ici 0 (since 0 < t₀ < N).
+      have hIcc_mem : Set.Icc 0 (N : ℝ) ∈ nhdsWithin t₀ (Set.Ici 0) := by
+        apply nhdsWithin_le_nhds; exact Icc_mem_nhds ht₀_pos ht₀_lt_N
+      -- Show ContinuousWithinAt for (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) via DCT.
+      have h_cont_charX : ContinuousWithinAt
+          (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) (Set.Icc 0 (N : ℝ)) t₀ := by
+        apply continuousWithinAt_of_dominated (μ := f₀) (bound := fun _ => C)
+        · -- AEStronglyMeasurable: t ↦ g (charX_N t z, charV_N t z) a.e. in z
+          apply Filter.Eventually.mono self_mem_nhdsWithin
+          intro t ht_mem
+          exact (hg_cont.measurable.comp_aemeasurable
+            (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
+              (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
+        · -- Bound: ‖g (charX_N t z, charV_N t z)‖ ≤ C a.e. in z, eventually in t
+          apply Filter.Eventually.mono self_mem_nhdsWithin; intro t _
+          exact Filter.Eventually.of_forall fun z => hgC _
+        · -- Integrable constant bound C w.r.t. f₀ (probability measure, hence finite)
+          exact integrable_const C
+        · -- Pointwise continuity: t ↦ g (charX_N t z, charV_N t z) continuous at t₀ in [0,N]
+          apply Filter.Eventually.of_forall; intro z
+          apply hg_cont.continuousAt.comp_continuousWithinAt
+          have ht₀_in_Ioo : t₀ ∈ Set.Ioo (0 : ℝ) ((N : ℝ) + 1) :=
+            ⟨ht₀_pos, by push_cast [hN_def]; linarith [Nat.le_ceil t₀]⟩
+          have hX_deriv := h_flow_N.2.1 t₀ ht₀_in_Ioo z (Set.mem_univ z)
+          have hV_deriv := h_flow_N.2.2 t₀ ht₀_in_Ioo z (Set.mem_univ z)
+          exact (hX_deriv.continuousAt.prodMk hV_deriv.continuousAt).continuousWithinAt
+      -- Transfer continuity from the charX version to the original via congr.
+      have h_cont_Icc : ContinuousWithinAt
+          (fun t => ∫ z, g z ∂(f t)) (Set.Icc 0 (N : ℝ)) t₀ :=
+        h_cont_charX.congr_of_eventuallyEq
+          (Filter.Eventually.mono self_mem_nhdsWithin (fun t ht => by
+            show ∫ z, g z ∂f t = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
+            exact h_integral_eq t ht))
+          (h_integral_eq t₀ ⟨ht₀_pos.le, ht₀_lt_N.le⟩)
+      -- Lift ContinuousWithinAt from Icc 0 N to Ici 0 using hIcc_mem.
+      exact h_cont_Icc.mono_of_mem_nhdsWithin hIcc_mem
 
 -- ---------------------------------------------------------------------------
 -- §10  Marquee theorem (tex: thm:vlasov-wp) — structural completion
