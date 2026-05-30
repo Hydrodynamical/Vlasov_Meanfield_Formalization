@@ -648,6 +648,26 @@ indefinite watch-listing):
   Promotion candidate as L-series (tactical Lean pattern) or
   M-series (mathematical structure of clamping); decide at
   promotion.
+* **Cumulative-trajectory honesty in API-lock commit framing**:
+  1 sighting (Stage 5 commit-framing critique, 2026-05-29).
+  Diagnostic: per-turn commit messages using "structural content
+  improved without net sorry growth" framing are honest about the
+  *immediate* turn but obscure the *cumulative* trajectory when
+  API-lock-pattern (P4) accumulates over many sessions.  Empirical
+  arc: project went from 7 sorries (post-Friction-5) to 11 sorries
+  (post-Stage-5) via four discipline-correct API-lock commits;
+  each individual framing was honest at the per-turn level, but
+  the multi-session cumulative effect of +4 sorries was not
+  explicitly named.  Fix: in commit messages for API-lock work,
+  include an explicit cumulative-trajectory line ("project sorry
+  count: 7 → 11 across the post-Friction-5 arc; pending substantive
+  closes: N") in addition to the per-turn delta.  This keeps
+  honest framing visible at every commit, not just visible if a
+  reader manually integrates across many commit messages.
+  Trigger: 2 more sightings.  Promotion candidate as a P-series
+  addendum to P4 (communication-discipline companion to the
+  commit-pattern discipline P4 names) or as its own P-series entry
+  (calibration-honesty discipline) — decide at promotion.
 * **Additive offsets in smallness constraints are structurally
   fatal**: 1 sighting (Stage 1.9's `L · (T+1)² < 1` constraint,
   diagnosed 2026-05-29 via comparison with Dobrushin 1979).
