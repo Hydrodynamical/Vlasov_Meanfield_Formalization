@@ -2821,6 +2821,82 @@ lemma vlasov_trajectory_lipschitz_bound_lag
     rw [h_bound_eq]
     exact (hf₀_fm.const_mul _).add (integrable_const _)
 
+/-- **`_on` variant of SC.8** — `vlasov_trajectory_lipschitz_bound` with
+`IsCharacteristicFlowOn ... (Ioo 0 T) Set.univ` instead of universal
+`IsCharacteristicFlow`, and with boundary regularity hypotheses
+(`h_init`, `h_cont_Icc`, `h_deriv_Ico`) supplied explicitly.
+
+**Sub-helper enrichment #2** of the Path-3-style swing at the sub-helper
+layer (companion to `vlasov_traj_chain_rule_at`, sub-helper enrichment
+#1).  Required by the Stage 4 Bridge #2 PDE transport
+(`vlasovSolutionViaPushforward_isVlasovSolutionOn`).
+
+**Body sorry'd**: the closure is a substantive transport of
+`vlasov_trajectory_lipschitz_bound_lag`'s body (~150 lines) with two
+substitutions:
+1. `flow_distance_growth_bound` → `flow_distance_growth_bound_on`
+   (Bridge #1) — uses the boundary regularity hypotheses.
+2. `(hflow_x s z).prodMk (hflow_v s z)` → `hflow_on.2.1 s ... z ...` for
+   s in the chosen neighborhood (must be within `Ioo 0 T`).
+
+The proof structure is mechanically derivable from `_lag`'s body — the
+issue is that the neighborhood `nhd` must be chosen as
+`Ioo (max 0 (t/2)) (min T (t + 1/2))` or similar to stay within
+`Ioo 0 T` (where `hflow_on` is defined), which requires careful interval
+arithmetic.
+
+**Sorry rationale**: API-lock-vs-substantive-proof pattern (sighting
+#3, promotion-ready).  Lock the API for the Bridge #2 PDE transport
+downstream consumer.  Substantive transport is a separate focused
+~150-line follow-up commit.  Sorry count contribution: +1 (Stage 4's
+sub-helper enrichment swing, expected to be discharged in the
+substantive close phase).
+
+**Closure path**: mirror `vlasov_trajectory_lipschitz_bound_lag`'s
+body verbatim, replacing the `flow_distance_growth_bound` invocation
+with `flow_distance_growth_bound_on` (passing boundary regularity
+through) and the `hflow_x`/`hflow_v` usage with
+`hflow_on.2.1`/`hflow_on.2.2` after asserting s ∈ Ioo 0 T from the
+chosen neighborhood. -/
+lemma vlasov_trajectory_lipschitz_bound_on
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_compact : HasCompactSupport φ)
+    {T : ℝ} (hT : 0 < T)
+    (hflow_on : IsCharacteristicFlowOn gradW ρ charX charV
+                                       (Set.Ioo 0 T) Set.univ)
+    -- Boundary regularity for `flow_distance_growth_bound_on`.
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc 0 T))
+    (h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z))
+        (Set.Ici s) s)
+    (hgradW_cont : Continuous gradW)
+    (hconv_cont : ∀ s, Continuous (fun x =>
+        convolveFunctionMeasure gradW (ρ s) x))
+    (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ s ∈ Set.Icc 0 T, ∫ y, ‖y‖ ∂(ρ s) ≤ M_ρ)
+    (h_y_int : ∀ s ∈ Set.Icc 0 T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (ρ s))
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s)) :
+    ∃ (nhd : Set ℝ) (bound : PhaseSpace d → ℝ),
+      nhd ∈ nhds t ∧
+      (∀ᵐ z ∂f₀, LipschitzOnWith (Real.nnabs (bound z))
+        (fun s' => φ (charX s' z, charV s' z)) nhd) ∧
+      Integrable bound f₀ := by
+  sorry
+
 /-- The Lagrangian → Eulerian equivalence: the pushforward of `f₀`
 under a characteristic flow satisfies the weak Vlasov equation.
 
