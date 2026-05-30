@@ -273,7 +273,17 @@ consumer.
 **Proof body**: identical to `flow_distance_growth_bound`'s except the three
 `hflow`-derived facts (`h_f_cont`, `h_deriv`, `h_init_norm`) are now taken
 directly from the boundary regularity hypotheses.  Same Gronwall step, same
-final algebra. -/
+final algebra.
+
+**Metric-dependence note** (architectural priming for the W̄ refactor):
+This bound uses the unbounded position difference `‖X^M(t,z) - X^{M'}(t,z)‖`,
+which forces Gronwall and produces exponential-in-`T` constants
+`C_T ≈ exp((1+L)·T)`.  The `W̄ = W_{min(|x-y|,1)}` analog (Dobrushin 1979, §5)
+uses the bounded-and-Lipschitz absorption
+  `|B_μ(x) - B_{μ'}(x)| ≤ max(2‖B‖_∞, C_B) · min(|x₁-x₂|, 1)`
+and produces *linear-in-`T`* constants (Dobrushin 1979, eq. 5.7).  Under
+the eventual `W̄` refactor, this lemma's output shape changes from
+`C_T · (‖z‖ + 1)` to a bounded analog. -/
 theorem flow_distance_growth_bound_on
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -3708,6 +3718,52 @@ lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
       _ = ∑ k ∈ Finset.Ico m (n+1), supW1On S (x k) (x (k+1)) := by
           rw [Finset.sum_Ico_succ_top hmn]
 
+-- ---------------------------------------------------------------------------
+-- Metric-dependent abstractions (architectural priming for the W̄ refactor)
+-- ---------------------------------------------------------------------------
+--
+-- The project's contraction analysis uses the `W₁`-based metric `supW1On`
+-- and the smallness constraint `L · (T+1)² < 1` that arises from the
+-- per-ball Picard-Lindelöf flow's `(T+1)`-buffer.  Two structural-debt
+-- findings (the `+1` additive offset and the polynomial-vs-exponential
+-- constraint mismatch surfaced in `_picard_fixedPointFlow`'s body, commit
+-- `580548e`) trace to this metric choice.  Switching to the
+-- truncated-distance Wasserstein `W̄ = W_{min(|x-y|,1)}` (per Dobrushin 1979,
+-- §5) retires both findings and the `L < 1` restriction simultaneously.
+--
+-- The two named abstractions below isolate the metric-dependent surface so
+-- the eventual `W̄` refactor is bounded engineering (~500-900 lines)
+-- rather than a full Stage 4 redo.  `LocalSmallness` and `CurveMetric` are
+-- used in new theorems going forward; existing closed proofs continue to
+-- compile against the unfolded form.
+
+/-- Smallness predicate for the local well-posedness theorem.
+
+Currently defined as `(L : ℝ) * (T + 1) ^ 2 < 1`, the smallness condition
+produced by the project's `W₁`-based contraction analysis.  This shape is
+metric-dependent: under a `W̄ = W_{min(|x-y|,1)}` refactor (the textbook
+form per Dobrushin 1979), the constraint becomes `C₂(L) · T < 1` with no
+additive offset and no `L < 1` restriction.
+
+The named predicate isolates the metric-dependent algebra from downstream
+consumers, which take `LocalSmallness L T` as their hypothesis rather than
+the specific algebraic form.  The `W̄` refactor changes this single
+definition; downstream proofs recompile without proof changes. -/
+def LocalSmallness (L : NNReal) (T : ℝ) : Prop :=
+  (L : ℝ) * (T + 1) ^ 2 < 1
+
+/-- The curve metric used by the project's `VlasovMeasureCurve` Banach
+iteration.  Currently `supW1On` (sup of `W₁` distances over the time
+window).  Under a `W̄` refactor (post-cleanup arc), this becomes `supW̄On`.
+
+Defined as `abbrev` so the abbreviation unfolds transparently — existing
+proofs that reference `supW1On` continue to work without modification.
+New consumers (Stage 6/8 bodies, marquee composition) can use
+`CurveMetric` directly for explicit metric-agnosticism. -/
+noncomputable abbrev CurveMetric {d : ℕ} [NeZero d]
+    (S : Set ℝ) (ρ σ : ℝ → Measure (PhysSpace d)) : ℝ≥0∞ :=
+  supW1On S ρ σ
+
 /-- Admissible Vlasov measure curves on `[0, T]`: a curve of probability
 measures on `PhysSpace d` with uniform first-moment bound `M`, pointwise
 integrability of `‖·‖`, and W₁-continuity at every time in `[0, T]`.
@@ -4040,7 +4096,7 @@ theorem exists_vlasov_perz_trajectory
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
     (T : ℝ) (hT : 0 ≤ T)
-    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (hTL : LocalSmallness L T)
     (z : PhaseSpace d) :
     ∃ γ : ℝ → PhaseSpace d,
       γ 0 = z ∧
@@ -4065,6 +4121,9 @@ theorem exists_vlasov_perz_trajectory
   --                + (‖gradW(0)‖ + L·‖z.1‖ + L·M_ρ)·(T+1)²
   -- Use R := N(z) / (1 - L·(T+1)²)  (positive since hTL).
   -- ============================================================
+  -- LocalSmallness unfold: this body uses the algebraic form of hTL.
+  -- Flagged for the metric-dependent lemmas section (W̄ refactor).
+  have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL
   set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
   -- N(z) is the right-hand-side numerator; non-negative.
   set N_z : ℝ := 2 + (‖z.2‖ + 1 / 2) * (T + 1)
@@ -4250,7 +4309,7 @@ theorem exists_vlasov_characteristicFlow_global_smallT
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
     (T : ℝ) (hT : 0 ≤ T)
-    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
+    (hTL : LocalSmallness L T) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ ∧
       -- **Boundary regularity bundle** (Friction 5 surgery): expose the
@@ -5059,7 +5118,7 @@ theorem Phi_step
     (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
     {T M : ℝ} (hT : 0 ≤ T) (hM_nn : 0 ≤ M)
-    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (hTL : LocalSmallness L T)
     (ρ : VlasovMeasureCurve d T M)
     (h_int_ext : ∀ t (x : PhysSpace d),
                   Integrable (fun y => gradW (x - y)) (ρ.extend t)) :
@@ -5557,7 +5616,21 @@ where `K := max(1, L)` and `D := supW1On(Icc 0 T) ρ σ` bound.
 form `(ε/K)·(exp(K·t) − 1)`, the bound is `(L·D/K) · (exp(K·T) − 1) =
 D · K_contract(T)` where `K_contract(T) := (L/K)·(exp(K·T) − 1) → 0` as
 `T → 0`.  This is the contraction factor Stage 4's Banach iteration
-exploits. -/
+exploits.
+
+**Metric-dependence note** (architectural priming for the W̄ refactor):
+The contraction factor `K_contract(T) := (L/K)·(exp(K·T) − 1)` is
+*exponential in T*.  For contraction (`K_contract < 1`), this requires
+`L · (exp T - 1) < 1` when `K = 1` (i.e., `L < 1`).  This constraint
+shape is incompatible with the per-ball Picard-Lindelöf flow's
+quadratic-in-`T` smallness `LocalSmallness L T = L·(T+1)² < 1`
+(structural-debt finding in commit `580548e`).
+
+Under the `W̄` refactor (Dobrushin 1979, §5), the contraction factor
+becomes `C₂(L) · T` — *linear in T*, no exponential, no `L < 1`
+restriction.  The contraction constraint reduces to `C₂(L) · T < 1`,
+which matches the quadratic-shape smallness modulo the additive `+1`
+that the W̄ refactor also removes. -/
 theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -6083,6 +6156,21 @@ of `vlasovWellPosedness_local`'s 7-step plan):
 * Apply `exists_vlasov_characteristicFlow_global_smallT` to `ρ_lim.extend`
   to get the flow.
 
+**Metric-dependence note** (architectural priming for the W̄ refactor):
+The Picard fixed-point body's structural-debt finding (commit `580548e`):
+the contraction constraint `L · (exp T - 1) < 1` (exponential in T,
+from `Phi_supW1_contraction`'s W₁-based shape) is NOT implied by the
+quadratic-shape smallness `LocalSmallness L T = L·(T+1)² < 1`.  The
+two constraints arise from different sub-arguments: the quadratic
+comes from per-ball Picard-Lindelöf's `(T+1)`-buffer, the exponential
+from Gronwall on the W₁-based contraction.
+
+Under the W̄ refactor (Dobrushin 1979, §5), both constraints become
+linear-in-T and align: the contraction shape changes from
+`L·(exp T - 1) < 1` to `C₂(L)·T < 1`, and the PL window's `(T+1)`-
+buffer disappears.  The single algebraic constraint `C₂(L)·T < 1` then
+suffices and is satisfiable for any `L > 0` by taking `T < 1/C₂(L)`.
+
 **Output bundle** (designed to feed
 `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` directly):
 
@@ -6107,7 +6195,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
+    (hTL : LocalSmallness L T) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (M_ρ : ℝ), 0 ≤ M_ρ ∧
       -- Self-consistent characteristic flow: against the spatial marginal
       -- of its own phase-space pushforward.
@@ -6433,7 +6521,7 @@ theorem vlasovWellPosedness_local_finalAssembly_moment
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (_hTL : LocalSmallness L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -6559,7 +6647,7 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL : (L : ℝ) * (T + 1) ^ 2 < 1)
+    (_hTL : LocalSmallness L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -6730,7 +6818,7 @@ theorem vlasovWellPosedness_local
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL : (L : ℝ) * (T + 1) ^ 2 < 1) :
+    (hTL : LocalSmallness L T) :
     ∃ f : ℝ → Measure (PhaseSpace d),
       f 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0:ℝ) T, HasFiniteFirstMoment (f t)) ∧
@@ -6922,7 +7010,7 @@ theorem vlasovWellPosedness_glue_step
     (h_prev_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f_prev t))
     (h_prev_lag : IsLagrangianVlasovSolutionOn gradW f_prev T)
     {T_0 : ℝ} (hT_0_pos : 0 < T_0)
-    (hT_0_small : (L : ℝ) * (T_0 + 1) ^ 2 < 1) :
+    (hT_0_small : LocalSmallness L T_0) :
     ∃ f_next : ℝ → Measure (PhaseSpace d),
       (∀ t ∈ Set.Icc (0 : ℝ) T, f_next t = f_prev t) ∧
       f_next 0 = f₀ ∧
