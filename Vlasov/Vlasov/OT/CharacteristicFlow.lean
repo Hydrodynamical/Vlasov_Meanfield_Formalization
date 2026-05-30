@@ -7024,7 +7024,127 @@ theorem vlasovWellPosedness_glue_step
       f_next 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), HasFiniteFirstMoment (f_next t)) ∧
       IsLagrangianVlasovSolutionOn gradW f_next (T + T_0) := by
-  sorry
+  -- Step 1: invoke vlasovWellPosedness_local on f_prev T to get g on [0, T_0]
+  have h_prev_T_mom : HasFiniteFirstMoment (f_prev T) :=
+    h_prev_mom T (Set.right_mem_Icc.mpr hT_pos.le)
+  obtain ⟨g, hg_init, hg_mom, hg_lag⟩ :=
+    vlasovWellPosedness_local W gradW hgradW L hL
+      (f_prev T) h_prev_T_mom hT_0_pos hT_0_small
+  -- Step 2: define the glued solution piecewise
+  let f_next : ℝ → Measure (PhaseSpace d) :=
+    fun t => if t ≤ T then f_prev t else g (t - T)
+  -- Step 3: verify the four output conjuncts
+  refine ⟨f_next, ?_, ?_, ?_, ?_⟩
+  · -- Conjunct (i): agreement on [0, T]
+    intro t ht
+    simp only [f_next]
+    have ht_le : t ≤ T := ht.2
+    simp [ht_le]
+  · -- Conjunct (ii): initial condition f_next 0 = f₀
+    simp only [f_next]
+    have h0_le : (0 : ℝ) ≤ T := hT_pos.le
+    simp [h0_le, h_prev_init]
+  · -- Conjunct (iii): HasFiniteFirstMoment on [0, T + T_0]
+    intro t ht
+    simp only [f_next]
+    by_cases ht_le : t ≤ T
+    · simp [ht_le]
+      exact h_prev_mom t ⟨ht.1, ht_le⟩
+    · simp [ht_le]
+      push_neg at ht_le
+      apply hg_mom (t - T)
+      constructor
+      · linarith
+      · linarith [ht.2]
+  · -- Conjunct (iv): IsLagrangianVlasovSolutionOn gradW f_next (T + T_0)
+    -- Destructure the two component Lagrangian solutions
+    obtain ⟨h_prev_vlasov, charX_p, charV_p, h_prev_flow, h_prev_push, h_prev_aemeas⟩ :=
+      h_prev_lag
+    obtain ⟨h_g_vlasov, charX_g, charV_g, h_g_flow, h_g_push, h_g_aemeas⟩ := hg_lag
+    -- Piecewise flow: for t ≤ T use charX_p, for t > T compose with charX_g shifted
+    -- charX_next t z := if t ≤ T then charX_p t z else charX_g (t - T) (charX_p T z, charV_p T z)
+    let charX_next : ℝ → PhaseSpace d → PhysSpace d := fun t z =>
+      if t ≤ T then charX_p t z else charX_g (t - T) (charX_p T z, charV_p T z)
+    let charV_next : ℝ → PhaseSpace d → PhysSpace d := fun t z =>
+      if t ≤ T then charV_p t z else charV_g (t - T) (charX_p T z, charV_p T z)
+    refine ⟨?_, charX_next, charV_next, ?_, ?_, ?_⟩
+    · -- IsVlasovSolutionOn gradW f_next (T + T_0)
+      -- Sub-sorry: PDE gluing — on Ioo 0 (T + T_0), piecewise from h_prev_vlasov and h_g_vlasov
+      -- Sub-sorry (a): IsVlasovSolutionOn for the glued solution.
+      -- Strategy: for t ∈ Ioo 0 T use h_prev_vlasov (with f_next = f_prev near t);
+      -- for t ∈ Ioo T (T+T_0) use h_g_vlasov shifted (f_next t = g (t-T));
+      -- at t = T use continuity of t ↦ ∫ φ ∂f_next t from both sides.
+      have h_vlasov_glue : IsVlasovSolutionOn gradW f_next (T + T_0) := by
+        sorry
+      exact h_vlasov_glue
+    · -- IsCharacteristicFlowOn for the glued flow
+      -- Sub-sorry: flow initial condition + HasDerivAt for piecewise flow
+      have h_flow_glue : IsCharacteristicFlowOn gradW
+          (fun t => spatialMarginal (f_next t)) charX_next charV_next
+          (Set.Ioo 0 (T + T_0)) Set.univ := by
+        refine ⟨?_, ?_, ?_⟩
+        · -- Initial condition: charX_next 0 z = z.1 ∧ charV_next 0 z = z.2
+          intro z _
+          simp only [charX_next, charV_next, if_pos hT_pos.le]
+          exact h_prev_flow.1 z (Set.mem_univ z)
+        · -- HasDerivAt charX_next at t for t ∈ Ioo 0 (T + T_0)
+          intro t ht z _
+          simp only [charX_next, charV_next]
+          by_cases ht_le : t ≤ T
+          · simp only [if_pos ht_le]
+            -- t ∈ Ioo 0 T (since t < T as t ≤ T and t ∈ Ioo; boundary handled separately)
+            -- Use h_prev_flow.2.1 — but need t ∈ Ioo 0 T
+            -- For t < T this is direct; for t = T it's the boundary
+            sorry
+          · simp only [if_neg ht_le]
+            push_neg at ht_le
+            -- t > T: use h_g_flow.2.1 at (t - T)
+            sorry
+        · -- HasDerivAt charV_next at t for t ∈ Ioo 0 (T + T_0)
+          intro t ht z _
+          simp only [charX_next, charV_next]
+          by_cases ht_le : t ≤ T
+          · simp only [if_pos ht_le]
+            sorry
+          · simp only [if_neg ht_le]
+            sorry
+      exact h_flow_glue
+    · -- Pushforward equation for f_next on Icc 0 (T + T_0)
+      -- Sub-sorry: piecewise pushforward
+      intro t ht
+      simp only [f_next, charX_next, charV_next]
+      by_cases ht_le : t ≤ T
+      · simp only [if_pos ht_le]
+        -- f_next t = f_prev t = Measure.map (charX_p t, charV_p t) (f_prev 0)
+        -- and f_next 0 = f_prev 0 = f₀
+        have ht_in : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1, ht_le⟩
+        have heq := h_prev_push t ht_in
+        -- f_prev t = Measure.map (charX_p t, charV_p t) (f_prev 0)
+        -- f_next 0 = f_prev 0 (since 0 ≤ T)
+        -- Need: f_prev t = Measure.map (fun z => (charX_next t z, charV_next t z)) (f_next 0)
+        sorry
+      · simp only [if_neg ht_le]
+        push_neg at ht_le
+        -- f_next t = g (t - T), which pushes forward (f_prev T) via charX_g, charV_g
+        -- Need to connect to f_next 0 = f₀ via the composition of flows
+        sorry
+    · -- AEMeasurability on Icc 0 (T + T_0)
+      -- Sub-sorry: piecewise AEMeasurability
+      -- Key: f_next 0 = f_prev 0 (since 0 ≤ T, so if_pos applies)
+      have h_next_0 : f_next 0 = f_prev 0 := by
+        simp only [f_next, if_pos hT_pos.le]
+      intro s hs
+      simp only [charX_next, charV_next]
+      by_cases hs_le : s ≤ T
+      · simp only [if_pos hs_le]
+        rw [h_next_0]
+        exact h_prev_aemeas s ⟨hs.1, hs_le⟩
+      · simp only [if_neg hs_le]
+        push_neg at hs_le
+        -- AEMeasurability of (charX_g (s - T) ∘ (charX_p T, charV_p T), ...)
+        -- w.r.t. f_next 0 = f_prev 0 = f₀
+        -- This requires AEMeasurability composition
+        sorry
 
 /-- **Stage 5: forward iteration to arbitrary `T_target`.**
 
