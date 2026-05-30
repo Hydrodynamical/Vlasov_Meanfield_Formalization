@@ -4352,6 +4352,72 @@ theorem charFlow_measurable_via_gronwall
     rwa [dist_comm] at h_chain
   exact h_cont_z.measurable
 
+/-- **Stage 4 helper (sorry'd): boundary regularity of a Stage 1.9 flow.**
+
+Given a flow `(charX, charV)` produced by
+`exists_vlasov_characteristicFlow_global_smallT` with the open-interval
+predicate `IsCharacteristicFlowOn ... (Set.Ioo 0 T) Set.univ`, this helper
+extracts the closed-interval boundary regularity package needed by both
+`flow_distance_growth_bound_on` (Bridge #1) and
+`charFlow_measurable_via_gronwall`:
+
+* `h_init` — the initial-condition clause at `t = 0`,
+* `h_cont_Icc` — continuity of `(charX, charV)(·, z)` on the closed
+  interval `Icc 0 T`,
+* `h_deriv_Ico` — HasDerivWithinAt on `Ico 0 T` (closed at the left
+  endpoint).
+
+**This is Friction 5 in named form.**  The five-friction-cascade analysis
+(per the Path-3 architectural turn) identified that Stage 1.9's internal
+Picard-Lindelöf construction does build the closed-interval regularity
+(Mathlib's PL output naturally has `ContinuousOn (Icc t₀ T)` plus
+`HasDerivAt` on `Ioo`), but Stage 1.9's conclusion only exposes the
+open-interval HasDerivAt clause via `IsCharacteristicFlowOn`.
+
+Path 3's `_On` predicates resolved the *structural* friction at the
+type system, but this **regularity gap** between Ioo-HasDerivAt and
+Icc-ContinuousOn + Ico-HasDerivWithinAt remains and is needed for the
+Gronwall growth bound's hypotheses.
+
+**Two closure paths**:
+1. **Modify Stage 1.9 to expose the regularity** (route 1 from the
+   five-friction discussion; ~150-250 lines surgery on closed
+   infrastructure).
+2. **Derive from boundedness of per-z velocity** via mean-value: Stage
+   1.9's underlying construction confines the per-z velocity to a
+   bounded ball, so the position is Lipschitz, hence uniformly
+   continuous on `Ioo 0 T`, hence has limits at the boundary; the
+   HasDerivWithinAt at `t = 0` then follows from initial-condition +
+   bounded-velocity argument.  Doable but ~80-100 lines.
+
+Either closure retires this sorry.  Until then, this is the single
+named gap between Stage 1.9 and `flow_distance_growth_bound_on` /
+`charFlow_measurable_via_gronwall`, and `Phi_step` composes against
+this lemma to discharge the growth-bound and measurability
+prerequisites.
+
+**Pragmatic status**: treated as a placeholder in the
+`MathlibTODO_*`-style discipline — well-scoped, known-doable, isolated
+to one declaration with a clear specification and two documented
+closure paths. -/
+theorem Stage_1_9_flow_boundary_regularity
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 ≤ T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV
+                                    (Set.Ioo 0 T) Set.univ) :
+    (∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z) ∧
+    (∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) ∧
+    (∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z))
+        (Set.Ici s) s) := by
+  sorry
+
 /-- **Stage 3 sub-piece: pointwise Gronwall on flow difference.**
 
 Given two characteristic flow trajectories `γ_ρ, γ_σ : ℝ → PhaseSpace d`
