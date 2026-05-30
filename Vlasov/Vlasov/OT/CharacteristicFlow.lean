@@ -7249,35 +7249,65 @@ theorem vlasovWellPosedness
       -- f is narrowly continuous: t ↦ ∫ g df_t is continuous for every bounded continuous g
       (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f t)) := by
-  -- **Structural composition sketch** (the marquee body composes Stages
-  -- 6 + 8; three sub-sorries documented in the docstring above remain
-  -- to fully close the body — each gated by infrastructure rather than
-  -- by mathematical uncertainty).
-  --
-  -- Step 1 — Extract Lipschitz constant L from AssW.
-  --   obtain ⟨L, hL_fderiv⟩ := AssW.lipschitzGrad (W := W)
-  --   have hL : LipschitzWith L gradW := <bridge via hgradW + fderiv-to-gradient identity>
-  --
-  -- Step 2 — Case split on L's regime.
-  --   The marquee currently inherits the L < 1 restriction from the
-  --   per-ball flow's `+1`-buffer (M-series watch-list candidate).
-  --   * L = 0: gradW is constant; the explicit flow is the linear-in-t
-  --     translation case; treated separately.
-  --   * 0 < L < 1: apply Stage 6 + Stage 8 below.
-  --   * L ≥ 1: out of scope until `+1` removal.
-  --
-  -- Step 3 — For 0 < L < 1 case:
-  --   obtain ⟨f, h_init, h_mom, h_lag, h_cont⟩ :=
-  --     vlasovWellPosedness_universal_existence W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
-  --   refine ⟨f, ⟨h_init, h_mom, h_lag, h_cont⟩, ?_⟩
-  --   intro g ⟨hg_init, hg_mom, hg_lag, _⟩
-  --   -- Uniqueness: f = g via vlasovWellPosedness_uniqueness for each T_target ∈ ℕ.
-  --   -- The pointwise equality on each Icc 0 T_target extends to all of ℝ.
-  --   funext t
-  --   <Stage 8 invocation per ⌈|t|⌉ + 1>
-  --
-  -- All three steps documented; body sorry'd for focused follow-up close.
-  sorry
+  -- Step 1: Extract Lipschitz constant L from [AssW W].
+  obtain ⟨L, hL_fderiv⟩ := (inferInstance : AssW W).lipschitzGrad
+  -- Sub-sorry 1 (Lipschitz bridge): LipschitzWith L (fun x => fderiv ℝ W x)
+  -- implies LipschitzWith L gradW via the Riesz isometry
+  -- gradW x = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm (fderiv ℝ W x).
+  have hL_gradW : LipschitzWith L gradW := by
+    have hiso : Isometry (InnerProductSpace.toDual ℝ (PhysSpace d)).symm :=
+      SemilinearIsometryClass.isometry _
+    have hfun : gradW = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm ∘
+        (fun x => fderiv ℝ W x) := by
+      funext x; simp only [Function.comp, hgradW x, gradient]
+    rw [hfun]
+    exact (hiso.lipschitzWith_iff L).mpr hL_fderiv
+  -- Step 2: Case split on the Lipschitz regime.
+  -- The substantive case is 0 < L < 1.  The L = 0 case (constant force)
+  -- and the L ≥ 1 case (out of scope pending M-series +1 removal) are
+  -- each marked with a named sub-sorry.
+  by_cases hL_pos : (0 : ℝ) < L
+  · -- Case: 0 < L.  Sub-split on L < 1 vs L ≥ 1.
+    by_cases hL_lt : (L : ℝ) < 1
+    · -- Sub-case 0 < L < 1 — the substantive path.
+      -- Step 3a: Existence via Stage 6.
+      obtain ⟨f, h_init, h_mom, h_lag, h_cont⟩ :=
+        vlasovWellPosedness_universal_existence W gradW hgradW L hL_gradW hL_pos hL_lt f₀ hf₀
+      -- Step 3b: Package as ∃!.
+      refine ⟨f, ⟨h_init, h_mom, h_lag, h_cont⟩, ?_⟩
+      -- Uniqueness: show every g satisfying the same properties equals f.
+      intro g ⟨hg_init, hg_mom, hg_lag, _⟩
+      funext t
+      -- Choose T_target large enough so that t ∈ Icc 0 T_target.
+      -- We handle t ≥ 0; the t < 0 extension is a named sub-sorry.
+      by_cases ht_nn : (0 : ℝ) ≤ t
+      · -- t ≥ 0: use T_target = t + 1 > 0.
+        have hT : (0 : ℝ) < t + 1 := by linarith
+        have ht_mem : t ∈ Set.Icc (0 : ℝ) (t + 1) :=
+          ⟨ht_nn, by linarith⟩
+        -- Restrict f and g to IsLagrangianVlasovSolutionOn via .toOn.
+        have hf_on : IsLagrangianVlasovSolutionOn gradW f (t + 1) :=
+          h_lag.toOn (t + 1)
+        have hg_on : IsLagrangianVlasovSolutionOn gradW g (t + 1) :=
+          hg_lag.toOn (t + 1)
+        -- Moment bounds restricted to the window.
+        have hf_mom_on : ∀ s ∈ Set.Icc (0 : ℝ) (t + 1), HasFiniteFirstMoment (f s) :=
+          fun s _ => h_mom s
+        have hg_mom_on : ∀ s ∈ Set.Icc (0 : ℝ) (t + 1), HasFiniteFirstMoment (g s) :=
+          fun s _ => hg_mom s
+        -- Apply Stage 8 uniqueness.
+        exact (vlasovWellPosedness_uniqueness W gradW hgradW L hL_gradW hL_pos hL_lt
+          f₀ hf₀ hT f g h_init hg_init hf_mom_on hg_mom_on hf_on hg_on t ht_mem).symm
+      · -- t < 0: backward-time uniqueness; sub-sorry 3 (backward extension).
+        -- Sub-sorry 3: uniqueness for negative t requires backward-iteration
+        -- argument (time-reflected well-posedness).  Out of scope in this close.
+        sorry
+    · -- Sub-case L ≥ 1: out of scope pending M-series +1 removal.
+      -- Sub-sorry 2 (L ≥ 1 regime).
+      sorry
+  · -- Case: L = 0 (gradW is constant; explicit constant-force solution).
+    -- Sub-sorry 2 (L = 0 regime).
+    sorry
 
 /-! ## Phase 1 callsite probe
 
