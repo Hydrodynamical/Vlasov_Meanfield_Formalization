@@ -3,7 +3,39 @@
 Lessons that should persist across sessions. Brief, terse,
 keyed to the failure mode they prevent.
 
-## Agent-design lessons
+## Series structure
+
+Lessons are categorized into four series, each with a distinct
+scope and a distinct trigger for "this rule applies":
+
+* **L-series — Lean tool / agent-tool lessons**: idioms, elaborator
+  quirks, parser quirks, sorry-prover spec engineering.  Apply at
+  the Lean syntax/elaboration level or the agent-design level.
+  When to consult: writing or debugging a Lean proof, or editing
+  a sorry-prover / sorry-decomposer spec.
+* **P-series — Process discipline**: when to ask, when to commit,
+  when to delegate, when to pivot.  Apply at the per-turn-discipline
+  level.  When to consult: at the start of a session and when a
+  tactical plan starts surfacing repeated friction.
+* **M-series — Mathematical structure**: principles about which
+  mathematical structures to work in.  Apply at the proof-strategy
+  level.  When to consult: when designing the shape of a proof
+  before writing it.
+* **B-series — Bridging architecture / structural-fix patterns**:
+  when to introduce new infrastructure rather than patch existing
+  seams.  Apply at the architecture-decision level.  When to
+  consult: when frictions accumulate in succession across several
+  attempted bridges.
+
+The four series exist because the lessons genuinely operate at
+different levels — they have different generalization paths,
+different signals-to-act-on, and different audiences in the
+agent's head when it applies them.  Empirically: post-Stage-4 the
+project has lessons earned in all four categories, and grouping
+them by series makes it easier to consult the right one at the
+right moment.
+
+## L-series — Lean tool / agent-tool lessons
 
 ### L1. Iteration-loop spec edits are easily ignored
 
@@ -194,37 +226,314 @@ synthesis, name them. Particularly for the
 `Integrable.mono' / Integrable.add / integrable_const`-family inside
 Bochner-integral proofs.
 
-### L8. Mathlib's `_map_measure` family has `g ∘ f` ↔ `fun z => g (f z)` syntactic mismatch
+### L8. Iff-direction / equality-direction matters at API call sites (broadened framing)
 
-**Failure mode**: `integral_map`, `integrable_map_measure`, and
-`lintegral_map` produce conclusions in the form `Integrable (g ∘ f) μ`
-or `∫ x, g x ∂(μ.map f) = ∫ x, (g ∘ f) x ∂μ`, while our hypotheses are
-typically written as `Integrable (fun z => g (f z)) μ` or
-`fun z => g (f z)`. Definitionally these are equal, but Lean's `rw`
-doesn't match `(fun z => g (f z))` against the pattern `(g ∘ f)` (or
-vice versa) — leaving the rewrite step stuck with "Did not find an
-occurrence of the pattern."
+**Failure mode**: Mathlib API often presents results as iff-statements
+or as equalities with a "natural" direction.  When consuming the API,
+the direction the caller needs may not match the direction the lemma
+exposes.  Specific manifestations:
 
-**Empirical confirmation**: 2026-05-29 Stage 2b W₁-bound proof's two
-`rw [← integrable_map_measure ...]` calls failed for this reason. Also
-surfaced earlier in Stage C's chain-rule work (where `(diff ∘ flow)` vs
-`fun z => diff (flow z)` was the same mismatch).
+* `_map_measure` family (original L8): `integral_map`,
+  `integrable_map_measure`, `lintegral_map` produce conclusions in
+  the form `Integrable (g ∘ f) μ`, while project hypotheses are
+  typically `Integrable (fun z => g (f z)) μ`.  Bridge via `.mp` /
+  `.mpr` projections or `show ... from`, NOT `rw`.
+* `ContinuousWithinAt.congr` (sighting at Phi_step): wants `g y = f y`
+  for the NEW function `g` and the original `f`, not the natural-
+  reading direction `f y = g y`.  Misreading the signature direction
+  produces "type mismatch" at the .congr call.
+* `lt_top_iff_ne_top` (sighting at Stage 4 Cauchy): a function expects
+  `ε ≠ ⊤` directly; passing `lt_top_iff_ne_top.mpr hε_top` is one
+  layer of wrapping off.
 
-**Fix**: use `show ... from ...` to bridge the syntactic form, or use
-`convert` instead of `rw` when consuming `_map_measure` family lemmas.
-Example: instead of
-`rw [← integrable_map_measure hφ_meas (h_meas s)]; exact h_phi_int_s`,
-write
-`have : Integrable (fun z => φ (charX s z)) f₀ :=
-   (integrable_map_measure hφ_meas (h_meas s)).mp h_phi_int_s; exact this`
-(which uses the iff-version's `.mp` projection directly).
+**Empirical confirmation** (three sightings across Stage 2b, Stage 4
+Cauchy, Phi_step): the underlying issue is the same — the lemma's
+exposed equality/iff is in one direction; the consumer assumes the
+other.  Lean's elaborator rejects with "type mismatch" or "did not
+find pattern" depending on whether the consumer used `rw` or `exact`.
 
-**Generalisation**: when consuming Mathlib's `_map_measure` family,
-expect the source-vs-target syntactic forms to need an explicit bridge.
-The general pattern: `_map_measure` lemmas in Mathlib are written in
-"point-free" `(g ∘ f)` form, project code usually writes "point-full"
-`fun z => g (f z)` form, and the bridge is `show` / `convert` / `.mp` /
-`.mpr` rather than `rw`.
+**Fix**: at the call site, read the lemma's actual signature (don't
+infer it from the name or the intuitive direction).  Then either:
+1. Apply the iff-projection (`.mp` or `.mpr`) matching the direction
+   the lemma actually exposes.
+2. Use `show ... from ...` or `convert` to bridge the syntactic
+   forms when the directions are inverted.
+3. Match the lemma's argument order: e.g., `.congr h_eq` where
+   `h_eq` is in the direction `lemma` consumes, not the direction
+   the caller assumes.
+
+**Generalisation**: when consuming Mathlib's API, the direction of
+iff/equation matters as much as the predicate itself.  The pattern
+recurs across `_map_measure` family, `.congr` family,
+`lt_top_iff_ne_top` family, and likely many more.  Read the
+signature; don't infer from the name.
+
+### L9. Lean's elaborator treats syntactically-distinct-but-definitionally-equal forms as not-immediately-unifiable
+
+**Failure mode**: forms that are *definitionally* equal (β-reducible,
+unfoldable, or related by simple identities) are nonetheless treated
+by Lean's elaborator as *not unifiable* at API call sites or in binder
+positions.  The elaborator gives up without unfolding the definitions
+to check equality.
+
+**Empirical confirmation** (five sightings across Stages 1.8–4):
+
+1. `simp only` non-β-reduction (Stage 1.8): `simp only [h]` doesn't
+   automatically β-reduce after the rewrite; the result needs a
+   subsequent `simp only []` or explicit unfolding to make further
+   tactics work.
+2. `|>.toReal` pipeline parsing (Stage 2b): `(wasserstein1 μ ν |>.toReal)`
+   parses differently than `(wasserstein1 μ ν).toReal` in some
+   tactic contexts; the pipeline form is treated as not-yet-applied.
+3. `ℝ≥0∞` notation in binder lists (Stage 4 iterated triangle): using
+   `ℝ≥0∞` in a `∀` binder works inline but fails when the binder is
+   spread across multiple lines; the parser splits on the Unicode
+   notation.
+4. `∞` Unicode in binder pattern (Stage 4 bundling): `ρ_∞ : ...` as a
+   binder fails the parser with "unexpected token `∞`; expected `,`
+   or `binderPred`"; rename to ASCII (e.g., `ρ_lim`) to dodge.
+5. `ContinuousWithinAt.congr` direction (Phi_step): the lemma's
+   signature expects `g y = f y`, but the elaborator doesn't unfold
+   the lambda to check directional equivalence; mismatch surfaces as
+   "type mismatch."
+
+**Fix**: prefer maximally-explicit forms over clever-but-tight ones.
+Specifically:
+1. Avoid `|>.field` in tactic contexts; use `(expr).field` or
+   `have x := expr; x.field`.
+2. For ENNReal-typed binders, use full `ℝ≥0∞` and keep on one line,
+   or use the ASCII alternative `ENNReal`.
+3. Avoid Unicode in binder names; ASCII names (e.g., `ρ_lim` over
+   `ρ_∞`) sidestep parser quirks.
+4. Read the lemma's exact signature (L8) and write the call site to
+   match, rather than relying on the elaborator to unfold.
+
+**Generalisation**: when a proof fails with "type mismatch" or
+"unexpected token" at a position where the math is clearly right, the
+first hypothesis to consider is "Lean's parser/elaborator sees a
+distinction the math doesn't."  Look for: lambdas vs point-free,
+ASCII vs Unicode, pipeline-applied vs directly-applied, iff-direction.
+
+## P-series — Process discipline
+
+### P1. Atom-level signature reading before drafting helper signatures
+
+**Failure mode**: when planning a multi-step composition, the
+natural approach is to draft helper signatures based on the
+expected shape of the composition.  But the shape is wrong when
+upstream API doesn't actually produce what the planning assumed.
+The result: helper signatures drafted against an imagined API,
+then 100-300 lines of code that doesn't compose against the
+actual API.
+
+**Empirical confirmation** (four sightings across Stages 1.7–4):
+
+1. Stage 1.7 (`exists_vlasov_characteristicFlow_global_on_ball`):
+   the original plan called for ~120 lines of cover-and-stitch
+   construction.  Atom-level signature reading revealed that the
+   per-ball flow is already parametric in both `(z₀, a)` — the
+   "global-on-ball" lift is just a re-parameterisation, not honest
+   stitching.  ~30 lines instead of ~120.
+2. Stage 1.9 (`exists_vlasov_characteristicFlow_global_smallT`):
+   the original plan called the per-ball flow "global-in-z" by
+   misreading what it actually produces.  Atom-level reading at
+   Stage 2's session opening caught the mismatch, surfaced the
+   need for a true global-in-z theorem, and pivoted before
+   writing Stage 2's body against the wrong assumption.
+3. Stage 2c (`tendsto_integral_filter_of_dominated_convergence`):
+   signature reading revealed the exact form of the DCT-with-
+   filters that the W₁-continuity argument needed.  Avoided ~80
+   lines of manual DCT reconstruction.
+4. Stage 4 `picard_iterate_geometric_bound`
+   (`geom_sum_Ico_le_of_lt_one`): after a 5-error revert from
+   manual partial-sum reconstruction, 20 minutes of targeted
+   signature reading at `Mathlib/Algebra/Order/Field/GeomSum.lean`
+   found exactly the right lemma.  Collapsed the proof from a
+   case-split-and-reconstruct attempt to a clean 4-step chain.
+
+**Fix**: at the start of every session whose work composes ≥3
+upstream lemmas, spend 15-30 minutes reading the actual signatures
+of those lemmas (not just inferring from names or docstrings),
+BEFORE drafting helper signatures.
+
+**Generalisation**: the cheapest insurance against
+"planned-against-imagined-API" repeats is to verify the API exists
+in the assumed form before writing code against it.  This is the
+discipline that makes the "structural-vs-tactical" question of P2
+visible at session start rather than mid-implementation.
+
+### P2. Structural-vs-tactical diagnosis when frictions cascade
+
+**Failure mode**: when tactical signature-reading (P1) surfaces
+multiple frictions in succession during a single arc, the natural
+response is "patch each friction with a bridge."  But the bridges
+themselves often hit further frictions, producing a cascade.  At
+some point, the bridges-as-tactical-fix approach stops converging
+and the right move is structural diagnosis: ask whether the
+abstract specification and the constructive proof structure actually
+align, and introduce new infrastructure rather than patching seams.
+
+**Empirical confirmation** (two sightings):
+
+1. Stage 2 → Stage 1.9 pivot: signature reading at Stage 2's
+   session opening surfaced four frictions in succession (per-z
+   global flow not produced by Stage 1.7 / Stage 1.8 measurability
+   gap / `flow_distance_growth_bound` requires `IsCharacteristicFlow`
+   / `Measure.map` requires AEMeasurable wrt source).  After the
+   fourth, the response shifted from "land Bridge #4" to
+   "structural diagnosis": the chain was not converging because
+   Stage 1.7's output (ball-localized) was fundamentally not what
+   Stage 2 needed (global-in-z).  Response: Stage 1.9 pivot, true
+   global-in-z flow.
+2. Path 3 pivot (Stage 4 Frictions 1–5): five frictions
+   accumulated across two sessions (Stage 1.9 universal hypotheses
+   vs VlasovMeasureCurve Icc / L<1 constraint / Ioo vs full-ℝ for
+   growth bound / Ioo vs full-ℝ for Stage C / Stage 1.9 boundary
+   regularity not exposed).  After the fifth, the response
+   shifted from "land Bridge #5" to "structural diagnosis": the
+   chain wasn't converging because the abstract predicates
+   (`IsLagrangianVlasovSolution`) live at universal-in-`t`
+   regularity but local existence operates on a finite window.
+   Response: Path 3 `_On`-predicate family.
+
+**Fix**: when ≥3 frictions surface in a single arc and each
+friction's resolution surfaces another friction (the cascade
+signature), pause and ask: "is the underlying problem
+structural?"  If yes, the right move is new infrastructure (new
+predicates, new abstractions) at the type level, not more
+bridges.
+
+**Generalisation**: P1 (signature reading) catches frictions at
+the atom level; P2 catches the pattern that *multiple atom-level
+frictions in close succession indicate a structural rather than
+tactical problem*.  The combination of P1 + P2 makes structural
+issues visible early — before 200+ lines of bridges have been
+written and need to be reverted.
+
+## M-series — Mathematical structure
+
+### M1. Minimize structure-projection boundaries
+
+**Failure mode**: when a proof crosses between two mathematical
+structures (e.g., `ℝ` and `ℝ≥0∞`, `ℝ` and `NNReal`, ENNReal and
+its `.toReal` projection), the natural approach is to project to
+the "more familiar" structure (usually ℝ) early and stay there.
+But each projection boundary requires finiteness/non-negativity
+side conditions, which fail or clutter the proof when the
+underlying argument doesn't naturally produce them.
+
+**Empirical confirmation** (three sightings across Stage 4):
+
+1. `supW1On_iterated_triangle` (Stage 4): proved entirely in
+   ENNReal, never projecting to ℝ.  ENNReal addition is
+   well-defined with `⊤` as absorbing element, so no finiteness
+   side conditions arise.  Clean inductive proof.
+2. `MathlibTODO_cauchyW1_hasNarrowLimit` placeholder
+   strengthening: reformulating the Cauchy hypothesis from
+   `.toReal < ε` to ENNReal-form `wasserstein1 ν_m ν_n < ε`
+   removed the finiteness side conditions that would otherwise
+   clutter every call site.
+3. `picard_iterate_geometric_bound` (Stage 4): the proof stays in
+   ENNReal except for one cleanly-localized
+   `ENNReal.ofReal`-boundary at the bridge between the structural
+   argument (`supW1On` in ENNReal) and the closed-form algebra
+   (real geometric series).  ONE boundary, not several.
+
+**Fix**: when a proof's natural structure is ENNReal (or NNReal,
+or any "augmented" structure with absorbing elements), prefer to
+stay in that structure.  Project to ℝ only at the boundary where
+a real-valued closed form is genuinely needed (e.g., to invoke a
+real-analysis lemma).  Minimize the number of such boundary
+crossings — ideally to one.
+
+**Generalisation**: the principle isn't "stay in ENNReal
+absolutely."  It's "minimize structure-projection boundaries,
+because each boundary adds side conditions and elaboration cost."
+The principle applies whenever the natural mathematical structure
+isn't ℝ — at the boundary between any two related structures,
+prefer to do the algebra in whichever one is the natural home of
+the argument.
+
+## B-series — Bridging architecture / structural-fix patterns
+
+### B1. Predicate enrichment over per-site bridging
+
+**Failure mode**: when an abstract predicate is insufficient for
+the constructive proof structure (the proof produces structural
+witnesses the predicate doesn't carry, or operates on a finite
+window where the predicate quantifies universally), the natural
+response is to add per-site bridge lemmas that close the gap at
+each consumer.  But each bridge has its own friction; the chain
+proliferates; the project accumulates lemma-level technical debt.
+
+**Empirical confirmation** (two sightings):
+
+1. `IsLagrangianVlasovSolution` introduction (early in the arc):
+   the abstract `IsVlasovSolution` predicate says "weak PDE
+   holds" but doesn't carry a characteristic flow.  Per-site
+   bridges to produce or consume the flow (uscNarrow_lag /
+   derivBound_lag / H1_lag / SC.8_lag) would have required ~4
+   parallel bridge families.  Instead, *enrich the predicate*:
+   `IsLagrangianVlasovSolution := IsVlasovSolution ∧ ∃ flow,
+   ...`.  The flow witness becomes part of the predicate's
+   structure, available at every consumer without per-site
+   bridging.
+2. `_On` predicate family (Stage 4 Path 3 pivot): the abstract
+   `IsLagrangianVlasovSolution` quantifies universally in `t`;
+   local existence operates on `[0, T]`.  Per-site bridges
+   between Stage 1.9's Ioo-flavored flow and the universal Stage
+   C predicate would have required 2-3 bridge families with
+   accumulating sorries.  Instead, *enrich the predicate family*:
+   add `IsVlasovSolutionOn`, `IsLagrangianVlasovSolutionOn` as
+   `_On`-localized mirrors.  The localized form is natural for
+   local existence; the global form is recoverable via gluing.
+
+**Fix**: when the abstract type-level statement and the
+constructive proof structure disagree, the resolution is usually
+a new predicate (or predicate variant), not a workaround at every
+consumer site.  Specifically: when ≥3 consumers would need
+parallel bridges to compose against a structurally-misaligned
+predicate, introduce a new predicate that aligns with the
+constructive proof structure.
+
+**Generalisation**: predicate enrichment is the type-level
+counterpart to function-level abstraction.  Where a function with
+many similar callers benefits from a more general signature, a
+predicate with many similar consumer-bridges benefits from a more
+specific (or differently-structured) statement.  The signal is
+"≥3 bridges with the same shape" or "cascade signal from P2";
+the response is to lift the bridging to the type level.
+
+## Watch-list
+
+Candidates accumulating sightings, not yet promotion-ready under
+the three-sighting threshold (with the discipline pairing of
+"promote within ~5 sessions of reaching threshold" to prevent
+indefinite watch-listing):
+
+* **Cascade-as-signal**: 1 sighting (Stage 4 Bridge #1 →
+  Friction 5 discovery).  Diagnostic: "resolving friction N
+  requires infrastructure that's currently blocked by friction
+  N+1."  Trigger: 2 more sightings.  Promotion candidate as a
+  B-series companion to B1 (B2?) or as a P-series companion
+  to P2 (P3?); decide at promotion based on whether the
+  pattern is observed structurally or process-discipline-wise.
+* **Local-clamping technique**: 1-2 sightings (Phi_step's
+  clamped-flow technique; possibly `VlasovMeasureCurve.extend`
+  if counted as the same pattern at the measure-curve level).
+  Diagnostic: "downstream consumer demands universal-in-t
+  hypotheses, upstream provides on-Icc behavior; define a
+  clamped version internally and discharge equality via
+  clamp-identity-on-Icc."  Trigger: 1-2 more sightings.
+  Promotion candidate as L-series (tactical Lean pattern) or
+  M-series (mathematical structure of clamping); decide at
+  promotion.
+* **API-lock-vs-substantive-proof**: 2 sightings (Bridge #2
+  Stage C `_On` packaging + Friction 5 boundary regularity
+  helper).  Diagnostic: "in dense composition arcs, separate
+  API specification from substantive proof; commit each as its
+  own focused unit."  Trigger: 1 more sighting (close to
+  threshold).  Promotion candidate as P3.
 
 ## Vlasov-specific design choices
 
