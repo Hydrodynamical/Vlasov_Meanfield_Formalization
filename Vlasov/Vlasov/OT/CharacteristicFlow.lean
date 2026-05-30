@@ -3299,12 +3299,36 @@ composes cleanly. -/
 theorem vlasovSolutionViaPushforward_isVlasovSolutionOn
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
-    (T : ℝ)
+    (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 < T)
     (hflow_on : IsCharacteristicFlowOn gradW
                 (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
                 charX charV (Set.Ioo 0 T) Set.univ)
+    -- Boundary regularity (will be discharged by Friction 5 helper at the call site).
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW
+          (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
+          (charX s z, charV s z))
+        (Set.Ici s) s)
+    -- ρ-regularity on Icc 0 T (the pushforward's spatial marginal).
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) ≤ M_ρ)
+    (h_y_int : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
+    (h_int : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
+    [∀ s, IsProbabilityMeasure
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))]
     (hself : IsCharacteristicFlowSelfConsistent charX f₀
               (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
     (h_flow_meas : ∀ s, AEMeasurable
@@ -3314,7 +3338,114 @@ theorem vlasovSolutionViaPushforward_isVlasovSolutionOn
         convolveFunctionMeasure gradW
           (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
     IsVlasovSolutionOn gradW (vlasovSolutionViaPushforward charX charV f₀) T := by
-  sorry
+  -- Unfold IsVlasovSolutionOn; for each test function φ, prove WeakEvolutionEqOn at t ∈ Ioo 0 T.
+  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t ht
+  -- Notation aliases (same as L2735).
+  set ρ : ℝ → Measure (PhysSpace d) :=
+    fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) with hρ_def
+  have hφ_cont : Continuous φ := hφ_smooth.continuous
+  have hφ_aesm_general : ∀ μ : Measure (PhaseSpace d),
+      AEStronglyMeasurable φ μ := fun μ => hφ_cont.aestronglyMeasurable
+  -- SC.1 (same): unify ∫ φ d(vlasov s) with ∫ (φ ∘ flow_s) df₀.
+  have h_compose : ∀ s, ∫ z, φ z ∂(vlasovSolutionViaPushforward charX charV f₀ s) =
+      ∫ z, φ (charX s z, charV s z) ∂f₀ := fun s =>
+    vlasov_pushforward_integral_eq_compose charX charV f₀ s
+      (h_flow_meas s) φ (hφ_aesm_general _)
+  -- SC.2 `_at`: pointwise chain rule at every z, AT the specific t ∈ Ioo 0 T.
+  have h_pointwise : ∀ z, HasDerivAt (fun s => φ (charX s z, charV s z))
+      (@inner ℝ (PhysSpace d) _ (charV t z) (gradXφ (charX t z, charV t z))
+       - @inner ℝ (PhysSpace d) _
+          (convolveFunctionMeasure gradW (ρ t) (charX t z))
+          (gradVφ (charX t z, charV t z))) t := by
+    intro z
+    have hX_at := hflow_on.2.1 t ht z (Set.mem_univ z)
+    have hV_at := hflow_on.2.2 t ht z (Set.mem_univ z)
+    exact vlasov_traj_chain_rule_at gradW ρ charX charV φ hφ_smooth
+      gradXφ gradVφ hgradXφ hgradVφ t z hX_at hV_at
+  -- SC.3: DiffUnderIntegralData via SC.5-SC.8 (`_on` for SC.8).
+  have h_diff_data : DiffUnderIntegralData gradW ρ charX charV f₀
+      φ gradXφ gradVφ t := by
+    -- Use `_on` variant of SC.8.
+    obtain ⟨nhd, bound, hnhd, h_lipsch, h_bound_int⟩ :=
+      vlasov_trajectory_lipschitz_bound_on gradW L hL ρ charX charV f₀
+        hf₀_fm φ hφ_smooth hφ_compact hT hflow_on h_init h_cont_Icc h_deriv_Ico
+        hgradW_cont hconv_cont t ht M_ρ hM_ρ_nn hM_ρ h_y_int h_int
+    refine ⟨nhd, bound, hnhd, ?_, ?_, ?_, h_lipsch, h_bound_int⟩
+    · exact vlasov_compose_flow_aestronglymeas charX charV f₀ φ
+        hφ_cont h_flow_meas t
+    · exact vlasov_compose_flow_integrable_at charX charV f₀ φ
+        hφ_cont hφ_compact t (h_flow_meas t)
+    · exact vlasov_pointwise_deriv_aestronglymeas gradW ρ charX charV f₀
+        φ hφ_smooth gradXφ gradVφ hgradXφ hgradVφ hconv_cont t (h_flow_meas t)
+  have h_under_integral :=
+    vlasov_pushforward_hasDerivAt_under_integral gradW ρ charX charV f₀
+      φ gradXφ gradVφ t h_pointwise h_diff_data
+  -- SC.4: push the integrand back through `integral_map`.
+  have h_integrand_aesm : AEStronglyMeasurable
+      (fun y : PhaseSpace d =>
+        @inner ℝ (PhysSpace d) _ y.2 (gradXφ y)
+        - @inner ℝ (PhysSpace d) _
+            (convolveFunctionMeasure gradW (ρ t) y.1) (gradVφ y))
+      (vlasovSolutionViaPushforward charX charV f₀ t) := by
+    apply Continuous.aestronglyMeasurable
+    apply Continuous.sub
+    · apply Continuous.inner continuous_snd
+      have hfderiv_X : ∀ z : PhaseSpace d,
+          fderiv ℝ (fun x => φ (x, z.2)) z.1 =
+          (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) :=
+        fun z => by
+          have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+            (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+          have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
+              (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
+            hasFDerivAt_prodMk_left z.1 z.2
+          exact (h1.comp z.1 h2).fderiv
+      have heqX : gradXφ = fun z => gradient (fun x => φ (x, z.2)) z.1 := funext hgradXφ
+      simp_rw [heqX, gradient, hfderiv_X]
+      exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+        ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+          (hφ_smooth.continuous_fderiv (by simp)))
+    · apply Continuous.inner
+      · exact (hconv_cont t).comp continuous_fst
+      · have hfderiv_V : ∀ z : PhaseSpace d,
+            fderiv ℝ (fun v => φ (z.1, v)) z.2 =
+            (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) :=
+          fun z => by
+            have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+              (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+            have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
+                (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
+              hasFDerivAt_prodMk_right z.1 z.2
+            exact (h1.comp z.2 h2).fderiv
+        have heqV : gradVφ = fun z => gradient (fun v => φ (z.1, v)) z.2 := funext hgradVφ
+        simp_rw [heqV, gradient, hfderiv_V]
+        exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+          ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+            (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+            (hφ_smooth.continuous_fderiv (by simp)))
+  have h_push_back :=
+    vlasov_rhs_pushforward_back gradW charX charV f₀ t
+      (h_flow_meas t) gradXφ gradVφ h_integrand_aesm
+  -- Compose: rewrite LHS via h_compose, apply h_under_integral, then rewrite via h_push_back.
+  have hLHS : (fun s => ∫ z, φ z ∂(vlasovSolutionViaPushforward charX charV f₀ s)) =
+              (fun s => ∫ z, φ (charX s z, charV s z) ∂f₀) := funext h_compose
+  rw [hLHS]
+  rw [show (∫ z, @inner ℝ (PhysSpace d) _ z.2 (gradXφ z)
+              - @inner ℝ (PhysSpace d) _
+                  (convolveFunctionMeasure gradW
+                    (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) z.1)
+                  (gradVφ z)
+            ∂(vlasovSolutionViaPushforward charX charV f₀ t)
+            + (fun _ => (0 : ℝ)) t)
+          = ∫ z, @inner ℝ (PhysSpace d) _ z.2 (gradXφ z)
+                  - @inner ℝ (PhysSpace d) _
+                      (convolveFunctionMeasure gradW
+                        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) z.1)
+                      (gradVφ z)
+                ∂(vlasovSolutionViaPushforward charX charV f₀ t) from by ring]
+  rw [← h_push_back]
+  exact h_under_integral
 
 /-- **`_On`-flavored Stage C producer for `IsLagrangianVlasovSolutionOn`**.
 
@@ -3337,12 +3468,34 @@ the substantive PDE proof lives in the sorry'd
 theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
-    (T : ℝ)
+    (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 < T)
     (hflow_on : IsCharacteristicFlowOn gradW
                 (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
                 charX charV (Set.Ioo 0 T) Set.univ)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW
+          (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
+          (charX s z, charV s z))
+        (Set.Ici s) s)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) ≤ M_ρ)
+    (h_y_int : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
+    (h_int : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)))
+    [∀ s, IsProbabilityMeasure
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))]
     (hself : IsCharacteristicFlowSelfConsistent charX f₀
               (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)))
     (h_flow_meas : ∀ s, AEMeasurable
@@ -3353,8 +3506,9 @@ theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
           (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
     IsLagrangianVlasovSolutionOn gradW
       (vlasovSolutionViaPushforward charX charV f₀) T := by
-  refine ⟨vlasovSolutionViaPushforward_isVlasovSolutionOn gradW charX charV f₀ T
-            hflow_on hself h_flow_meas hgradW_cont hconv_cont,
+  refine ⟨vlasovSolutionViaPushforward_isVlasovSolutionOn gradW L hL charX charV f₀
+            hf₀_fm hT hflow_on h_init h_cont_Icc h_deriv_Ico M_ρ hM_ρ_nn hM_ρ
+            h_y_int h_int hself h_flow_meas hgradW_cont hconv_cont,
           charX, charV, hflow_on, ?_, ?_⟩
   · -- Pushforward equation: f t = (flow_t)_# (f 0) for t ∈ Icc 0 T.
     -- Identical to the global wrapper's body, using IsCharacteristicFlowOn's
