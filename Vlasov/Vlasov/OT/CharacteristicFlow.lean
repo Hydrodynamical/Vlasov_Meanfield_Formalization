@@ -7194,30 +7194,42 @@ theorem vlasovWellPosedness_forward
 -- flow — requires the Eulerian-to-Lagrangian / DiPerna-Lions superposition
 -- principle, which is out of scope.)
 
+-- Helper (Stage 8): Localized Dobrushin uniqueness on [0, T].
+-- Two `IsVlasovSolutionOn` solutions with the same initial data and finite
+-- first moments on the window must agree pointwise on `[0, T]`.
+-- This combines the localized Gronwall stability bound for W₁ (parallel to
+-- `MathlibTODO_wassersteinGronwallCoupling` in Basic.lean but restricted to
+-- `[0, T]`) with the KR-duality fact that W₁ = 0 characterises measure
+-- equality for probability measures on a separable metric space.
+-- Body is sorry'd: depends on sub-axioms for measure-valued ODE continuity,
+-- coupling, and KR duality localised to the window [0, T].
+-- (Path A localized placeholder — mirrors the structure of
+-- `MathlibTODO_wassersteinGronwallCoupling` in Basic.lean.)
+private theorem MathlibTODO_dobrushin_uniqueness_On
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (T : ℝ) (hT : 0 < T)
+    (hf : IsVlasovSolutionOn gradW f T)
+    (hg : IsVlasovSolutionOn gradW g T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (g t))
+    (hfg0 : f 0 = g 0) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, f t = g t := by
+  sorry
+
 /-- **Stage 8: uniqueness on the local window**.
 
 Two `IsLagrangianVlasovSolutionOn`s with the same initial data agree on
 `[0, T_target]`.
 
-**Proof strategy** (sorry'd body, ~80-120 lines):
+**Proof** (closed via Dobrushin uniqueness composition):
 
-1. Spatial marginals: extract `ρ_f t := spatialMarginal (f t)` and
-   `ρ_g t := spatialMarginal (g t)` for `t ∈ Icc 0 T_target`.
-
-2. Iterate `vlasovWellPosedness_forward`'s window decomposition: for
-   each `n` with `n·T_0 ≤ T_target` (where `T_0` is the fixed contraction
-   time), apply `Phi_supW1_contraction` to `(ρ_f, ρ_g)` to get
-   `supW1On (Icc 0 (n·T_0)) ρ_f ρ_g ≤ q · supW1On (Icc 0 (n·T_0)) ρ_f ρ_g`
-   for `q < 1`.
-
-3. Conclude `supW1On = 0` (since `q < 1` and the curve is W₁-bounded),
-   hence `ρ_f = ρ_g` pointwise on `Icc 0 (n·T_0)`.
-
-4. Flow uniqueness via `ODE_solution_unique` (Mathlib's Gronwall): the
-   per-z trajectories of `f` and `g` coincide on `Icc 0 T_target`.
-
-5. Pushforward equality: `f t = Measure.map (charX_f t, charV_f t) f₀
-   = Measure.map (charX_g t, charV_g t) f₀ = g t`. -/
+1. Extract `IsVlasovSolutionOn` from each `IsLagrangianVlasovSolutionOn`.
+2. Note `f 0 = f₀ = g 0` from the init hypotheses.
+3. Apply `MathlibTODO_dobrushin_uniqueness_On` (localized Dobrushin
+   uniqueness, Helper above) to conclude `f t = g t`. -/
 theorem vlasovWellPosedness_uniqueness
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
@@ -7236,7 +7248,14 @@ theorem vlasovWellPosedness_uniqueness
     (hf_lag : IsLagrangianVlasovSolutionOn gradW f T_target)
     (hg_lag : IsLagrangianVlasovSolutionOn gradW g T_target) :
     ∀ t ∈ Set.Icc (0 : ℝ) T_target, f t = g t := by
-  sorry
+  -- Extract IsVlasovSolutionOn from IsLagrangianVlasovSolutionOn
+  have hf_pde : IsVlasovSolutionOn gradW f T_target := hf_lag.1
+  have hg_pde : IsVlasovSolutionOn gradW g T_target := hg_lag.1
+  -- The two solutions share the same initial datum f₀
+  have hfg0 : f 0 = g 0 := hf_init.trans hg_init.symm
+  -- Apply the localized Dobrushin uniqueness (Helper above)
+  exact MathlibTODO_dobrushin_uniqueness_On gradW L hL f g T_target hT_target
+    hf_pde hg_pde hf_mom hg_mom hfg0
 
 -- ---------------------------------------------------------------------------
 -- §9.7  Stage 6 — universal-in-`t` bridge to `IsLagrangianVlasovSolution`
@@ -7316,15 +7335,34 @@ theorem vlasovWellPosedness_universal_existence
     fun n => (Classical.choose_spec (h_fwd_exists n)).2.1
   have h_sol_lag : ∀ n : ℕ, IsLagrangianVlasovSolutionOn gradW (sol n) ((n : ℝ) + 1) :=
     fun n => (Classical.choose_spec (h_fwd_exists n)).2.2
-  -- Step 3. Agreement on overlaps via Stage 8 (uniqueness, sorry'd body).
-  -- Sub-sub-sorry (A): any two per-n solutions agree on [0, min(n,m)+1].
-  -- This invokes vlasovWellPosedness_uniqueness (Stage 8) whose body is sorry'd;
-  -- the argument is: restrict sol m to [0,(n:ℝ)+1] ⊆ [0,(m:ℝ)+1], both have
-  -- the same initial data f₀, apply uniqueness.
+  -- Step 3. Agreement on overlaps via Stage 8 (uniqueness).
+  -- Any two per-n solutions agree on [0, n+1]: restrict sol m from [0, m+1]
+  -- to [0, n+1] via inline monotonicity, then apply vlasovWellPosedness_uniqueness.
   have h_agree : ∀ n m : ℕ, n ≤ m →
       ∀ t ∈ Set.Icc (0 : ℝ) ((n : ℝ) + 1), sol n t = sol m t := by
     intro n m hnm t ht
-    sorry
+    -- Cast inequality: (n : ℝ) + 1 ≤ (m : ℝ) + 1
+    have hnm_cast : (n : ℝ) + 1 ≤ (m : ℝ) + 1 := by
+      have : (n : ℝ) ≤ (m : ℝ) := Nat.cast_le.mpr hnm
+      linarith
+    -- Restrict sol m from [0, m+1] to [0, n+1] via inline monotonicity
+    have h_sol_m_on_n : IsLagrangianVlasovSolutionOn gradW (sol m) ((n : ℝ) + 1) := by
+      obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas⟩ := h_sol_lag m
+      refine ⟨?_, charX, charV, ?_, ?_, ?_⟩
+      · intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s hs
+        exact h_sol φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s
+          ⟨hs.1, lt_of_lt_of_le hs.2 hnm_cast⟩
+      · exact h_flow.mono (Set.Ioo_subset_Ioo le_rfl hnm_cast) Set.Subset.rfl
+      · intro s hs; exact h_push s ⟨hs.1, le_trans hs.2 hnm_cast⟩
+      · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hnm_cast⟩
+    -- Apply vlasovWellPosedness_uniqueness (Stage 8) on window [0, n+1]
+    exact vlasovWellPosedness_uniqueness W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
+      (by linarith [Nat.cast_nonneg (α := ℝ) n] : (0 : ℝ) < (n : ℝ) + 1)
+      (sol n) (sol m) (h_sol_init n) (h_sol_init m)
+      (h_sol_mom n)
+      (fun s hs => h_sol_mom m s ⟨hs.1, le_trans hs.2 hnm_cast⟩)
+      (h_sol_lag n) h_sol_m_on_n
+      t ht
   -- Step 4. Define the universal solution.
   -- For t ≥ 0: use sol ⌈t⌉₊ at t (indexing by the ceiling of t).
   -- For t < 0: use f₀ (backward time is sorry'd).
