@@ -624,6 +624,69 @@ specific (or differently-structured) statement.  The signal is
 "≥3 bridges with the same shape" or "cascade signal from P2";
 the response is to lift the bridging to the type level.
 
+### B2. Boundary regularity at predicate-layer boundaries — recursive Friction-5 surgery
+
+**Failure mode**: predicates that work on open or half-open
+intervals (`Ioo 0 T`, `Ico 0 T`) don't cover the boundary point
+`t = T` (or `t = 0`), but downstream consumers (gluing,
+continuation, conjunct wire-up, narrow continuity) need data at
+the boundary.  Without exposure of the boundary regularity, the
+consumers can't compose.
+
+**Empirical confirmation** (three sightings):
+
+1. **Friction 5** (commit `4b024ee`, 2026-05-29): the per-ball
+   characteristic flow's `IsCharacteristicFlowOn (Ioo 0 T)` form
+   excludes `t = T`.  `Phi_step`'s gluing argument requires
+   `HasDerivAt` at `t = T` from both sides.  Fix: enriched the
+   chain per-ball-flow → per-z → Stage 1.9 to expose
+   `HasDerivWithinAt` on the closed `Icc 0 T` form.
+2. **`_glue_step` boundary at `t = T`** (commit `eb3c260`,
+   2026-05-30): the gluing-step at `t = T` between `f_prev` and
+   `g` requires `HasDerivAt` from both sides.  Same enrichment
+   pattern needed (one architectural layer up: enrich
+   `vlasovWellPosedness_local`'s output).
+3. **Stage 6 narrow continuity at `t = 0`** (commit `20500ee`,
+   2026-05-30): `ContinuousOn (Ici 0)` of the integral against the
+   glued `f` requires `ContinuousWithinAt _ (Ici 0) 0`.  The
+   per-window flow's `IsLagrangianVlasovSolutionOn` provides
+   regularity on `Ioo 0 T` only.  Boundary at `t = 0` requires the
+   same kind of enrichment.
+
+**Common surgery shape**:
+
+1. Identify a downstream consumer needing boundary data.
+2. Identify the upstream producer chain whose internal proofs
+   already construct the boundary regularity but discard it.
+3. Enrich the producer chain's conclusion to expose the boundary
+   bundle as an additional conjunct.
+4. Downstream consumer destructures the bundle and closes the
+   boundary cases.
+
+All three surgeries are **additive** (no closed proof bodies
+modified) and retire multiple sub-sub-sorries in one swing.
+
+**Fix**: when a downstream consumer's sub-sub-sorries are
+characterized as "at the boundary point `t = T`" (or `t = 0`),
+identify the upstream chain that internally constructs the
+boundary regularity, then add the boundary bundle as an
+additional output conjunct.  Don't try to derive boundary
+regularity from open-interval data — it's not derivable; the
+upstream chain has it but discards it.
+
+**Generalisation**: B2 is the specific shape of B1 for the
+`Ioo`-vs-`Icc` boundary case in localized predicate families.  B1
+says "enrich predicates over per-site bridging"; B2 says "the
+specific predicate enrichment that retires the boundary mismatch
+is to expose the upstream-already-constructed boundary regularity
+as an additional conjunct."
+
+The pattern is **recursive** across architectural layers: Friction 5
+was at the per-ball-flow layer; `_glue_step` boundary was at the
+`vlasovWellPosedness_local` layer; Stage 6 narrow continuity is at
+the `_universal_existence` layer.  Each layer's surgery is the same
+shape but at a higher level of composition.
+
 ## Watch-list
 
 Candidates accumulating sightings, not yet promotion-ready under
@@ -674,42 +737,8 @@ indefinite watch-listing):
   Probably M-series rather than P or B — about the mathematics of
   correctly stating theorems, not about process discipline or
   architectural patterns.  Trigger: 2 more sightings.
-* **Boundary regularity at predicate-layer boundaries — recursive
-  Friction-5 surgery**: 2 sightings (Friction 5 itself in commit
-  `4b024ee` + `_glue_step` boundary diagnostic in commit `eb3c260`,
-  2026-05-30).  Diagnostic: predicates that work on open or half-
-  open intervals (`Ioo 0 T`, `Ico 0 T`) don't cover the boundary
-  point `t = T`, but downstream consumers (gluing, continuation,
-  conjunct wire-up) need data at the boundary.  The Friction-5-style
-  enrichment is the canonical fix: enrich the predicate's
-  conclusion to expose boundary data (HasDerivWithinAt at the
-  endpoints), propagate through producers, downstream consumers
-  compose against the enriched form.
-
-  **Both sightings have the same surgery shape**:
-  1. Identify a downstream consumer needing boundary data
-     (Phi_step for original Friction 5; `_glue_step` for the 2026-
-     05-30 sighting).
-  2. Identify the upstream producer chain whose internal proofs
-     already construct the boundary regularity but discard it
-     (per-ball flow → per-z → Stage 1.9 for Friction 5;
-     `_finalAssembly_isLagrangian` → `vlasovWellPosedness_local`
-     for this session).
-  3. Enrich the producer chain's conclusion to expose the boundary
-     bundle as an additional conjunct.
-  4. Downstream consumer destructures the bundle and closes the
-     boundary cases.
-
-  Both surgeries are additive (no closed proof bodies modified) and
-  retire multiple sub-sub-sorries in one swing.
-
-  **At threshold for B-series promotion** (2 sightings ≥ the
-  promotion threshold).  Next sighting (or the next doc turn,
-  whichever comes first) should promote as B2 — companion to B1
-  (predicate enrichment over per-site bridging).  The two patterns
-  are closely related: B1 says "enrich predicates rather than
-  add bridges"; this B2 candidate is the specific shape of B1 for
-  the `Ioo`-vs-`Icc` boundary case.
+  (B2 promoted to B-series proper at commit reflecting this session,
+  with 3rd sighting: Stage 6 narrow continuity boundary at t = 0.)
 * **Cascade-as-signal**: 1 sighting (Stage 4 Bridge #1 →
   Friction 5 discovery).  Diagnostic: "resolving friction N
   requires infrastructure that's currently blocked by friction
