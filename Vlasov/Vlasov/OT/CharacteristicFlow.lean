@@ -6604,7 +6604,15 @@ silently restricts to the small-`L` regime — `L < 1` is necessary for
 condition + local finite first moment + `IsLagrangianVlasovSolutionOn`.
 
 Stage 5's continuation (deferred) extends from local `T` to arbitrary
-`T_target` via variable-`T_n` induction; Stage 6 then bridges from
+`T_target` via **fixed-`T_0`** iteration (per the
+locale-to-global discipline analysis): the contraction time
+`T_0` depends only on `L` (not on the moment bound `M_n` propagating
+through iterations), because `Phi_supW1_contraction`'s `q` is
+`gronwallBound 0 (max 1 L) (L · D) T` — independent of `M_n`.  This is
+a simplification on the original plan's "variable-`T_n` induction"
+framing, which assumed `q` depended on `M_n`.  Stage 5 can therefore
+iterate `[0, T_0], [T_0, 2 T_0], …` with constant step `T_0`, reaching
+any `T_target` in `⌈T_target / T_0⌉` windows.  Stage 6 then bridges from
 `IsLagrangianVlasovSolutionOn` (local) to `IsLagrangianVlasovSolution`
 (global) via gluing.
 
