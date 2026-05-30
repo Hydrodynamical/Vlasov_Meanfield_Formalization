@@ -7024,6 +7024,32 @@ theorem vlasovWellPosedness_glue_step
       f_next 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), HasFiniteFirstMoment (f_next t)) ∧
       IsLagrangianVlasovSolutionOn gradW f_next (T + T_0) := by
+  -- **Structural-debt status (post-`e22648b`, 2026-05-30)**: 5 of 8 original
+  -- sub-sub-sorries closed substantively (pushforward × 2, AEMeasurability,
+  -- HasDerivAt for t > T strict × 2, plus interior cases for t < T strict).
+  -- 3 remaining sub-sub-sorries, all at the gluing boundary t = T:
+  --   (a) IsVlasovSolutionOn at t = T (weak PDE boundary).
+  --   (b) HasDerivAt charX_next at t = T.
+  --   (c) HasDerivAt charV_next at t = T.
+  --
+  -- **Surgery target for declaration close** (Friction-5-style upstream
+  -- enrichment): enrich `_finalAssembly_isLagrangian`'s output to also
+  -- expose the Friction-5 boundary regularity bundle (`h_init`,
+  -- `h_cont_Icc`, `h_deriv_Ico` on `Set.Ici s` for `s ∈ Ico 0 T`).  Then
+  -- `vlasovWellPosedness_local`'s output gains the boundary bundle as a
+  -- separate conjunct alongside `IsLagrangianVlasovSolutionOn`.  This lets
+  -- `_glue_step` access HasDerivWithinAt at T from the LEFT (via f_prev's
+  -- boundary bundle at endpoint T) and HasDerivWithinAt at 0 from the
+  -- RIGHT (via g's boundary bundle at endpoint 0).  Combining these gives
+  -- HasDerivAt at t = T in `f_next`'s frame, closing the 3 boundary
+  -- sub-sub-sorries.
+  --
+  -- Estimated scope: ~150 lines across `_finalAssembly_isLagrangian`,
+  -- `vlasovWellPosedness_local`, and `_glue_step` (signature additions +
+  -- threading + 3 boundary closes).  Same pattern as the original Friction
+  -- 5 surgery (`4b024ee`) at one architectural layer up.  Deferred to a
+  -- focused refactor session loaded with the precise surgery path.
+  --
   -- Step 1: invoke vlasovWellPosedness_local on f_prev T to get g on [0, T_0]
   have h_prev_T_mom : HasFiniteFirstMoment (f_prev T) :=
     h_prev_mom T (Set.right_mem_Icc.mpr hT_pos.le)
