@@ -4845,27 +4845,43 @@ type system, but this **regularity gap** between Ioo-HasDerivAt and
 Icc-ContinuousOn + Ico-HasDerivWithinAt remains and is needed for the
 Gronwall growth bound's hypotheses.
 
-**Two closure paths**:
-1. **Modify Stage 1.9 to expose the regularity** (route 1 from the
-   five-friction discussion; ~150-250 lines surgery on closed
-   infrastructure).
-2. **Derive from boundedness of per-z velocity** via mean-value: Stage
-   1.9's underlying construction confines the per-z velocity to a
-   bounded ball, so the position is Lipschitz, hence uniformly
-   continuous on `Ioo 0 T`, hence has limits at the boundary; the
-   HasDerivWithinAt at `t = 0` then follows from initial-condition +
-   bounded-velocity argument.  Doable but ~80-100 lines.
+**Closure path (precise, after this session's signature reading)**:
 
-Either closure retires this sorry.  Until then, this is the single
-named gap between Stage 1.9 and `flow_distance_growth_bound_on` /
-`charFlow_measurable_via_gronwall`, and `Phi_step` composes against
-this lemma to discharge the growth-bound and measurability
-prerequisites.
+The per-ball flow's proof (`exists_vlasov_characteristicFlow` at L1112)
+INTERNALLY constructs the needed boundary regularity but discards it.
+Specifically:
+* At L1892-1907 (position): builds `h_d_within :
+  HasDerivWithinAt (fun s => (γ_func z s).1) (γ_func z t).2
+    (Set.Icc 0 (N * δ_uniform)) t`,
+  then immediately calls `.hasDerivAt h_icc_nhds` (L1908) to convert
+  to `HasDerivAt`, losing the closed-interval info.
+* At L1916-1922 (velocity): same pattern.
 
-**Pragmatic status**: treated as a placeholder in the
-`MathlibTODO_*`-style discipline — well-scoped, known-doable, isolated
-to one declaration with a clear specification and two documented
-closure paths. -/
+**Minimum additive surgery to close this sorry** (~50-80 lines):
+1. Add a conjunct to `exists_vlasov_characteristicFlow`'s conclusion
+   exposing the `HasDerivWithinAt` on `Icc 0 (N * δ_uniform)` form
+   (which restricts to `Icc 0 T`).  Proof body modification: stop
+   discarding `h_d_within` — expose it through a new clause.
+   ~20-30 lines.
+2. Lift through `exists_vlasov_perz_trajectory` (~15 lines).
+3. Lift through `exists_vlasov_characteristicFlow_global_smallT`
+   (~10 lines).
+4. Close `Stage_1_9_flow_boundary_regularity` by deconstruction
+   (~20 lines), using:
+   * `hflow.1 z (Set.mem_univ z)` for the initial-condition conjunct.
+   * `HasDerivWithinAt.continuousWithinAt` + `ContinuousOn.eq_of_eqOn` for
+     the `ContinuousOn (Icc 0 T)` conjunct.
+   * `nhdsWithin` agreement at boundary points
+     (`nhdsWithin 0 (Icc 0 T) = nhdsWithin 0 (Ici 0)`) to convert
+     HasDerivWithinAt-on-`Icc` to HasDerivWithinAt-on-`Ici` at `s = 0`,
+     and similarly for interior `s ∈ Ico 0 T` (where both sets agree
+     locally).
+
+**Pragmatic status**: closure cost is ~50-80 lines of careful additive
+surgery on closed proofs (per-ball flow + per-z trajectory + Stage 1.9
+all need conclusion enrichment).  Treated as a placeholder in the
+`MathlibTODO_*`-style discipline pending the focused session that
+performs the surgery. -/
 theorem Stage_1_9_flow_boundary_regularity
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
