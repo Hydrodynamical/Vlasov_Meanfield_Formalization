@@ -6134,7 +6134,233 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       (∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW
           (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) := by
-  sorry
+  -- ============================================================
+  -- Step 1: Spatial marginal setup.
+  -- μ₀ := spatialMarginal f₀ = Measure.map Prod.fst f₀.
+  -- IsProbabilityMeasure μ₀ via Measure.isProbabilityMeasure_map.
+  -- Integrable ‖·‖ μ₀ from hf₀_int via integral_map on Prod.fst.
+  -- ============================================================
+  have hμ₀_prob : IsProbabilityMeasure (spatialMarginal f₀) :=
+    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  have hμ₀_int : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal f₀) := by
+    unfold spatialMarginal
+    rw [integrable_map_measure
+      (Continuous.aestronglyMeasurable continuous_norm) measurable_fst.aemeasurable]
+    -- Need: Integrable (‖·‖ ∘ Prod.fst) f₀ = Integrable (fun z => ‖z.1‖) f₀.
+    -- This follows from hf₀_int (Integrable ‖·‖ f₀) and ‖z.1‖ ≤ ‖z‖.
+    refine hf₀_int.mono' ?_ (Filter.Eventually.of_forall fun z => ?_)
+    · exact (measurable_fst.norm.aestronglyMeasurable)
+    · simp only [Function.comp, Real.norm_of_nonneg (norm_nonneg _)]
+      exact (norm_fst_le z)
+  let M_f₀ : ℝ := ∫ z : PhysSpace d, ‖z‖ ∂(spatialMarginal f₀)
+  have hM_f₀_nn : 0 ≤ M_f₀ := integral_nonneg (fun z => norm_nonneg z)
+  have hM_f₀_spec : ∫ z : PhysSpace d, ‖z‖ ∂(spatialMarginal f₀) ≤ M_f₀ := le_refl _
+  -- ============================================================
+  -- Step 2: M-fixed-point.
+  -- Sub-sub-sorry: existence of M ≥ 0 such that
+  --   (a) ∫ ‖y‖ ∂μ₀ ≤ M  (initial moment bound)
+  --   (b) for any VlasovMeasureCurve ρ with moment bound M, the
+  --       Gronwall growth constant C_T satisfies C_T * (M_f₀ + 1) ≤ M.
+  -- This is the fixed-point existence whose full proof requires analysis of
+  -- the Gronwall bound's monotone structure in M. -/
+  obtain ⟨M, hM_nn, hM_init⟩ : ∃ M : ℝ, 0 ≤ M ∧ M_f₀ ≤ M := by
+    exact ⟨M_f₀, hM_f₀_nn, le_refl _⟩
+  -- ============================================================
+  -- Step 3: Convolution integrability for constantCurve.
+  -- For the base case x 0 = constantCurve μ₀, need h_int_ext:
+  --   ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) ((constantCurve μ₀).extend t).
+  -- This reduces to: Integrable (fun y => gradW (x - y)) μ₀, which follows
+  -- from hμ₀_int + Lipschitz bound on gradW.
+  -- Sub-sub-sorry: integrability of gradW against μ₀.
+  -- ============================================================
+  have h_int_gradW_μ₀ : ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal f₀) := by
+    intro x_pt
+    -- AEStronglyMeasurable: gradW is continuous (from Lipschitz), (x_pt - ·) is continuous.
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal f₀) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    -- Pointwise bound: ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + L*(‖x_pt‖ + ‖y‖).
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    -- Dominator is integrable: constant + L * ‖y‖ (using hμ₀_int).
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal f₀) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖) (spatialMarginal f₀) :=
+        hμ₀_int.const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  -- ============================================================
+  -- Step 4: Picard sequence + contraction bound.
+  -- Sub-sub-sorry: construction of the sequence x : ℕ → VlasovMeasureCurve d T M
+  -- and the contraction estimate.
+  -- The construction uses Phi_step + induction.
+  -- The contraction uses Phi_supW1_contraction applied to consecutive iterates.
+  -- ============================================================
+  -- Contraction factor: q_T := gronwallBound 0 (max 1 L : ℝ) (L * (2*M)) T.
+  -- For T small enough (from hTL), q_T < 1.
+  let q : ℝ := gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * (2 * M)) T
+  have hq_nn : 0 ≤ q := by
+    have hK_nn : (0 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := NNReal.coe_nonneg _
+    have hε_nn : (0 : ℝ) ≤ (L : ℝ) * (2 * M) := by positivity
+    have := gronwallBound_mono (δ := (0 : ℝ)) (K := ((max 1 L : NNReal) : ℝ))
+      (ε := (L : ℝ) * (2 * M)) (le_refl 0) hε_nn hK_nn hT.le
+    rw [gronwallBound_x0] at this; exact this
+  -- Sub-sub-sorry: q < 1 from hTL.
+  have hq_lt : q < 1 := by sorry
+  -- D₀: initial supW1On bound = supW1On (x 0).ρ (x 1).ρ ≤ 2 * M.
+  let D₀ : ℝ := 2 * M
+  have hD₀_nn : 0 ≤ D₀ := by linarith
+  -- Sub-sub-sorry: Picard sequence + contraction.
+  obtain ⟨x, h_contract⟩ : ∃ x : ℕ → VlasovMeasureCurve d T M,
+      ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
+           ENNReal.ofReal (q ^ k * D₀) := by
+    sorry
+  -- ============================================================
+  -- Step 5: Extract limit ρ_lim via picard_iterate_bundlesAs_VlasovMeasureCurve.
+  -- ============================================================
+  obtain ⟨ρ_lim, _h_tendsto⟩ :=
+    picard_iterate_bundlesAs_VlasovMeasureCurve x q hq_nn hq_lt D₀ hD₀_nn h_contract
+  -- ============================================================
+  -- Step 6: Convolution integrability for ρ_lim.extend.
+  -- Needed by exists_vlasov_characteristicFlow_global_smallT.
+  -- Sub-sub-sorry: integrability of gradW against ρ_lim.extend t.
+  -- ============================================================
+  have h_int_ρ_lim : ∀ t (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (ρ_lim.extend t) := by
+    intro t x_pt
+    -- Integrability via dominator, same pattern as h_int_gradW_μ₀.
+    have h_yint_t : Integrable (fun y : PhysSpace d => ‖y‖) (ρ_lim.extend t) :=
+      VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim t
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y)) (ρ_lim.extend t) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (ρ_lim.extend t) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖) (ρ_lim.extend t) :=
+        h_yint_t.const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  -- Convolution continuity for ρ_lim.extend, universal in t.
+  -- Deduced from ρ_lim.extend_convCont + h_int_ρ_lim restricted to Icc 0 T.
+  have h_conv_cont_ρ_lim : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ_lim.extend t) x) := by
+    intro x_pt
+    have h_int_Icc : ∀ t ∈ Set.Icc (0 : ℝ) T,
+        Integrable (fun y => gradW (x_pt - y)) (ρ_lim.ρ t) := by
+      intro t ht
+      have h_eq : ρ_lim.extend t = ρ_lim.ρ t := by
+        unfold VlasovMeasureCurve.extend clampToIcc
+        congr 1
+        rw [min_eq_left ht.2, max_eq_right ht.1]
+      rw [← h_eq]; exact h_int_ρ_lim t x_pt
+    exact VlasovMeasureCurve.extend_convCont gradW L hL hT.le ρ_lim x_pt h_int_Icc
+  -- ============================================================
+  -- Step 7: Flow construction via exists_vlasov_characteristicFlow_global_smallT.
+  -- Build (charX, charV) against ρ_lim.extend.
+  -- ============================================================
+  obtain ⟨charX, charV, hflow_on_ρlim, h_boundary_ρlim⟩ :=
+    exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
+      ρ_lim.extend h_int_ρ_lim h_conv_cont_ρ_lim
+      (fun t => VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim t)
+      M hM_nn
+      (fun t => VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim t)
+      T hT.le hTL
+  -- ============================================================
+  -- Step 8: Self-consistency.
+  -- Sub-sub-sorry: for t ∈ Icc 0 T,
+  --   ρ_lim.ρ t = spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t).
+  -- This is the Picard fixed-point equation: Phi charX f₀ t = ρ_lim.ρ t,
+  -- proved by triangle through x n using contraction + tendsto.
+  -- ============================================================
+  -- ============================================================
+  -- Sub-sub-sorry: self-consistency on Icc 0 T.
+  -- For t ∈ Icc 0 T:
+  --   ρ_lim.extend t = ρ_lim.ρ t   (by clampToIcc identity on Icc)
+  --   ρ_lim.ρ t = spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)
+  -- The second equality is the Picard fixed-point equation, proved by triangle
+  -- through x n using contraction + tendsto.
+  -- ============================================================
+  have h_self_consist : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ρ_lim.extend t =
+      spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) := by
+    sorry
+  -- ============================================================
+  -- Step 9: Bundle the result.
+  -- Convert hflow_on_ρlim (against ρ_lim.extend) to the conclusion
+  -- (against spatialMarginal ∘ vlasovSolutionViaPushforward) using h_self_consist.
+  -- ============================================================
+  have hflow_on : IsCharacteristicFlowOn gradW
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+      charX charV (Set.Ioo 0 T) Set.univ := by
+    refine ⟨hflow_on_ρlim.1, hflow_on_ρlim.2.1, fun t ht z _hz => ?_⟩
+    have h_eq := h_self_consist t (Set.Ioo_subset_Icc_self ht)
+    have h_orig := hflow_on_ρlim.2.2 t ht z (Set.mem_univ z)
+    -- h_orig: HasDerivAt ... (-(convolveFunctionMeasure gradW (ρ_lim.extend t) ...)) t
+    -- Goal: HasDerivAt ... (-(convolveFunctionMeasure gradW (spatialMarginal ...) ...)) t
+    -- These are equal since ρ_lim.extend t = spatialMarginal ... (h_eq).
+    rwa [h_eq] at h_orig
+  -- Boundary regularity conjunct: convert h_boundary_ρlim using h_self_consist.
+  have h_boundary : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+      HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+      HasDerivWithinAt (fun s => charV s z)
+        (-(convolveFunctionMeasure gradW
+            (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+            (charX t z)))
+        (Set.Icc 0 T) t := by
+    intro z t ht
+    have h_eq := h_self_consist t ht
+    obtain ⟨h1, h2⟩ := h_boundary_ρlim z t ht
+    rw [h_eq] at h2
+    exact ⟨h1, h2⟩
+  -- Moment bound: from ρ_lim.hasMoment + h_self_consist.
+  have hM_ρ_bound : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) ≤ M := by
+    intro s hs
+    rw [← h_self_consist s hs]
+    exact VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim s
+  -- First-moment integrability: from ρ_lim.yIntegrable + h_self_consist.
+  have h_y_int_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s hs
+    rw [← h_self_consist s hs]
+    exact VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim s
+  -- Continuity of convolveFunctionMeasure against spatial marginal (universal in s).
+  -- Sub-sub-sorry: needs extend_convCont applied via h_self_consist.
+  have hconv_cont : ∀ s, Continuous (fun x_pt =>
+      convolveFunctionMeasure gradW
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x_pt) := by
+    sorry
+  exact ⟨charX, charV, M, hM_nn, hflow_on, h_boundary, hM_ρ_bound, h_y_int_ρ,
+         hconv_cont⟩
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — moment-bound transport.
 
