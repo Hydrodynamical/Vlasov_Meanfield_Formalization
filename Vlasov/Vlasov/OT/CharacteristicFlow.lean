@@ -6186,7 +6186,73 @@ theorem vlasovWellPosedness_local_finalAssembly_moment
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x))
     (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     HasFiniteFirstMoment (vlasovSolutionViaPushforward charX charV f₀ t) := by
-  sorry
+  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).
+  -- The discharge requires the Stage 1.8 placeholder closure.
+  have h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
+    sorry
+  -- Sub-sub-sorry: universal-in-s convolution integrability.
+  -- For s ∈ Icc 0 T this follows from h_y_int_ρ + Lipschitz of gradW;
+  -- the extension to all s requires a clamp argument.
+  have h_int_conv : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    sorry
+  -- IsProbabilityMeasure for the spatial marginal (needed for Stage_1_9 typeclass).
+  -- spatialMarginal μ = Measure.map Prod.fst μ, so IsProbabilityMeasure_map needs
+  -- AEMeasurable Prod.fst (Measure.map ... f₀). Since Prod.fst is measurable,
+  -- it is AEMeasurable wrt any measure.
+  haveI hρ_prob : ∀ s, IsProbabilityMeasure
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s
+    unfold spatialMarginal vlasovSolutionViaPushforward
+    -- Need IsProbabilityMeasure (Measure.map Prod.fst (Measure.map (fun z => ...) f₀))
+    -- Use Measure.map_map to compose, then isProbabilityMeasure_map on the composition.
+    have h_aemeas_pair : AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
+      h_aemeas s
+    have h_prob_inner : IsProbabilityMeasure
+        (Measure.map (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :=
+      Measure.isProbabilityMeasure_map h_aemeas_pair
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  -- Step 1: Extract h_init, h_cont_Icc, h_deriv_Ico via Friction 5 transport.
+  obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+      charX charV T hT.le hflow_on h_boundary
+  -- Step 2: Growth bound from flow_distance_growth_bound_on.
+  obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
+    flow_distance_growth_bound_on gradW L hL
+      (fun s => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))
+      charX charV T hT.le
+      h_init h_cont_Icc h_deriv_Ico
+      M_ρ hM_ρ_nn hM_ρ_bound h_y_int_ρ h_int_conv
+  -- Step 3: Conclude HasFiniteFirstMoment.
+  unfold HasFiniteFirstMoment vlasovSolutionViaPushforward
+  refine ⟨Measure.isProbabilityMeasure_map (h_aemeas t), ?_⟩
+  -- Integrable ‖·‖ wrt Measure.map (fun z => (charX t z, charV t z)) f₀.
+  rw [integrable_map_measure
+    (Continuous.aestronglyMeasurable continuous_norm) (h_aemeas t)]
+  -- Now need: Integrable (fun z : PhaseSpace d => ‖(charX t z, charV t z)‖) f₀.
+  have h_dom_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+    have h1 : Integrable (fun z : PhaseSpace d => C_T * ‖z‖) f₀ :=
+      hf₀_int.const_mul C_T
+    have h2 : Integrable (fun _ : PhaseSpace d => C_T) f₀ := integrable_const _
+    have h_eq : (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) =
+                fun z => C_T * ‖z‖ + C_T := by funext z; ring
+    rw [h_eq]; exact h1.add h2
+  -- The goal after rw is: Integrable (‖·‖ ∘ fun z => (charX t z, charV t z)) f₀
+  -- = Integrable (fun z => ‖(charX t z, charV t z)‖) f₀.
+  -- Dominator: C_T * (‖z‖ + 1); AE bound from h_growth.
+  have h_norm_aesm : AEStronglyMeasurable
+      (fun z : PhaseSpace d => ‖(charX t z, charV t z)‖) f₀ :=
+    (h_aemeas t).norm.aestronglyMeasurable
+  refine h_dom_int.mono' ?_ (Filter.Eventually.of_forall fun z => ?_)
+  · -- AEStronglyMeasurable of ‖·‖ ∘ (charX t, charV t).
+    -- After integrable_map_measure rewrite, goal is for the composition form.
+    convert h_norm_aesm using 1
+  · -- Pointwise bound: ‖(charX t z, charV t z)‖ ≤ C_T * (‖z‖ + 1).
+    -- The norm in the goal is ‖(‖·‖ ∘ ...)(z)‖ = ‖‖(charX t z, charV t z)‖‖.
+    simp only [Function.comp, Real.norm_of_nonneg (norm_nonneg _)]
+    exact h_growth t ht z
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — IsLagrangianVlasovSolutionOn
 threading.
@@ -6249,7 +6315,58 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
     IsLagrangianVlasovSolutionOn gradW
       (vlasovSolutionViaPushforward charX charV f₀) T := by
-  sorry
+  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).
+  -- The discharge requires the Stage 1.8 placeholder closure.
+  have h_aemeas : ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
+    sorry
+  -- Sub-sub-sorry: universal-in-s convolution integrability.
+  -- For s ∈ Icc 0 T this follows from h_y_int_ρ + Lipschitz of gradW;
+  -- the extension to all s requires a clamp argument.
+  have h_int_conv : ∀ s (x : PhysSpace d),
+      Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    sorry
+  -- IsProbabilityMeasure for the spatial marginal (needed for the target typeclass).
+  haveI hρ_prob : ∀ s, IsProbabilityMeasure
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s
+    unfold spatialMarginal vlasovSolutionViaPushforward
+    have h_aemeas_pair : AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
+      h_aemeas s
+    have _h_prob_inner : IsProbabilityMeasure
+        (Measure.map (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :=
+      Measure.isProbabilityMeasure_map h_aemeas_pair
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  -- Step 1: Extract h_init, h_cont_Icc, h_deriv_Ico via Friction 5 transport.
+  obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+      charX charV T hT.le hflow_on h_boundary
+  -- Step 2: IsCharacteristicFlowSelfConsistent
+  -- ρ t = spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)
+  --     = Measure.map Prod.fst (Measure.map (fun z => (charX t z, charV t z)) f₀)
+  --     = Measure.map (Prod.fst ∘ fun z => (charX t z, charV t z)) f₀   [by map_map_of_aemeasurable]
+  --     = Measure.map (charX t) f₀
+  have hself : IsCharacteristicFlowSelfConsistent charX f₀
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) := by
+    intro t
+    simp only [IsCharacteristicFlowSelfConsistent]
+    unfold spatialMarginal vlasovSolutionViaPushforward
+    -- Goal: Measure.map Prod.fst (Measure.map (fun z => (charX t z, charV t z)) f₀)
+    --     = Measure.map (fun z => charX t z) f₀
+    have h_comp : Measure.map Prod.fst
+        (Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) f₀) =
+        Measure.map (Prod.fst ∘ fun z : PhaseSpace d => (charX t z, charV t z)) f₀ := by
+      apply AEMeasurable.map_map_of_aemeasurable
+      · exact measurable_fst.aemeasurable
+      · exact h_aemeas t
+    rw [h_comp]; congr 1
+  -- Step 3: Apply the main threading theorem.
+  exact vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
+    gradW L hL charX charV f₀ hf₀_int hT
+    hflow_on h_init h_cont_Icc h_deriv_Ico
+    M_ρ hM_ρ_nn hM_ρ_bound h_y_int_ρ h_int_conv
+    hself h_aemeas hL.continuous hconv_cont
 
 /-- **Stage 4 structural closure: local existence of a Vlasov solution
 on `[0, T]`.**
