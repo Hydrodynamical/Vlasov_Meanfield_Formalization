@@ -6928,7 +6928,97 @@ theorem vlasovWellPosedness_forward
       f 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t)) ∧
       IsLagrangianVlasovSolutionOn gradW f T_target := by
-  sorry
+  -- Step 1: Choose the contraction step size T_0 = (1/√L - 1)/2.
+  -- T_0 depends only on L < 1; the local theorem's smallness constraint is
+  -- L·(T_0+1)² < 1, which equals (1+√L)²/4 < 1 (verified below).
+  let T_0 : ℝ := (1 / Real.sqrt L - 1) / 2
+  have hL_nn : (0 : ℝ) ≤ L := NNReal.coe_nonneg L
+  have hsqrtL_pos : 0 < Real.sqrt (L : ℝ) := Real.sqrt_pos.mpr hL_pos
+  have hsqrtL_lt1 : Real.sqrt (L : ℝ) < 1 := by
+    rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 1)]
+    simpa using hL_lt
+  have hT0_pos : 0 < T_0 := by
+    show 0 < (1 / Real.sqrt (L : ℝ) - 1) / 2
+    have h1 : 1 < 1 / Real.sqrt (L : ℝ) := by
+      rw [one_lt_div hsqrtL_pos]
+      linarith
+    linarith
+  -- Sub-sorry (a): L·(T_0+1)² < 1.  Algebraic: T_0+1 = (1/√L+1)/2, so
+  -- L·(T_0+1)² = L·(1/√L+1)²/4 = (1+√L)²/4 < 1 since √L < 1.
+  have hTL_T0 : (L : ℝ) * (T_0 + 1) ^ 2 < 1 := by
+    sorry
+  -- Step 2: N = ⌈T_target / T_0⌉₊ windows of size T_0 cover T_target.
+  let N : ℕ := ⌈T_target / T_0⌉₊
+  have hN_pos : 0 < N := by
+    show 0 < ⌈T_target / T_0⌉₊
+    rw [Nat.ceil_pos]
+    exact div_pos hT_target hT0_pos
+  have hN_covers : T_target ≤ (N : ℝ) * T_0 := by
+    have hle := Nat.le_ceil (T_target / T_0)
+    have hT0_pos' := hT0_pos
+    calc T_target = T_target / T_0 * T_0 := by field_simp
+         _ ≤ (⌈T_target / T_0⌉₊ : ℝ) * T_0 :=
+              mul_le_mul_of_nonneg_right hle (le_of_lt hT0_pos)
+  -- Step 3: Induction on n : ℕ — solution exists on [0, (n+1)·T_0].
+  -- Base (n=0): apply vlasovWellPosedness_local at T = T_0.
+  -- Step (n → n+1): apply vlasovWellPosedness_glue_step at T = (n+1)·T_0.
+  have h_ind : ∀ n : ℕ,
+      ∃ f : ℝ → Measure (PhaseSpace d),
+        f 0 = f₀ ∧
+        (∀ t ∈ Set.Icc (0 : ℝ) (((n + 1 : ℕ) : ℝ) * T_0), HasFiniteFirstMoment (f t)) ∧
+        IsLagrangianVlasovSolutionOn gradW f (((n + 1 : ℕ) : ℝ) * T_0) := by
+    intro n
+    induction n with
+    | zero =>
+      -- Base: n = 0, need solution on [0, 1·T_0] = [0, T_0].
+      simp only [Nat.cast_zero, zero_add, Nat.cast_one, one_mul]
+      exact vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0
+    | succ n ih =>
+      -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
+      obtain ⟨f_n, hfn_init, hfn_mom, hfn_lag⟩ := ih
+      have hT_n_pos : (0 : ℝ) < ((n + 1 : ℕ) : ℝ) * T_0 :=
+        mul_pos (by exact_mod_cast Nat.succ_pos n) hT0_pos
+      obtain ⟨f_next, _h_agree, h_init, h_mom, h_lag⟩ :=
+        vlasovWellPosedness_glue_step W gradW hgradW L hL f₀ hf₀ hT_n_pos
+          f_n hfn_init hfn_mom hfn_lag hT0_pos hTL_T0
+      -- Need: (n+1+1:ℕ):ℝ * T_0 = ((n+1:ℕ):ℝ)*T_0 + T_0
+      have h_T_eq : (((n + 1 + 1 : ℕ) : ℝ)) * T_0 = ((n + 1 : ℕ) : ℝ) * T_0 + T_0 := by
+        push_cast
+        ring
+      refine ⟨f_next, h_init, ?_, ?_⟩
+      · -- moment bound on [0, (n+2)·T_0]
+        rw [h_T_eq]
+        exact h_mom
+      · -- IsLagrangianVlasovSolutionOn on [(n+2)·T_0]
+        rw [h_T_eq]
+        exact h_lag
+  -- Step 4: Apply h_ind at n = N - 1 (since N ≥ 1).
+  have hN_pred : N - 1 + 1 = N := Nat.succ_pred_eq_of_pos hN_pos
+  obtain ⟨f, hf_init, hf_mom, hf_lag⟩ := h_ind (N - 1)
+  rw [hN_pred] at hf_mom hf_lag
+  -- Step 5: Restrict from [0, N·T_0] down to [0, T_target].
+  refine ⟨f, hf_init, ?_, ?_⟩
+  · -- Moment bound on [0, T_target] ⊆ [0, N·T_0].
+    intro t ht
+    exact hf_mom t ⟨ht.1, le_trans ht.2 hN_covers⟩
+  · -- IsLagrangianVlasovSolutionOn on [0, T_target] ≤ [0, N·T_0].
+    -- Sub-sorry (b): monotonicity of IsLagrangianVlasovSolutionOn in T.
+    -- Each conjunct restricts via Ioo/Icc subset: Ioo 0 T_target ⊆ Ioo 0 (N·T_0)
+    -- and Icc 0 T_target ⊆ Icc 0 (N·T_0).
+    obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas⟩ := hf_lag
+    refine ⟨?_, charX, charV, ?_, ?_, ?_⟩
+    · -- IsVlasovSolutionOn: restrict Ioo 0 T_target ⊆ Ioo 0 (N·T_0)
+      intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t ht
+      exact h_sol φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
+        ⟨ht.1, lt_of_lt_of_le ht.2 hN_covers⟩
+    · -- IsCharacteristicFlowOn: restrict Ioo 0 T_target ⊆ Ioo 0 (N·T_0)
+      exact h_flow.mono (Set.Ioo_subset_Ioo le_rfl hN_covers) Set.Subset.rfl
+    · -- pushforward eq: restrict Icc 0 T_target ⊆ Icc 0 (N·T_0)
+      intro t ht
+      exact h_push t ⟨ht.1, le_trans ht.2 hN_covers⟩
+    · -- AEMeasurable: restrict Icc 0 T_target ⊆ Icc 0 (N·T_0)
+      intro s hs
+      exact h_aemeas s ⟨hs.1, le_trans hs.2 hN_covers⟩
 
 /-- (tex: thm:vlasov-wp)
 Existence and uniqueness for the Vlasov equation.
