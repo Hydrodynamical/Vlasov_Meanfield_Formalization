@@ -7020,6 +7020,126 @@ theorem vlasovWellPosedness_forward
       intro s hs
       exact h_aemeas s ⟨hs.1, le_trans hs.2 hN_covers⟩
 
+-- ---------------------------------------------------------------------------
+-- §9.6  Stage 8 — uniqueness over `IsLagrangianVlasovSolutionOn` per window
+-- ---------------------------------------------------------------------------
+-- Two Lagrangian solutions on `[0, T_target]` with the same initial measure
+-- agree on `[0, T_target]`.  The argument: contraction in `Phi_supW1_contraction`
+-- + Banach fixed-point uniqueness on the iterated windows.  Within the
+-- `IsLagrangianVlasovSolutionOn` class, the flow witness is bundled, so
+-- pushforward + flow uniqueness chains directly.  (The broader uniqueness
+-- over `IsVlasovSolution` — weak-PDE-only solutions without an explicit
+-- flow — requires the Eulerian-to-Lagrangian / DiPerna-Lions superposition
+-- principle, which is out of scope.)
+
+/-- **Stage 8: uniqueness on the local window**.
+
+Two `IsLagrangianVlasovSolutionOn`s with the same initial data agree on
+`[0, T_target]`.
+
+**Proof strategy** (sorry'd body, ~80-120 lines):
+
+1. Spatial marginals: extract `ρ_f t := spatialMarginal (f t)` and
+   `ρ_g t := spatialMarginal (g t)` for `t ∈ Icc 0 T_target`.
+
+2. Iterate `vlasovWellPosedness_forward`'s window decomposition: for
+   each `n` with `n·T_0 ≤ T_target` (where `T_0` is the fixed contraction
+   time), apply `Phi_supW1_contraction` to `(ρ_f, ρ_g)` to get
+   `supW1On (Icc 0 (n·T_0)) ρ_f ρ_g ≤ q · supW1On (Icc 0 (n·T_0)) ρ_f ρ_g`
+   for `q < 1`.
+
+3. Conclude `supW1On = 0` (since `q < 1` and the curve is W₁-bounded),
+   hence `ρ_f = ρ_g` pointwise on `Icc 0 (n·T_0)`.
+
+4. Flow uniqueness via `ODE_solution_unique` (Mathlib's Gronwall): the
+   per-z trajectories of `f` and `g` coincide on `Icc 0 T_target`.
+
+5. Pushforward equality: `f t = Measure.map (charX_f t, charV_f t) f₀
+   = Measure.map (charX_g t, charV_g t) f₀ = g t`. -/
+theorem vlasovWellPosedness_uniqueness
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (hL_pos : (0 : ℝ) < L)
+    (hL_lt : (L : ℝ) < 1)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀)
+    {T_target : ℝ} (hT_target : 0 < T_target)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf_init : f 0 = f₀) (hg_init : g 0 = f₀)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (g t))
+    (hf_lag : IsLagrangianVlasovSolutionOn gradW f T_target)
+    (hg_lag : IsLagrangianVlasovSolutionOn gradW g T_target) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T_target, f t = g t := by
+  sorry
+
+-- ---------------------------------------------------------------------------
+-- §9.7  Stage 6 — universal-in-`t` bridge to `IsLagrangianVlasovSolution`
+-- ---------------------------------------------------------------------------
+-- Combines `vlasovWellPosedness_forward` (forward iteration) +
+-- `vlasovWellPosedness_uniqueness` (Stage 8) into a single universal-in-`t`
+-- existence theorem.  The universal `f` is constructed as the colimit of
+-- the per-`T_target` solutions, well-defined by Stage 8's agreement on
+-- overlaps.  For `t < 0`, the solution is extended via backward iteration
+-- (also sorry'd internally as a forward-iteration analogue).
+
+/-- **Stage 6: universal existence — bridge to the marquee form**.
+
+Given the `L < 1` regime, produces a single universal-in-`t`
+`f : ℝ → Measure (PhaseSpace d)` satisfying `IsLagrangianVlasovSolution`
+plus narrow continuity.  Composes Stage 5 (forward iteration) + Stage 8
+(uniqueness on overlaps) + a forward/backward symmetry argument.
+
+**Proof strategy** (sorry'd body, ~100-150 lines):
+
+1. Apply `vlasovWellPosedness_forward` with `T_target := n` for each
+   `n : ℕ`, getting per-`n` solutions `f_n : ℝ → Measure (PhaseSpace d)`.
+
+2. By `vlasovWellPosedness_uniqueness` (Stage 8), `f_n` and `f_m` agree
+   on `Icc 0 (min n m)`.
+
+3. Define `f t := f_{⌈t⌉ + 1} t` for `t ≥ 0`.  By step 2, this is
+   well-defined on `t ≥ 0`.
+
+4. For `t < 0`: backward iteration (the time-reversed Vlasov equation is
+   well-posed by the same argument).  Either invoke a dual Stage 5b
+   forward-iteration on `t ∈ [0, ∞)` from reversed initial measure, or
+   leave the backward extension as `f t := f₀` and accept a `sorry`
+   for the universal-in-`t` weak-PDE on `t < 0`.
+
+5. `IsLagrangianVlasovSolution gradW f`: the universal-in-`t` version
+   composes from the per-window `IsLagrangianVlasovSolutionOn`.
+   `IsVlasovSolution` part: weak PDE on all of `ℝ` — for `t ≥ 0` from
+   `IsVlasovSolutionOn` per `T_target`, for `t < 0` from backward
+   iteration (or sorry).  Flow part: glue per-window flows; for `t < 0`
+   use backward-time flow (or sorry).
+
+6. Narrow continuity: standard DCT using moment bound + flow growth. -/
+theorem vlasovWellPosedness_universal_existence
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (hL_pos : (0 : ℝ) < L)
+    (hL_lt : (L : ℝ) < 1)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀) :
+    ∃ f : ℝ → Measure (PhaseSpace d),
+      f 0 = f₀ ∧
+      (∀ t, HasFiniteFirstMoment (f t)) ∧
+      IsLagrangianVlasovSolution gradW f ∧
+      (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
+        Continuous (fun t => ∫ z, g z ∂f t)) := by
+  sorry
+
+-- ---------------------------------------------------------------------------
+-- §10  Marquee theorem (tex: thm:vlasov-wp) — structural completion
+-- ---------------------------------------------------------------------------
+
 /-- (tex: thm:vlasov-wp)
 Existence and uniqueness for the Vlasov equation.
 
@@ -7027,6 +7147,18 @@ Let f_0 ∈ 𝒫_1(ℝ^d × ℝ^d) be a probability measure with finite first mo
 Under Assumption ass:W, there exists a unique narrowly continuous curve
 t ↦ f_t ∈ 𝒫_1(ℝ^d × ℝ^d) satisfying eq:vlasov in the distributional sense
 with f_{t=0} = f_0.
+
+**Structural completion (2026-05-29)**: the body sketches the composition
+of Stages 5 / 6 / 8 into the marquee's `∃!` form.  Three sub-sorries
+remain inside the body, each representing a specifically-named gap:
+
+1. **Lipschitz extraction** from `[AssW W]`: extract `L : NNReal` with
+   `LipschitzWith L gradW` from `AssW.lipschitzGrad` + `hgradW`.
+2. **L-regime case-split**: the L < 1 path applies Stages 6 + 8; the
+   L ≥ 1 path is out of scope until the M-series `+1` removal lands;
+   the L = 0 path is the explicit constant-force case.
+3. **Universal `∃!` bundling**: existence from Stage 6, uniqueness from
+   Stage 8 lifted across all `T_target`, packaged into `ExistsUnique`.
 -/
 theorem vlasovWellPosedness
     {d : ℕ} [NeZero d]
@@ -7051,6 +7183,34 @@ theorem vlasovWellPosedness
       -- f is narrowly continuous: t ↦ ∫ g df_t is continuous for every bounded continuous g
       (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f t)) := by
+  -- **Structural composition sketch** (the marquee body composes Stages
+  -- 6 + 8; three sub-sorries documented in the docstring above remain
+  -- to fully close the body — each gated by infrastructure rather than
+  -- by mathematical uncertainty).
+  --
+  -- Step 1 — Extract Lipschitz constant L from AssW.
+  --   obtain ⟨L, hL_fderiv⟩ := AssW.lipschitzGrad (W := W)
+  --   have hL : LipschitzWith L gradW := <bridge via hgradW + fderiv-to-gradient identity>
+  --
+  -- Step 2 — Case split on L's regime.
+  --   The marquee currently inherits the L < 1 restriction from the
+  --   per-ball flow's `+1`-buffer (M-series watch-list candidate).
+  --   * L = 0: gradW is constant; the explicit flow is the linear-in-t
+  --     translation case; treated separately.
+  --   * 0 < L < 1: apply Stage 6 + Stage 8 below.
+  --   * L ≥ 1: out of scope until `+1` removal.
+  --
+  -- Step 3 — For 0 < L < 1 case:
+  --   obtain ⟨f, h_init, h_mom, h_lag, h_cont⟩ :=
+  --     vlasovWellPosedness_universal_existence W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
+  --   refine ⟨f, ⟨h_init, h_mom, h_lag, h_cont⟩, ?_⟩
+  --   intro g ⟨hg_init, hg_mom, hg_lag, _⟩
+  --   -- Uniqueness: f = g via vlasovWellPosedness_uniqueness for each T_target ∈ ℕ.
+  --   -- The pointwise equality on each Icc 0 T_target extends to all of ℝ.
+  --   funext t
+  --   <Stage 8 invocation per ⌈|t|⌉ + 1>
+  --
+  -- All three steps documented; body sorry'd for focused follow-up close.
   sorry
 
 /-! ## Phase 1 callsite probe
