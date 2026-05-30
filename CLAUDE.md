@@ -648,6 +648,26 @@ indefinite watch-listing):
   Promotion candidate as L-series (tactical Lean pattern) or
   M-series (mathematical structure of clamping); decide at
   promotion.
+* **Strategic-conversation diagnosis → focused-session execution
+  (meta-level P3)**: 1 sighting (Stage 6 + architectural priming
+  session, 2026-05-30).  Diagnostic: when the strategic conversation
+  between sessions produces a detailed brief (as opposed to the
+  diagnostic work happening within a session), the resulting focused
+  session executes against pre-loaded context without surfacing
+  P2-style mid-session scope discoveries.  Empirical evidence: the
+  Stage 6 + architectural priming session executed two commits
+  exactly as scoped (additive priming + substantive close), no
+  cascade surprises, no scope explosions, sorry trajectory matched
+  prediction (10 → 10).  P3 (within-session diagnostic) and P4 (API-
+  lock pattern at commit level) both operated at the proof-discipline
+  layer; this is the same compounding effect operating at the
+  *meta*-level: the diagnostic work happens in strategic
+  conversation between sessions, the execution happens in focused
+  sessions with detailed instructions.  Trigger: 2 more sightings.
+  Promotion candidate as a P3 addendum ("cross-session context-loading
+  also works at the strategic-conversation layer") or as its own
+  P-series entry.  Either way, register it as a healthy operational
+  cadence that the project should preserve.
 * **Cumulative-trajectory honesty in API-lock commit framing**:
   1 sighting (Stage 5 commit-framing critique, 2026-05-29).
   Diagnostic: per-turn commit messages using "structural content

@@ -4121,8 +4121,16 @@ theorem exists_vlasov_perz_trajectory
   --                + (‖gradW(0)‖ + L·‖z.1‖ + L·M_ρ)·(T+1)²
   -- Use R := N(z) / (1 - L·(T+1)²)  (positive since hTL).
   -- ============================================================
-  -- LocalSmallness unfold: this body uses the algebraic form of hTL.
-  -- Flagged for the metric-dependent lemmas section (W̄ refactor).
+  -- TODO(W̄-refactor): LocalSmallness unfold site.  This body uses the
+  -- algebraic form `(L : ℝ) * (T + 1) ^ 2 < 1` directly (the linarith on
+  -- the next line consumes `hTL_pos := 1 - L·(T+1)² > 0`, derived from
+  -- this hypothesis).  Under the W̄ refactor, `LocalSmallness L T` becomes
+  -- `C₂(L) · T < 1` (linear in T, no `+1`); this `have` will need updating
+  -- to expose the new algebraic form, and the subsequent `R := N(z) /
+  -- (1 - L·(T+1)²)` selection will need re-derivation under the new
+  -- contraction constant `C₂(L)`.  Flagged as a metric-dependent
+  -- algebraic touchpoint; the single existing unfold here is the entire
+  -- "metric-dependent lemmas section" identified by Move A.
   have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL
   set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
   -- N(z) is the right-hand-side numerator; non-negative.
