@@ -7408,7 +7408,236 @@ theorem vlasovWellPosedness_glue_step
       rw [hg_init, h_prev_push T hT_mem] at h_g_at_sT
       exact h_g_at_sT.comp_aemeasurable (h_prev_aemeas T hT_mem)
   · -- Conjunct (vii): boundary bundle for charX_next charV_next on Icc 0 (T + T_0)
-    sorry
+    intro z t ht
+    simp only [charX_next, charV_next]
+    -- Abbreviate the initial phase-space point for g
+    have hz₀_def : (charX_prev T z, charV_prev T z) = (charX_prev T z, charV_prev T z) := rfl
+    by_cases ht_le : t ≤ T
+    · -- t ≤ T: use h_prev_boundary + upgrade to Icc 0 (T + T_0)
+      simp only [if_pos ht_le]
+      have ht_in : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1, ht_le⟩
+      have h_bX := (h_prev_boundary z t ht_in).1
+      have h_bV := (h_prev_boundary z t ht_in).2
+      by_cases ht_eqT : t = T
+      · -- t = T: use HasDerivWithinAt.union from Iic T (left) and Ici T (right)
+        have h0_T0_in : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T_0 := ⟨le_refl 0, hT_0_pos.le⟩
+        have h_g_bX := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).1
+        have h_g_bV := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).2
+        have h_nhd_L : Set.Icc 0 T ∈ nhdsWithin T (Set.Iic T) := Icc_mem_nhdsLE hT_pos
+        have h_nhd_R : Set.Icc 0 T_0 ∈ nhdsWithin (0 : ℝ) (Set.Ici 0) := Icc_mem_nhdsGE hT_0_pos
+        -- Rewrite t to T in h_bX, h_bV
+        rw [ht_eqT] at h_bX h_bV
+        -- charX: left one-sided
+        have hX_Lic := h_bX.mono_of_mem_nhdsWithin h_nhd_L
+        have hX_left : HasDerivWithinAt
+            (fun s => if s ≤ T then charX_prev s z
+              else charX_g (s - T) (charX_prev T z, charV_prev T z))
+            (charV_prev T z) (Set.Iic T) T :=
+          hX_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.right_mem_Iic
+        -- charX: right one-sided via chain rule on g's boundary
+        have hX_Ici0 := h_g_bX.mono_of_mem_nhdsWithin h_nhd_R
+        have h_sub_R : HasDerivWithinAt (· - T) 1 (Set.Ici T) T :=
+          ((hasDerivAt_id' T).sub_const T).hasDerivWithinAt
+        have h_mapR : Set.MapsTo (· - T) (Set.Ici T) (Set.Ici 0) :=
+          fun s hs => Set.mem_Ici.mpr (by linarith [Set.mem_Ici.mp hs])
+        have h_chainX : HasDerivWithinAt
+            (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
+            (charV_g 0 (charX_prev T z, charV_prev T z)) (Set.Ici T) T := by
+          have := HasDerivWithinAt.scomp_of_eq T hX_Ici0 h_sub_R h_mapR (sub_self T).symm
+          simpa [Function.comp, one_smul] using this
+        have hVg0_eq : charV_g 0 (charX_prev T z, charV_prev T z) = charV_prev T z :=
+          (hg_init_cond (charX_prev T z, charV_prev T z)).2
+        rw [hVg0_eq] at h_chainX
+        have hX_right : HasDerivWithinAt
+            (fun s => if s ≤ T then charX_prev s z
+              else charX_g (s - T) (charX_prev T z, charV_prev T z))
+            (charV_prev T z) (Set.Ici T) T :=
+          h_chainX.congr_of_mem
+            (fun s hs => by
+              by_cases hle : s ≤ T
+              · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
+                simp [hle, heq, sub_self,
+                  (hg_init_cond (charX_prev T z, charV_prev T z)).1]
+              · simp [hle])
+            Set.left_mem_Ici
+        have hX_union := hX_left.union hX_right
+        rw [Set.Iic_union_Ici] at hX_union
+        -- charV: analogously
+        have hV_Lic := h_bV.mono_of_mem_nhdsWithin h_nhd_L
+        have hV_left : HasDerivWithinAt
+            (fun s => if s ≤ T then charV_prev s z
+              else charV_g (s - T) (charX_prev T z, charV_prev T z))
+            (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
+            (Set.Iic T) T := by
+          simp only [f_next, if_pos (le_refl T)]
+          exact hV_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.right_mem_Iic
+        have hV_Ici0 := h_g_bV.mono_of_mem_nhdsWithin h_nhd_R
+        have h_chainV : HasDerivWithinAt
+            (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
+            (-(convolveFunctionMeasure gradW
+              (spatialMarginal (g 0))
+              (charX_g 0 (charX_prev T z, charV_prev T z))))
+            (Set.Ici T) T := by
+          have := HasDerivWithinAt.scomp_of_eq T hV_Ici0 h_sub_R h_mapR (sub_self T).symm
+          simpa [Function.comp, one_smul] using this
+        have hXg0_eq : charX_g 0 (charX_prev T z, charV_prev T z) = charX_prev T z :=
+          (hg_init_cond (charX_prev T z, charV_prev T z)).1
+        have hg0_spat : spatialMarginal (g 0) = spatialMarginal (f_prev T) :=
+          congrArg spatialMarginal hg_init
+        have hfnextT : spatialMarginal (f_next T) = spatialMarginal (f_prev T) :=
+          congrArg spatialMarginal (if_pos (le_refl T))
+        rw [hXg0_eq, hg0_spat, ← hfnextT] at h_chainV
+        have hV_right : HasDerivWithinAt
+            (fun s => if s ≤ T then charV_prev s z
+              else charV_g (s - T) (charX_prev T z, charV_prev T z))
+            (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
+            (Set.Ici T) T :=
+          h_chainV.congr_of_mem
+            (fun s hs => by
+              by_cases hle : s ≤ T
+              · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
+                simp [hle, heq, sub_self,
+                  (hg_init_cond (charX_prev T z, charV_prev T z)).2]
+              · simp [hle])
+            Set.left_mem_Ici
+        have hV_union := hV_left.union hV_right
+        rw [Set.Iic_union_Ici] at hV_union
+        rw [ht_eqT]
+        exact ⟨hX_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt,
+               hV_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt⟩
+      · -- t < T: use mono_of_mem_nhdsWithin to extend to Icc 0 (T + T_0)
+        have ht_ltT : t < T := lt_of_le_of_ne ht_le ht_eqT
+        -- Get Icc 0 T ∈ nhdsWithin t (Icc 0 (T + T_0))
+        have h_mem : Set.Icc (0 : ℝ) T ∈ nhdsWithin t (Set.Icc 0 (T + T_0)) := by
+          rcases eq_or_lt_of_le ht.1 with rfl | ht_pos
+          · exact (nhdsWithin_mono 0 Set.Icc_subset_Ici_self) (Icc_mem_nhdsGE hT_pos)
+          · exact mem_nhdsWithin_of_mem_nhds (Icc_mem_nhds ht_pos ht_ltT)
+        -- Upgrade HasDerivWithinAt from Icc 0 T to Icc 0 (T + T_0)
+        have hX_big := h_bX.mono_of_mem_nhdsWithin h_mem
+        have hV_big := h_bV.mono_of_mem_nhdsWithin h_mem
+        -- Congr: charX_next = charX_prev on Icc 0 T (within Icc 0 (T+T_0))
+        have hX_ev : (fun s => if s ≤ T then charX_prev s z
+              else charX_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhdsWithin t (Set.Icc 0 (T + T_0))] (charX_prev · z) :=
+          Filter.Eventually.mono h_mem (fun s hs => by simp [hs.2])
+        have hV_ev : (fun s => if s ≤ T then charV_prev s z
+              else charV_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhdsWithin t (Set.Icc 0 (T + T_0))] (charV_prev · z) :=
+          Filter.Eventually.mono h_mem (fun s hs => by simp [hs.2])
+        -- f_next t = f_prev t, so marginals match
+        have hfnext : f_next t = f_prev t := if_pos ht_le
+        have hfnext_spat : spatialMarginal (f_next t) = spatialMarginal (f_prev t) :=
+          congrArg spatialMarginal hfnext
+        rw [← hfnext_spat] at hV_big
+        constructor
+        · exact hX_big.congr_of_eventuallyEq_of_mem hX_ev ht
+        · exact hV_big.congr_of_eventuallyEq_of_mem hV_ev ht
+    · -- T < t: use hg_boundary + chain rule
+      push_neg at ht_le
+      simp only [if_neg (not_le.mpr ht_le)]
+      have htT_mem : t - T ∈ Set.Icc (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
+      have h_bdry_gX := (hg_boundary (charX_prev T z, charV_prev T z) (t - T) htT_mem).1
+      have h_bdry_gV := (hg_boundary (charX_prev T z, charV_prev T z) (t - T) htT_mem).2
+      by_cases ht_ltTT0 : t < T + T_0
+      · -- t ∈ Ioo T (T + T_0): interior case, use HasDerivAt + congr
+        have htT_Ioo : t - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith⟩
+        have hX_da := h_bdry_gX.hasDerivAt (Icc_mem_nhds htT_Ioo.1 htT_Ioo.2)
+        have hV_da := h_bdry_gV.hasDerivAt (Icc_mem_nhds htT_Ioo.1 htT_Ioo.2)
+        have h_sub : HasDerivAt (· - T) 1 t := (hasDerivAt_id' t).sub_const T
+        have h_chainX : HasDerivAt (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
+            (charV_g (t - T) (charX_prev T z, charV_prev T z)) t := by
+          have := HasDerivAt.scomp_of_eq t hX_da h_sub rfl
+          simpa [Function.comp, one_smul] using this
+        have h_chainV : HasDerivAt (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
+            (-(convolveFunctionMeasure gradW
+              (spatialMarginal (g (t - T)))
+              (charX_g (t - T) (charX_prev T z, charV_prev T z)))) t := by
+          have := HasDerivAt.scomp_of_eq t hV_da h_sub rfl
+          simpa [Function.comp, one_smul] using this
+        -- f_next t = g (t - T), so marginals match
+        have h_fnext_t : f_next t = g (t - T) := if_neg (not_le.mpr ht_le)
+        rw [← congrArg spatialMarginal h_fnext_t] at h_chainV
+        -- piecewise = charX_g (· - T) (charX_prev T z, charV_prev T z) near t (since T < t)
+        have h_ev_gt : ∀ᶠ s in nhds t, T < s := eventually_gt_nhds ht_le
+        have hX_ev : (fun s => if s ≤ T then charX_prev s z
+              else charX_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhds t] (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z)) :=
+          Filter.Eventually.mono h_ev_gt (fun s hs => by simp [not_le.mpr hs])
+        have hV_ev : (fun s => if s ≤ T then charV_prev s z
+              else charV_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhds t] (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z)) :=
+          Filter.Eventually.mono h_ev_gt (fun s hs => by simp [not_le.mpr hs])
+        exact ⟨(h_chainX.congr_of_eventuallyEq hX_ev).hasDerivWithinAt,
+               (h_chainV.congr_of_eventuallyEq hV_ev).hasDerivWithinAt⟩
+      · -- t = T + T_0: endpoint, use mono_of_mem_nhdsWithin + chain rule + mono
+        push_neg at ht_ltTT0
+        have htT0 : t = T + T_0 := le_antisymm ht.2 ht_ltTT0
+        rw [show t - T = T_0 from by linarith] at h_bdry_gX h_bdry_gV
+        -- Upgrade to Iic T_0 via Icc_mem_nhdsLE
+        have h_nhd_LE : Set.Icc 0 T_0 ∈ nhdsWithin T_0 (Set.Iic T_0) := Icc_mem_nhdsLE hT_0_pos
+        have hX_Lic := h_bdry_gX.mono_of_mem_nhdsWithin h_nhd_LE
+        have hV_Lic := h_bdry_gV.mono_of_mem_nhdsWithin h_nhd_LE
+        -- Chain rule: (· - T) maps Iic (T + T_0) to Iic T_0
+        have h_sub_LE : HasDerivWithinAt (· - T) 1 (Set.Iic (T + T_0)) (T + T_0) :=
+          ((hasDerivAt_id' (T + T_0)).sub_const T).hasDerivWithinAt.mono
+            (fun _ _ => Set.mem_univ _)
+        have h_mapLE : Set.MapsTo (· - T) (Set.Iic (T + T_0)) (Set.Iic T_0) :=
+          fun s hs => Set.mem_Iic.mpr (by linarith [Set.mem_Iic.mp hs])
+        have h_chainX : HasDerivWithinAt
+            (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
+            (charV_g T_0 (charX_prev T z, charV_prev T z)) (Set.Iic (T + T_0)) (T + T_0) := by
+          have := HasDerivWithinAt.scomp_of_eq (T + T_0) hX_Lic h_sub_LE h_mapLE
+            (show T_0 = (T + T_0) - T by ring)
+          simpa [Function.comp, one_smul] using this
+        have h_chainV : HasDerivWithinAt
+            (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
+            (-(convolveFunctionMeasure gradW
+              (spatialMarginal (g T_0))
+              (charX_g T_0 (charX_prev T z, charV_prev T z))))
+            (Set.Iic (T + T_0)) (T + T_0) := by
+          have := HasDerivWithinAt.scomp_of_eq (T + T_0) hV_Lic h_sub_LE h_mapLE
+            (show T_0 = (T + T_0) - T by ring)
+          simpa [Function.comp, one_smul] using this
+        -- Congr: near T+T_0 within Iic (T+T_0), points > T eventually
+        have h_ev_gt2 : ∀ᶠ s in nhdsWithin (T + T_0) (Set.Iic (T + T_0)), T < s :=
+          (eventually_gt_nhds (show T < T + T_0 by linarith)).filter_mono nhdsWithin_le_nhds
+        have hX_ev2 : (fun s => if s ≤ T then charX_prev s z
+              else charX_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhdsWithin (T + T_0) (Set.Iic (T + T_0))]
+            (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z)) :=
+          Filter.Eventually.mono h_ev_gt2 (fun s hs => by simp [not_le.mpr hs])
+        have hV_ev2 : (fun s => if s ≤ T then charV_prev s z
+              else charV_g (s - T) (charX_prev T z, charV_prev T z))
+            =ᶠ[nhdsWithin (T + T_0) (Set.Iic (T + T_0))]
+            (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z)) :=
+          Filter.Eventually.mono h_ev_gt2 (fun s hs => by simp [not_le.mpr hs])
+        have h_Iic_sub : Set.Icc 0 (T + T_0) ⊆ Set.Iic (T + T_0) := Set.Icc_subset_Iic_self
+        have h_TT0_Iic : (T + T_0) ∈ Set.Iic (T + T_0) := Set.mem_Iic.mpr (le_refl _)
+        -- f_next (T + T_0) = g T_0
+        have h_fnext_TT0 : f_next (T + T_0) = g T_0 := by
+          simp [f_next, not_le.mpr (show T < T + T_0 by linarith)]
+        constructor
+        · have h_cX : HasDerivWithinAt
+              (fun s => if s ≤ T then charX_prev s z
+                else charX_g (s - T) (charX_prev T z, charV_prev T z))
+              (charV_g T_0 (charX_prev T z, charV_prev T z))
+              (Set.Icc 0 (T + T_0)) (T + T_0) :=
+            (h_chainX.congr_of_eventuallyEq_of_mem hX_ev2 h_TT0_Iic).mono h_Iic_sub
+          rw [htT0]
+          rw [show T + T_0 - T = T_0 from by ring]
+          exact h_cX
+        · have h_cV : HasDerivWithinAt
+              (fun s => if s ≤ T then charV_prev s z
+                else charV_g (s - T) (charX_prev T z, charV_prev T z))
+              (-(convolveFunctionMeasure gradW
+                (spatialMarginal (g T_0))
+                (charX_g T_0 (charX_prev T z, charV_prev T z))))
+              (Set.Icc 0 (T + T_0)) (T + T_0) :=
+            (h_chainV.congr_of_eventuallyEq_of_mem hV_ev2 h_TT0_Iic).mono h_Iic_sub
+          rw [htT0]
+          rw [h_fnext_TT0]
+          rw [show T + T_0 - T = T_0 from by ring]
+          exact h_cV
   · -- Conjunct (viii): initial condition for charX_next charV_next
     intro z
     simp only [charX_next, charV_next, if_pos hT_pos.le]
