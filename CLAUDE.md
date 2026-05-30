@@ -631,6 +631,42 @@ the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
 
+* **Boundary regularity at predicate-layer boundaries — recursive
+  Friction-5 surgery**: 2 sightings (Friction 5 itself in commit
+  `4b024ee` + `_glue_step` boundary diagnostic in commit `eb3c260`,
+  2026-05-30).  Diagnostic: predicates that work on open or half-
+  open intervals (`Ioo 0 T`, `Ico 0 T`) don't cover the boundary
+  point `t = T`, but downstream consumers (gluing, continuation,
+  conjunct wire-up) need data at the boundary.  The Friction-5-style
+  enrichment is the canonical fix: enrich the predicate's
+  conclusion to expose boundary data (HasDerivWithinAt at the
+  endpoints), propagate through producers, downstream consumers
+  compose against the enriched form.
+
+  **Both sightings have the same surgery shape**:
+  1. Identify a downstream consumer needing boundary data
+     (Phi_step for original Friction 5; `_glue_step` for the 2026-
+     05-30 sighting).
+  2. Identify the upstream producer chain whose internal proofs
+     already construct the boundary regularity but discard it
+     (per-ball flow → per-z → Stage 1.9 for Friction 5;
+     `_finalAssembly_isLagrangian` → `vlasovWellPosedness_local`
+     for this session).
+  3. Enrich the producer chain's conclusion to expose the boundary
+     bundle as an additional conjunct.
+  4. Downstream consumer destructures the bundle and closes the
+     boundary cases.
+
+  Both surgeries are additive (no closed proof bodies modified) and
+  retire multiple sub-sub-sorries in one swing.
+
+  **At threshold for B-series promotion** (2 sightings ≥ the
+  promotion threshold).  Next sighting (or the next doc turn,
+  whichever comes first) should promote as B2 — companion to B1
+  (predicate enrichment over per-site bridging).  The two patterns
+  are closely related: B1 says "enrich predicates rather than
+  add bridges"; this B2 candidate is the specific shape of B1 for
+  the `Ioo`-vs-`Icc` boundary case.
 * **Cascade-as-signal**: 1 sighting (Stage 4 Bridge #1 →
   Friction 5 discovery).  Diagnostic: "resolving friction N
   requires infrastructure that's currently blocked by friction
