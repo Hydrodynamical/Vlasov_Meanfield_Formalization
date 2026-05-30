@@ -7288,7 +7288,72 @@ theorem vlasovWellPosedness_universal_existence
       IsLagrangianVlasovSolution gradW f ∧
       (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f t)) := by
-  sorry
+  -- Step 1. For each n : ℕ, choose a solution on [0, n+1] via Stage 5.
+  -- h_fwd_exists n gives ∃ g, g 0 = f₀ ∧ (moment on [0,n+1]) ∧ IsLagrangianVlasovSolutionOn n+1
+  have h_fwd_exists : ∀ n : ℕ,
+      ∃ g : ℝ → Measure (PhaseSpace d),
+        g 0 = f₀ ∧
+        (∀ t ∈ Set.Icc (0 : ℝ) ((n : ℝ) + 1), HasFiniteFirstMoment (g t)) ∧
+        IsLagrangianVlasovSolutionOn gradW g ((n : ℝ) + 1) := by
+    intro n
+    exact vlasovWellPosedness_forward W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
+      (by positivity : (0 : ℝ) < (n : ℝ) + 1)
+  -- Step 2. Pick canonical per-n solutions via Classical.choice.
+  let sol : ℕ → ℝ → Measure (PhaseSpace d) :=
+    fun n => Classical.choose (h_fwd_exists n)
+  have h_sol_init : ∀ n : ℕ, sol n 0 = f₀ :=
+    fun n => (Classical.choose_spec (h_fwd_exists n)).1
+  have h_sol_mom : ∀ n : ℕ, ∀ t ∈ Set.Icc (0 : ℝ) ((n : ℝ) + 1),
+      HasFiniteFirstMoment (sol n t) :=
+    fun n => (Classical.choose_spec (h_fwd_exists n)).2.1
+  have h_sol_lag : ∀ n : ℕ, IsLagrangianVlasovSolutionOn gradW (sol n) ((n : ℝ) + 1) :=
+    fun n => (Classical.choose_spec (h_fwd_exists n)).2.2
+  -- Step 3. Agreement on overlaps via Stage 8 (uniqueness, sorry'd body).
+  -- Sub-sub-sorry (A): any two per-n solutions agree on [0, min(n,m)+1].
+  -- This invokes vlasovWellPosedness_uniqueness (Stage 8) whose body is sorry'd;
+  -- the argument is: restrict sol m to [0,(n:ℝ)+1] ⊆ [0,(m:ℝ)+1], both have
+  -- the same initial data f₀, apply uniqueness.
+  have h_agree : ∀ n m : ℕ, n ≤ m →
+      ∀ t ∈ Set.Icc (0 : ℝ) ((n : ℝ) + 1), sol n t = sol m t := by
+    intro n m hnm t ht
+    sorry
+  -- Step 4. Define the universal solution.
+  -- For t ≥ 0: use sol ⌈t⌉₊ at t (indexing by the ceiling of t).
+  -- For t < 0: use f₀ (backward time is sorry'd).
+  let f : ℝ → Measure (PhaseSpace d) :=
+    fun t => if 0 ≤ t then sol (⌈t⌉₊) t else f₀
+  -- Step 5. Prove the four conjuncts.
+  refine ⟨f, ?_, ?_, ?_, ?_⟩
+  -- Conjunct 1: f 0 = f₀
+  · show (if (0 : ℝ) ≤ 0 then sol ⌈(0 : ℝ)⌉₊ 0 else f₀) = f₀
+    simp [h_sol_init 0]
+  -- Conjunct 2: ∀ t, HasFiniteFirstMoment (f t)
+  · intro t
+    show HasFiniteFirstMoment (if 0 ≤ t then sol ⌈t⌉₊ t else f₀)
+    by_cases ht : 0 ≤ t
+    · simp only [ht, ↓reduceIte]
+      -- t ≥ 0: use h_sol_mom with n = ⌈t⌉₊, which covers [0, ⌈t⌉₊ + 1] ⊇ {t}.
+      apply h_sol_mom (⌈t⌉₊) t
+      constructor
+      · exact ht
+      · -- t ≤ ⌈t⌉₊ + 1
+        exact le_trans (Nat.le_ceil t) (by push_cast; linarith)
+    · simp only [ht, ↓reduceIte]
+      -- t < 0: f t = f₀, which has finite first moment
+      exact hf₀
+  -- Conjunct 3: IsLagrangianVlasovSolution gradW f
+  · -- Sub-sub-sorry (B): universal-in-t Vlasov solution from per-window solutions.
+    -- The IsVlasovSolution (weak PDE) part requires gluing across all windows;
+    -- the IsCharacteristicFlow part requires a universal flow defined for all t.
+    -- Forward time: compose from per-n IsLagrangianVlasovSolutionOn via h_agree.
+    -- Backward time: sorry.
+    sorry
+  -- Conjunct 4: narrow continuity
+  · -- Sub-sub-sorry (C): t ↦ ∫ g df_t is continuous for bounded continuous g.
+    -- For t ≥ 0: DCT using the moment bound from h_sol_mom + flow Lipschitz.
+    -- For t < 0: f t = f₀ (constant), continuity is trivial.
+    -- The gluing of the two halves requires continuity at t = 0.
+    sorry
 
 -- ---------------------------------------------------------------------------
 -- §10  Marquee theorem (tex: thm:vlasov-wp) — structural completion
