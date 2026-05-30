@@ -6812,6 +6812,124 @@ theorem vlasovWellPosedness_local
       f₀ hf₀_int hT hTL charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
 
+-- ---------------------------------------------------------------------------
+-- §9.5  Stage 5 — variable-`T_target` continuation via fixed-`T_0` iteration
+-- ---------------------------------------------------------------------------
+-- Composes `vlasovWellPosedness_local` against itself to extend the local
+-- solution from `[0, T_0]` to `[0, T_target]` for any `T_target > 0`.  The
+-- contraction time `T_0` is *fixed* (depends only on `L`, not on iteration-
+-- accumulated moment bounds) — see the docstring on `vlasovWellPosedness_local`
+-- (above) for the planning-input note on why fixed-`T_0` is the correct
+-- iteration shape (the `Phi_supW1_contraction` factor `q` depends only on
+-- `L` and `T`).
+--
+-- Two API-locked sub-theorems:
+-- * `vlasovWellPosedness_glue_step`: extend a solution on `[0, T]` by one
+--   window of length `T_0`, gluing at `t = T`.  Sorry'd body — load-bearing
+--   gluing argument.
+-- * `vlasovWellPosedness_forward`: `Nat.rec` iteration of `_glue_step`
+--   to reach any `T_target`.  Sorry'd body — induction + bundling.
+--
+-- Stage 6 (below) then bridges from `IsLagrangianVlasovSolutionOn` (any
+-- `T_target`) to `IsLagrangianVlasovSolution` (universal-in-`t`).
+-- Stage 8 produces uniqueness.
+
+/-- **Stage 5 sub-helper**: one-window glue step.
+
+Given a solution `f_prev : ℝ → Measure (PhaseSpace d)` on `[0, T]`
+satisfying the local-existence conjuncts (initial condition + finite first
+moment + `IsLagrangianVlasovSolutionOn`), and a window length `T_0`
+satisfying the smallness constraint `L · (T_0+1)² < 1`, produces a glued
+solution `f_next : ℝ → Measure (PhaseSpace d)` on `[0, T + T_0]` that
+agrees with `f_prev` on `[0, T]`.
+
+**Proof strategy** (sorry'd body, ~150-200 lines for a focused follow-up):
+
+1. Shift the initial condition: apply `vlasovWellPosedness_local` to
+   `f_prev T` (which has finite first moment by `h_prev_mom T`) with
+   window length `T_0`.  Gives a solution `g : ℝ → Measure (PhaseSpace d)`
+   on `[0, T_0]` with `g 0 = f_prev T`.
+
+2. Glue: define `f_next t := if t ≤ T then f_prev t else g (t - T)`.
+   Agreement at `t = T` is by `g 0 = f_prev T`.
+
+3. Verify the four output conjuncts:
+   - Initial: `f_next 0 = f_prev 0 = f₀`.
+   - Moment: piecewise from `h_prev_mom` and `g`'s moment bound.
+   - `IsLagrangianVlasovSolutionOn` on `[0, T + T_0]`:
+     * `IsVlasovSolutionOn`: weak PDE on `Ioo 0 (T + T_0)` — split at `T`,
+       use `h_prev_lag.1` for `Ioo 0 T` part and `g`'s for `Ioo T (T+T_0)`,
+       continuity at `T` from the integral being continuous.
+     * Flow: glue the per-window flows via standard ODE composition
+       (charX_next(t, z) := if t ≤ T then charX_prev(t, z) else
+       charX_g(t - T, (charX_prev(T, z), charV_prev(T, z)))).
+     * Pushforward equation: holds piecewise.
+     * AEMeasurable witness: composition of AEMeasurable maps. -/
+theorem vlasovWellPosedness_glue_step
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀)
+    {T : ℝ} (hT_pos : 0 < T)
+    (f_prev : ℝ → Measure (PhaseSpace d))
+    (h_prev_init : f_prev 0 = f₀)
+    (h_prev_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f_prev t))
+    (h_prev_lag : IsLagrangianVlasovSolutionOn gradW f_prev T)
+    {T_0 : ℝ} (hT_0_pos : 0 < T_0)
+    (hT_0_small : (L : ℝ) * (T_0 + 1) ^ 2 < 1) :
+    ∃ f_next : ℝ → Measure (PhaseSpace d),
+      (∀ t ∈ Set.Icc (0 : ℝ) T, f_next t = f_prev t) ∧
+      f_next 0 = f₀ ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), HasFiniteFirstMoment (f_next t)) ∧
+      IsLagrangianVlasovSolutionOn gradW f_next (T + T_0) := by
+  sorry
+
+/-- **Stage 5: forward iteration to arbitrary `T_target`.**
+
+Extends the local-existence theorem from its small-`T` smallness window
+to any `T_target > 0`, by iterating the local theorem with shifted initial
+data at fixed step `T_0 := (1/√L - 1) / 2` (which depends only on `L`).
+
+**Hypothesis change vs `vlasovWellPosedness_local`**: replaces the explicit
+joint smallness `L · (T + 1)² < 1` with the cleaner `L < 1` (which is the
+genuine scope restriction inherited from the per-ball flow's `+1`-buffer
+formulation; M-series watch-list candidate for the post-marquee scope
+upgrade).
+
+**Proof strategy** (sorry'd body, ~80-120 lines):
+
+1. Pick `T_0 := (1/√L - 1) / 2`.  Verify `0 < T_0` (from `L < 1`) and
+   `L · (T_0 + 1)² < 1` (algebraic: equals `(1 + √L)² / 4 < 1` for `L < 1`).
+
+2. Pick `N := ⌈T_target / T_0⌉₊` so that `N · T_0 ≥ T_target`.
+
+3. `Nat.rec` construction: define
+   `f_n : ℕ → {f : ℝ → Measure (PhaseSpace d) // (the four conjuncts hold for T = n·T_0)}`.
+   - Base case (`n = 0` or `n = 1`): apply `vlasovWellPosedness_local` directly.
+   - Step case (`n → n+1`): apply `vlasovWellPosedness_glue_step` to extend.
+
+4. Take `f := f_N` and verify the conjuncts for `T_target ≤ N · T_0` via
+   `IsLagrangianVlasovSolutionOn`'s monotonicity in `T` (project down). -/
+theorem vlasovWellPosedness_forward
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (hL_pos : (0 : ℝ) < L)
+    (hL_lt : (L : ℝ) < 1)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀)
+    {T_target : ℝ} (hT_target : 0 < T_target) :
+    ∃ f : ℝ → Measure (PhaseSpace d),
+      f 0 = f₀ ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t)) ∧
+      IsLagrangianVlasovSolutionOn gradW f T_target := by
+  sorry
+
 /-- (tex: thm:vlasov-wp)
 Existence and uniqueness for the Vlasov equation.
 
