@@ -631,6 +631,49 @@ the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
 
+* **Statement-level mismatches between claimed and proved — the
+  inverse-of-API-lock pattern**: 1 sighting (forward-only refactor
+  in commit `de135c7`, 2026-05-30).  Diagnostic: when proving a
+  theorem requires significant case structure for edge cases that
+  aren't part of the mathematical content (here, the `t < 0`
+  backward-time case for a forward Cauchy problem), the statement
+  is probably too strong, and tightening the *external* statement
+  is the right fix rather than building proof machinery for the
+  unnecessary cases.  This is the inverse of the API-lock pattern
+  (P4): API-lock loosens *internal* interfaces to allow incremental
+  closure; statement-correction tightens the *external* interface
+  to match what the proof actually produces.
+
+  **Empirical evidence**: the marquee theorem `vlasovWellPosedness`
+  was originally stated as `∃! f : ℝ → Measure (PhaseSpace d), ...`
+  with universal-in-`t` conjuncts.  The proof's content (forward
+  Picard iteration from `t = 0`) only establishes forward-time
+  existence.  The mismatch required ~30 lines of sub-sub-sorried
+  case-split machinery in the marquee body to "handle" `t < 0` —
+  machinery that wasn't actually proving anything.  The refactor
+  restated the marquee to forward-only existence (`∃ f, f 0 = f₀
+  ∧ ∀ t ∈ Ici 0, ... ∧ ∀ T > 0, IsLagrangianVlasovSolutionOn ...`),
+  matching Dobrushin 1979's actual claim, and the case-split
+  machinery disappeared along with the corresponding sub-sub-sorry.
+
+  **Adds a new metric axis** (per the 2026-05-30 strategic message):
+  "statement correctness" — distinct from declaration count and
+  sub-sub-sorry count.  A statement-correctness improvement doesn't
+  move sorry-count metrics but is genuine research-artifact value,
+  worth foregrounding in the cleanup document as evidence that the
+  formalization surfaced and corrected a statement-mathematical-
+  content mismatch.
+
+  **General principle**: when an `∃!` (or universal-in-`t`)
+  conclusion forces case structure for cases not in the
+  mathematical content, replace `∃!` with `∃` and restrict the
+  quantification to the domain the proof actually covers.  The
+  inverse of "enrich the predicate" (B1) — here we *restrict*
+  the predicate.
+
+  Probably M-series rather than P or B — about the mathematics of
+  correctly stating theorems, not about process discipline or
+  architectural patterns.  Trigger: 2 more sightings.
 * **Boundary regularity at predicate-layer boundaries — recursive
   Friction-5 surgery**: 2 sightings (Friction 5 itself in commit
   `4b024ee` + `_glue_step` boundary diagnostic in commit `eb3c260`,
