@@ -410,6 +410,62 @@ tactical problem*.  The combination of P1 + P2 makes structural
 issues visible early — before 200+ lines of bridges have been
 written and need to be reverted.
 
+### P3. Diagnostic work in one session loads context for targeted execution in the next
+
+**Failure mode**: when a session attempts substantive surgery at
+the tail end of its budget without prior diagnostic work having
+been committed in a previous session, the surgery typically
+converts to documentation rather than landing — the session
+spends its remaining budget discovering the closure path rather
+than executing it.  Repeated across sessions, this produces a
+slow-converging "documentation-then-revert" oscillation.  Inverse
+failure mode: treating prior-session documentation commits as
+"lost productivity" rather than "loaded context."
+
+**Empirical confirmation** (three sightings):
+
+1. Stage 1.7 reparameterization (commit `c00ba3b`): the per-ball
+   flow lift came in at ~30 lines instead of the planned ~150
+   because prior sessions' signature reading had identified the
+   re-parameterization path.  Tail-end execution successful
+   because the diagnostic work had been done.
+2. Stage 2c DCT close: the
+   `tendsto_integral_filter_of_dominated_convergence` invocation
+   landed cleanly because preceding sketches identified the exact
+   DCT-with-filters form.  Tail-end execution successful because
+   the API selection had been pre-loaded.
+3. Friction 5 close (commit `4b024ee`, this session): substantive
+   surgery landed in tail-end budget because the prior session's
+   documentation commit (`aec468b`) had precisely identified the
+   surgery path (the per-ball flow's `h_d_within` internal
+   construction at L1892-1907, L1916-1922 and the conversion idiom
+   `nhdsWithin 0 (Icc 0 T) = nhdsWithin 0 (Ici 0)`), refined by
+   this session's `+1` analysis adding strategic weight.
+
+**Contrast — the failure mode**: two preceding sessions attempted
+tail-end substantive closes on Friction 5 *without* the diagnostic
+documentation in place; both converted to documentation rather
+than landing.  Only the third attempt — with the documented
+surgery path pre-loaded — succeeded.
+
+**Fix**: when a substantive surgery cannot land in the current
+session's remaining budget, commit the diagnostic conclusion as
+focused documentation (the precise surgery path, the API atoms
+involved, the elaboration idioms required) so the next session
+can execute against the loaded context rather than re-discovering.
+Conversely: at the start of a session intending substantive
+surgery, look for and read prior documentation commits naming
+the surgery path before drafting a fresh approach.
+
+**Generalisation**: P1 is "atom-level signature reading within a
+session before drafting helpers"; P3 is the cross-session
+companion — diagnostic documentation accumulates as
+session-spanning loaded context, with the empirical effect that
+tail-end execution of documented surgery is achievable in
+contrast to tail-end discovery-of-surgery being unreliable.  The
+pattern makes the discipline framework's productivity compound
+across sessions rather than reset each session.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
