@@ -6946,7 +6946,30 @@ theorem vlasovWellPosedness_forward
   -- Sub-sorry (a): L·(T_0+1)² < 1.  Algebraic: T_0+1 = (1/√L+1)/2, so
   -- L·(T_0+1)² = L·(1/√L+1)²/4 = (1+√L)²/4 < 1 since √L < 1.
   have hTL_T0 : (L : ℝ) * (T_0 + 1) ^ 2 < 1 := by
-    sorry
+    have hs_ne : Real.sqrt (L : ℝ) ≠ 0 := ne_of_gt hsqrtL_pos
+    have hs_eq : (Real.sqrt (L : ℝ)) ^ 2 = (L : ℝ) := Real.sq_sqrt hL_nn
+    -- T_0 + 1 = (1 + √L) / (2 · √L).
+    have hT0_plus_1 : T_0 + 1 = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ)) := by
+      show (1 / Real.sqrt (L : ℝ) - 1) / 2 + 1
+          = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ))
+      field_simp
+      ring
+    -- L · (T_0 + 1)² = (1 + √L)² / 4.
+    have key : (L : ℝ) * (T_0 + 1) ^ 2 = (1 + Real.sqrt (L : ℝ)) ^ 2 / 4 := by
+      rw [hT0_plus_1, div_pow]
+      have h_sq_denom : (2 * Real.sqrt (L : ℝ)) ^ 2 = 4 * (L : ℝ) := by
+        rw [mul_pow]
+        rw [hs_eq]
+        ring
+      rw [h_sq_denom]
+      field_simp
+    rw [key]
+    -- (1 + √L)² / 4 < 1 ⟺ (1 + √L)² < 4, which follows from √L < 1.
+    have h_lt : (1 + Real.sqrt (L : ℝ)) ^ 2 < 4 := by
+      have h_sum_lt2 : 1 + Real.sqrt (L : ℝ) < 2 := by linarith
+      have h_sum_nn : 0 ≤ 1 + Real.sqrt (L : ℝ) := by positivity
+      nlinarith [h_sum_lt2, h_sum_nn]
+    linarith
   -- Step 2: N = ⌈T_target / T_0⌉₊ windows of size T_0 cover T_target.
   let N : ℕ := ⌈T_target / T_0⌉₊
   have hN_pos : 0 < N := by
