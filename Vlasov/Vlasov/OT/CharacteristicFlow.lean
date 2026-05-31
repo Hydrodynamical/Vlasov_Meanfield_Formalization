@@ -7352,11 +7352,77 @@ theorem vlasovWellPosedness_glue_step
                 rw [add_zero, h_marg, h_fnext_t']
                 exact h_chain.congr_of_eventuallyEq h_ev
             -- Step 2: ContinuousAt of integral function at T.
-            -- Sub-sorry (focused leaf): narrow continuity via DCT on pushforward equation.
-            -- Mirrors Stage 6 narrow continuity at L8265-8294.  ~100-150 lines (both sides
-            -- via piecewise pushforward chain). Discharged in focused follow-up.
-            have h_cont_f : ContinuousAt (fun s => ∫ z, φ z ∂f_next s) T := by
+            -- Decomposed into LEFT (Iic T) substantive close + RIGHT (Ici T) focused leaf
+            -- + union via `Iic_union_Ici = univ`.  Mirrors Stage 6 narrow continuity at
+            -- L8265-8294.
+            have hφ_cont : Continuous φ := hφ_smooth.continuous
+            obtain ⟨Cφ, hCφ⟩ := hφ_cont.bounded_above_of_compact_support hφ_compact
+            obtain ⟨hf₀_prob, hf₀_int⟩ := hf₀
+            haveI : IsProbabilityMeasure f₀ := hf₀_prob
+            -- LEFT side: substantive close via DCT on f_prev's pushforward.
+            have h_cont_f_left : ContinuousWithinAt (fun s => ∫ z, φ z ∂f_next s)
+                (Set.Iic T) T := by
+              have h_nhd_L : Set.Icc (0 : ℝ) T ∈ nhdsWithin T (Set.Iic T) :=
+                Icc_mem_nhdsLE hT_pos
+              -- Equation: f_next = f_prev = pushforward of f₀ on Icc 0 T
+              have h_eq_L : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhdsWithin T (Set.Iic T)]
+                  (fun s => ∫ z, φ (charX_prev s z, charV_prev s z) ∂f₀) := by
+                apply Filter.Eventually.mono h_nhd_L
+                intro s hs
+                show ∫ z, φ z ∂f_next s = ∫ z, φ (charX_prev s z, charV_prev s z) ∂f₀
+                have h_fnext : f_next s = f_prev s := if_pos hs.2
+                have h_aemeas_f₀ : AEMeasurable
+                    (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                  h_prev_init ▸ h_prev_aemeas s hs
+                rw [h_fnext, h_prev_push s hs, h_prev_init]
+                exact integral_map h_aemeas_f₀ hφ_cont.aestronglyMeasurable
+              -- DCT for the pushforward-composed form
+              have h_cont_pf : ContinuousWithinAt
+                  (fun s => ∫ z, φ (charX_prev s z, charV_prev s z) ∂f₀) (Set.Iic T) T := by
+                apply continuousWithinAt_of_dominated (bound := fun _ => Cφ)
+                · apply Filter.Eventually.mono h_nhd_L
+                  intro s hs
+                  have h_pair_aem : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                    h_prev_init ▸ h_prev_aemeas s hs
+                  exact (hφ_cont.measurable.comp_aemeasurable h_pair_aem).aestronglyMeasurable
+                · apply Filter.Eventually.mono h_nhd_L
+                  intro s _
+                  exact Filter.Eventually.of_forall fun z => hCφ _
+                · exact integrable_const _
+                · apply Filter.Eventually.of_forall
+                  intro z
+                  have hT_Icc : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+                  have h_bX := (h_prev_boundary z T hT_Icc).1
+                  have h_bV := (h_prev_boundary z T hT_Icc).2
+                  have h_pair_Icc : ContinuousWithinAt
+                      (fun s => (charX_prev s z, charV_prev s z)) (Set.Icc 0 T) T :=
+                    h_bX.continuousWithinAt.prodMk h_bV.continuousWithinAt
+                  have h_pair_Iic : ContinuousWithinAt
+                      (fun s => (charX_prev s z, charV_prev s z)) (Set.Iic T) T :=
+                    h_pair_Icc.mono_of_mem_nhdsWithin h_nhd_L
+                  exact hφ_cont.continuousAt.comp_continuousWithinAt h_pair_Iic
+              -- Value at T: bridge via the pushforward formula
+              have h_val_T : (∫ z, φ z ∂f_next T)
+                  = ∫ z, φ (charX_prev T z, charV_prev T z) ∂f₀ := by
+                have hT_Icc : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+                have h_fnext_T : f_next T = f_prev T := if_pos (le_refl T)
+                have h_aemeas_f₀_T : AEMeasurable
+                    (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ :=
+                  h_prev_init ▸ h_prev_aemeas T hT_Icc
+                rw [h_fnext_T, h_prev_push T hT_Icc, h_prev_init]
+                exact integral_map h_aemeas_f₀_T hφ_cont.aestronglyMeasurable
+              exact h_cont_pf.congr_of_eventuallyEq h_eq_L h_val_T
+            -- RIGHT side: sorry'd focused leaf (~80 lines, symmetric structure but with
+            -- charX_g ∘ (charX_prev T, ·) chain + hg_init_cond bridge at the boundary).
+            have h_cont_f_right : ContinuousWithinAt (fun s => ∫ z, φ z ∂f_next s)
+                (Set.Ici T) T := by
               sorry
+            -- Combine via union
+            have h_cont_f : ContinuousAt (fun s => ∫ z, φ z ∂f_next s) T := by
+              have h_union := h_cont_f_left.union h_cont_f_right
+              rw [Set.Iic_union_Ici] at h_union
+              exact h_union.continuousAt Filter.univ_mem
             -- Step 3: ContinuousAt of derivative function at T.
             -- Sub-sorry (focused leaf): the integrand involves the convolution
             -- `convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1` which
