@@ -408,6 +408,89 @@ as a substantive Phase 2-4 close target.
 **Decision pending**: Option C vs deferral.  Strategic conversation at
 next session open should resolve this.
 
+---
+
+## Phase 3 Session 3 outcomes (2026-05-31)
+
+**User decision on item 1**: Defer to Phase 4 (user message:
+"On item 1: Defer Phase 4. Continue.").  Item 1 stays as sorry'd
+composition with `_picard_fixedPointFlow`'s `h_aemeas_out` still a
+Phase 2-4 close target.
+
+**Item 4 (`w1ContOn_lscNarrow_via_pureFA`) substantively closed via
+API-lock decomposition pattern (P4)**.  Sorry trajectory: 15 → 15
+(net 0; one body close + one new sub-placeholder).
+
+**Mechanism**: rather than absorbing the smooth-CS → BC narrow-continuity
+extension into item 4's body (~60-100 lines of mollifier + truncation
+argument requiring Mathlib infrastructure the project doesn't have), the
+extension step is decomposed into a new pure-FA sub-placeholder
+`MathlibTODO_bcNarrowFromSmoothCompactNarrow` (Bucket-1 Mathlib-extension
+scope).  Item 4's body becomes a clean 4-step orchestration:
+1. Extract `IsProbabilityMeasure` from `HasFiniteFirstMoment`.
+2. Smooth-CS narrow continuity via `W1ContOn_integralContAt` (project's
+   existing helper, routes through `IsVlasovSolution.WeakEvolutionEq`).
+3. Extend smooth-CS → BC via new `MathlibTODO_bcNarrowFromSmoothCompactNarrow`.
+4. Apply pure-FA `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`.
+
+**Structural improvement vs sorry-count**: declaration sorry count
+unchanged (15 → 15), but the actual deferred mathematical work is now
+named explicitly as a Bucket-1 pure-FA target with its own docstring,
+proof sketch, and Mathlib-PR scoping.  The Vlasov composition body is
+visible as orchestration rather than absorbing-the-difficulty.  This is
+the API-lock pattern (P4) operating at the sub-placeholder level: the
+composition's interface is closed, the substantive close work is
+identified as a distinct, smaller, Bucket-1-correctly-scoped unit.
+
+**Reorder note**: as part of this session, `W1ContOn_integralContAt`
+(Basic.lean) was moved from after the LSC/USC placeholders to before
+them, so item 4's body can consume it without forward-reference.
+
+**Phase 3 progress after this session**:
+* Items closed: 2 (item 2 substantively in Session 2; item 4 via
+  API-lock decomposition in this session).
+* Items deferred to Phase 4: 1 (item 1).
+* Items remaining for Phase 3: 3 (items 3, 5, 6).
+* Sorry trajectory: 16 → 15 (Session 2) → 15 (this session; +1 new
+  pure-FA sub-placeholder, -1 item 4 body).
+
+**Lessons compounding from this session**:
+* **P5** (discipline framework's pattern-extrapolation needs atom-level
+  verification): the prior session's brief identified item 4 as the
+  "next independent target" but P1 atom-level reading revealed
+  substantive close requires ~60-100 lines of mollifier infrastructure.
+  Without P5, would have attempted inline close and likely produced a
+  P2 cascade or budget overrun.
+* **P4** (API-lock-vs-substantive-proof): the API-lock pattern
+  generalizes from "theorem-level signature lock + sorry'd body" to
+  "composition-body close via sub-placeholder decomposition."  The
+  underlying principle is the same: separate interface stabilization
+  from substantive proof discharge.
+* **B1** (predicate enrichment over per-site bridging) generalizes
+  symmetrically: when a composition's body would absorb substantial
+  pure-FA infrastructure, decompose by naming the pure-FA step as a
+  sub-placeholder.  This is the "extract-an-abstraction" move at the
+  proof-body level (vs B1's at the predicate level).
+
+**Next-session brief**:
+* Items 5 and 6 share the same shape (both need IsLagrangianVlasovSolution
+  upgrade for pushforward extraction; both compose against
+  Lagrangian-pushforward pure-FA placeholders).  Same architectural
+  question as item 1 (Lagrangian-upgrade through consumer chain).
+  Per the item 1 deferral pattern, items 5+6 likely also defer to
+  Phase 4 unless a sub-placeholder decomposition similar to item 4 is
+  available.
+* Item 3 (`dobrushin_uniqueness_On`): depends on item 6's substantive
+  close OR on a sub-placeholder decomposition.  Plausibly also defers.
+* **Phase 3 endpoint estimate revised**: items 2 + 4 closed (2 of 6);
+  items 1, 5, 6 deferred to Phase 4 architectural swing; item 3 deferred
+  pending item 6 status.  Realistic Phase 3 endpoint: 2 of 6
+  substantively closed via Phase 3 mechanics; 4 of 6 reclassified to
+  Phase 4 architectural work.
+* Phase B sequencing (cleanup-first) becomes more attractive: the
+  Phase 4 architectural swing (Lagrangian-upgrade cascade) is a clear
+  load-bearing decision worth documenting before more piecemeal work.
+
 **Phase 3 Session 2 deliverable summary**:
 * Item 2 closed substantively (sorry 16 → 15).
 * Item 1 atom-level analysis revealed deeper cascade; deferred.
