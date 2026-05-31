@@ -1139,3 +1139,140 @@ Per the refinements above, the opening reads are reordered:
    L6495 q-redefinition is required first.
 
 Decide commit count at structural-rework time, not at session start.
+
+---
+
+## Stage 2b sequencing decision and process-audit signals (2026-05-31)
+
+After the diagnostic addendums of commits `f38ba8b` and `16ea5ed`, two
+candidates surfaced for the next execution session: the loaded
+soundness fix (Stage 2b part 3 execution) or the separation lemma
+(`wasserstein1_eq_zero_iff_measure_eq_of_prob`).  User direction
+2026-05-31: soundness-first, locked, with reasoning that taught three
+process-audit signals worth capturing in the notes (not just the
+transcript) — particularly the third, which generalizes past this
+project.
+
+### The decision
+
+**Stage 2b part 3 execution next session.**  Separation lemma
+immediately after — but only after, not in place of.
+
+### Observation 1 + boundary caveat — bound as a single rule
+
+**Rule**: when sequencing among **ready** tasks, a decaying task goes
+before a delay-invariant task.  Decay-asymmetry strictly dominates
+compounding-asymmetry as a sequencing signal among the ready set.
+Compounding-payoff arguments are arguments for "do this *soon*," not
+"do this *first*" — they are not symmetric claims on the next-session
+slot with decay-arguments.
+
+**Boundary**: the rule applies *among ready tasks*.  A decaying task
+that turns out blocked yields to a ready one — that's not a defection
+from the rule, it's the rule's ready-condition.  L6495 is the specific
+gate that determines which case we're in for the soundness fix.  If
+L6495 reads as a de-conflation prerequisite that is not yet scoped
+enough to execute, the soundness fix is genuinely blocked rather than
+merely unappealing, and the separation lemma legitimately takes its
+slot.  This is decision-after-the-read, not decision-from-appeal.
+
+**What this rule does NOT say**: "always do the soundness fix first
+no matter what."  Hardening it into an unconditional priority would
+recreate the kind of overgeneralized constraint this whole arc has
+been teaching distrust of.  The conditional structure is the rule;
+the L6495 read is the discriminator.
+
+### Observation 2 — appeal-asymmetry as risk gradient
+
+**Pattern**: when two tasks compete for the same slot, the appeal
+asymmetry between them is itself a risk-relevant signal.  A clean
+banked-export task is appealing in a way an audit-and-rework grind is
+not; that gradient is the slope along which "bank-first, soundness
+next session" silently becomes "soundness the session after that."
+
+**Operational rule**: when one option is appealing and the other isn't,
+weight the unappealing option's case heavier by the magnitude of the
+asymmetry, not lighter.  Appeal pulls scheduling in a direction; the
+sequencing decision should counter-pull when the unappealing task is
+the substantive one.
+
+### Observation 3 — assertion-without-action as defer signal (NOT assertion-frequency)
+
+**Tightened formulation** (per user 2026-05-31 — the bald version
+overcorrects into a new failure mode): the defer-signal is *urgency
+repeatedly asserted without being acted on*, not *repeated urgency*.
+Some tasks genuinely *are* urgent and each session legitimately
+surfaces a new reason to name it.  The discriminating question is not
+"did the urgency claim get mentioned more than once," it's "did the
+urgency claim *do any work* each time, or did I restate it while
+acting on something else."
+
+**Empirical sighting** (this arc): the soundness fix was named as
+time-sensitive three times — at the framing turn (`f38ba8b`'s commit
+body), at the contingency-rules turn (`16ea5ed`'s commit body), and
+at the next-step suggestions turn.  Each individual urgency-naming was
+correct.  The *pattern* across the three was assertion-without-action:
+the three sessions advanced the *scoping* of the fix and not the
+*fix itself*.  The false constraint survived three commits while
+everything around it got more carefully scoped.  That's the
+slow-motion ossification the user named, happening *to the fix itself*
+— the process generated the diagnostic-and-refinement cycle as the
+legitimating mechanism for not executing.
+
+**Why the tightened formulation matters as a promotion candidate**:
+the bald "repeated urgency = defer signal" reading would cause
+second-guessing of genuinely-urgent tasks just because they were
+named twice.  False positives that flag legitimate
+urgency-naming-with-action would be the discipline framework's own
+overcorrection.  The discriminator must be assertion-without-action,
+not assertion-frequency.
+
+**P5 connection (the meta-discipline check)**: at the second sighting
+of this pattern, the discriminator that earns promotion is the same
+discriminator that defines the pattern — was urgency named and
+deferred, or named and addressed.  Don't let this one promote on the
+strength of feeling insightful; it earns M-series / P-series only
+when it correctly flags a *second* defer-without-action and not a
+false positive on a task that was simply named twice.  This is P5
+("verify the framework's own pattern-extrapolations") operating on
+the candidate before it enters the framework — exactly the
+self-referential guard the watch-list discipline requires.
+
+**Watch-list entry**: "assertion-without-action as defer signal" — 1
+sighting (this arc, 2026-05-31).  Promotion-candidate at 2-3
+sightings *each verified against the assertion-without-action
+discriminator*, not the assertion-frequency proxy.  Category to be
+decided at promotion: probably P-series (process discipline) given
+it's a self-audit signal about session-level execution patterns.
+
+### The execution sequence (final form)
+
+1. **Open Stage 2b part 3 execution on L6495**.  Read the q-definition
+   gate.
+2. **If L6495 admits the corrected constraint without de-conflation
+   prerequisite**: proceed with swap + lemma + cosmetic citations +
+   structural reworks + docstring corrections per the triage table
+   above.  Single focused session, or 2-3 commit split per structural-
+   rework difficulty.
+3. **If L6495 reveals a de-conflation prerequisite that's scoped
+   enough to execute this session**: q-redefinition lands first as a
+   prerequisite commit, then the predicate swap follows.  Same session,
+   reordered commit count.
+4. **If L6495 reveals a de-conflation prerequisite that's NOT scoped
+   enough to execute**: the soundness fix is genuinely blocked.  The
+   separation lemma legitimately takes the slot; reassess and open
+   the separation lemma instead.  This is the boundary condition of
+   Observation 1's rule firing.
+
+The L6495 read is the discriminator.  Either branch yields a
+substantive, correctly-ordered session.  No appeal-driven defection
+from the rule possible.
+
+### Forward-look: separation lemma
+
+Bankable whenever attempted.  No decay; no consumer dependency on the
+soundness fix's intermediate state (item 3's close is gated downstream
+of *both*, not between them).  After the soundness fix lands (this
+session or next), the separation lemma is the natural next focused
+unit — same pattern as `wasserstein1_le_of_lipschitz_map`'s banking
+relative to item 6.
