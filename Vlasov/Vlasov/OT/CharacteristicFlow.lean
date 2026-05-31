@@ -2712,15 +2712,17 @@ or apply the pure-FA placeholder directly.
 theorem vlasovTrajectoryLipschitzBound
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
-    (ρ : ℝ → Measure (PhysSpace d))
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (φ : PhaseSpace d → ℝ)
     (hφ_smooth : ContDiff ℝ ⊤ φ)
     (hφ_compact : HasCompactSupport φ)
     (hflow : IsCharacteristicFlow gradW ρ charX charV)
-    (hgradW_cont : Continuous gradW)
-    (hconv_cont : ∀ s, Continuous (fun x =>
+    (_hgradW_cont : Continuous gradW)
+    (_hconv_cont : ∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW (ρ s) x))
     (t : ℝ) :
     ∃ (nhd : Set ℝ) (bound : PhaseSpace d → ℝ),
@@ -2728,7 +2730,27 @@ theorem vlasovTrajectoryLipschitzBound
       (∀ᵐ z ∂f₀, LipschitzOnWith (Real.nnabs (bound z))
         (fun s' => φ (charX s' z, charV s' z)) nhd) ∧
       Integrable bound f₀ := by
-  sorry
+  -- Phase 3 substantive close (closure-plan, 2026-05-31): compose
+  -- `MathlibTODO_lipschitzFlowTrajectoryLipBound` (pure-FA) with the
+  -- Vlasov joint phase-space vector field + flow.
+  -- * b := vlasovVectorField gradW ρ (joint phase-space field; project def).
+  -- * Joint Lipschitz constant: max(1, L) via vlasovVectorField_lipschitzWith.
+  -- * Joint flow: fun t' z => (charX t' z, charV t' z).
+  -- * HasDerivAt for joint flow: prodMk of IsCharacteristicFlow's two
+  --   HasDerivAt clauses; the derivative value matches
+  --   vlasovVectorField gradW ρ t' (charX t' z, charV t' z) by definition.
+  have h_pair_deriv : ∀ (z : PhaseSpace d) (t' : ℝ),
+      HasDerivAt (fun s => ((charX s z, charV s z) : PhaseSpace d))
+        (vlasovVectorField gradW ρ t' (charX t' z, charV t' z)) t' := by
+    intro z t'
+    exact (hflow.2.1 t' z).prodMk (hflow.2.2 t' z)
+  exact MathlibTODO_lipschitzFlowTrajectoryLipBound
+    (vlasovVectorField gradW ρ)
+    (max 1 L)
+    (vlasovVectorField_lipschitzWith gradW L hL ρ h_int)
+    (fun t' z => (charX t' z, charV t' z))
+    h_pair_deriv
+    f₀ φ hφ_smooth hφ_compact t
 
 /-- **`_lag` variant of SC.8** — `vlasov_trajectory_lipschitz_bound` with the
 flow-growth prerequisites supplied as explicit hypotheses, enabling the
@@ -3137,6 +3159,7 @@ hypothesis on `W`. -/
 theorem vlasovSolutionViaPushforward_isVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hflow : IsCharacteristicFlow gradW
@@ -3152,7 +3175,13 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
        to keep the proof of h_integrand_aesm tractable. -/
     (hconv_cont : ∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW
-          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x))
+    -- Phase 3 added (2026-05-31): convolution-integrability witness for the
+    -- spatial-marginal pushforward measure curve; required by the substantively-
+    -- closed `vlasovTrajectoryLipschitzBound`.  Derivable from hgradW + Lipschitz
+    -- L gradW + the spatial marginal's finite first moment.
+    (h_int_conv : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))) :
     IsVlasovSolution gradW (vlasovSolutionViaPushforward charX charV f₀) := by
   -- Unfold IsVlasovSolution; for each test function φ, prove WeakEvolutionEq.
   intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
@@ -3185,8 +3214,19 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
   have h_diff_data : DiffUnderIntegralData gradW ρ charX charV f₀
       φ gradXφ gradVφ t := by
     -- Extract the hard sub-bundle from SC.8.
+    -- Phase 3 update (2026-05-31): pass L, hL, h_int_conv to the substantively-
+    -- closed vlasovTrajectoryLipschitzBound.  Instance `IsProbabilityMeasure (ρ t)`
+    -- inferred from spatialMarginal pushforward via `h_flow_meas`.
+    haveI : ∀ t, IsProbabilityMeasure
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) := fun t => by
+      unfold spatialMarginal vlasovSolutionViaPushforward
+      have h_pair_aem := h_flow_meas t
+      have : IsProbabilityMeasure (Measure.map
+          (fun z : PhaseSpace d => (charX t z, charV t z)) f₀) :=
+        Measure.isProbabilityMeasure_map h_pair_aem
+      exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
     obtain ⟨nhd, bound, hnhd, h_lipsch, h_bound_int⟩ :=
-      vlasovTrajectoryLipschitzBound gradW ρ charX charV f₀ φ
+      vlasovTrajectoryLipschitzBound gradW L hL ρ h_int_conv charX charV f₀ φ
         hφ_smooth hφ_compact hflow hgradW_cont hconv_cont t
     -- Assemble: ⟨nhd, bound, hnhd, hF_meas, hF_int, hF'_meas, h_lipsch, h_bound_int⟩.
     refine ⟨nhd, bound, hnhd, ?_, ?_, ?_, h_lipsch, h_bound_int⟩
@@ -3297,6 +3337,7 @@ acts trivially). -/
 theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hflow : IsCharacteristicFlow gradW
@@ -3309,11 +3350,15 @@ theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolution
     (hgradW_cont : Continuous gradW)
     (hconv_cont : ∀ s, Continuous (fun x =>
         convolveFunctionMeasure gradW
-          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x)) :
+          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x))
+    -- Phase 3 added (2026-05-31): convolution-integrability witness; propagates
+    -- to `vlasovSolutionViaPushforward_isVlasovSolution`.
+    (h_int_conv : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y))
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))) :
     IsLagrangianVlasovSolution gradW (vlasovSolutionViaPushforward charX charV f₀) := by
   -- The wrapper closes the IsVlasovSolution conjunct.
-  refine ⟨vlasovSolutionViaPushforward_isVlasovSolution gradW charX charV f₀
-            hflow hself h_flow_meas hgradW_cont hconv_cont,
+  refine ⟨vlasovSolutionViaPushforward_isVlasovSolution gradW L hL charX charV f₀
+            hflow hself h_flow_meas hgradW_cont hconv_cont h_int_conv,
           charX, charV, hflow, ?_, ?_⟩
   · -- Pushforward equation: f t = (flow_t)_# (f 0).
     -- Reduces to vlasovSolutionViaPushforward charX charV f₀ 0 = f₀, via
@@ -8905,11 +8950,18 @@ theorem vlasovWellPosedness
     -- Step L0-7: IsLagrangianVlasovSolution gradW f_sol.
     -- Use vlasovSolutionViaPushforward_isLagrangianVlasovSolution since
     -- f_sol = vlasovSolutionViaPushforward charX charV f₀.
+    -- Phase 3 update (2026-05-31): the wrapper now takes explicit L + hL +
+    -- h_int_conv hypotheses (added when vlasovTrajectoryLipschitzBound was
+    -- substantively closed); the L=0 case provides them trivially since
+    -- gradW ≡ 0.
+    have hL_zero : LipschitzWith 0 gradW := by
+      rw [show gradW = fun _ => 0 from funext hgradW_zero]
+      exact LipschitzWith.const' 0
     have hf_eq : f_sol = fun t => vlasovSolutionViaPushforward charX charV f₀ t := rfl
     have hf_lag : IsLagrangianVlasovSolution gradW f_sol := by
       rw [hf_eq]
       haveI := hf₀.1
-      apply vlasovSolutionViaPushforward_isLagrangianVlasovSolution
+      apply vlasovSolutionViaPushforward_isLagrangianVlasovSolution gradW 0 hL_zero
       · -- IsCharacteristicFlow
         refine ⟨?_, ?_, ?_⟩
         · intro z; simp [charX, charV, vlasovSolutionViaPushforward]
@@ -8940,6 +8992,13 @@ theorem vlasovWellPosedness
             (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) =
             fun _ => 0 := funext (hconv_zero _)
         rw [this]; exact continuous_const
+      · -- h_int_conv: convolution-integrability witness (Phase 3 added).
+        -- For L=0, gradW ≡ 0, so (fun y => gradW (x - y)) = (fun _ => 0),
+        -- trivially integrable against any measure.
+        intro s x
+        have h_zero : (fun y : PhysSpace d => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
+          funext y; exact hgradW_zero (x - y)
+        rw [h_zero]; exact integrable_zero _ _ _
     -- Step L0-8: Narrow continuity.
     have hf_cont : ∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f_sol t) := by
