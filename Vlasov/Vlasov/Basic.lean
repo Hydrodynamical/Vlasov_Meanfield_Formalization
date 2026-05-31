@@ -1728,25 +1728,106 @@ theorem MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves
     LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
   sorry
 
+/-- For a Vlasov solution f satisfying IsVlasovSolution gradW f and any smooth
+compactly-supported test function φ with ContDiff ℝ ⊤ φ and HasCompactSupport φ,
+the map t ↦ ∫ z, φ z ∂(f t) is continuous on ℝ. Proof: IsVlasovSolution provides
+HasDerivAt (fun s => ∫ φ ∂(f s)) (derivative value) t at every t via WeakEvolutionEq;
+HasDerivAt.continuousAt then gives ContinuousAt, and assembling over all t gives Continuous.
+
+**Location note**: hoisted above `MathlibTODO_bcNarrowFromSmoothCompactNarrow` and
+`w1ContOn_lscNarrow_via_pureFA` (Phase 3 Session 3, 2026-05-31) so the latter
+can consume this lemma without forward-reference. -/
+lemma W1ContOn_integralContAt
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d))
+    (hf : IsVlasovSolution gradW f)
+    (φ : PhaseSpace d → ℝ)
+    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_compact : HasCompactSupport φ)
+    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
+    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
+    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
+    Continuous (fun t => ∫ z, φ z ∂(f t)) := by
+  -- IsVlasovSolution specialised to this φ gives WeakEvolutionEq.
+  have h_weak : WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0) :=
+    hf φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
+  -- WeakEvolutionEq unfolds to `∀ t, HasDerivAt (fun s => ∫ φ ∂f s) _ t`.
+  -- HasDerivAt at every point implies Continuous via HasDerivAt.continuousAt.
+  rw [continuous_iff_continuousAt]
+  intro t
+  exact (h_weak t).continuousAt
+
+/-- **Mathlib-TODO (pure functional-analytic): narrow continuity for bounded
+continuous test functions follows from narrow continuity for smooth
+compactly-supported test functions, given uniform first-moment control.**
+
+If `f : ℝ → Measure α` is a probability-measure curve on a Polish space
+`α` such that `t ↦ ∫ φ ∂(f t)` is continuous on `[0, T]` for every smooth
+compactly-supported `φ`, and the first moments `∫ ‖z‖ ∂(f t)` are
+uniformly integrable on `[0, T]`, then the same continuity holds for every
+bounded continuous test function `φ`.
+
+**Proof idea (standard Polish probability theory)**:
+1. For ε > 0 and any bounded continuous φ with `‖φ‖_∞ < ∞`, pick R large
+   enough that `∫_{|z| > R} ‖φ‖_∞ d(f t) ≤ ‖φ‖_∞ · M/R < ε/3` for all
+   t ∈ [0, T] (Markov + uniform first-moment bound `M`).
+2. Mollify φ with a compact-support smooth cutoff `χ_R` (supp χ_R ⊂
+   closed ball of radius R+1, χ_R ≡ 1 on closed ball R, 0 ≤ χ_R ≤ 1) AND
+   smooth-mollify the result to get a smooth-CS approximation `φ_R,ε`
+   with `‖φ - φ_R,ε‖_∞ ≤ ε/3` on the support of χ_R.
+3. The triangle inequality plus step (1)'s tail estimate plus the
+   smooth-CS continuity of `t ↦ ∫ φ_R,ε ∂(f t)` gives the conclusion.
+
+**Bucket-1 PR scope**: standard Polish probability theory (Portmanteau /
+narrow convergence machinery already in Mathlib for `ProbabilityMeasure`;
+this lemma packages the extension from CS to BC against the
+`IsProbabilityMeasure`-on-`Measure` formulation used in the project).
+Same family as `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`
+above.
+
+**Decomposed from `w1ContOn_lscNarrow_via_pureFA`** (Phase 3, 2026-05-31):
+the previously substantive Vlasov-composition body collapses to a clean
+composition of pure-FA placeholders once this BC-extension step is
+separately named.  See `w1ContOn_lscNarrow_via_pureFA` below for the
+consumer. -/
+theorem MathlibTODO_bcNarrowFromSmoothCompactNarrow
+    {d : ℕ} [NeZero d]
+    (f : ℝ → Measure (PhaseSpace d))
+    [∀ t, IsProbabilityMeasure (f t)]
+    (T : ℝ) (_hT : 0 ≤ T)
+    (_h_mom : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖z‖) (f t))
+    (_h_smooth_narrow : ∀ (φ : PhaseSpace d → ℝ),
+      ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+      ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T)) :
+    ∀ (φ : PhaseSpace d → ℝ), Continuous φ →
+      Bornology.IsBounded (Set.range φ) →
+      ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) := by
+  sorry
+
 /-- **Project-internal composition (Phase 1.5 decomposition target,
-2026-05-31)**: W₁ LSC for two Vlasov solutions, derived from the pure-FA
-`MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves` by extracting
-narrow continuity from `IsVlasovSolution` (via DCT on the pushforward
-equation; the project's `W1ContOn_integralContAt` machinery).
+substantively closed in Phase 3 Session 3, 2026-05-31)**: W₁ LSC for two
+Vlasov solutions, derived from the pure-FA placeholders by composition.
 
-**Status**: body sorry'd as Phase 2-4 close target.  Composition steps:
-(a) extract IsProbabilityMeasure instances from `HasFiniteFirstMoment`,
-(b) derive narrow continuity for compact-support test functions via
-`W1ContOn_integralContAt`, (c) extend to bounded continuous (without
-compact support) via mollifier approximation OR Lagrangian pushforward
-when available, (d) apply the pure-FA placeholder.
+**Composition body** (closed via API-lock pattern with new pure-FA
+sub-placeholder `MathlibTODO_bcNarrowFromSmoothCompactNarrow`):
 
-**Reclassification note**: closure of step (c) is the load-bearing piece
-that previously blocked `w1_lscNarrow_integralContOn_lip` (removed in
-commit `a2efa68`).  Without DiPerna-Lions superposition, the only
-honest path is via the Lagrangian flow witness — restating this lemma
-to take `IsLagrangianVlasovSolution` instead of `IsVlasovSolution` would
-make it provable.
+1. Extract `IsProbabilityMeasure` instances from `HasFiniteFirstMoment`.
+2. Derive smooth-compactly-supported narrow continuity for f, g via the
+   project's `W1ContOn_integralContAt` (which routes through
+   `IsVlasovSolution`'s `WeakEvolutionEq`).
+3. Extend smooth-CS narrow continuity to bounded continuous via the
+   pure-FA `MathlibTODO_bcNarrowFromSmoothCompactNarrow` (the new
+   Phase 3 sub-placeholder, captures standard Polish probability theory).
+4. Apply the pure-FA `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`.
+
+**Net effect on open work**: the BC-extension step is decomposed into a
+clearly-named pure-FA sub-placeholder (`MathlibTODO_bcNarrowFromSmoothCompactNarrow`)
+rather than absorbed into this composition's body.  Declaration sorry
+count unchanged; structural visibility improved (the Vlasov composition
+is now a clean orchestration, and the actual deferred mathematical work
+is named explicitly).
 
 **In-project consumer**: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn`
 (Basic.lean L1830). -/
@@ -1760,7 +1841,48 @@ theorem w1ContOn_lscNarrow_via_pureFA
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
     LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  sorry
+  -- (a) IsProbabilityMeasure instances from HasFiniteFirstMoment
+  haveI : ∀ t, IsProbabilityMeasure (f t) := fun t => (hf_prob t).1
+  haveI : ∀ t, IsProbabilityMeasure (g t) := fun t => (hg_prob t).1
+  -- (b) Smooth-CS narrow continuity from IsVlasovSolution via W1ContOn_integralContAt
+  have h_smooth_f : ∀ (φ : PhaseSpace d → ℝ),
+      ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+      ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) := by
+    intro φ hφ_smooth hφ_compact
+    have hcont : Continuous (fun t => ∫ z, φ z ∂(f t)) :=
+      W1ContOn_integralContAt gradW f hf φ hφ_smooth hφ_compact
+        (fun z => gradient (fun x => φ (x, z.2)) z.1)
+        (fun z => gradient (fun v => φ (z.1, v)) z.2)
+        (fun _ => rfl) (fun _ => rfl)
+    exact hcont.continuousOn
+  have h_smooth_g : ∀ (φ : PhaseSpace d → ℝ),
+      ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+      ContinuousOn (fun t => ∫ z, φ z ∂(g t)) (Set.Icc 0 T) := by
+    intro φ hφ_smooth hφ_compact
+    have hcont : Continuous (fun t => ∫ z, φ z ∂(g t)) :=
+      W1ContOn_integralContAt gradW g hg φ hφ_smooth hφ_compact
+        (fun z => gradient (fun x => φ (x, z.2)) z.1)
+        (fun z => gradient (fun v => φ (z.1, v)) z.2)
+        (fun _ => rfl) (fun _ => rfl)
+    exact hcont.continuousOn
+  -- (c) Extend smooth-CS narrow continuity to BC via the pure-FA sub-placeholder
+  have h_mom_f : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖z‖) (f t) :=
+    fun t _ => (hf_prob t).2
+  have h_mom_g : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖z‖) (g t) :=
+    fun t _ => (hg_prob t).2
+  have h_narrow_f : ∀ (φ : PhaseSpace d → ℝ), Continuous φ →
+      Bornology.IsBounded (Set.range φ) →
+      ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T) :=
+    MathlibTODO_bcNarrowFromSmoothCompactNarrow f T hT h_mom_f h_smooth_f
+  have h_narrow_g : ∀ (φ : PhaseSpace d → ℝ), Continuous φ →
+      Bornology.IsBounded (Set.range φ) →
+      ContinuousOn (fun t => ∫ z, φ z ∂(g t)) (Set.Icc 0 T) :=
+    MathlibTODO_bcNarrowFromSmoothCompactNarrow g T hT h_mom_g h_smooth_g
+  -- (d) Apply the pure-FA LSC placeholder
+  exact MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves
+    f g T hT h_narrow_f h_narrow_g h_mom_f h_mom_g
 
 /-- **Mathlib-TODO (pure functional-analytic): W₁ is upper semicontinuous
 along Lagrangian-pushforward flows of Lipschitz vector fields.**
@@ -1843,32 +1965,6 @@ lemma W1ContOn_lt_top
   haveI : IsProbabilityMeasure (f t) := hf_prob_t
   haveI : IsProbabilityMeasure (g t) := hg_prob_t
   exact wasserstein1_lt_top_of_finite_moment (f t) (g t) hf_int_t hg_int_t
-
-/-- For a Vlasov solution f satisfying IsVlasovSolution gradW f and any smooth
-compactly-supported test function φ with ContDiff ℝ ⊤ φ and HasCompactSupport φ,
-the map t ↦ ∫ z, φ z ∂(f t) is continuous on ℝ. Proof: IsVlasovSolution provides
-HasDerivAt (fun s => ∫ φ ∂(f s)) (derivative value) t at every t via WeakEvolutionEq;
-HasDerivAt.continuousAt then gives ContinuousAt, and assembling over all t gives Continuous. -/
-lemma W1ContOn_integralContAt
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (f : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
-    (hφ_compact : HasCompactSupport φ)
-    (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
-    (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
-    (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
-    Continuous (fun t => ∫ z, φ z ∂(f t)) := by
-  -- IsVlasovSolution specialised to this φ gives WeakEvolutionEq.
-  have h_weak : WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0) :=
-    hf φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
-  -- WeakEvolutionEq unfolds to `∀ t, HasDerivAt (fun s => ∫ φ ∂f s) _ t`.
-  -- HasDerivAt at every point implies Continuous via HasDerivAt.continuousAt.
-  rw [continuous_iff_continuousAt]
-  intro t
-  exact (h_weak t).continuousAt
 
 /-- Given lower semicontinuity, upper semicontinuity, and pointwise finiteness of
 t ↦ wasserstein1 (f t) (g t) on Set.Icc 0 T, conclude that
