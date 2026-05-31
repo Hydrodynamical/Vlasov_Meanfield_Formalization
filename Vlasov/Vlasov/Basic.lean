@@ -1120,6 +1120,124 @@ lemma wasserstein1_le_moments_sum
           integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
   linarith
 
+/-- **General-L contraction under Lipschitz pushforward (project-local).**
+
+If `T : α → β` is `L`-Lipschitz and measurable, then
+`W₁(T_# μ, T_# ν) ≤ L · W₁(μ, ν)` for probability measures `μ, ν` on `α`.
+
+This is the non-expansive property of W₁ under Lipschitz maps, the L=1 case
+of which is W₁ projection-contraction (a 1-Lipschitz map's pushforward
+doesn't increase W₁).  Proof is direct on the KR-dual definition without any
+Mathlib-OT-coupling dependency:
+
+1. Unfold `wasserstein1` and take `iSup_le` on the target's sup over
+   1-Lipschitz `g : β → ℝ`.
+2. Apply `integral_map` to rewrite `∫ g d(T_# μ) = ∫ (g ∘ T) dμ`.
+3. The composition `g ∘ T` is `L`-Lipschitz (`1 * L = L`).
+4. Case-split on `L`:
+   * If `L = 0`, then `T` is constant (any α nonempty, since μ is probability),
+     so `g ∘ T` is constant and the integral difference is `0`.
+   * If `L > 0`, scale by `1/L`: `h := (g ∘ T) / L` is 1-Lipschitz, and the
+     integral difference factors as `L * (∫ h dμ - ∫ h dν)`.  Apply
+     `le_iSup` at `h, h_lip` to bound by `L · W₁(μ, ν)`.
+
+**Stage 2b usage** (per the user 2026-05-31 brief): item 6's `_h_diff_bound`
+requires `‖b_f t x - b_g t x‖ ≤ (max 1 L) · W₁(f t, g t)`.  The chain
+composes `convolveDiff_norm_le` (L-Lipschitz via gradW) with this lemma
+applied at `L = 1` for the spatial-marginal projection `(x, v) ↦ x`.  The
+general-L version is the cleanest Mathlib-upstream candidate: same proof,
+reusable for any Lipschitz pushforward (e.g. characteristic-flow
+contraction).
+
+**No `MathlibTODO_` prefix**: this is project-local content, fully proved
+on the project's `wasserstein1` definition.  When `wasserstein1` is
+eventually replaced by Mathlib's stable W₁ API, this lemma migrates as a
+single bridge proof.
+
+**Bucket-1 Mathlib-upstream candidate** (forward-look): when Mathlib's W₁
+matures sufficiently to express this on its definition, this lemma is a
+clean PR target — pure functional-analytic, dual-formula direct, no
+project-specific content. -/
+lemma wasserstein1_le_of_lipschitz_map
+    {α β : Type*}
+    [MeasurableSpace α] [PseudoMetricSpace α]
+    [MeasurableSpace β] [PseudoMetricSpace β] [OpensMeasurableSpace β]
+    (T : α → β) (L : NNReal) (hT : LipschitzWith L T) (hT_meas : Measurable T)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
+    wasserstein1 (Measure.map T μ) (Measure.map T ν) ≤
+      (L : ENNReal) * wasserstein1 μ ν := by
+  unfold wasserstein1
+  refine iSup_le fun g => iSup_le fun hg => ?_
+  -- Rewrite both integrals via integral_map.
+  rw [integral_map hT_meas.aemeasurable hg.continuous.measurable.aestronglyMeasurable,
+      integral_map hT_meas.aemeasurable hg.continuous.measurable.aestronglyMeasurable]
+  -- g ∘ T is L-Lipschitz (LipschitzWith.comp gives `1 * L = L`).
+  have h_compLip : LipschitzWith L (fun x => g (T x)) := by
+    have := hg.comp hT
+    simpa using this
+  -- Case on L.
+  by_cases hL : L = 0
+  · -- L = 0: T is constant, so g ∘ T is constant.  μ is a probability
+    -- measure, so α is nonempty (univ ≠ ∅).
+    have hα_nonempty : Nonempty α := by
+      by_contra h
+      rw [not_nonempty_iff] at h
+      have h_univ_eq : (Set.univ : Set α) = ∅ := Set.eq_empty_of_isEmpty _
+      have : μ Set.univ = 0 := by rw [h_univ_eq]; exact measure_empty
+      rw [measure_univ] at this
+      exact one_ne_zero this
+    obtain ⟨x₀⟩ := hα_nonempty
+    -- (g ∘ T) is constant because g is 1-Lipschitz, so it preserves
+    -- pseudo-distance-0.  `dist_eq_zero` is valid in ℝ (MetricSpace).
+    have h_gT_const : ∀ x : α, g (T x) = g (T x₀) := by
+      intro x
+      have hd_T : dist (T x) (T x₀) ≤ 0 := by
+        have := hT.dist_le_mul x x₀
+        rw [hL, NNReal.coe_zero, zero_mul] at this
+        exact this
+      have hd_g : dist (g (T x)) (g (T x₀)) ≤ 0 := by
+        calc dist (g (T x)) (g (T x₀))
+            ≤ (1 : NNReal) * dist (T x) (T x₀) := hg.dist_le_mul (T x) (T x₀)
+          _ = dist (T x) (T x₀) := by simp
+          _ ≤ 0 := hd_T
+      exact dist_eq_zero.mp (le_antisymm hd_g dist_nonneg)
+    have h_gT_constfun : (fun x => g (T x)) = (fun _ => g (T x₀)) := funext h_gT_const
+    rw [h_gT_constfun]
+    simp [integral_const, measureReal_def, measure_univ, sub_self, ENNReal.ofReal_zero]
+  · -- L > 0: scale g ∘ T by 1/L.
+    have hL_pos : (0 : ℝ) < (L : ℝ) := by
+      rw [NNReal.coe_pos]
+      exact pos_iff_ne_zero.mpr hL
+    have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
+    -- h := (g ∘ T) / L is 1-Lipschitz.
+    set h : α → ℝ := fun x => g (T x) / (L : ℝ) with h_def
+    have h_lip : LipschitzWith 1 h := by
+      refine LipschitzWith.of_dist_le_mul fun x y => ?_
+      have hLx : dist (g (T x)) (g (T y)) ≤ (L : ℝ) * dist x y :=
+        h_compLip.dist_le_mul x y
+      have h_dist_h : dist (h x) (h y) = dist (g (T x)) (g (T y)) / (L : ℝ) := by
+        simp only [h_def, Real.dist_eq, ← sub_div, abs_div, abs_of_pos hL_pos]
+      rw [h_dist_h, NNReal.coe_one, one_mul, div_le_iff₀ hL_pos, mul_comm]
+      exact hLx
+    -- Algebraic identity: ∫ (g∘T) dμ = L · ∫ h dμ (and same for ν).
+    have h_int_factor : ∀ (κ : Measure α), ∫ x, g (T x) ∂κ = (L : ℝ) * ∫ x, h x ∂κ := by
+      intro κ
+      simp_rw [h_def]
+      rw [integral_div, mul_div_cancel₀ _ hL_ne]
+    -- Factor: ∫ (g∘T) dμ - ∫ (g∘T) dν = L · (∫ h dμ - ∫ h dν).
+    have h_diff_factor : ∫ x, g (T x) ∂μ - ∫ x, g (T x) ∂ν =
+        (L : ℝ) * (∫ x, h x ∂μ - ∫ x, h x ∂ν) := by
+      rw [h_int_factor μ, h_int_factor ν]; ring
+    rw [h_diff_factor]
+    -- ofReal (L · d) = ofReal L · ofReal d = (L : ENNReal) · ofReal d (when L ≥ 0).
+    rw [ENNReal.ofReal_mul (NNReal.coe_nonneg L), ENNReal.ofReal_coe_nnreal]
+    -- Goal: (L : ENNReal) · ofReal (∫ h dμ - ∫ h dν) ≤ (L : ENNReal) · ⨆ f _, ofReal …
+    -- Use ENNReal.mul_le_mul_left for the inner inequality.
+    refine mul_le_mul_of_nonneg_left ?_ (zero_le _)
+    -- Goal: ofReal (∫ h dμ - ∫ h dν) ≤ ⨆ f _, ofReal (∫ f dμ - ∫ f dν)
+    -- Use le_iSup at (h, h_lip).
+    exact le_iSup_of_le h (le_iSup_of_le h_lip le_rfl)
+
 /-- **Mathlib-TODO: completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.**
 
 A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit
