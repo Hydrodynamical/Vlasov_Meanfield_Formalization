@@ -1693,21 +1693,64 @@ lemma w1_lscNarrow_of_summands
   unfold wasserstein1
   exact lowerSemicontinuousOn_biSup (fun φ hφ => h_summands φ hφ)
 
--- Mathlib gap A: W₁ is lower semicontinuous under narrow convergence of measure curves.
--- Requires KR duality for non-compactly-supported Lipschitz test functions;
--- not available in Mathlib's stable OT/measure-valued-ODE API.
---
--- **Decomposition status (closure-plan Sorry 1, 2026-05-31)**: previously
--- decomposed via sorry-decomposer into `w1_lscNarrow_{integralContOn_lip,
--- diff_contOn, summand_lscOn, of_summands}`.  The load-bearing
--- `integralContOn_lip` is unprovable without DiPerna-Lions superposition
--- (out of scope).  The chain has been removed and this placeholder now has
--- a direct sorry body, matching the project's MathlibTODO-only-state
--- discipline (every sorry should be a direct `MathlibTODO_*` rather than
--- composed-through-sub-sorry).  `w1_lscNarrow_of_summands` is retained
--- below as an independent abstract sup-LSC helper (it doesn't depend on
--- the removed chain).
-theorem MathlibTODO_W1ContOn_lscNarrow
+/-- **Mathlib-TODO (pure functional-analytic): W₁ is lower semicontinuous
+along pairs of narrowly continuous probability-measure curves with uniform
+first-moment bound.**
+
+If `f, g : ℝ → Measure α` are two measure curves on a Polish space `α`,
+both narrowly continuous (∫g dμ_t continuous in t for every bounded
+continuous g) and with uniform first-moment integrability on [0, T], then
+`t ↦ wasserstein1 (f t) (g t)` is lower semicontinuous on [0, T].
+
+Standard Villani-style result for W₁: lower semicontinuity along narrow
+convergence (Villani, *Optimal Transport*, Theorem 5.10).  Pure
+functional-analytic; no Vlasov-specific instantiation.
+
+**Bucket-1 PR scope**: Villani-standard OT lemma.  Same family as
+`MathlibTODO_cauchyW1_hasNarrowLimit` and
+`MathlibTODO_convolveContinuousAtOfNarrowMoment`.
+
+**Decomposed from `MathlibTODO_W1ContOn_lscNarrow`** (Phase 1.5, 2026-05-31).
+The Vlasov-specific composition lives below as `w1ContOn_lscNarrow_via_pureFA`. -/
+theorem MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves
+    {d : ℕ} [NeZero d]
+    (f g : ℝ → Measure (PhaseSpace d))
+    [∀ t, IsProbabilityMeasure (f t)] [∀ t, IsProbabilityMeasure (g t)]
+    (T : ℝ) (_hT : 0 ≤ T)
+    (_hf_narrow : ∀ (φ : PhaseSpace d → ℝ), Continuous φ →
+      Bornology.IsBounded (Set.range φ) →
+      ContinuousOn (fun t => ∫ z, φ z ∂(f t)) (Set.Icc 0 T))
+    (_hg_narrow : ∀ (φ : PhaseSpace d → ℝ), Continuous φ →
+      Bornology.IsBounded (Set.range φ) →
+      ContinuousOn (fun t => ∫ z, φ z ∂(g t)) (Set.Icc 0 T))
+    (_hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, Integrable (fun z : PhaseSpace d => ‖z‖) (f t))
+    (_hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, Integrable (fun z : PhaseSpace d => ‖z‖) (g t)) :
+    LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
+  sorry
+
+/-- **Project-internal composition (Phase 1.5 decomposition target,
+2026-05-31)**: W₁ LSC for two Vlasov solutions, derived from the pure-FA
+`MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves` by extracting
+narrow continuity from `IsVlasovSolution` (via DCT on the pushforward
+equation; the project's `W1ContOn_integralContAt` machinery).
+
+**Status**: body sorry'd as Phase 2-4 close target.  Composition steps:
+(a) extract IsProbabilityMeasure instances from `HasFiniteFirstMoment`,
+(b) derive narrow continuity for compact-support test functions via
+`W1ContOn_integralContAt`, (c) extend to bounded continuous (without
+compact support) via mollifier approximation OR Lagrangian pushforward
+when available, (d) apply the pure-FA placeholder.
+
+**Reclassification note**: closure of step (c) is the load-bearing piece
+that previously blocked `w1_lscNarrow_integralContOn_lip` (removed in
+commit `a2efa68`).  Without DiPerna-Lions superposition, the only
+honest path is via the Lagrangian flow witness — restating this lemma
+to take `IsLagrangianVlasovSolution` instead of `IsVlasovSolution` would
+make it provable.
+
+**In-project consumer**: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn`
+(Basic.lean L1830). -/
+theorem w1ContOn_lscNarrow_via_pureFA
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (f g : ℝ → Measure (PhaseSpace d))
@@ -1825,9 +1868,11 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
       Continuous (fun t => ∫ z, φ z ∂(f t)) :=
     fun φ hφ hc gXφ gVφ hgXφ hgVφ =>
       W1ContOn_integralContAt gradW f hf φ hφ hc gXφ gVφ hgXφ hgVφ
-  -- Step 3: W₁ is LSC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_lscNarrow)
+  -- Step 3: W₁ is LSC along these Vlasov flows (Phase 1.5 composition lemma
+  -- `w1ContOn_lscNarrow_via_pureFA`, which routes through the pure-FA
+  -- `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`).
   have h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
-    MathlibTODO_W1ContOn_lscNarrow gradW f g hf hg hf_prob hg_prob T hT
+    w1ContOn_lscNarrow_via_pureFA gradW f g hf hg hf_prob hg_prob T hT
   -- Step 4: W₁ is USC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_uscNarrow)
   have h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
     MathlibTODO_W1ContOn_uscNarrow gradW L hL f g hf hg hf_prob hg_prob T hT
