@@ -6145,6 +6145,42 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
 -- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`.  The
 -- `HasFiniteFirstMoment` predicate remains in `Basic.lean`.
 
+/-- **Mathlib-TODO: AEMeasurability of the characteristic flow in initial
+condition.**
+
+Stage 1.9's `exists_vlasov_characteristicFlow_global_smallT` constructs a
+characteristic flow `(charX, charV)` against a given `ρ`-curve.  The
+construction is via per-`z` Picard iteration on bounded balls.  Continuity-
+in-`z` of the Picard fixed-point (Hartman, *Ordinary Differential Equations*
+Ch. V; Coddington-Levinson Ch. 2) implies Borel-measurability over the full
+phase space, which in turn gives AEMeasurability against any measure.
+
+The current Stage 1.9 output predicate `IsCharacteristicFlowOn` provides
+HasDerivAt in `s` (time) at each `(z, s)`, but does not directly expose
+continuity-in-`z`.  Bridging the predicate to AEMeasurability requires
+either (a) enriching `IsCharacteristicFlowOn` with a continuity-in-z
+conjunct, or (b) a separate Picard-regularity lemma.  This placeholder
+takes the conclusion directly per closure-plan Sorry 7 (2026-05-31).
+
+**Bucket-1 PR scope**: standard ODE Picard regularity (continuity in
+initial condition + Borel-measurability).  Same OT/ODE infrastructure
+family as `MathlibTODO_dobrushin_uniqueness_On`; both are characteristic-
+flow-API placeholders pending stable Mathlib characteristic-flow theory.
+
+**In-project consumer**: `vlasovWellPosedness_local_picard_fixedPointFlow`'s
+`h_aemeas_out` sub-sub-sorry below (L6494+). -/
+private theorem MathlibTODO_picardFlowAEMeasurable
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (_hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (ρ t)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    {T : ℝ} (_hT : 0 ≤ T)
+    (_hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (μ : Measure (PhaseSpace d)) :
+    ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) μ := by
+  sorry
+
 /-- **Sub-helper for `vlasovWellPosedness_local`** — the Picard fixed-point
 self-consistent flow.
 
@@ -6497,11 +6533,15 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       convolveFunctionMeasure gradW
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x_pt) := by
     sorry
-  -- Sub-sub-sorry: AEMeasurable witness (Stage 1.8 territory).  The discharge
-  -- requires continuity-in-z of the Picard fixed-point construction.
+  -- AEMeasurable witness via Mathlib-TODO placeholder for Picard flow
+  -- regularity (closure-plan Sorry 7, 2026-05-31).  Instance
+  -- `VlasovMeasureCurve.extend_isProb` (L3942) provides probability-measure-
+  -- ness for the extended curve at every `t`; the placeholder consumes it
+  -- via Lean's instance resolution.
   have h_aemeas_out : ∀ s, AEMeasurable
-      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
-    sorry
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
+    MathlibTODO_picardFlowAEMeasurable gradW L hL ρ_lim.extend
+      charX charV hT.le hflow_on_ρlim f₀
   -- Sub-sub-sorry: universal-in-s convolution integrability.  For
   -- s ∈ Icc 0 T follows from h_y_int_ρ + Lipschitz of gradW; for s outside
   -- requires constant-extension (clamp) past T inside the Picard construction.
