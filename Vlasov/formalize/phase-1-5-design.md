@@ -394,6 +394,76 @@ equation predicate `ContinuityEquationWith` lands in Mathlib).
 
 ---
 
+## Phase 1.5 COMPLETION status (2026-05-31)
+
+**Status**: complete across Sessions 1 + 2 + 3.  All 8 original
+placeholders processed.  Final inventory matches design projection.
+
+**Sessions 1 + 2 + 3 commit chain**:
+* `1f04d0d` (Session 1): design document.
+* `78773ac` (Session 2 item 1): picardFlowAEMeasurable decomposed.
+* `31ee66d` (Session 2 item 2): vlasovTrajectoryLipschitzBound decomposed.
+* `ecd6130` (Session 2 item 3): dobrushin_uniqueness_On reclassified.
+* `f8453c8` (Session 2 item 4): W1ContOn_lscNarrow decomposed.
+* `dc5db0e` (Session 2 status + item 5 deferral).
+* `93ac461` (Session 3 item 5): W1ContOn_uscNarrow + derivBound decomposed.
+
+**Final inventory** (16 declarations using sorry total):
+* **Pure-FA MathlibTODOs (Mathlib OT contribution arc)**: 7.
+  - cauchyW1_hasNarrowLimit (bucket-1).
+  - convolveContinuousAtOfNarrowMoment (bucket-1).
+  - w1LowerSemicontinuousAlongNarrowMomentCurves (bucket-1).
+  - w1UpperSemicontinuousAlongLagrangianFlows (bucket-2).
+  - w1RightDerivBoundAlongLagrangianFlows (bucket-2).
+  - lipschitzFlowTrajectoryLipBound (bucket-1).
+  - lipschitzFlowAEMeasurable (bucket-1).
+* **Project-internal compositions (Phase 2-4 targets, sorry'd)**: 6.
+  - w1ContOn_lscNarrow_via_pureFA, w1ContOn_uscNarrow_via_pureFA,
+    wassersteinGronwallCoupling_derivBound_via_pureFA (Basic.lean).
+  - vlasovTrajectoryLipschitzBound, picardCharFlow_aemeasurable,
+    dobrushin_uniqueness_On (CharFlow.lean).
+* **Project-internal substantive containers (Phase 2-4 targets)**: 3.
+  - _picard_fixedPointFlow (5 sub-sub-sorries inside).
+  - _glue_step (1 sub-sub-sorry: h_cont_g).
+  - _universal_existence (1 sub-sub-sorry: Stage 6 t=0).
+
+**Sorry trajectory**:
+* Pre-Phase-1.5: 11 declarations (8 MathlibTODO + 3 substantive containers).
+* Post-Phase-1.5: 16 declarations (matches design projection).
+* Net: +5 (per design doc's trade-off — cleaner inventory in exchange for
+  slight raw count increase).
+
+**Cleanup-document framing strengthened**: 7 pure-FA MathlibTODOs form
+a clean, self-contained Mathlib OT contribution arc, separated from
+6 Vlasov-specific bridge work compositions and 3 critical-path
+substantive containers.
+
+**Bucket structure for Mathlib PRs**:
+* Bucket-1 (single-PR, Villani-standard): 5 placeholders.
+* Bucket-2 (requires characteristic-flow coupling infrastructure): 2
+  placeholders.
+
+**Forward look — Phase 2-4 closure trajectory (post Phase 1.5)**:
+* Phase 2: Sorry 3 (`_picard_fixedPointFlow.hq_lt`) — deferred from
+  previous arc; ~1-2 sessions for the M-dependent hypothesis propagation
+  design + close.
+* Phase 3: cheap Picard closures (sorries 4, 5, 6, 8) + composition
+  lemma trivial closes (the 6 new Phase 1.5 compositions all close in
+  one-liner pattern once pure-FA inputs are in scope; collectively a
+  single session).
+* Phase 4: substantive Picard sequence, h_cont_g (multi-commit),
+  Stage 6 t=0.
+
+Total remaining sessions: ~6-8 to MathlibTODO-only state with the
+decomposed inventory.
+
+**Phase B sequencing decision** (still pending): the Phase 1.5 separation
+significantly strengthens cleanup-document framing.  The strategic
+conversation should revisit this decision before Phase A endpoint.
+Current recommendation lean: cleanup-document-first sequencing.
+
+---
+
 ## Session 2 execution status (2026-05-31)
 
 **Items completed in Session 2** (4 of 5):
