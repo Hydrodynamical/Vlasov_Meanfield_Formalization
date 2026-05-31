@@ -9176,7 +9176,126 @@ theorem w1ContOn_uscNarrow_via_pureFA
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
     UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  sorry
+  -- Step 1: IsProbabilityMeasure instances from HasFiniteFirstMoment.
+  haveI hf_isProb : ∀ t, IsProbabilityMeasure (f t) := fun t => (hf_prob t).1
+  haveI hg_isProb : ∀ t, IsProbabilityMeasure (g t) := fun t => (hg_prob t).1
+  -- Step 2: extract Lagrangian flow witnesses.
+  obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f⟩ := hf
+  obtain ⟨_, charX_g, charV_g, hflow_g, hpush_g, haem_g⟩ := hg
+  obtain ⟨_, hflow_f_x, hflow_f_v⟩ := hflow_f
+  obtain ⟨_, hflow_g_x, hflow_g_v⟩ := hflow_g
+  -- Step 3: spatial marginals are probability (push-forward of probability).
+  haveI hspf : ∀ t, IsProbabilityMeasure (spatialMarginal (f t)) := by
+    intro t
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  haveI hspg : ∀ t, IsProbabilityMeasure (spatialMarginal (g t)) := by
+    intro t
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  -- Step 4: integrability of gradW(x - ·) on spatialMarginal from first-moment
+  -- + Lipschitz growth.  Helper closed over (μ, hμ_prob) for reuse between f and g.
+  have h_int_helper : ∀ (μ : ℝ → Measure (PhaseSpace d))
+      (_ : ∀ t, HasFiniteFirstMoment (μ t)),
+      ∀ t (x_pt : PhysSpace d),
+        Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (μ t)) := by
+    intro μ hμ_prob t x_pt
+    haveI : IsProbabilityMeasure (μ t) := (hμ_prob t).1
+    haveI : IsProbabilityMeasure (spatialMarginal (μ t)) :=
+      Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+    -- AEStronglyMeasurable from continuity of gradW + (x_pt - ·).
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal (μ t)) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    -- ‖y‖-integrability on spatialMarginal: from HasFiniteFirstMoment on μ t
+    -- via the pushforward `spatialMarginal = Measure.map Prod.fst`.
+    have h_y_int : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (μ t)) := by
+      unfold spatialMarginal
+      rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+      -- Goal: Integrable ((fun y => ‖y‖) ∘ Prod.fst) (μ t).
+      -- Bound by (fun z => ‖z‖) via Prod.norm — but goal is in composition form.
+      refine Integrable.mono' (hμ_prob t).2
+        ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun z => ?_)
+      -- Goal: |((fun y ↦ ‖y‖) ∘ Prod.fst) z| ≤ ‖z‖, i.e. |‖z.1‖| ≤ ‖z‖.
+      show |‖z.1‖| ≤ ‖z‖
+      rw [abs_of_nonneg (norm_nonneg _)]
+      exact norm_fst_le z
+    -- Pointwise bound: ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + L·(‖x_pt‖ + ‖y‖).
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    -- Dominator is integrable: constant + L · ‖y‖.
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal (μ t)) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+          (spatialMarginal (μ t)) := h_y_int.const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  have h_int_f := h_int_helper f hf_prob
+  have h_int_g := h_int_helper g hg_prob
+  -- Step 5: Lipschitz of Vlasov phase-space vector fields via the CharFlow lemma.
+  -- The `max(1, L)` constant materializes via `vlasovVectorField_lipschitzWith`:
+  -- position part is 1-Lipschitz (`Prod.snd`), force part is L-Lipschitz (Stage A's
+  -- `convolveFunctionMeasure_lipschitz_in_x` + `Prod.fst`), joint Lipschitz `max(1, L)`.
+  have hL_b_f : ∀ t, LipschitzWith (max 1 L)
+      (vlasovVectorField gradW (fun t => spatialMarginal (f t)) t) :=
+    fun t => vlasovVectorField_lipschitzWith gradW L hL _ h_int_f t
+  have hL_b_g : ∀ t, LipschitzWith (max 1 L)
+      (vlasovVectorField gradW (fun t => spatialMarginal (g t)) t) :=
+    fun t => vlasovVectorField_lipschitzWith gradW L hL _ h_int_g t
+  -- Step 6: define joint phase-space flows Φ_f, Φ_g and verify HasDerivAt
+  -- against the Vlasov vector field via `HasDerivAt.prodMk` of the position +
+  -- velocity HasDerivAt clauses from `IsCharacteristicFlow`.
+  have hΦ_f : ∀ z t,
+      HasDerivAt (fun s => (charX_f s z, charV_f s z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) t
+          (charX_f t z, charV_f t z)) t := by
+    intro z t
+    -- (hflow_f_x t z) : HasDerivAt (fun s => charX_f s z) (charV_f t z) t
+    -- (hflow_f_v t z) : HasDerivAt (fun s => charV_f s z)
+    --   (-(convolveFunctionMeasure gradW (spatialMarginal (f t)) (charX_f t z))) t
+    -- Joint via prodMk; unfold vlasovVectorField at the RHS via `show`.
+    show HasDerivAt (fun s => (charX_f s z, charV_f s z))
+      ((charX_f t z, charV_f t z).2,
+       -(convolveFunctionMeasure gradW (spatialMarginal (f t))
+          (charX_f t z, charV_f t z).1)) t
+    exact (hflow_f_x t z).prodMk (hflow_f_v t z)
+  have hΦ_g : ∀ z t,
+      HasDerivAt (fun s => (charX_g s z, charV_g s z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (g t)) t
+          (charX_g t z, charV_g t z)) t := by
+    intro z t
+    show HasDerivAt (fun s => (charX_g s z, charV_g s z))
+      ((charX_g t z, charV_g t z).2,
+       -(convolveFunctionMeasure gradW (spatialMarginal (g t))
+          (charX_g t z, charV_g t z).1)) t
+    exact (hflow_g_x t z).prodMk (hflow_g_v t z)
+  -- Step 7: first-moment integrability of f t, g t (direct from HasFiniteFirstMoment).
+  have hf_mom : ∀ t, Integrable (fun z : PhaseSpace d => ‖z‖) (f t) :=
+    fun t => (hf_prob t).2
+  have hg_mom : ∀ t, Integrable (fun z : PhaseSpace d => ‖z‖) (g t) :=
+    fun t => (hg_prob t).2
+  -- Step 8: apply the pure-FA placeholder with L := max(1, L).
+  exact MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows
+    (fun t => vlasovVectorField gradW (fun t => spatialMarginal (f t)) t)
+    (fun t => vlasovVectorField gradW (fun t => spatialMarginal (g t)) t)
+    (max 1 L) hL_b_f hL_b_g
+    (fun t z => (charX_f t z, charV_f t z))
+    (fun t z => (charX_g t z, charV_g t z))
+    hΦ_f hΦ_g f g hpush_f hpush_g haem_f haem_g hf_mom hg_mom T hT
 
 -- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling (decomposed in Basic.lean):
 -- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
