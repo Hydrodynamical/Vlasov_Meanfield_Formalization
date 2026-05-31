@@ -621,3 +621,197 @@ load-bearing for the next strategic conversation.
 viable.  The strategic conversation should revisit explicitly at the
 recommended deadline rather than letting Phase A endpoint arrive with the
 sequencing un-decided (which would force an ad-hoc choice).
+
+---
+
+## Phase 4 Path A Stage 2 — relocation decisions and Stage 2b brief (2026-05-31)
+
+**Stage 1 landed** (commit `abb5568`).  The 10-declaration consumer chain
+now takes `IsLagrangianVlasovSolution`; sorry 15 → 15 (pure signature
+cascade as predicted).
+
+**Stage 2 entry — architectural decision on items 5/6 close path
+(settled by user, 2026-05-31)**:
+
+**Relocate items 5/6 (and the dobrushin chain that depends on them) from
+Basic.lean to CharFlow.lean.**  Not a toss-up — forced by the import
+direction:
+
+* Basic is the base; CharFlow imports Basic (line 33); Coupling imports
+  Basic (line 29); nothing imports back into Basic.
+* `convolveFunctionMeasure_lipschitz_in_x` lives in
+  CharFlow.lean L75; items 5/6's substantive close requires it.
+* The "duplicate ~30 lines in Basic" option is **forced** duplication
+  (the only way to feed Basic something it can't import), not a
+  convenience choice — and it puts a second copy of a delicate Lipschitz
+  estimate next to the family where the q < 1 structural-debt bug lives.
+  Two copies of the same bound is exactly the drift surface M-series
+  discipline says to avoid.
+* Precedent: `vlasovWellPosedness` already moved to CharFlow "so its
+  proof can compose with the flow infrastructure."  Items 5, 6 are the
+  identical case — flow-dependent proof content sitting in the statement
+  layer.  Relocation fixes a layering miscategorization, not just dodges
+  duplication.
+
+**The dobrushin chain ripple (must budget)**:
+
+Relocating items 5, 6 forces the consumer chain that depends on them to
+follow, because Basic-resident declarations can't call CharFlow
+declarations.  Chain to relocate:
+
+* `w1ContOn_uscNarrow_via_pureFA` (Basic L1939, sorry'd) — Phase 3 item 5
+* `wassersteinGronwallCoupling_derivBound_via_pureFA` (Basic L2098, sorry'd) — Phase 3 item 6
+* `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (Basic L1993, proved)
+* `wassersteinGronwallCoupling_real_bound` (Basic L2141, proved)
+* `wassersteinGronwallCoupling_ennreal_mul_comm` (Basic L2167, proved)
+* `wassersteinGronwallCoupling_ofReal_le` (Basic L2178, proved)
+* `MathlibTODO_wassersteinGronwallCoupling` (Basic L2221, proved)
+* `dobrushin_C_choice` (Basic L2239, proved) — depends only on L, could stay in Basic, but cleaner to move with the chain for cohesion
+* `convolveDiff_norm_le` (Basic L2249, proved) — wraps `MathlibTODO_convolveLipschitzEstimate`, could stay in Basic
+* `wasserstein1_ofReal_exp_monotone` (Basic L2265, proved) — pure real-analysis, could stay in Basic
+* `dobrushin_ennreal_bound` (Basic L2277, proved)
+* `dobrushin_package_exists` (Basic L2303, proved)
+* `dobrushin` (Basic L2334, proved) — **.tex thm:dobrushin marquee**
+
+**Stays in Basic**:
+* `DobrushinStabilityEstimate` (Basic L2366, def) — pure `Prop`-valued
+  definition, no proof body, naturally lives near `meanFieldLimit`.
+* `meanFieldLimit` (Basic L2392) — consumes `hDobrushin` as hypothesis,
+  doesn't directly call `dobrushin`'s declaration in its body.
+
+This is the §9 statement→pointer pattern already established for
+`vlasovWellPosedness`: the proof content moves to CharFlow; the
+external surface remains accessible (here via Basic's `meanFieldLimit`
+which takes the Dobrushin estimate as a hypothesis, naturally allowing
+either CharFlow's `dobrushin` or another producer to discharge it).
+
+**Stage 2a scope** (this session): relocation only — items 5/6 still
+sorry'd at their new CharFlow location.  Build verification.  Sorry
+count 15 → 15.
+
+**Stage 2b brief** (next session): substantive close of items 5/6 in
+their new CharFlow location.  Steps:
+
+1. Extract flow witnesses from `IsLagrangianVlasovSolution`'s second
+   conjunct: `⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f⟩ := hf`.
+2. Build Vlasov phase-space vector fields:
+   `b_f t z := (z.2, -convolveFunctionMeasure gradW (spatialMarginal (f t)) z.1)`.
+3. **Prove `max(1, L)`-Lipschitz of b_f ONCE** (the constant-adjacency
+   exploit per user 2026-05-31): position part is 1-Lipschitz via
+   `Prod.norm`; convolution part is L-Lipschitz via
+   `convolveFunctionMeasure_lipschitz_in_x`; joint constant is `max(1, L)`.
+4. Build Φ_f from charX_f, charV_f: `Φ_f t z := (charX_f t z, charV_f t z)`.
+   HasDerivAt for Φ_f via `HasDerivAt.prodMk` of hflow_f's position +
+   velocity HasDerivAt clauses.
+5. Apply pure-FA `MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows`
+   (for item 5) and `MathlibTODO_w1RightDerivBoundAlongLagrangianFlows`
+   (for item 6).  Estimated ~150-250 lines.
+
+**Key Stage 2b adjacency to exploit (per user 2026-05-31)**: the
+`max(1, L)` flow-Lipschitz bound proved in step 3 is the **same constant
+the contraction-debt fix needs** (true ratio
+`L · (exp((max 1 L) · T) − 1) / (max 1 L) < 1`).  Stage 2b is the
+natural place to prove that bound once and thread both:
+* the Gronwall composition (items 5, 6 close), AND
+* the corrected contraction constraint (where the previously-incorrect
+  constraint was `L · (T + 1)² < 1` per the watch-list "additive offsets
+  are structurally fatal" entry).
+
+Rather than reopening the same estimate in a separate session, prove
+once and use twice.  This collapses two pieces of structural work into
+one Lipschitz-bound proof.
+
+**Sorry trajectory under Stage 2b**: 15 → 13 (items 5, 6 close).
+
+---
+
+## Phase 4 Stage 3 — empirical-measure Newton-flow Lagrangian producer (flagged 2026-05-31)
+
+**Backward-compat blind spot in Stage 1 cascade** (per user 2026-05-31):
+
+Stage 1's "backward-compat trivial" framing was true for the marquee
+Vlasov solution `f` — `vlasovWellPosedness` produces an
+`IsLagrangianVlasovSolution` witness, so callers of upgraded `dobrushin`
+or `meanFieldLimit` who use the marquee output Just Work.
+
+**But**: `dobrushin` and `meanFieldLimit` were upgraded to require
+`IsLagrangianVlasovSolution` on BOTH arguments.  The second argument in
+the mean-field application is the empirical measure curve `μ^N`, NOT
+the marquee solution `f`.  `vlasovWellPosedness` produces nothing for
+`μ^N` — the Newton flow does.
+
+**While `meanFieldLimit` keeps `hDobrushin` as a hypothesis**, this blind
+spot doesn't bite immediately — the caller provides the Dobrushin
+estimate directly and Stage 1's cascade doesn't require constructing
+`IsLagrangianVlasovSolution` for `μ^N`.  But the moment we instantiate
+the Dobrushin estimate for `(μ^N, f)` — i.e., write a proof that
+`hDobrushin` holds by appeal to `dobrushin` — the empirical Newton-flow
+producer comes due: we'd need to produce
+`IsLagrangianVlasovSolution gradW (empiricalMeasureCurve N (X N) (V N))`.
+
+**This is the one outstanding non-rename obligation** introduced by
+Stage 1.  Worth a line in the Stage 2 / 3 / cleanup brief so it doesn't
+vanish behind "backward-compat trivial."
+
+**The Newton-flow Lagrangian producer (Stage 3 target)**: prove
+
+```lean
+theorem newtonSolutionIsLagrangian
+    {d : ℕ} [NeZero d] (N : ℕ)
+    (gradW : PhysSpace d → PhysSpace d)
+    (X V : ℝ → Fin N → PhysSpace d)
+    (hSol : IsNewtonSolution N gradW X V) :
+    IsLagrangianVlasovSolution gradW (empiricalMeasureCurve N X V)
+```
+
+The Newton flow `((X t i, V t i))_{i ∈ Fin N}` itself is the
+characteristic flow for the empirical measure; the construction is
+direct.  Estimated ~80-150 lines (the IsLagrangianVlasovSolution
+predicate's structure has 4 conjuncts, each provable by direct
+manipulation of the Newton trajectories).
+
+**Phase 4 endpoint under this Stage 3 work**: caller code can write
+
+```lean
+have hLag_N : IsLagrangianVlasovSolution gradW (empiricalMeasureCurve N (X N) (V N)) :=
+  newtonSolutionIsLagrangian N gradW (X N) (V N) (hSol N)
+have hLag_f : IsLagrangianVlasovSolution gradW f := (vlasovWellPosedness ... ).2.2.1
+have hDob_N : DobrushinStabilityEstimate (empiricalMeasureCurve N (X N) (V N)) f C := by
+  -- apply dobrushin (now Lagrangian-keyed) with both witnesses
+  ...
+exact meanFieldLimit ... hLag_f hDob_N ...
+```
+
+This is the complete Path A endpoint at the marquee-application level.
+
+**Stage 3 work also retires Phase 3 items 1 and 3** (per the cleanup
+doc's analysis) — those items defer to Phase 4 because they need the
+Lagrangian-upgrade architectural commitment, which Stage 1 lands and
+Stage 2/3 discharge.
+
+---
+
+## Phase 4 Stage 2a — section-tax operational note (2026-05-31)
+
+**Anticipate, don't rediscover**: any future relocation of a declaration
+out of Basic.lean pays the same "section-variable tax."  Basic.lean has
+`variable {d : ℕ} [NeZero d]` at line 21; declarations inside that
+section can omit the explicit binder.  When such a declaration relocates
+to CharFlow (or any file without that section variable), the binder must
+be added explicitly to the signature.
+
+**Stage 2a empirical confirmation**: 3 declarations
+(`dobrushin_ennreal_bound`, `dobrushin_package_exists`, `dobrushin`)
+required explicit `{d : ℕ} [NeZero d]` insertions during the relocation.
+The build failure at L9381 (`failed to synthesize instance of type
+class NeZero d`) surfaced the tax — fixed in one extra round-trip per
+declaration.
+
+**Forward note for future relocation work**: at relocation planning time,
+grep the proposed move-set for declarations that *omit* `{d : ℕ}` /
+`[NeZero d]` binders; pre-flag the explicit additions needed.  Avoids
+the build-fail-then-fix loop pattern.
+
+This is operational discipline, not promotion-worthy (a single project
+quirk).  Documented inline here so the next relocation arc has the
+heads-up loaded.
