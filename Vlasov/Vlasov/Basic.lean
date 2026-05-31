@@ -1923,31 +1923,10 @@ theorem MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows
     UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
   sorry
 
-/-- **Project-internal composition (Phase 1.5 Session 3, 2026-05-31)**:
-W₁ USC for two Vlasov solutions, derived from
-`MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows` by packaging the
-Vlasov-specific characteristic flows as the abstract Lagrangian-pushforward
-flows the pure-FA placeholder consumes.
-
-**Status**: body sorry'd as Phase 2-4 close target.  The composition
-extracts characteristic flows from each `IsVlasovSolution` (via
-`IsLagrangianVlasovSolution`'s flow witness, requiring an
-upgrade/restate) and applies the pure-FA placeholder.
-
-**In-project consumer**: `MathlibTODO_wassersteinGronwallCoupling_W1ContOn`
-(L1873-area). -/
-theorem w1ContOn_uscNarrow_via_pureFA
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (T : ℝ) (hT : 0 ≤ T) :
-    UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  sorry
+-- `w1ContOn_uscNarrow_via_pureFA` (formerly here) **relocated to
+-- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
+-- 2026-05-31) so its Stage 2b substantive close can compose against
+-- `convolveFunctionMeasure_lipschitz_in_x` and other flow infrastructure.
 
 /-- For Vlasov solutions f, g with HasFiniteFirstMoment at each time t, the
 Wasserstein-1 distance wasserstein1 (f t) (g t) is strictly less than ⊤ (i.e. finite)
@@ -1988,45 +1967,12 @@ lemma W1ContOn_toRealContOn
       (Set.Icc 0 T) {a : ENNReal | a ≠ ⊤} := fun t _ => (h_lt_top t).ne
   exact ENNReal.continuousOn_toReal.comp h_cont_enn h_maps_to
 
--- Sub-axiom 1 of MathlibTODO_wassersteinGronwallCoupling (decomposed above):
--- Narrow continuity of Wasserstein-1 distance along Vlasov solution curves.
-theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (T : ℝ) (hT : 0 ≤ T) :
-    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
-  -- Step 1: pointwise finiteness from HasFiniteFirstMoment
-  have h_finite : ∀ t, wasserstein1 (f t) (g t) < ⊤ :=
-    W1ContOn_lt_top f g hf_prob hg_prob
-  -- Step 2: narrow continuity of integral-against-test-function for f and g
-  -- (W1ContOn_integralContAt; feeds into the LSC argument below).  Uses
-  -- `hf.1 : IsVlasovSolution` extracted from the Lagrangian hypothesis.
-  have h_int_cont_f : ∀ (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ ⊤ φ)
-      (hc : HasCompactSupport φ) (gXφ gVφ : PhaseSpace d → PhysSpace d)
-      (hgXφ : ∀ z, gXφ z = gradient (fun x => φ (x, z.2)) z.1)
-      (hgVφ : ∀ z, gVφ z = gradient (fun v => φ (z.1, v)) z.2),
-      Continuous (fun t => ∫ z, φ z ∂(f t)) :=
-    fun φ hφ hc gXφ gVφ hgXφ hgVφ =>
-      W1ContOn_integralContAt gradW f hf.1 φ hφ hc gXφ gVφ hgXφ hgVφ
-  -- Step 3: W₁ is LSC along these Vlasov flows (Phase 1.5 composition lemma
-  -- `w1ContOn_lscNarrow_via_pureFA`, which routes through the pure-FA
-  -- `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`).  Pass the
-  -- IsVlasovSolution components (.1) since item 4 doesn't need the flow witness.
-  have h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
-    w1ContOn_lscNarrow_via_pureFA gradW f g hf.1 hg.1 hf_prob hg_prob T hT
-  -- Step 4: W₁ is USC along these Vlasov flows.  Passes full Lagrangian
-  -- hypotheses (item 5 needs the flow witness for substantive close).
-  have h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
-    w1ContOn_uscNarrow_via_pureFA gradW L hL f g hf hg hf_prob hg_prob T hT
-  -- Step 5: assemble via W1ContOn_toRealContOn
-  have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
-  exact h_goal
+-- `MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (formerly here)
+-- **relocated to `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A
+-- Stage 2a, 2026-05-31) since it now consumes item 5 (also relocated).
+-- The helpers it calls (`W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
+-- `W1ContOn_integralContAt`, `w1ContOn_lscNarrow_via_pureFA`) stay in
+-- Basic.lean — CharFlow imports Basic, so the calls compose.
 
 /-- **Mathlib-TODO (pure functional-analytic): right-derivative liminf
 Gronwall bound for W₁ between two Lagrangian-pushforward measure flows
@@ -2080,41 +2026,11 @@ theorem MathlibTODO_w1RightDerivBoundAlongLagrangianFlows
             (wasserstein1 (f s) (g s)).toReal) < r := by
   sorry
 
-/-- **Project-internal composition (Phase 1.5 Session 3, 2026-05-31)**:
-right-derivative Gronwall bound for W₁ between two Vlasov solutions,
-derived from `MathlibTODO_w1RightDerivBoundAlongLagrangianFlows` by
-packaging the Vlasov phase-space vector fields (each derived from gradW
-+ the respective solution's spatial marginal via convolution).
-
-**Status**: body sorry'd as Phase 2-4 close target.  The composition
-steps:
-1. Extract characteristic flows for f, g (requires `IsLagrangianVlasovSolution`
-   upgrade from `IsVlasovSolution`; deferred to Phase 2-4).
-2. Define b_f(t, z) := (z.2, -convolveFunctionMeasure gradW
-   (spatialMarginal (f t)) z.1) and similarly for b_g.
-3. Verify `_h_diff_bound` from `MathlibTODO_convolveLipschitzEstimate`
-   composed with the spatial marginal as a 1-Lipschitz projection on W₁.
-4. Apply the pure-FA placeholder.
-
-**In-project consumer**: the assembled `wassersteinGronwallCoupling`
-theorem (composes derivBound + W1ContOn for Gronwall integration). -/
-theorem wassersteinGronwallCoupling_derivBound_via_pureFA
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (T : ℝ) (hT : 0 ≤ T) :
-    ∀ s ∈ Set.Ico 0 T,
-      ∀ r : ℝ, C * (wasserstein1 (f s) (g s)).toReal < r →
-        ∃ᶠ z in nhdsWithin s (Set.Ioi s),
-          (z - s)⁻¹ * ((wasserstein1 (f z) (g z)).toReal -
-            (wasserstein1 (f s) (g s)).toReal) < r := by
-  sorry
+-- `wassersteinGronwallCoupling_derivBound_via_pureFA` (formerly here)
+-- **relocated to `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A
+-- Stage 2a, 2026-05-31) so its Stage 2b substantive close can use
+-- `convolveFunctionMeasure_lipschitz_in_x` for the Vlasov-vector-field
+-- Lipschitz proof.
 
 /-- For a continuous function h : ℝ → ℝ on [0, T] with h(0) ≤ δ and with
 right-derivative liminf bounded by C * h(s) for all s ∈ [0, T),
@@ -2135,34 +2051,11 @@ lemma wassersteinGronwallCoupling_gronwall_le
     hcont hderiv hinit (fun _ _ => by linarith) t ht
   rwa [sub_zero, gronwallBound_ε0] at key
 
-/-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
-MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
-`wassersteinGronwallCoupling_gronwall_le` to conclude:
-  (wasserstein1 (f t) (g t)).toReal ≤ (wasserstein1 (f 0) (g 0)).toReal * Real.exp(C * t)
-for all t ≥ 0.
-TODO(mathlib): depends on sub-axioms for measure-valued ODE continuity and coupling. -/
-lemma wassersteinGronwallCoupling_real_bound
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (t : ℝ) (ht : 0 ≤ t) :
-    (wasserstein1 (f t) (g t)).toReal ≤
-      (wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t) := by
-  have key := wassersteinGronwallCoupling_gronwall_le
-    (fun s => (wasserstein1 (f s) (g s)).toReal)
-    (wasserstein1 (f 0) (g 0)).toReal C t ht
-    (MathlibTODO_wassersteinGronwallCoupling_W1ContOn
-      gradW L hL f g hf hg hf_prob hg_prob t ht)
-    (le_refl _)
-    (wassersteinGronwallCoupling_derivBound_via_pureFA
-      gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht)
-  exact key t (Set.right_mem_Icc.mpr ht)
+-- `wassersteinGronwallCoupling_real_bound` (formerly here) **relocated to
+-- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
+-- 2026-05-31).  Calls the now-CharFlow-resident W1ContOn and item 6,
+-- plus the still-in-Basic `wassersteinGronwallCoupling_gronwall_le`
+-- helper.
 
 /-- For reals δ ≥ 0 and C > 0 and t ≥ 0, if r ≤ δ * Real.exp(C * t) then
 ENNReal.ofReal r ≤ ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ.
@@ -2173,69 +2066,14 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
       ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
   rw [ENNReal.ofReal_mul hδ, mul_comm]
 
-/-- Lift the real-valued Gronwall bound to ENNReal:
-wasserstein1 (f t) (g t) ≤ ENNReal.ofReal(Real.exp(C * t)) * wasserstein1 (f 0) (g 0).
-Uses wassersteinGronwallCoupling_real_bound + wassersteinGronwallCoupling_ennreal_mul_comm
-+ ENNReal.ofReal_toReal_le (to pass from ENNReal.ofReal(x.toReal) ≤ x).
-TODO(mathlib): depends on wassersteinGronwallCoupling_real_bound (sub-axiom-backed). -/
-lemma wassersteinGronwallCoupling_ofReal_le
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (t : ℝ) (ht : 0 ≤ t)
-    (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
-    wasserstein1 (f t) (g t) ≤
-      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  -- real bound
-  have h_real := wassersteinGronwallCoupling_real_bound gradW L hL f g hf hg
-    hf_prob hg_prob C hC hCL t ht
-  -- (wasserstein1 (f 0) (g 0)).toReal ≥ 0
-  have h_t_real_nonneg : 0 ≤ (wasserstein1 (f t) (g t)).toReal := ENNReal.toReal_nonneg
-  have h_0_real_nonneg : 0 ≤ (wasserstein1 (f 0) (g 0)).toReal := ENNReal.toReal_nonneg
-  have h_exp_pos : 0 < Real.exp (C * t) := Real.exp_pos _
-  -- Lift h_real to ENNReal: ofReal preserves ≤
-  have h_ofReal : ENNReal.ofReal ((wasserstein1 (f t) (g t)).toReal) ≤
-      ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t)) :=
-    ENNReal.ofReal_le_ofReal h_real
-  -- LHS = wasserstein1 (f t) (g t) since hW_t (finite)
-  rw [ENNReal.ofReal_toReal hW_t] at h_ofReal
-  -- RHS = ENNReal.ofReal(W₁(f 0)(g 0).toReal) * ENNReal.ofReal(exp(C*t))
-  --     = mul of two ofReals (using ENNReal.ofReal_mul)
-  rw [ENNReal.ofReal_mul h_0_real_nonneg, mul_comm] at h_ofReal
-  -- Now h_ofReal : wasserstein1 (f t) (g t) ≤
-  --   ENNReal.ofReal(exp(C*t)) * ENNReal.ofReal(W₁(f 0)(g 0).toReal)
-  -- ENNReal.ofReal(x.toReal) ≤ x always (by ofReal_toReal_le)
-  have h_lift : ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal) ≤
-      wasserstein1 (f 0) (g 0) := ENNReal.ofReal_toReal_le
-  calc wasserstein1 (f t) (g t)
-      ≤ ENNReal.ofReal (Real.exp (C * t)) *
-          ENNReal.ofReal ((wasserstein1 (f 0) (g 0)).toReal) := h_ofReal
-    _ ≤ ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-        gcongr
+-- `wassersteinGronwallCoupling_ofReal_le` (formerly here) **relocated to
+-- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
+-- 2026-05-31).  Calls the relocated `wassersteinGronwallCoupling_real_bound`.
 
--- The original Mathlib gap axiom, now expressed as a theorem.
--- The proof scaffold uses the sub-axioms and the four helper lemmas above.
-theorem MathlibTODO_wassersteinGronwallCoupling
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
-    (t : ℝ) (ht : 0 ≤ t)
-    (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
-    wasserstein1 (f t) (g t) ≤
-      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) :=
-  wassersteinGronwallCoupling_ofReal_le gradW L hL f g hf hg hf_prob hg_prob C hC hCL t ht hW_t
+-- `MathlibTODO_wassersteinGronwallCoupling` (formerly here) **relocated to
+-- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
+-- 2026-05-31).  Thin wrapper around the relocated
+-- `wassersteinGronwallCoupling_ofReal_le`.
 
 /-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
 This provides the Dobrushin constant independently of whether L = 0. -/
@@ -2271,89 +2109,16 @@ lemma wasserstein1_ofReal_exp_monotone
   apply ENNReal.ofReal_le_ofReal
   exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)
 
-/-- Given MathlibTODO_wassersteinGronwallCoupling and C = max(L,1) > 0 with (L : ℝ) ≤ C,
-for any two Vlasov solutions f and g, for all t ≥ 0 we have
-wasserstein1 (f t) (g t) ≤ ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0).
-Depends on dobrushin_C_choice (for the constant C) and convolveDiff_norm_le (for the
-Lipschitz estimate used in the Gronwall argument via MathlibTODO_wassersteinGronwallCoupling).
-TODO(mathlib): depends on `MathlibTODO_wassersteinGronwallCoupling` Mathlib gap. -/
-lemma dobrushin_ennreal_bound
-    (W : PhysSpace d → ℝ) [hW : AssW W]
-    (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
-    ∀ t : ℝ, 0 ≤ t →
-      wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  intro t ht
-  -- Derive hW_t : wasserstein1 (f t) (g t) ≠ ⊤ from finite first moments
-  haveI : IsProbabilityMeasure (f t) := (hf_prob t).1
-  haveI : IsProbabilityMeasure (g t) := (hg_prob t).1
-  have hW_t : wasserstein1 (f t) (g t) ≠ ⊤ :=
-    wasserstein1_ne_top_of_finite_moment (f t) (g t) (hf_prob t).2 (hg_prob t).2
-  exact MathlibTODO_wassersteinGronwallCoupling gradW L hL f g hf hg hf_prob hg_prob
-    C hC hCL t ht hW_t
-
-/-- Package the bound and positivity of C into the existential conclusion of dobrushin:
-∃ C > 0, ∀ t ≥ 0, W₁(f_t, g_t) ≤ exp(C·t) · W₁(f_0, g_0).
-Depends on dobrushin_C_choice and dobrushin_ennreal_bound. -/
-lemma dobrushin_package_exists
-    (W : PhysSpace d → ℝ) [hW : AssW W]
-    (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
-    ∃ C : ℝ, 0 < C ∧
-      ∀ t : ℝ, 0 ≤ t →
-        wasserstein1 (f t) (g t) ≤
-          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  obtain ⟨C, hC, hCL⟩ := dobrushin_C_choice L
-  exact ⟨C, hC,
-    dobrushin_ennreal_bound W gradW hgradW L hL f g hf hg hf_prob hg_prob C hC hCL⟩
-
-/-- (tex: thm:dobrushin)
-Dobrushin's stability theorem (1979).
-
-Under Assumption ass:W, there exists a constant C = C(L) > 0 such that for any
-two measure-valued solutions f_t, g_t ∈ 𝒫_1(ℝ^d × ℝ^d) of the Vlasov equation
-eq:vlasov,
-
-  W_1(f_t, g_t) ≤ e^{C·t} · W_1(f_0, g_0),   for all t ≥ 0,
-
-where W_1 is the Wasserstein-1 distance.
-The proof uses a coupling via the characteristic flows eq:char and a Gronwall
-inequality; the key estimate is |∇W * ρ − ∇W * σ|_∞ ≤ L · W_1(ρ, σ).
--/
-theorem dobrushin
-    (W : PhysSpace d → ℝ) [hW : AssW W]
-    (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    -- L is the Lipschitz constant of ∇W from Assumption ass:W
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    -- f and g are two Lagrangian Vlasov solutions (carrying characteristic
-    -- flow witnesses, per the Phase 4 Path A architectural upgrade).
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
-    ∃ C : ℝ, 0 < C ∧
-      ∀ t : ℝ, 0 ≤ t →
-        wasserstein1 (f t) (g t) ≤
-          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  -- close via dobrushin_package_exists, which composes dobrushin_C_choice
-  -- and dobrushin_ennreal_bound (which itself invokes MathlibTODO_wassersteinGronwallCoupling)
-  exact dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
+-- `dobrushin_ennreal_bound`, `dobrushin_package_exists`, and `dobrushin`
+-- (the .tex thm:dobrushin marquee) **relocated to
+-- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
+-- 2026-05-31).  The marquee theorem `dobrushin` follows its chain
+-- (items 5/6 + W1ContOn + Gronwall lift + ennreal bound) to CharFlow so
+-- the substantive close paths can compose against flow infrastructure.
+-- The Basic-resident `meanFieldLimit` (below) consumes the Dobrushin
+-- estimate as a hypothesis (`hDobrushin : ∀ N, DobrushinStabilityEstimate
+-- ...`) rather than calling `dobrushin` directly, so this relocation
+-- doesn't ripple to `meanFieldLimit`'s signature.
 
 -- ---------------------------------------------------------------------------
 -- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)
