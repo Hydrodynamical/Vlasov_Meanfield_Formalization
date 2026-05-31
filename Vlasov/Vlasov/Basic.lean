@@ -2193,12 +2193,26 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
 -- 2026-05-31).  Thin wrapper around the relocated
 -- `wassersteinGronwallCoupling_ofReal_le`.
 
-/-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and (L : ℝ) ≤ C.
-This provides the Dobrushin constant independently of whether L = 0. -/
+/-- For any NNReal L, the value C = max((L : ℝ), 1) satisfies 0 < C and
+the strengthened bound `((max 1 L : NNReal) : ℝ) ≤ C`.
+
+**Strengthened conclusion (Phase 4 Stage 2b part 2, 2026-05-31, per M1
+discipline)**: the natural-home object the math actually produces is
+`max 1 L` (the joint Lipschitz constant of the Vlasov phase-space
+vector field).  Carrying `((max 1 L : NNReal) : ℝ) ≤ C` as a single
+fact rather than splitting it into `(L : ℝ) ≤ C` + `1 ≤ C` avoids the
+structure-projection-boundary smell M1 flags.
+
+The previous weaker conclusion `(L : ℝ) ≤ C` is recoverable from the
+new one via `(L : ℝ) ≤ ((max 1 L : NNReal) : ℝ) ≤ C` (the `le_max_right`
+direction on NNReal-max, then coercion).  Consumers needing only the
+weaker form derive it locally. -/
 lemma dobrushin_C_choice (L : NNReal) :
-    ∃ C : ℝ, 0 < C ∧ (L : ℝ) ≤ C := by
-  refine ⟨max (L : ℝ) 1, ?_, le_max_left _ _⟩
-  exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+    ∃ C : ℝ, 0 < C ∧ ((max 1 L : NNReal) : ℝ) ≤ C := by
+  refine ⟨max (L : ℝ) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · -- ((max 1 L : NNReal) : ℝ) = max 1 (L : ℝ) = max (L : ℝ) 1 = C
+    rw [NNReal.coe_max, NNReal.coe_one, max_comm]
 
 /-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
 on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.

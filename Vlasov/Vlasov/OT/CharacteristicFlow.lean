@@ -9368,14 +9368,220 @@ theorem wassersteinGronwallCoupling_derivBound_via_pureFA
     (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C)
     (T : ℝ) (hT : 0 ≤ T) :
     ∀ s ∈ Set.Ico 0 T,
       ∀ r : ℝ, C * (wasserstein1 (f s) (g s)).toReal < r →
         ∃ᶠ z in nhdsWithin s (Set.Ioi s),
           (z - s)⁻¹ * ((wasserstein1 (f z) (g z)).toReal -
             (wasserstein1 (f s) (g s)).toReal) < r := by
-  sorry
+  -- Step 1: IsProbabilityMeasure instances.
+  haveI hf_isProb : ∀ t, IsProbabilityMeasure (f t) := fun t => (hf_prob t).1
+  haveI hg_isProb : ∀ t, IsProbabilityMeasure (g t) := fun t => (hg_prob t).1
+  -- Step 2: extract Lagrangian flow witnesses.
+  obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f⟩ := hf
+  obtain ⟨_, charX_g, charV_g, hflow_g, hpush_g, haem_g⟩ := hg
+  obtain ⟨_, hflow_f_x, hflow_f_v⟩ := hflow_f
+  obtain ⟨_, hflow_g_x, hflow_g_v⟩ := hflow_g
+  -- Step 3: spatial marginals are probability.
+  haveI hspf : ∀ t, IsProbabilityMeasure (spatialMarginal (f t)) := fun t =>
+    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  haveI hspg : ∀ t, IsProbabilityMeasure (spatialMarginal (g t)) := fun t =>
+    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  -- Step 4: integrability of gradW(x - ·) on spatialMarginal (helper closed
+  -- over μ for reuse; mirrors item 5's pattern at CharFlow L9180-area).
+  have h_int_helper : ∀ (μ : ℝ → Measure (PhaseSpace d))
+      (_ : ∀ t, HasFiniteFirstMoment (μ t)),
+      ∀ t (x_pt : PhysSpace d),
+        Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (μ t)) := by
+    intro μ hμ_prob t x_pt
+    haveI : IsProbabilityMeasure (μ t) := (hμ_prob t).1
+    haveI : IsProbabilityMeasure (spatialMarginal (μ t)) :=
+      Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal (μ t)) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    have h_y_int : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (μ t)) := by
+      unfold spatialMarginal
+      rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+      refine Integrable.mono' (hμ_prob t).2
+        ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun z => ?_)
+      show |‖z.1‖| ≤ ‖z‖
+      rw [abs_of_nonneg (norm_nonneg _)]
+      exact norm_fst_le z
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal (μ t)) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+          (spatialMarginal (μ t)) := h_y_int.const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  have h_int_f := h_int_helper f hf_prob
+  have h_int_g := h_int_helper g hg_prob
+  -- Step 5: Lipschitz of Vlasov vector fields (`max(1, L)` via the CharFlow lemma).
+  have hL_b_f : ∀ t, LipschitzWith (max 1 L)
+      (vlasovVectorField gradW (fun t => spatialMarginal (f t)) t) :=
+    fun t => vlasovVectorField_lipschitzWith gradW L hL _ h_int_f t
+  have hL_b_g : ∀ t, LipschitzWith (max 1 L)
+      (vlasovVectorField gradW (fun t => spatialMarginal (g t)) t) :=
+    fun t => vlasovVectorField_lipschitzWith gradW L hL _ h_int_g t
+  -- Step 6: HasDerivAt for joint flows Φ_f, Φ_g.
+  have hΦ_f : ∀ z t,
+      HasDerivAt (fun s => (charX_f s z, charV_f s z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) t
+          (charX_f t z, charV_f t z)) t := by
+    intro z t
+    show HasDerivAt (fun s => (charX_f s z, charV_f s z))
+      ((charX_f t z, charV_f t z).2,
+       -(convolveFunctionMeasure gradW (spatialMarginal (f t))
+          (charX_f t z, charV_f t z).1)) t
+    exact (hflow_f_x t z).prodMk (hflow_f_v t z)
+  have hΦ_g : ∀ z t,
+      HasDerivAt (fun s => (charX_g s z, charV_g s z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (g t)) t
+          (charX_g t z, charV_g t z)) t := by
+    intro z t
+    show HasDerivAt (fun s => (charX_g s z, charV_g s z))
+      ((charX_g t z, charV_g t z).2,
+       -(convolveFunctionMeasure gradW (spatialMarginal (g t))
+          (charX_g t z, charV_g t z).1)) t
+    exact (hflow_g_x t z).prodMk (hflow_g_v t z)
+  -- Step 7: first-moment integrability.
+  have hf_mom : ∀ t, Integrable (fun z : PhaseSpace d => ‖z‖) (f t) :=
+    fun t => (hf_prob t).2
+  have hg_mom : ∀ t, Integrable (fun z : PhaseSpace d => ‖z‖) (g t) :=
+    fun t => (hg_prob t).2
+  -- Step 8: vector-field difference bound — THE KEY NEW PIECE for item 6.
+  -- Chain: convolveDiff_norm_le (L-Lipschitz) + wasserstein1_le_of_lipschitz_map
+  -- at L=1 (Prod.fst is 1-Lipschitz) + `L ≤ max(1, L)`.
+  have h_diff_bound : ∀ t x,
+      ‖vlasovVectorField gradW (fun t => spatialMarginal (f t)) t x -
+       vlasovVectorField gradW (fun t => spatialMarginal (g t)) t x‖ ≤
+      ((max 1 L : NNReal) : ℝ) * (wasserstein1 (f t) (g t)).toReal := by
+    intro t x
+    -- Unfold the difference: b_f - b_g = (0, conv_g x.1 - conv_f x.1).
+    have h_diff_form :
+        vlasovVectorField gradW (fun t => spatialMarginal (f t)) t x -
+        vlasovVectorField gradW (fun t => spatialMarginal (g t)) t x =
+        ((0 : PhysSpace d),
+         -(convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1) -
+         -(convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1)) := by
+      unfold vlasovVectorField
+      simp [Prod.mk_sub_mk, sub_self]
+    rw [h_diff_form]
+    -- Prod.norm of (0, b) is ‖b‖ (max 0 ‖b‖ = ‖b‖).
+    have h_prod_norm :
+        ‖((0 : PhysSpace d),
+          -(convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1) -
+          -(convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1))‖ =
+        ‖-(convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1) -
+          -(convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1)‖ := by
+      simp [Prod.norm_def]
+    rw [h_prod_norm]
+    -- Simplify -a - (-b) = -a + b = b - a.
+    have h_neg_simp :
+        -(convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1) -
+        -(convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1) =
+        convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1 -
+        convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1 := by abel
+    rw [h_neg_simp]
+    -- Apply convolveDiff_norm_le (in Basic.lean) with ρ = spatialMarginal (g t),
+    -- σ = spatialMarginal (f t).  Need wasserstein1 finiteness on spatial marginals.
+    have h_sf_mom : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f t)) := by
+      -- Reuse the integrability derivation from h_int_helper (h_y_int step).
+      unfold spatialMarginal
+      rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+      refine Integrable.mono' (hf_prob t).2
+        ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun z => ?_)
+      show |‖z.1‖| ≤ ‖z‖
+      rw [abs_of_nonneg (norm_nonneg _)]
+      exact norm_fst_le z
+    have h_sg_mom : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (g t)) := by
+      unfold spatialMarginal
+      rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+      refine Integrable.mono' (hg_prob t).2
+        ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun z => ?_)
+      show |‖z.1‖| ≤ ‖z‖
+      rw [abs_of_nonneg (norm_nonneg _)]
+      exact norm_fst_le z
+    have hW_sp_ne_top :
+        wasserstein1 (spatialMarginal (g t)) (spatialMarginal (f t)) ≠ ⊤ :=
+      wasserstein1_ne_top_of_finite_moment _ _ h_sg_mom h_sf_mom
+    have h_conv_diff :
+        ‖convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1 -
+         convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1‖ ≤
+        (L : ℝ) * (wasserstein1 (spatialMarginal (g t)) (spatialMarginal (f t))).toReal :=
+      convolveDiff_norm_le gradW L hL _ _ x.1 hW_sp_ne_top (h_int_g t x.1) (h_int_f t x.1)
+    -- W₁ projection-contraction: Prod.fst is 1-Lipschitz, so
+    -- W₁(spatialMarginal _, spatialMarginal _) ≤ W₁(_, _).
+    have h_W1_proj :
+        wasserstein1 (spatialMarginal (g t)) (spatialMarginal (f t)) ≤
+        wasserstein1 (g t) (f t) := by
+      have h_lip_fst : LipschitzWith 1 (Prod.fst : PhaseSpace d → PhysSpace d) :=
+        LipschitzWith.prod_fst
+      have h_app := wasserstein1_le_of_lipschitz_map
+        (Prod.fst : PhaseSpace d → PhysSpace d) 1 h_lip_fst measurable_fst (g t) (f t)
+      simp only [ENNReal.coe_one, one_mul] at h_app
+      exact h_app
+    have hW_ne_top : wasserstein1 (g t) (f t) ≠ ⊤ :=
+      wasserstein1_ne_top_of_finite_moment _ _ (hg_prob t).2 (hf_prob t).2
+    have h_W1_proj_real :
+        (wasserstein1 (spatialMarginal (g t)) (spatialMarginal (f t))).toReal ≤
+        (wasserstein1 (g t) (f t)).toReal :=
+      ENNReal.toReal_mono hW_ne_top h_W1_proj
+    -- wasserstein1 (g t) (f t) = wasserstein1 (f t) (g t) by symmetry.
+    have h_W1_sym : (wasserstein1 (g t) (f t)).toReal = (wasserstein1 (f t) (g t)).toReal := by
+      rw [wasserstein1_comm]
+    -- Chain: ‖conv_g - conv_f‖ ≤ L · W₁(sp_g, sp_f).toReal
+    --                          ≤ L · W₁(g, f).toReal
+    --                          = L · W₁(f, g).toReal
+    --                          ≤ max(1, L) · W₁(f, g).toReal.
+    have hL_nn : (0 : ℝ) ≤ (L : ℝ) := L.coe_nonneg
+    have hW_nn : (0 : ℝ) ≤ (wasserstein1 (f t) (g t)).toReal := ENNReal.toReal_nonneg
+    have h_L_le_max : (L : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+      rw [NNReal.coe_max, NNReal.coe_one]
+      exact le_max_right _ _
+    calc ‖convolveFunctionMeasure gradW (spatialMarginal (g t)) x.1 -
+          convolveFunctionMeasure gradW (spatialMarginal (f t)) x.1‖
+        ≤ (L : ℝ) * (wasserstein1 (spatialMarginal (g t)) (spatialMarginal (f t))).toReal :=
+          h_conv_diff
+      _ ≤ (L : ℝ) * (wasserstein1 (g t) (f t)).toReal :=
+          mul_le_mul_of_nonneg_left h_W1_proj_real hL_nn
+      _ = (L : ℝ) * (wasserstein1 (f t) (g t)).toReal := by rw [h_W1_sym]
+      _ ≤ ((max 1 L : NNReal) : ℝ) * (wasserstein1 (f t) (g t)).toReal :=
+          mul_le_mul_of_nonneg_right h_L_le_max hW_nn
+  -- Step 9: apply the pure-FA placeholder with placeholder_L = max(1, L).
+  exact MathlibTODO_w1RightDerivBoundAlongLagrangianFlows
+    (fun t => vlasovVectorField gradW (fun t => spatialMarginal (f t)) t)
+    (fun t => vlasovVectorField gradW (fun t => spatialMarginal (g t)) t)
+    (max 1 L) hL_b_f hL_b_g
+    (fun t z => (charX_f t z, charV_f t z))
+    (fun t z => (charX_g t z, charV_g t z))
+    hΦ_f hΦ_g f g hpush_f hpush_g haem_f haem_g hf_mom hg_mom
+    h_diff_bound C hC hCL T hT
 
 /-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
 MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
@@ -9392,7 +9598,7 @@ lemma wassersteinGronwallCoupling_real_bound
     (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t) :
     (wasserstein1 (f t) (g t)).toReal ≤
       (wasserstein1 (f 0) (g 0)).toReal * Real.exp (C * t) := by
@@ -9420,7 +9626,7 @@ lemma wassersteinGronwallCoupling_ofReal_le
     (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t)
     (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
     wasserstein1 (f t) (g t) ≤
@@ -9464,7 +9670,7 @@ theorem MathlibTODO_wassersteinGronwallCoupling
     (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C)
     (t : ℝ) (ht : 0 ≤ t)
     (hW_t : wasserstein1 (f t) (g t) ≠ ⊤) :
     wasserstein1 (f t) (g t) ≤
@@ -9488,7 +9694,7 @@ lemma dobrushin_ennreal_bound
     (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
-    (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C) :
     ∀ t : ℝ, 0 ≤ t →
       wasserstein1 (f t) (g t) ≤
         ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by

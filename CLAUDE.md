@@ -314,6 +314,52 @@ first hypothesis to consider is "Lean's parser/elaborator sees a
 distinction the math doesn't."  Look for: lambdas vs point-free,
 ASCII vs Unicode, pipeline-applied vs directly-applied, iff-direction.
 
+### L10. `ring` requires `CommRing`; additive-group goals are `abel` territory
+
+**Failure mode**: writing `by ring` on a goal that's purely additive
+(no multiplication of variables) — typically a difference simplification
+like `-a - (-b) = b - a` or `(a + b) - (a + c) = b - c` — fails with
+`ring made no progress` when the underlying type is an `AddCommGroup`
+but not a `CommRing`.  The failure is opaque: the goal looks like
+"obviously ring", but `ring` rejects because the type has no
+multiplication structure.
+
+**Empirical confirmation** (Phase 4 Stage 2b part 2, 2026-05-31, item 6
+close): the difference of two Vlasov phase-space vector fields
+`b_f t x - b_g t x = (0, -conv_f x.1 - (-conv_g x.1))` needs the
+intermediate simplification
+`-conv_f x.1 - (-conv_g x.1) = conv_g x.1 - conv_f x.1` on
+`PhysSpace d = EuclideanSpace ℝ (Fin d)`.  `EuclideanSpace ℝ (Fin d)`
+is `AddCommGroup` (under pointwise + and -) but **not** `CommRing`
+(no pointwise multiplication is defined; the Euclidean structure is
+inner-product not ring).  `by ring` fails; `by abel` closes.
+
+**Fix**: when the goal is purely additive and the type is a vector
+space / inner-product space / additive-group-not-ring, use `abel`
+(or `abel_nf`).  Reserve `ring` for `CommRing` types (`ℝ`, `ℂ`, `ℝ≥0`,
+`ENNReal`-where-defined, polynomial rings, etc.).
+
+**Generalisation — this is structural, not a quirk**: phase-space
+differences are *always* `AddCommGroup`-not-ring by construction.
+Velocity-position vectors live in inner-product spaces or product
+spaces of them; no multiplication is defined.  Every future
+manipulation of `b_f - b_g`-style expressions, of flow-trajectory
+differences, of joint-phase-space vector arithmetic, will hit this
+same wall if started with `ring`.
+
+**Operational rule**: at the moment you write `by ring` on a goal
+involving phase-space / vector-space / inner-product-space elements,
+spend the half-second to mentally type-check: "is this type a
+`CommRing`?"  If not (and it usually isn't for vector-valued goals),
+go directly to `abel`.  Avoids the build-fail-then-fix loop.
+
+**Promoted at one sighting** (the standard threshold is 2-3) because
+generality is *certain* not uncertain — the structural fact about the
+domain (vector-valued differences are `AddCommGroup`-not-ring) holds
+for every analogous future proof.  The watch-list exists for patterns
+whose generality is unclear; this one's generality is locked in by
+the math.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
