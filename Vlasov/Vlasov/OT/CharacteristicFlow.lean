@@ -7006,6 +7006,82 @@ theorem vlasovWellPosedness_local
     exact _hflow_on.1 z (Set.mem_univ z)
 
 -- ---------------------------------------------------------------------------
+-- Banked infrastructure: localized `hasDerivAt_of_hasDerivAt_of_ne`
+-- ---------------------------------------------------------------------------
+-- Generic real-analysis helper banked for `_glue_step` case (a)'s substantive
+-- close.  Mathlib's `hasDerivAt_of_hasDerivAt_of_ne`
+-- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) requires a UNIVERSAL
+-- `∀ y ≠ x, HasDerivAt f (g y) y` hypothesis; the `_glue_step` setting only
+-- gives HasDerivAt on a bounded interval `Ioo 0 (T + T_0)`.  This helper
+-- localizes the Mathlib pattern to a neighborhood-eventually hypothesis,
+-- enabling case (a)'s close via union of one-sided extension lemmas.
+
+section HasDerivAtPunctured
+open scoped Topology
+open Filter
+
+/-- Local version of `hasDerivAt_of_hasDerivAt_of_ne` (Mathlib/Analysis/Calculus/
+FDeriv/Extend.lean L177): if `f : ℝ → ℝ` has HasDerivAt with derivative `g(y)` at
+every `y ≠ x₀` in some neighborhood of `x₀`, and both `f` and `g` are continuous
+at `x₀`, then `f` has HasDerivAt with derivative `g(x₀)` at `x₀`.
+
+The proof composes `hasDerivWithinAt_Iic_of_tendsto_deriv` (left side) +
+`hasDerivWithinAt_Ici_of_tendsto_deriv` (right side) + `HasDerivWithinAt.union`,
+following the Mathlib lemma's proof structure but with locally-quantified
+hypothesis (enabling use when the punctured-HasDerivAt holds only on a bounded
+interval, not all of ℝ). -/
+theorem hasDerivAt_of_hasDerivAt_of_ne_in_nhds
+    {f g : ℝ → ℝ} {x₀ : ℝ}
+    (h_diff_ne : ∀ᶠ y in 𝓝 x₀, y ≠ x₀ → HasDerivAt f (g y) y)
+    (hf : ContinuousAt f x₀) (hg : ContinuousAt g x₀) :
+    HasDerivAt f (g x₀) x₀ := by
+  -- Extract an open ball around x₀ on which the punctured HasDerivAt holds.
+  obtain ⟨U, hU_sub, hU_open, hx₀_U⟩ := mem_nhds_iff.mp h_diff_ne
+  obtain ⟨ε, ε_pos, hε⟩ := Metric.isOpen_iff.mp hU_open x₀ hx₀_U
+  -- Right side: HasDerivWithinAt on Ici x₀ via hasDerivWithinAt_Ici_of_tendsto_deriv.
+  have h_right : HasDerivWithinAt f (g x₀) (Set.Ici x₀) x₀ := by
+    have hs_right : Set.Ioo x₀ (x₀ + ε) ∈ 𝓝[>] x₀ :=
+      Ioo_mem_nhdsGT (by linarith : x₀ < x₀ + ε)
+    have h_diff_right : DifferentiableOn ℝ f (Set.Ioo x₀ (x₀ + ε)) := by
+      intro y hy
+      have hy_U : y ∈ U := hε (by
+        rw [Metric.mem_ball, Real.dist_eq, abs_lt]
+        exact ⟨by linarith [hy.1, hy.2], by linarith [hy.1, hy.2]⟩)
+      exact (hU_sub hy_U (ne_of_gt hy.1)).differentiableAt.differentiableWithinAt
+    apply hasDerivWithinAt_Ici_of_tendsto_deriv h_diff_right hf.continuousWithinAt hs_right
+    have h_g_tendsto : Tendsto g (𝓝[>] x₀) (𝓝 (g x₀)) := tendsto_inf_left hg
+    apply h_g_tendsto.congr'
+    apply mem_of_superset hs_right
+    intro y hy
+    have hy_U : y ∈ U := hε (by
+      rw [Metric.mem_ball, Real.dist_eq, abs_lt]
+      exact ⟨by linarith [hy.1, hy.2], by linarith [hy.1, hy.2]⟩)
+    exact (hU_sub hy_U (ne_of_gt hy.1)).deriv.symm
+  -- Left side: symmetric.
+  have h_left : HasDerivWithinAt f (g x₀) (Set.Iic x₀) x₀ := by
+    have hs_left : Set.Ioo (x₀ - ε) x₀ ∈ 𝓝[<] x₀ :=
+      Ioo_mem_nhdsLT (by linarith : x₀ - ε < x₀)
+    have h_diff_left : DifferentiableOn ℝ f (Set.Ioo (x₀ - ε) x₀) := by
+      intro y hy
+      have hy_U : y ∈ U := hε (by
+        rw [Metric.mem_ball, Real.dist_eq, abs_lt]
+        exact ⟨by linarith [hy.1, hy.2], by linarith [hy.1, hy.2]⟩)
+      exact (hU_sub hy_U (ne_of_lt hy.2)).differentiableAt.differentiableWithinAt
+    apply hasDerivWithinAt_Iic_of_tendsto_deriv h_diff_left hf.continuousWithinAt hs_left
+    have h_g_tendsto : Tendsto g (𝓝[<] x₀) (𝓝 (g x₀)) := tendsto_inf_left hg
+    apply h_g_tendsto.congr'
+    apply mem_of_superset hs_left
+    intro y hy
+    have hy_U : y ∈ U := hε (by
+      rw [Metric.mem_ball, Real.dist_eq, abs_lt]
+      exact ⟨by linarith [hy.1, hy.2], by linarith [hy.1, hy.2]⟩)
+    exact (hU_sub hy_U (ne_of_lt hy.2)).deriv.symm
+  -- Union via Set.Iic_union_Ici = Set.univ → HasDerivAt at x₀.
+  simpa using h_left.union h_right
+
+end HasDerivAtPunctured
+
+-- ---------------------------------------------------------------------------
 -- §9.5  Stage 5 — variable-`T_target` continuation via fixed-`T_0` iteration
 -- ---------------------------------------------------------------------------
 -- Composes `vlasovWellPosedness_local` against itself to extend the local
@@ -7217,49 +7293,85 @@ theorem vlasovWellPosedness_glue_step
             -- Match spatialMarginal (f_next t) with spatialMarginal (g (t - T))
             rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
             exact h_chain.congr_of_eventuallyEq h_ev
-          · -- t = T: boundary case — substantive close deferred to focused next session.
-            --
-            -- **Architectural discovery (2026-05-30)**: the originally-planned B2 surgery
-            -- on `IsVlasovSolutionOn` predicate (~400-600 lines across 4 layers) is
-            -- UNNECESSARY for closing this case.  Mathlib already provides the close
-            -- infrastructure via `hasDerivAt_of_hasDerivAt_of_ne`
-            -- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) and its underlying
-            -- one-sided variants `hasDerivWithinAt_{Iic,Ici}_of_tendsto_deriv` (L108, L142).
-            --
-            -- **Close path** (~280-350 lines, focused next session):
-            -- 1. **DifferentiableOn**: f_next is differentiable on Ioo 0 T (from
-            --    `h_prev_vlasov`'s HasDerivAt) and on Ioo T (T+T_0) (from `h_g_vlasov`
-            --    + chain rule).  Already established structurally above (L7181-7219).
-            -- 2. **ContinuousAt at T (narrow continuity, both sides)**: ~50 lines per
-            --    side via DCT on the pushforward equation.  Mirrors Stage 6's narrow
-            --    continuity proof at L8265-8294 (charX continuity → DCT → integral
-            --    continuity).  Inputs: `h_prev_boundary` continuity (LEFT, mono'd to
-            --    Iic T) + `hg_boundary` continuity at 0 (RIGHT, shift via chain rule).
-            -- 3. **ContinuousAt at T for derivative function (both sides)**: ~100 lines
-            --    per side.  The derivative function involves the convolution
-            --    `convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1`, which
-            --    requires narrow continuity of `t' ↦ spatialMarginal(f_next t')`
-            --    composed with Lipschitz of `gradW` (`MathlibTODO_convolveLipschitzEstimate`)
-            --    + DCT on the integral against f_next t'.
-            -- 4. **Apply `hasDerivWithinAt_Iic_of_tendsto_deriv` (LEFT) and
-            --    `hasDerivWithinAt_Ici_of_tendsto_deriv` (RIGHT)**, each consuming
-            --    DifferentiableOn + ContinuousAt + nhdsWithin-membership + Tendsto-deriv.
-            -- 5. **Union via `Set.Iic_union_Ici = Set.univ`** → `HasDerivAt` at T.
-            --
-            -- **Why this beats the B2 surgery path**: B2 enrichment of `IsVlasovSolutionOn`
-            -- would require ~400-600 lines (predicate change + producer body extension +
-            -- consumer updates + 4-layer cascade) AND a HasDerivWithinAt-flavored DUI
-            -- helper that Mathlib doesn't have packaged.  The localized close above
-            -- isolates the substantive DCT work to ~280-350 lines all inside this case,
-            -- with no predicate-layer disruption and no new Mathlib placeholders required.
-            --
-            -- **Discovered via atom-level reading (P1)** of
-            -- `.lake/packages/mathlib/Mathlib/Analysis/Calculus/FDeriv/Extend.lean`
-            -- during the B2-surgery scoping phase of this session.  Third such win this
-            -- session (after option-3 close via `HasDerivWithinAt.union` and Stage C
-            -- verdict refinement); reinforces the P1 discipline as the project's primary
-            -- cost-saver.
-            sorry
+          · -- t = T: boundary case via `hasDerivAt_of_hasDerivAt_of_ne_in_nhds`.
+            -- Three sub-arguments: (1) HasDerivAt at every nearby t' ≠ T from existing
+            -- strict-left/right work; (2) ContinuousAt of integral function at T;
+            -- (3) ContinuousAt of derivative function at T.  (2) and (3) sorry'd as
+            -- focused leaf sub-helpers per P4 API-lock pattern; the close composition
+            -- is substantively in place.
+            push_neg at ht_gt
+            have h_t_eq : t = T := le_antisymm ht_gt (not_lt.mp ht_lt)
+            -- Step 1: HasDerivAt at every nearby t' ≠ T (substantive close from
+            -- existing strict-left/right work above, ~50 lines).
+            have h_diff_ne : ∀ᶠ t' in nhds T, t' ≠ T → HasDerivAt
+                (fun s => ∫ z, φ z ∂f_next s)
+                ((∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1)
+                          (gradVφ z)) ∂(f_next t')) + 0) t' := by
+              -- Use Ioo 0 (T + T_0) as the neighborhood
+              have hU_mem : Set.Ioo (0 : ℝ) (T + T_0) ∈ nhds T :=
+                Ioo_mem_nhds hT_pos (by linarith)
+              apply Filter.Eventually.mono hU_mem
+              intro t' ht' ht'_ne
+              rcases lt_or_gt_of_ne ht'_ne with ht'_lt | ht'_gt
+              · -- t' < T: use h_prev_vlasov + bridge f_next = f_prev on left of T
+                have ht'_prev : t' ∈ Set.Ioo (0 : ℝ) T := ⟨ht'.1, ht'_lt⟩
+                have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t']
+                    (fun s => ∫ z, φ z ∂f_prev s) := by
+                  apply Filter.Eventually.mono (eventually_lt_nhds ht'_lt)
+                  intro s hs; simp [f_next, le_of_lt hs]
+                have h_fnext_t' : f_next t' = f_prev t' := if_pos (le_of_lt ht'_lt)
+                have h_deriv := h_prev_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
+                    hgradXφ hgradVφ t' ht'_prev
+                rw [show (fun _ => (0 : ℝ)) t' = 0 from rfl, add_zero] at h_deriv
+                have h_marg : spatialMarginal (f_next t') = spatialMarginal (f_prev t') :=
+                  congrArg spatialMarginal h_fnext_t'
+                rw [add_zero, h_marg, h_fnext_t']
+                exact h_deriv.congr_of_eventuallyEq h_ev
+              · -- t' > T: use h_g_vlasov + chain rule + bridge f_next = g (·-T)
+                have ht'_g : t' - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht'.2]⟩
+                have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t']
+                    (fun s => ∫ z, φ z ∂g (s - T)) := by
+                  apply Filter.Eventually.mono (eventually_gt_nhds ht'_gt)
+                  intro s hs; simp [f_next, not_le.mpr hs]
+                have h_fnext_t' : f_next t' = g (t' - T) := if_neg (not_le.mpr ht'_gt)
+                have h_g_deriv := h_g_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
+                    hgradXφ hgradVφ (t' - T) ht'_g
+                rw [show (fun _ => (0 : ℝ)) (t' - T) = 0 from rfl, add_zero] at h_g_deriv
+                have h_sub : HasDerivAt (· - T) 1 t' := (hasDerivAt_id' t').sub_const T
+                have h_chain : HasDerivAt (fun s => ∫ z, φ z ∂g (s - T))
+                    (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                      @inner ℝ (PhysSpace d) _
+                        (convolveFunctionMeasure gradW (spatialMarginal (g (t' - T))) z.1)
+                        (gradVφ z)) ∂g (t' - T)) t' := by
+                  have := HasDerivAt.comp_of_eq t' h_g_deriv h_sub rfl
+                  simpa [Function.comp, mul_one] using this
+                have h_marg : spatialMarginal (f_next t') = spatialMarginal (g (t' - T)) :=
+                  congrArg spatialMarginal h_fnext_t'
+                rw [add_zero, h_marg, h_fnext_t']
+                exact h_chain.congr_of_eventuallyEq h_ev
+            -- Step 2: ContinuousAt of integral function at T.
+            -- Sub-sorry (focused leaf): narrow continuity via DCT on pushforward equation.
+            -- Mirrors Stage 6 narrow continuity at L8265-8294.  ~100-150 lines (both sides
+            -- via piecewise pushforward chain). Discharged in focused follow-up.
+            have h_cont_f : ContinuousAt (fun s => ∫ z, φ z ∂f_next s) T := by
+              sorry
+            -- Step 3: ContinuousAt of derivative function at T.
+            -- Sub-sorry (focused leaf): the integrand involves the convolution
+            -- `convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1` which
+            -- depends on t' via narrow continuity of `t' ↦ spatialMarginal(f_next t')`.
+            -- ~150-250 lines via DCT + W₁-Lipschitz-of-convolution from
+            -- `MathlibTODO_convolveLipschitzEstimate`.  Discharged in focused follow-up.
+            have h_cont_g : ContinuousAt (fun t' =>
+                (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1)
+                          (gradVφ z)) ∂(f_next t')) + 0) T := by
+              sorry
+            -- Step 4: Apply the localized helper.
+            rw [h_t_eq]
+            exact hasDerivAt_of_hasDerivAt_of_ne_in_nhds h_diff_ne h_cont_f h_cont_g
       exact h_vlasov_glue
     · -- IsCharacteristicFlowOn for the glued flow
       -- Sub-sorry: flow initial condition + HasDerivAt for piecewise flow
