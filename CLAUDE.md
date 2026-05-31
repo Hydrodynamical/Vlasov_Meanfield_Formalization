@@ -595,6 +595,73 @@ it produces P3-style loaded context for the *next* session at the cost
 of one session's execution work, but the loaded context typically
 unblocks 2-3 future sessions of substantive work.
 
+### P6. Brief-driven execution with pre-loaded diagnostics lands cleanly
+
+**Positive pattern** (confirming-pattern companion to the warning
+patterns P2 + P3 + P5).  When a session opens with a pre-loaded brief
+from prior-session diagnostic work — atom-level identification of
+Mathlib infrastructure, characterization of close path, line-count
+estimates, identified lemma inventory — execution-mode work lands
+cleanly without P2-style scope discoveries or P5-style strategic-
+recommendation refinements mid-session.  Tactical deviations
+(notation namespace fixes, term-level substitutions, minor
+elaboration tweaks) remain expected and tractable; what's *absent*
+is architectural surprise.
+
+**Empirical confirmation** (two sightings):
+
+1. **Sighting #1** (session of commits `56f8ddf` + `c25c8b0`,
+   2026-05-30): cases (b)/(c) of `_glue_step` closed substantively
+   in commit `56f8ddf` against the discovery diagnostic that
+   `HasDerivWithinAt.union` was the close pattern (identified in
+   prior session's `9be5c42`).  Then the same session pivoted to
+   diagnostic mode for the case-(a) close path discovery (commit
+   `c25c8b0`).  Execution against the pre-loaded discovery: clean,
+   2 minor edits, no scope surprises.
+
+2. **Sighting #2** (session of commits `bd11a2c` + `360813f`,
+   2026-05-31): case (a) structural close + helper banking
+   (commit `bd11a2c`) + h_cont_f LEFT side substantive DCT close
+   (commit `360813f`).  Both executed against the pre-loaded brief
+   from `c25c8b0` (close path: `hasDerivAt_of_hasDerivAt_of_ne` +
+   one-sided variants + union).  Tactical deviations: `le_of_not_lt`
+   → `not_lt.mp` rename, `Continuous.comp_aemeasurable` → explicit
+   `hφ_cont.measurable.comp_aemeasurable`, `← h_prev_init` direction
+   → `h_prev_init`, `f_prev 0` vs `f₀` bridges via `h_prev_init ▸`.
+   No architectural surprises; estimated 280-350 line close
+   delivered as 75-line helper + 50-line h_diff_ne + 70-line
+   h_cont_f LEFT across the session (substantive estimate validated
+   per-leaf, just split across multiple sessions).
+
+**Composition with P5**: P5 says "verify the strategic recommendation
+before acting on it."  P6 says "when the strategic recommendation
+*has* been verified (in prior session) and the brief is concrete,
+execution lands cleanly."  The two compose: P5 catches strategic
+mismatches before they cascade into execution-mode P2 firings; P6
+confirms that once P5 has been satisfied, execution works as
+designed.  This is why the project's two-commit session structure
+(discovery commit + execution commit, often paired) is the
+empirically most productive cadence.
+
+**Operational rule**: when planning a session, distinguish between
+(a) sessions opening against a verified pre-loaded brief
+(execution-mode, expect clean landing) and (b) sessions opening
+without such a brief (diagnostic-mode, expect P5 verification work
+and possibly a discovery-commit deliverable).  Type (a) sessions
+can target substantive line-count delivery; type (b) sessions
+target information-density delivery.  Mis-typing the session
+(treating a type-b session as type-a) produces the P2 cascade
+failure mode; correctly identifying the type matches expectations
+to outcomes.
+
+**Composition with the session-cadence watch-list**: P6 is the
+*positive empirical pattern* of the session-cadence observation —
+specifically, the success-mode of execution sessions when
+diagnostic prep is loaded.  The watch-list entry remains as the
+broader meta-observation about cadence as a concept; P6 is the
+concrete pattern that makes one half of the cadence work
+reliably.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
@@ -907,9 +974,26 @@ indefinite watch-listing):
   authorization for diagnostic pivoting produced the highest-value
   discovery commit of the recent arc despite being scoped as execution.
 
-  Trigger: 2 more sightings.  Promotion candidate as a P-series
-  meta-discipline (P6?) about session cadence, or as a stand-alone
-  watch-list category at the operational-cadence layer.
+  **Sighting #2 (2026-05-31)**: session of commits `bd11a2c` +
+  `360813f` executed h_cont_f LEFT close + helper banking against
+  the brief loaded by `c25c8b0`'s discovery commit.  Pure execution
+  mode, no diagnostic pivoting, ~145 lines substantive across two
+  commits.  Tactical deviations only (notation namespace, term-level
+  substitutions); no architectural surprises.  This validates the
+  cadence hypothesis: the diagnostic→execution alternation produces
+  reliable execution sessions when the prior diagnostic was concrete.
+
+  Status: **partially promoted as P6** (positive empirical pattern of
+  brief-driven execution).  Watch-list entry remains for the broader
+  meta-observation about cadence as a concept (P6 captures only the
+  positive-execution half).  Further sightings of the *deliberate
+  interleaving* principle (and especially of mis-typed sessions producing
+  P2 firings as the cost of skipping diagnostic prep) would promote
+  the broader meta-discipline.
+
+  Trigger for full meta-promotion: 2 more sightings of the cadence
+  pattern (interleaving working as concept, not just brief-driven
+  execution working as concept).
 
 * **Cascade-as-signal**: 1 sighting (Stage 4 Bridge #1 →
   Friction 5 discovery).  Diagnostic: "resolving friction N
