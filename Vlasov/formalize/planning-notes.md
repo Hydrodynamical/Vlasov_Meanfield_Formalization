@@ -498,6 +498,67 @@ them, so item 4's body can consume it without forward-reference.
 
 ---
 
+## Phase 3 Session 3 — items 5/6 verification (P5 sighting #4)
+
+**P1 atom-level reading on items 5/6's API-lock decomposition feasibility**
+(post-item-4-close, same session as the above):
+
+Considered closing items 5/6 via the same API-lock decomposition pattern
+that worked for item 4 — add a `MathlibTODO_superpositionPrinciple_Lagrangian`
+sub-placeholder for DiPerna-Lions superposition (extract Lagrangian flow
+witnesses from `IsVlasovSolution`), then orchestrate via the pure-FA
+USC/derivBound placeholders.
+
+**Atom-level reading revealed cross-file infrastructure dependency**:
+
+* The Vlasov phase-space vector field `b(t, z) := (z.2, -convolveFunctionMeasure
+  gradW (spatialMarginal (f t)) z.1)` needs to be proved `max(1, L)`-Lipschitz
+  to feed `MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows`'s `_hL_f`
+  hypothesis.
+* The Lipschitz proof routes through `convolveFunctionMeasure_lipschitz_in_x`
+  (CharacteristicFlow.lean L75) + `Prod.norm`-style arithmetic for the
+  phase-space joint Lipschitz constant.
+* `convolveFunctionMeasure_lipschitz_in_x` lives in
+  `Vlasov/OT/CharacteristicFlow.lean`, which **imports** Basic.lean.
+  Items 5/6 currently live in Basic.lean.
+
+**Three options to bridge the cross-file dependency**:
+
+1. **Move items 5/6 + new placeholder to CharFlow.lean**: significant
+   relocation (~100-200 lines), affects the natural placement of the
+   placeholder family.
+2. **Re-prove `convolveFunctionMeasure_lipschitz_in_x` in Basic.lean**:
+   duplicates ~30 lines of proof; creates two-fold maintenance burden.
+3. **Defer to Phase 4 architectural swing**: the Lagrangian-upgrade
+   cascade is the cleaner architectural decision; both items 5/6
+   substantive close paths converge on it.
+
+**Decision**: option 3 (defer).  This matches the next-session brief's
+recommendation and avoids per-session piecemeal architectural moves.
+The Phase 4 swing will handle items 1, 3, 5, 6 together as a
+coordinated Lagrangian-upgrade refactor (or via the API-lock
+decomposition pattern executed in the right file structure).
+
+**P5 sighting #4**: pattern-extrapolation said "item 4's API-lock
+decomposition pattern should work for items 5/6 too."  Atom-level
+verification revealed the cross-file infrastructure dependency that
+makes the pattern non-trivially applicable in Basic.lean.  Without
+P5, would have attempted the decomposition and hit either (a) cross-
+file circular import (option 2 attempted) or (b) ~150-200 line
+relocation work mid-session (option 1 attempted).
+
+**Confirms Phase 3 endpoint**: 2 of 6 closed (items 2, 4); 4 of 6
+deferred to Phase 4 (items 1, 3, 5, 6).  Phase 3 mechanics have
+exhausted the items they can close without architectural commitment.
+
+**Phase B sequencing recommendation strengthened**: cleanup-first
+becomes even more attractive.  The Phase 4 architectural swing is
+clearly the next strategic decision.  Documenting Phase 1.5 + Phase 3
+outcomes + the Phase 4 architectural prompt as a cleanup deliverable
+loads the right context for the Phase 4 decision.
+
+---
+
 ## Phase B sequencing — deliberate decision pending (legacy section)
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
