@@ -202,7 +202,116 @@ session with pre-loaded brief from the preceding commit's residual
 structure.  No diagnostic pivots expected since the path is now
 characterized end-to-end.
 
-## Phase B sequencing — deliberate decision pending
+## Phase B sequencing — recommendation registered (2026-05-31, post Phase 1.5)
+
+**User-voiced recommendation (post Phase 1.5)**: **cleanup-document
+first**, W̄ refactor as deliberate post-cleanup arc.
+
+**Rationale**:
+* Phase 1.5's decomposed inventory (7 pure-FA MathlibTODOs vs project-
+  internal compositions vs substantive containers) means cleanup
+  document drafting can begin at Phase A endpoint without waiting for
+  W̄ refactor.
+* W̄ refactor improves the marquee theorem (closes the `L ≥ 1` regime)
+  but does NOT change the pure-FA MathlibTODO contribution arc.  The
+  cleanup document's strongest external framing — "7 pure-FA placeholders
+  characterized as bucket-1 / bucket-2 Mathlib PR units" — is independent
+  of W̄ refactor's status.
+* Cleanup-first lets the project ship its external artifact at the
+  earliest moment.  W̄ refactor follows as deliberate scope expansion
+  rather than blocking on the original ~2-3 session estimate.
+
+**Status**: recommendation, not yet committed decision.  Strategic
+conversation can revisit at Phase A endpoint.  Default per current
+recommendation: cleanup-first.
+
+---
+
+## Phase 3 scope re-estimate — composition lemmas are NOT one-liners (P2 finding, 2026-05-31)
+
+**P2 firing** during attempted Phase 3 execution: atom-level reading of
+the 6 Phase 1.5 composition lemmas reveals the "one-liner pattern
+expected for most" framing in the brief was overly optimistic.
+
+**Concrete issue** (illustrated with `vlasovTrajectoryLipschitzBound`):
+the composition lemma's signature, inherited from the original mixed
+MathlibTODO, does NOT carry the hypotheses the pure-FA placeholder
+requires:
+* Missing: `L : NNReal`, `hL : LipschitzWith L gradW`,
+  `[∀ t, IsProbabilityMeasure (ρ t)]`, `h_int : ∀ t x, Integrable
+  (fun y => gradW (x - y)) (ρ t)`.
+* These are needed by `vlasovVectorField_lipschitzWith` (project's existing
+  joint-flow Lipschitz proof, which the composition would compose against).
+
+The original mixed MathlibTODO sorried these away.  The composition can't
+just `apply` the pure-FA placeholder; it needs to first GAIN these
+hypotheses (via signature restate) or DERIVE them inline (often impossible
+when the constants like `L` aren't passed at all).
+
+**Closure-path scope re-estimate per composition**:
+* `picardCharFlow_aemeasurable`: needs signature restate to add L, hL,
+  IsCharacteristicFlow → joint flow construction.  ~40-60 lines.
+* `vlasovTrajectoryLipschitzBound`: similar.  ~40-60 lines.
+* `dobrushin_uniqueness_On`: needs Vlasov vector field construction +
+  Gronwall integration + W₁-zero characterization.  ~80-120 lines.
+* `w1ContOn_lscNarrow_via_pureFA`: needs narrow-continuity extension
+  from compact-support to bounded continuous (substantive in itself).
+  ~60-100 lines.
+* `w1ContOn_uscNarrow_via_pureFA`: needs IsLagrangianVlasovSolution
+  upgrade for pushforward extraction.  ~80-100 lines.
+* `wassersteinGronwallCoupling_derivBound_via_pureFA`: same as above
+  + vector-field-difference bound.  ~100-120 lines.
+
+**Total realistic Phase 3 scope**: ~400-560 lines across 6 commits OR
+3-4 focused sessions (multi-commit per session).  NOT a single focused
+session as the brief projected.
+
+**Revised Phase 3 plan**:
+* Treat each composition lemma as its own focused-session unit
+  (or pair of compositions per session for the smaller items 1, 2).
+* Items 1, 2 (~40-60 lines each): one combined session.
+* Items 4, 5, 6 (~60-120 lines each): one session per item, OR combine
+  items 5+6 (similar Lagrangian-pushforward shape).
+* Item 3 (dobrushin): possibly its own session due to Gronwall + W₁-zero
+  composition.
+
+**Realistic Phase 3 total**: ~3-5 focused sessions.
+
+**Sorry-count trajectory revision**:
+* Original projection (brief): 16 → 10-12 in one Phase 3 session.
+* Revised: 16 → 10 across 3-5 sessions (each composition closure
+  removes 1 sorry from the composition lemma).
+
+**Underlying cause**: Phase 1.5's design committed to making the
+compositions Vlasov-specific bridge work with sorry'd bodies, deferring
+substantive closure to Phase 2-4.  The brief's "one-liner" framing
+assumed the body closures would be trivial — but the bridge work IS the
+Vlasov-to-pure-FA hypothesis translation, which is non-trivial.
+
+**Phase 1.5 retrospective sighting**: this is the design-doc projection
+operating honestly — the projection said the 6 compositions land "each
+close trivially via one-line `apply`" but with atom-level verification
+this turns out to need additional hypothesis-threading.  The brief's
+"one-liner pattern" was extrapolation from the projection rather than
+verified.  P5 caught it (this turn).
+
+**Strategic note**: this doesn't change the Phase A endpoint trajectory
+materially.  The total work is still ~6-8 sessions; just the distribution
+shifts (Phase 3 grows from 1 to 3-5 sessions; Phase 4 stays the same;
+some Phase 2 work folds into Phase 3 as composition closures pull in
+hypothesis-design questions).
+
+**Phase 3 next-session brief (revised)**:
+* Pick items 1 + 2 (the smallest, similar Lipschitz-flow closures).
+* Restate each composition's signature to add the necessary hypotheses
+  (`L : NNReal`, `hL : LipschitzWith L gradW`, etc.).
+* Update consumers (1-2 per composition) to provide the new hypotheses.
+* Substantively close the body via pure-FA + joint-flow construction.
+* Target: 2 composition closures in 1 session.
+
+---
+
+## Phase B sequencing — deliberate decision pending (legacy section)
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
 (estimated 3-4 focused sessions out, after h_cont_g + Stage 6 t=0 close +
