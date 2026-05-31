@@ -394,7 +394,75 @@ equation predicate `ContinuityEquationWith` lands in Mathlib).
 
 ---
 
-## Execution Plan for Session 2
+## Session 2 execution status (2026-05-31)
+
+**Items completed in Session 2** (4 of 5):
+* **Item 1** (`picardFlowAEMeasurable`): decomposed.  Commit `78773ac`.
+  * Pure-FA: `MathlibTODO_lipschitzFlowAEMeasurable`.
+  * Project-internal: `picardCharFlow_aemeasurable`.
+* **Item 2** (`vlasovTrajectoryLipschitzBound`): decomposed.  Commit `31ee66d`.
+  * Pure-FA: `MathlibTODO_lipschitzFlowTrajectoryLipBound`.
+  * Project-internal: `vlasovTrajectoryLipschitzBound`.
+* **Item 3** (`dobrushin_uniqueness_On`): reclassified.  Commit `ecd6130`.
+  * No new pure-FA (composes against to-be-decomposed item 5).
+  * Project-internal: `dobrushin_uniqueness_On` (no `MathlibTODO_` prefix).
+* **Item 4** (`W1ContOn_lscNarrow`): decomposed.  Commit `f8453c8`.
+  * Pure-FA: `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`.
+  * Project-internal: `w1ContOn_lscNarrow_via_pureFA`.
+
+**Item 5 deferred to Session 3 (per P2 protocol)**:
+combined `W1ContOn_uscNarrow` + `wassersteinGronwallCoupling_derivBound`.
+
+**P2 firing rationale**: both placeholders' pure-FA form requires a way
+to express "the measure curves `f, g` are evolutionarily compatible with
+a Lipschitz vector field `b`."  Two candidate formulations:
+
+* **Option A: Continuity Equation predicate.** Define
+  `ContinuityEquationWith b μ := ∀ t, ∂_t (∫ φ dμ_t) = ∫ ⟨∇φ, b t⟩ dμ_t`
+  weakly.  Then pure-FA item 5's hypothesis is
+  `ContinuityEquationWith b f ∧ ContinuityEquationWith b g`.
+
+* **Option B: Lagrangian Pushforward formulation.** Define a structure
+  / predicate that says "f t = (Φ t)_# f 0 where Φ is the flow of b."
+  Matches `IsLagrangianVlasovSolution`'s pushforward equation directly.
+  Pure-FA item 5's hypothesis becomes the abstracted version of this
+  pushforward property.
+
+**Decision pending**: which option to commit to.  Option A is closer to
+Villani's standard formulation; Option B is closer to the project's
+existing `IsLagrangianVlasovSolutionOn` structure.  Either choice
+introduces a NEW project-internal predicate that other placeholders may
+also use, so the choice has architectural weight.
+
+**Session 3 deliverable** (when scheduled):
+1. Predicate-design decision (Option A vs B).
+2. Define the chosen predicate in Basic.lean.
+3. Decompose item 5 into pure-FA + project-internal compositions using
+   the predicate.
+4. Update closure-plan and planning-notes accordingly.
+
+**Session 2 sorry trajectory**:
+* Declarations using sorry: 11 → 14 (+3 net from 4 completed items;
+  item 3 was a rename so net 0; items 1, 2, 4 each net +1).
+* Pure-FA MathlibTODOs: 7 → 10 (+3 from items 1, 2, 4).
+* Project-internal compositions (sorry'd): 0 → 4 (items 1, 2, 3, 4).
+* Old mixed MathlibTODOs: 5 → 2 (removed: picardFlowAEMeasurable,
+  vlasovTrajectoryLipschitzBound, dobrushin_uniqueness_On,
+  W1ContOn_lscNarrow.  Remaining: W1ContOn_uscNarrow,
+  wassersteinGronwallCoupling_derivBound — Session 3 targets).
+
+After Session 3 closes item 5, projected total:
+* Declarations using sorry: 14 → 16 (+2 from item 5's combined
+  decomposition).
+* Pure-FA MathlibTODOs: 10 → 12 (+2 from item 5's two pure-FA splits).
+* Project-internal compositions: 4 → 6 (+2 from item 5).
+
+This matches the original design-doc projection of ~16 declarations
+end-of-Phase-1.5.
+
+---
+
+## Original Execution Plan for Session 2 (reference; partially superseded by status above)
 
 **Per-placeholder decomposition order** (cheapest first):
 
