@@ -815,3 +815,240 @@ the build-fail-then-fix loop pattern.
 This is operational discipline, not promotion-worthy (a single project
 quirk).  Documented inline here so the next relocation arc has the
 heads-up loaded.
+
+---
+
+## Phase 4 Path A Stage 2b part 3 — LocalSmallness soundness fix scope (diagnostic, 2026-05-31)
+
+**Framing (verbatim, do not re-rank by sorry-count delta)**:
+
+This corrects a false lemma currently in the tree: `LocalSmallness L T`
+is defined at CharFlow L3840 as `(L:ℝ)·(T+1)² < 1`, which does not imply
+the genuine contraction constraint.  This is a **soundness fix**.  It
+does not move the sorry count.  It **blocks faithfulness of everything
+above the local-existence step**.  Do not let any future ordering pass
+re-rank it by sorry-count delta — it is invisible to that metric by
+nature.
+
+**Why this category needs naming**: every other Phase 4 item retires a
+sorry that stands for a *true-but-unproven* lemma.  The `q < 1` gate at
+`_picard_fixedPointFlow` (CharFlow L6503) stands for a *false* lemma
+that currently typechecks.  Those are not the same priority class.
+Trackers ordering by line-count or sorry-count delta will systematically
+mis-rank this fix because it does not *move the sorry count at all* —
+it corrects a constant in an already-"closed" surface.  Re-list it as
+**soundness fix, sorry-count invariant, blocks faithfulness above
+local existence** at every future ordering pass.
+
+### The corrected constraint (target, pinned)
+
+```
+(L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ)) < 1
+```
+
+Inherited off `vlasovVectorField_lipschitzWith` (CharFlow L629) — the
+joint phase-space Lipschitz constant of the Vlasov vector field is
+`max(1, L)`, threaded through `Phi_supW1_contraction`'s Gronwall output.
+Same constant as items 5/6's diff-bound (commit `33e8baa`, `e9d9aa4`)
+— banked once, used three times: items 5, 6, and this soundness fix.
+
+For the `0 < L < 1` W₁-regime the marquee theorem operates in,
+`max 1 L = 1`, and the constraint simplifies to `L · (exp T - 1) < 1`.
+
+### The fix mechanism (constraint lemma + citation sites, NOT inline re-derivation)
+
+1. **Redefine `LocalSmallness L T`** (CharFlow L3840) to the corrected
+   form above.  Single edit.
+2. **Add one named consequence lemma** `q_lt_one_of_localSmallness`
+   citing `vlasovVectorField_lipschitzWith` for the `max(1, L)` constant.
+   Signature sketched below.
+3. **Audit every site that currently unfolds `LocalSmallness` or
+   internally derives the `q < 1` ratio** — replace each local
+   derivation with a citation to the named consequence lemma.
+
+**Critical discipline (the trap the user surfaced 2026-05-31)**: do not
+re-derive the corrected ratio inline at any structural site.  The
+original `q < 1` bug was not the wrong number; it was the local
+derivation pattern at `_picard_fixedPointFlow` L6502-L6503 ("Sub-sub-
+sorry: q < 1 from hTL").  Fixing the instance by recomputing the ratio
+inline at that site rebuilds the exact mechanism that produces the next
+bug.  Fix the mechanism, not just the number.  Three citation sites
+(per user framing); reality is 6-8 (audited below).
+
+### Cosmetic / structural triage table (this session's deliverable)
+
+Each LocalSmallness consumer classified by whether the existing proof
+survives the definition swap with a citation update only (cosmetic) or
+needs its internal algebraic estimate reworked (structural).
+
+| Site (line) | Owner | Class | Triage reason |
+|---|---|---|---|
+| L4187, L4222 | `exists_vlasov_perz_trajectory` | **structural** | Body computes `R := N(z) / (1 - L·(T+1)²)` (L4204-L4210); R selection depends on the `(T+1)²` shape.  Comment at L4212-L4221 explicitly documents the metric-dependent algebra.  Under the exp form, R needs to be reselected via the new contraction constant, and the algebraic R bound at L4225-L4239 reworked. |
+| L4408, L4433 | `exists_vlasov_characteristicFlow_global_smallT` | cosmetic | Forwards `hTL` to `exists_vlasov_perz_trajectory` at L4433.  No internal unfold.  Survives intact once the per-z trajectory's signature stays `LocalSmallness L T`. |
+| L5217, L5247 | `existsCharacteristicFlowMappingFor_picard_step` (approx; uses `ρ.extend`) | cosmetic | Forwards `hTL` to `exists_vlasov_characteristicFlow_global_smallT` at L5247.  No internal unfold. |
+| L6358 + L6483-L6502 + L6575 | `vlasovWellPosedness_local_picard_fixedPointFlow` | **structural** | **The load-bearing site**.  L6502-L6503: `have hq_lt : q < 1 := by sorry` is the "q < 1 from hTL" sub-sub-sorry the user explicitly warned about.  q is defined at L6495 as `gronwallBound 0 (max 1 L) (L · 2M) T`.  The fix REPLACES this sorry by citing `q_lt_one_of_localSmallness`.  The comment at L6473-L6491 already states the genuine contraction ratio shape and proposes "add `hTL_contraction : L · (exp T - 1) < 1` as an additional hypothesis" — the fix supersedes by redefining `LocalSmallness` to exactly that shape.  Bonus: closes one sub-sub-sorry concretely (not in the 13-tracked sorry count, but in the body's open work). |
+| L6689 (`_hTL`) | `vlasovWellPosedness_local_finalAssembly_moment` | cosmetic | Underscored hypothesis — taken structurally but unused in body. |
+| L6815 (`_hTL`) | `vlasovWellPosedness_local_finalAssembly_isLagrangian` | cosmetic | Underscored hypothesis — taken structurally but unused in body. |
+| L6986 + L7086/7112/7123 | `vlasovWellPosedness_local` | cosmetic | Passes `hTL` to sub-helpers (`_picard_fixedPointFlow`, `_finalAssembly_moment`, `_finalAssembly_isLagrangian`).  No internal algebraic dependency. |
+| L7322 + L7371 | `vlasovWellPosedness_glue_step` | cosmetic | Forwards `hT_0_small` to `vlasovWellPosedness_local` at L7371.  No internal unfold. |
+| L8275 + L8290-L8307 | `vlasovWellPosedness_forward` | **structural** | Body computes `T_0 := (1/√L - 1)/2` (L8293) derived from solving `L · (T_0 + 1)² = 1` with equality, then proves `hTL_T0 : (L : ℝ) * (T_0 + 1) ^ 2 < 1` (L8307-L8347 area) via the `(1 + √L)² / 4 < 1` algebra.  Under the exp form, the T_0 choice gets replaced wholesale: `T_0 := ln(1/L + 1) / 2`-style derivation (for `0 < L < 1` regime), and `hTL_T0` becomes an `Real.exp_lt`-based proof.  The rest of the `Nat.rec` iteration over T_0 stays intact. |
+
+**Site count**: 9 site-clusters across 3 structural / 6 cosmetic.  Plus
+4-6 docstring corrections (listed below).  Plus one consequence lemma
+to add.  Total estimated scope: ~200-400 lines.  Single focused session,
+or 2 sessions if structural sub-helpers' algebra proves more invasive.
+
+### `q_lt_one_of_localSmallness` signature sketch (not Lean — notes)
+
+```lean
+/-- **W₁-regime contraction-ratio consequence of `LocalSmallness`**.
+
+For `0 < L < 1` and `LocalSmallness L T`, the contraction ratio
+arising from `Phi_supW1_contraction`'s Gronwall output — namely
+`(L : ℝ) · (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ))`
+— is strictly less than 1.  Equivalent to `L · (exp T - 1) < 1`
+in the `L < 1` regime since `max 1 L = 1`.
+
+**W₁-regime / `L < 1` specific by design** (per user 2026-05-31): this
+lemma carries an explicit `hL_lt : (L : ℝ) < 1` binder.  The `L ≥ 1`
+regime requires the truncated-distance Wasserstein W̄ refactor
+(Dobrushin 1979, §5) — out of scope.  This lemma is intentionally NOT
+generalized to accommodate both regimes; a generalized statement would
+reintroduce shape-mismatch slack analogous to the bug being fixed, one
+regime up.  Any future `L ≥ 1` proof attempting to cite this lemma gets
+a type error on `hL_lt`, forcing it through the W̄ refactor route
+rather than silently broadening the W₁-regime estimate.
+
+**The `max(1, L)` constant** is inherited off
+`vlasovVectorField_lipschitzWith` (CharFlow L629), the joint phase-space
+Lipschitz constant of the Vlasov vector field.  Same constant items 5/6
+cite; threaded once across three sites.
+
+**Citation pattern (mechanism vs number)**: every site that previously
+unfolded `LocalSmallness L T` to derive a contraction-related bound
+internally cites this lemma instead.  No site re-derives the ratio
+inline.  The `q < 1` bug was the local derivation pattern; the fix
+replaces all such locals with a single named-lemma citation. -/
+lemma q_lt_one_of_localSmallness
+    (L : NNReal) (T : ℝ)
+    (hL_pos : (0 : ℝ) < L)
+    (hL_lt : (L : ℝ) < 1)        -- W₁-regime gate; fail loudly under L ≥ 1
+    (hT_nn : 0 ≤ T)
+    (hTL : LocalSmallness L T) :
+    (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ)) < 1
+```
+
+**Note on alternate framings considered**:
+
+* **Tautology framing**: with the redefined `LocalSmallness` matching
+  the conclusion shape, the body is `exact hTL` (or `id`).  Acceptable;
+  the value is the named entry-point, not the proof complexity.
+* **`gronwallBound`-shape framing**: state the conclusion as
+  `gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * D) T < D` for
+  `D > 0`.  Closer to the consumer at L6495 but requires a
+  `gronwallBound`-unfold step at each citation site.  Pick at execution
+  time — the closed-form version (above) is the simpler entry-point.
+
+The `(L : ℝ) * D` factor in q's actual definition at L6495 conflates
+the contraction factor with the W₁-input bound D (the placeholder
+`2·M`).  Per the comment at L6473-L6479, this is itself off-shape — q
+should be the M-independent contraction ratio, not the ratio times D.
+The execution-session fix should either: (a) redefine q at L6495 to be
+the M-independent ratio, then cite `q_lt_one_of_localSmallness`
+directly; or (b) keep q as-is and cite the lemma after a one-line
+unfold.  Pick at execution.
+
+### Docstring corrections (land in same commit as constraint change)
+
+Per user instruction: docstring claims of the quadratic form *after*
+the definition moves to exponential are themselves a faithfulness
+smell.  Land docstring corrections together with the constraint change,
+not as cleanup-after.
+
+| Line | Site | Current claim → corrected claim |
+|---|---|---|
+| L3814-L3825 | `LocalSmallness` definition's section comment | "the smallness condition produced by the project's `W₁`-based contraction analysis" + "Currently defined as `(L : ℝ) * (T + 1) ^ 2 < 1`" → replace with corrected form description; note W̄ refactor remains a separate arc. |
+| L4212-L4221 | Inside `exists_vlasov_perz_trajectory` (the structural site) | "TODO(W̄-refactor): LocalSmallness unfold site.  This body uses the algebraic form `(L : ℝ) * (T + 1) ^ 2 < 1` directly" → after the structural rework, replace with the exp-form unfold description. |
+| L5722 | `_picard_fixedPointFlow`'s leading docstring (metric-dependence note) | "incompatible with the per-ball Picard-Lindelöf flow's quadratic-in-`T` smallness `LocalSmallness L T = L·(T+1)² < 1`" → "matches the now-corrected `LocalSmallness L T` exp form; original quadratic shape was the W₁-regime structural-debt finding (commit `580548e`), fixed in [Stage 2b part 3 commit]." |
+| L6308 | `_picard_fixedPointFlow`'s 7-step plan docstring | "stronger than `hTL : L · (T+1)² < 1` alone for large `M_f₀`" → replace with the corrected constraint; verify whether the moment-bound `M`-dependent strengthening is still needed under the new definition (likely yes — the M-fixed-point is independent of the contraction constraint). |
+| L6323 | `_picard_fixedPointFlow`'s metric-dependence note | "quadratic-shape smallness `LocalSmallness L T = L·(T+1)² < 1`" → corrected shape; remove the "is NOT implied" framing since the constraint is now the genuine one. |
+| L7044 | Inside `vlasovWellPosedness_local`'s plan comment ("by linarith [hTL]") | The linarith hint references the polynomial shape; under exp form, switch to `Real.exp_lt_*` or `(by simpa using hTL)` depending on the structural site's actual proof. |
+
+### Path C confirmation (deferred-audit is dead)
+
+**Path C** (definition swap in one commit + audit-and-cite as a follow-up
+diagnostic) does not work because the swap breaks every **structural**
+site simultaneously.  The three structural sites
+(`exists_vlasov_perz_trajectory`, `_picard_fixedPointFlow`,
+`vlasovWellPosedness_forward`) embed the `(T+1)²` shape in their proof
+bodies (R selection, T_0 derivation, q-definition framing), not just at
+the predicate boundary.  After the swap, none of the three compiles
+until its internal algebra is reworked.  There is no compiling
+intermediate state.  Audit cannot be deferred behind a green build.
+
+Next session executes the **full fix against this loaded inventory**:
+definition swap + lemma + cosmetic citation updates (6 sites) +
+structural rework (3 sites) + 6 docstring corrections + soundness-fix
+framing in the commit body.  Single focused session, OR — if the
+structural rework proves heavier than the audit projects — a further
+split between (a) lemma + cosmetic in one commit and (b) structural in
+follow-ups.  Decide at execution time.
+
+### Watch-list update
+
+The pre-promotion watch-list entry **"Additive offsets in smallness
+constraints are structurally fatal"** (1 sighting, 2026-05-29) is at 2
+sightings as of this triage.  The original sighting was the `(T+1)²`
+additive offset in `LocalSmallness`; this session's triage is the
+second sighting (same bug, scoped concretely).  Per the M-series
+promotion criterion (2-3 sightings with structural certainty), advance
+toward promotion: the principle is "additive offsets in smallness
+constraints break the limit-shrinking property of the constraint."
+Full promotion to M2 (or L11 if framed as a Lean-side gotcha) deferred
+until a *different* manifestation surfaces — but the M-direction is
+now near-locked.
+
+### Stage 2b part 3 execution session — entry brief
+
+When the execution session opens, the moves in order:
+
+1. **Open with the triage table above** as P3 loaded context (cosmetic
+   vs structural).  Decide single-session vs split.
+2. **Apply the LocalSmallness redefinition** (CharFlow L3840) and the
+   `q_lt_one_of_localSmallness` lemma (insertion site: near
+   `LocalSmallness`'s definition for cohesion).
+3. **Audit the 6 cosmetic sites** — `replace_all`-style updates,
+   verify lint clean.
+4. **Rework the 3 structural sites**:
+   - `exists_vlasov_perz_trajectory`: replace R selection with
+     exp-form-derived R; rework the algebraic bound at L4225-L4239.
+   - `_picard_fixedPointFlow`: replace the `have hq_lt : q < 1 := by
+     sorry` (L6503) with a citation to `q_lt_one_of_localSmallness`.
+     Verify whether q's L6495 definition needs the M-independence
+     correction noted above.
+   - `vlasovWellPosedness_forward`: replace the `T_0 := (1/√L - 1)/2`
+     derivation with `T_0 := ln(1/L + 1) / 2`-style (for `0 < L < 1`);
+     replace `hTL_T0` proof with `Real.exp_lt_*` algebra.
+5. **Apply the 6 docstring corrections** in the same commit.
+6. **Commit body framing** (verbatim, per user 2026-05-31): "soundness
+   fix, does not move the sorry count, corrects a constant in an
+   already-'closed' proof, blocks faithfulness of everything above
+   local existence."
+
+**Sorry trajectory expectation**: 13 → 13 (declaration sorry count
+invariant).  Sub-sub-sorry count: -1 (the `hq_lt` sub-sub-sorry at
+L6503 retires concretely).  The fix is invisible to the declaration
+metric, visible to the sub-sub-sorry metric AND the soundness audit.
+
+### Out-of-scope confirmations
+
+* **W̄ refactor** (truncated-distance Wasserstein, Dobrushin 1979 §5,
+  retires the `L < 1` restriction): separate arc, post-cleanup, ~500-900
+  lines per the existing `LocalSmallness` section comment estimate.
+* **Sub-sub-sorries at L6508-L6511** (Picard sequence construction) and
+  L6582+ (self-consistency): not in scope here; this fix is the `hq_lt`
+  sub-sub-sorry only.
+* **`L ≥ 1` regime**: `q_lt_one_of_localSmallness` deliberately fails
+  loudly via `hL_lt : (L : ℝ) < 1` rather than silently broadening.
+  This is by design (per M-series-anti-pattern reasoning); do not
+  generalize the lemma.
