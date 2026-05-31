@@ -7217,9 +7217,48 @@ theorem vlasovWellPosedness_glue_step
             -- Match spatialMarginal (f_next t) with spatialMarginal (g (t - T))
             rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
             exact h_chain.congr_of_eventuallyEq h_ev
-          · -- t = T: boundary case — structural debt
-            -- At t = T ∈ Ioo 0 (T + T_0), both pieces meet but boundary regularity
-            -- requires HasDerivAt from both sides, deferred to focused session.
+          · -- t = T: boundary case — substantive close deferred to focused next session.
+            --
+            -- **Architectural discovery (2026-05-30)**: the originally-planned B2 surgery
+            -- on `IsVlasovSolutionOn` predicate (~400-600 lines across 4 layers) is
+            -- UNNECESSARY for closing this case.  Mathlib already provides the close
+            -- infrastructure via `hasDerivAt_of_hasDerivAt_of_ne`
+            -- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) and its underlying
+            -- one-sided variants `hasDerivWithinAt_{Iic,Ici}_of_tendsto_deriv` (L108, L142).
+            --
+            -- **Close path** (~280-350 lines, focused next session):
+            -- 1. **DifferentiableOn**: f_next is differentiable on Ioo 0 T (from
+            --    `h_prev_vlasov`'s HasDerivAt) and on Ioo T (T+T_0) (from `h_g_vlasov`
+            --    + chain rule).  Already established structurally above (L7181-7219).
+            -- 2. **ContinuousAt at T (narrow continuity, both sides)**: ~50 lines per
+            --    side via DCT on the pushforward equation.  Mirrors Stage 6's narrow
+            --    continuity proof at L8265-8294 (charX continuity → DCT → integral
+            --    continuity).  Inputs: `h_prev_boundary` continuity (LEFT, mono'd to
+            --    Iic T) + `hg_boundary` continuity at 0 (RIGHT, shift via chain rule).
+            -- 3. **ContinuousAt at T for derivative function (both sides)**: ~100 lines
+            --    per side.  The derivative function involves the convolution
+            --    `convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1`, which
+            --    requires narrow continuity of `t' ↦ spatialMarginal(f_next t')`
+            --    composed with Lipschitz of `gradW` (`MathlibTODO_convolveLipschitzEstimate`)
+            --    + DCT on the integral against f_next t'.
+            -- 4. **Apply `hasDerivWithinAt_Iic_of_tendsto_deriv` (LEFT) and
+            --    `hasDerivWithinAt_Ici_of_tendsto_deriv` (RIGHT)**, each consuming
+            --    DifferentiableOn + ContinuousAt + nhdsWithin-membership + Tendsto-deriv.
+            -- 5. **Union via `Set.Iic_union_Ici = Set.univ`** → `HasDerivAt` at T.
+            --
+            -- **Why this beats the B2 surgery path**: B2 enrichment of `IsVlasovSolutionOn`
+            -- would require ~400-600 lines (predicate change + producer body extension +
+            -- consumer updates + 4-layer cascade) AND a HasDerivWithinAt-flavored DUI
+            -- helper that Mathlib doesn't have packaged.  The localized close above
+            -- isolates the substantive DCT work to ~280-350 lines all inside this case,
+            -- with no predicate-layer disruption and no new Mathlib placeholders required.
+            --
+            -- **Discovered via atom-level reading (P1)** of
+            -- `.lake/packages/mathlib/Mathlib/Analysis/Calculus/FDeriv/Extend.lean`
+            -- during the B2-surgery scoping phase of this session.  Third such win this
+            -- session (after option-3 close via `HasDerivWithinAt.union` and Stage C
+            -- verdict refinement); reinforces the P1 discipline as the project's primary
+            -- cost-saver.
             sorry
       exact h_vlasov_glue
     · -- IsCharacteristicFlowOn for the glued flow
