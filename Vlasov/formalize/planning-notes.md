@@ -1052,3 +1052,90 @@ metric, visible to the sub-sub-sorry metric AND the soundness audit.
   loudly via `hL_lt : (L : ℝ) < 1` rather than silently broadening.
   This is by design (per M-series-anti-pattern reasoning); do not
   generalize the lemma.
+
+### Three refinements to this diagnostic (user feedback, same day)
+
+Three corrections to the framing above, captured here so next session
+opens against the refined version, not the original.
+
+**1. Promote the L6495 q-conflation finding to first-read gate**
+(it was filed as "at-execution decision" / "bonus capture" — undersells
+it).  The q-definition at L6495,
+`q := gronwallBound 0 (max 1 L) (L · (2 · M)) T`, conflates the
+contraction factor (M-independent) with the W₁-input bound D = 2M
+(M-dependent).  Per the user's reading: *this conflation is plausibly
+the actual root of the original bug*, not a parallel cleanup.
+`(T+1)²` is a very natural thing to write if you've fused "how much
+the map contracts" with "how big the input is" — the product of two
+linear-ish growths reads as quadratic.
+
+**Implication for next session's opening move**: read L6495 *first*,
+*before* swapping `LocalSmallness`.  Decide whether the corrected
+constraint can even be stated cleanly while q still fuses the two
+quantities.  If it can't, de-conflating q is a **prerequisite** to
+the fix, not a parallel cleanup — and that reorders the session
+(q-redefinition lands before the predicate swap, not after).
+
+This is the same mechanism warning the user gave for the predicate
+layer, recurring one layer below: fixing the visible artifact
+(`LocalSmallness` definition) without fixing the upstream conflation
+(q-definition) rebuilds the cause that produces the next bug.
+
+**2. Sorry-trajectory contingency: `hq_lt` retirement is a forecast,
+not a sure thing**.  The "13 → 13 declarations, sub-sub-sorry −1"
+projection above assumes all 3 structural reworks land — the new
+constraint must be *provable* at each structural site under the
+exp((max 1 L)·T) shape.  The triage predicts this but has not
+verified it.
+
+**Critical rule**: if a structural site resists the rework — meaning
+the underlying estimate doesn't close under the new constraint shape
+— the fix does NOT fall back to the `(T+1)²` form to keep the build
+green.  That `(T+1)²` form is the false lemma being removed.  A
+resisting structural site gets an honest sub-placeholder
+(`MathlibTODO_*`-style declaration with the corrected statement,
+sorry'd) or a focused next-stage decomposition.  Never the false
+constraint.
+
+This rule exists to prevent the failure mode where time pressure at
+the structural rework step silently reverts to soundness-broken-but-
+green.  Bar it explicitly in advance.
+
+**3. Watch-list advance: near-locked, not promoted** ("Additive
+offsets in smallness constraints are structurally fatal").  Two
+*diagnostic* sightings without an executed fix is exactly the
+over-extrapolation P5 guards against (P5 = verify the framework's own
+pattern-extrapolations atom-by-atom before acting).
+
+**Rule**: the structural reworks in next session's execution count
+as the third, *confirming* sighting — but only if the additive-offset
+reasoning actually predicts which structural sites close cleanly
+under the exp form.  If the predictions hold, *then* the pattern has
+earned M-series promotion.  If a structural site closes via reasoning
+that doesn't match the additive-offset diagnosis, the pattern stays
+on watch-list pending a different manifestation.
+
+Status updated from "near-locked" to "near-locked, contingent on
+post-execution confirmation" — same operational position, but the
+P5-consistent framing makes it clear the diagnostic alone is not
+sufficient evidence.
+
+### Next session's opening sequence (updated)
+
+Per the refinements above, the opening reads are reordered:
+
+1. **L6495 q-definition** (P1 read, may gate the swap).  Determine
+   whether q can express the corrected contraction ratio without
+   first de-conflating with the W₁-input bound D.  If not, q-
+   redefinition lands as a prerequisite commit before the predicate
+   swap.
+2. **L3840 LocalSmallness definition** + the triage table (P3 loaded
+   context).
+3. **The 3 structural sites**' current bodies (sketch the exp-shape
+   reworks; identify any that might resist).
+4. Then: swap + lemma + cosmetic + structural + docstrings, per the
+   triage plan above — OR a 2-commit split if a structural site
+   resists and needs a sub-placeholder, OR a 3-commit split if
+   L6495 q-redefinition is required first.
+
+Decide commit count at structural-rework time, not at session start.
