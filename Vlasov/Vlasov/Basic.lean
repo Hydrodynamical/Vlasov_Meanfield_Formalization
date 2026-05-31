@@ -1941,8 +1941,8 @@ theorem w1ContOn_uscNarrow_via_pureFA
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
@@ -1995,8 +1995,8 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (T : ℝ) (hT : 0 ≤ T) :
@@ -2005,23 +2005,26 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
   have h_finite : ∀ t, wasserstein1 (f t) (g t) < ⊤ :=
     W1ContOn_lt_top f g hf_prob hg_prob
   -- Step 2: narrow continuity of integral-against-test-function for f and g
-  -- (W1ContOn_integralContAt; feeds into the LSC argument below)
+  -- (W1ContOn_integralContAt; feeds into the LSC argument below).  Uses
+  -- `hf.1 : IsVlasovSolution` extracted from the Lagrangian hypothesis.
   have h_int_cont_f : ∀ (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ ⊤ φ)
       (hc : HasCompactSupport φ) (gXφ gVφ : PhaseSpace d → PhysSpace d)
       (hgXφ : ∀ z, gXφ z = gradient (fun x => φ (x, z.2)) z.1)
       (hgVφ : ∀ z, gVφ z = gradient (fun v => φ (z.1, v)) z.2),
       Continuous (fun t => ∫ z, φ z ∂(f t)) :=
     fun φ hφ hc gXφ gVφ hgXφ hgVφ =>
-      W1ContOn_integralContAt gradW f hf φ hφ hc gXφ gVφ hgXφ hgVφ
+      W1ContOn_integralContAt gradW f hf.1 φ hφ hc gXφ gVφ hgXφ hgVφ
   -- Step 3: W₁ is LSC along these Vlasov flows (Phase 1.5 composition lemma
   -- `w1ContOn_lscNarrow_via_pureFA`, which routes through the pure-FA
-  -- `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`).
+  -- `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves`).  Pass the
+  -- IsVlasovSolution components (.1) since item 4 doesn't need the flow witness.
   have h_lsc : LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
-    w1ContOn_lscNarrow_via_pureFA gradW f g hf hg hf_prob hg_prob T hT
-  -- Step 4: W₁ is USC along these Vlasov flows (Mathlib gap MathlibTODO_W1ContOn_uscNarrow)
+    w1ContOn_lscNarrow_via_pureFA gradW f g hf.1 hg.1 hf_prob hg_prob T hT
+  -- Step 4: W₁ is USC along these Vlasov flows.  Passes full Lagrangian
+  -- hypotheses (item 5 needs the flow witness for substantive close).
   have h_usc : UpperSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) :=
     w1ContOn_uscNarrow_via_pureFA gradW L hL f g hf hg hf_prob hg_prob T hT
-  -- Step 5: assemble via W1ContOn_toRealContOn (close this sorry to finish)
+  -- Step 5: assemble via W1ContOn_toRealContOn
   have h_goal := W1ContOn_toRealContOn f g T hT h_finite h_lsc h_usc
   exact h_goal
 
@@ -2100,8 +2103,8 @@ theorem wassersteinGronwallCoupling_derivBound_via_pureFA
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
@@ -2143,8 +2146,8 @@ lemma wassersteinGronwallCoupling_real_bound
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
@@ -2180,8 +2183,8 @@ lemma wassersteinGronwallCoupling_ofReal_le
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
@@ -2223,8 +2226,8 @@ theorem MathlibTODO_wassersteinGronwallCoupling
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C)
@@ -2280,8 +2283,8 @@ lemma dobrushin_ennreal_bound
     (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t))
     (C : ℝ) (hC : 0 < C) (hCL : (L : ℝ) ≤ C) :
@@ -2306,8 +2309,8 @@ lemma dobrushin_package_exists
     (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
     ∃ C : ℝ, 0 < C ∧
@@ -2337,10 +2340,11 @@ theorem dobrushin
     (hgradW : ∀ x, gradW x = gradient W x)
     -- L is the Lipschitz constant of ∇W from Assumption ass:W
     (L : NNReal) (hL : LipschitzWith L gradW)
-    -- f and g are two Vlasov solutions
+    -- f and g are two Lagrangian Vlasov solutions (carrying characteristic
+    -- flow witnesses, per the Phase 4 Path A architectural upgrade).
     (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsVlasovSolution gradW f)
-    (hg : IsVlasovSolution gradW g)
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
     (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
     (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
     ∃ C : ℝ, 0 < C ∧
@@ -2397,7 +2401,7 @@ theorem meanFieldLimit
     -- the Vlasov solution with initial datum f₀
     (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
     (f : ℝ → Measure (PhaseSpace d))
-    (hf_sol : IsVlasovSolution gradW f)
+    (hf_sol : IsLagrangianVlasovSolution gradW f)
     (hf_init : f 0 = f₀)
     -- N-particle Newton trajectories; initial data is `(X N 0, V N 0)`.
     (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
