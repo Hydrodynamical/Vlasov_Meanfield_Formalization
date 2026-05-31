@@ -64,6 +64,90 @@ in `vlasovWellPosedness_universal_existence` → Stage 6 declaration retires
 
 ---
 
+### h_cont_g path-choice — decision pending
+
+**Banked 2026-05-31** (P5 verification of `MathlibTODO_convolveLipschitzEstimate`
+at the planned h_cont_g session's open).
+
+**Sub-sub-sorry**: `CharacteristicFlow.lean` L7559, inside `_glue_step`'s
+case (a) close (the last remaining sub-sub-sorry of `_glue_step`'s body
+— h_cont_g is the cluster-retirement gate for `_glue_step`).
+
+**P5 finding**: `MathlibTODO_convolveLipschitzEstimate` (Basic.lean L1405)
+provides a **W₁-Lipschitz bound on the convolution at a fixed point**:
+```
+‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖
+    ≤ (L : ℝ) * (wasserstein1 ρ σ).toReal
+```
+NOT direct continuity-in-time-of-the-measure.  To close h_cont_g via this
+placeholder, two additional pieces are needed:
+
+1. **W₁-continuity of `t' ↦ spatialMarginal(f_next t')` at T** — to apply
+   the bound's RHS.  Stronger than narrow continuity (which h_cont_f
+   proved via DCT on the pushforward equation).  W₁ vs narrow gap requires
+   moment-uniformity bridge (Villani-style stability under narrow
+   convergence), itself a non-trivial Mathlib gap.
+2. **Joint continuity in (μ, x) of `convolveFunctionMeasure`** — for the
+   x-side of the integrand argument (`charX_prev t' z`'s variation in t').
+
+**Path options** (decision required before h_cont_g substantive close
+attempt):
+
+* **Option A — Direct-DCT via explicit pushforward**.  Express the
+  convolution via pushforward: `conv(spatialMarginal(f_next s), x) =
+  ∫ z, gradW(x - charX_prev s z) ∂f₀`.  Continuity in s via continuity of
+  charX_prev + DCT on f₀.  Bound: `‖gradW(x - charX_prev s z)‖ ≤
+  ‖gradW(0)‖ + L * ‖x - charX_prev s z‖` — linear growth in z, NOT
+  uniformly bounded.  Requires careful bound via flow-distance-growth-
+  bound to dominate.  **Substantive scope**: ~200-300 lines per side
+  (LEFT, RIGHT), ~400-600 lines total.  **No new Mathlib placeholder**.
+
+* **Option B — Add `MathlibTODO_convolveContinuousFromNarrowContAndMoment`
+  placeholder**.  States the W₁-stability-under-narrow-convergence
+  corollary directly: if `t ↦ μ t` is narrowly continuous at t₀ with
+  uniform-in-t finite first moment near t₀, and gradW is Lipschitz, then
+  `t ↦ convolveFunctionMeasure gradW (μ t) x` is continuous at t₀ for each
+  x.  Plus a Joint-continuity version covering the x-side.  **Substantive
+  scope**: ~100-200 lines per side using the placeholders.  **+1 (or +2)
+  new MathlibTODO declaration(s)** matching project's existing pattern
+  (per the four `MathlibTODO_*` placeholders + `MathlibTODO_dobrushin_uniqueness_On`
+  + `MathlibTODO_cauchyW1_hasNarrowLimit` existing precedent).
+
+* **Option C — Reformulation avoiding convolution-continuity**.
+  Restructure h_cont_g's proof to bypass continuity of the convolution-
+  integrand entirely.  E.g., bound the integral DIFFERENCE directly via
+  Lipschitz bounds without separating the convolution.  **Substantive
+  scope**: unclear — requires invention.  **Risk**: high; possibly stuck
+  on the same fundamental gap.
+
+**Trade-offs**:
+
+* **A pros**: no new placeholders; final close is fully substantive in
+  the project.  **A cons**: ~400-600 line substantive close session, the
+  highest line-count session in the recent arc.  Variance high due to
+  flow-distance-growth-bound integration with DCT.
+* **B pros**: ~100-200 line close + 1-2 new clearly-deferrable placeholders,
+  matches project's MathlibTODO discipline.  Cluster retires `_glue_step`
+  declaration (sub-sub-sorry net zero: -1 h_cont_g, +1-2 placeholders, but
+  `_glue_step` declaration retires).  **B cons**: adds placeholder(s) to
+  the Mathlib-track inventory.
+* **C pros**: avoids the W₁ gap entirely.  **C cons**: unknown
+  feasibility; not a documented approach.
+
+**Recommendation lean**: Option B.  Matches project's MathlibTODO discipline
+(the four abstract placeholders + the two recent additions already
+establish the pattern), gives the cleanest cluster retirement (_glue_step
+declaration retires, structural debt shifts to a focused leaf placeholder),
+and the substantive close composes against well-characterized Mathlib gaps
+rather than requiring novel infrastructure.  Decision belongs to user;
+documented here for explicit strategic conversation rather than ad-hoc
+session execution.
+
+**Decision deadline**: before the h_cont_g session begins.  Per session-
+cadence discipline, the strategic conversation needs the option-set
+pre-loaded so the session opens as type-(a) execution-mode against a
+verified plan rather than type-(b) diagnostic-mode mid-close.
+
 ## Phase B sequencing — deliberate decision pending
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
