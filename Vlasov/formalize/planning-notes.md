@@ -1276,3 +1276,244 @@ of *both*, not between them).  After the soundness fix lands (this
 session or next), the separation lemma is the natural next focused
 unit — same pattern as `wasserstein1_le_of_lipschitz_map`'s banking
 relative to item 6.
+
+---
+
+## Stage 2b part 3 — L6495 read result (2026-05-31): two-constraint discovery, Option A on M1-recursion, scope expansion
+
+The L6495 read paid for itself twice over.  It confirmed Branch 3 at
+the q-conflation layer *and* surfaced a second-order finding the
+original framing didn't anticipate.  This is the gate doing its job:
+**the bug is the fusion, one layer up from where we'd been looking**.
+
+### Finding 1 (anticipated): q-conflation at L6495 is genuine
+
+The current q at L6495 is
+`gronwallBound 0 (max 1 L) (L · (2 · M)) T = 2M · q_true`, where
+`q_true = (L / max(1,L)) · (exp((max 1 L)·T) - 1)` is the genuine
+M-independent contraction ratio (Mathlib `gronwallBound` formula:
+`δ · exp(K·x) + ε/K · (exp(K·x) - 1)`).
+
+The downstream `h_contract : supW1On ≤ ENNReal.ofReal (q^k · D₀)` with
+the wrong-q evaluates to `(2M·q_true)^k · 2M = (2M)^(k+1) · q_true^k`,
+which does *not* contract for generic M > 1/2 even when q_true < 1.
+The standard Phi_supW1_contraction output is `q_true · D` per step, so
+`q_true^k · D₀` is the correct iterated bound.
+
+**De-conflation fix is mechanically clear and in-session scope**:
+redefine q at L6495 to `gronwallBound 0 (max 1 L) L T` (drop the 2M
+from ε).  Then q = q_true, h_contract's form `q^k · D₀ = q_true^k · 2M`
+is the standard contraction bound, and the hq_lt sorry at L6503
+discharges as a one-line citation of the corrected LocalSmallness.
+
+### Finding 2 (the deeper one): LocalSmallness is being asked to hold two independent constraints
+
+The L6495 q-correction makes the contraction step work, but it does
+*not* make `exists_vlasov_perz_trajectory`'s R-selection at L4204-L4210
+work.  Those are different sub-proofs with different smallness
+requirements:
+
+1. **PL-buffer constraint** at `exists_vlasov_perz_trajectory`:
+   `R · (1 - L·(T+1)²) ≥ N(z)` requires `L·(T+1)² < 1` for R > 0.  This
+   is the per-ball Picard-Lindelöf flow's ball-geometry constraint,
+   derived from the (T+1)-time buffer + L-Lipschitz fixed-point
+   analysis.  *Not about contraction*.
+
+2. **Contraction constraint** at `_picard_fixedPointFlow`:
+   `q_true < 1` requires `L · (exp((max 1 L)·T) - 1)/(max 1 L) < 1`.
+   This is the supW1On contraction-ratio constraint, from Gronwall on
+   the W₁-based flow.
+
+**These are independent in the `0 < L < 1` regime** (verified
+numerically):
+* L = 0.9, T = 0.4: quad fails (0.9·1.96 ≈ 1.76 > 1), exp holds
+  (0.9·0.49 ≈ 0.44 < 1).  Quad stronger.
+* L = 0.01, T = 5: quad holds (0.01·36 = 0.36 < 1), exp fails
+  (0.01·147 ≈ 1.47 > 1).  Exp stronger.
+
+Neither universally implies the other.  They come from two distinct
+sub-arguments and constrain different mathematical structures.  The
+single `LocalSmallness` predicate, in any single algebraic shape, can
+only carry one of them.
+
+**This is the genuine root** the L6495 gate revealed: the original
+`(T+1)²` definition was the body's attempt to make one predicate
+discharge two independent constraints.  The shape that *looked* like
+it could cover both is the conflation generator.  The bug is the
+fusion, not the shape.
+
+### Option decision: A (two predicates) on the M1-recursion, not on architectural taste
+
+The earlier framing offered Option A (two predicates) vs Option B
+(conjunction) as "architectural honesty vs interface simplicity" —
+which is the same symmetric-preference trap diagnosed two turns ago on
+decay-vs-compounding.  That framing is wrong.  A and B are not two
+flavors of the same thing.  They differ in *what they make impossible
+to get wrong later*.
+
+**B silently reconstructs the conflation generator**.  A conjunction
+of two independent constraints under one name is precisely "one
+predicate asked to hold the property of two sub-arguments" — the exact
+thing being fixed.  B kills the false implication but leaves the
+mechanism intact.  The next person to touch this sees one
+`LocalSmallness`, projects the conjunct they need, and the independence
+is re-buried inside an `∧`.  B is `(T+1)²`-fusion with the bug removed
+but the *mechanism* preserved.
+
+**M1 recursing one level**: the cascade taught "carry the natural
+object, don't split-and-recombine" (one object → one predicate).  This
+is the inverted case — there are genuinely *two* objects, and M1 cuts
+the other way: don't fuse two natural objects into one name.  M1 is
+not "fewer predicates"; it is "predicates that match the mathematical
+structure."
+
+A is M1; B is anti-M1.  **Option A on the M1-recursion reasoning**,
+not on taste.
+
+### The decision in concrete form
+
+Two predicates, separately named:
+
+```lean
+def LocalSmallness_PL_buffer (L : NNReal) (T : ℝ) : Prop :=
+  (L : ℝ) * (T + 1) ^ 2 < 1
+
+def LocalSmallness_contraction (L : NNReal) (T : ℝ) : Prop :=
+  (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ)) < 1
+```
+
+Consumers cite the constraint that matches their sub-argument.  The
+existing `LocalSmallness` either becomes a synonym for the
+PL-buffer-only form (matching what its current consumers actually use
+algebraically) and the contraction sites take the new predicate, OR is
+retired entirely with both new predicates replacing it.  Likely the
+latter for clarity — `LocalSmallness` as a name no longer carries
+meaning once the conflation it named is split.
+
+**`T_0`-min consequence at `vlasovWellPosedness_forward`** (L8275):
+T_0 must satisfy *both* `LocalSmallness_PL_buffer L T_0` and
+`LocalSmallness_contraction L T_0`.  Concretely (for `0 < L < 1`
+regime, `max(1, L) = 1`):
+* PL-buffer: `T_0 < 1/√L - 1` (from `L · (T_0+1)² = 1` at equality).
+* Contraction: `T_0 < ln(1/L + 1)` (from `L · (exp T_0 - 1) = 1` at
+  equality).
+
+A valid choice is `T_0 := min(1/√L - 1, ln(1/L + 1)) / 2` or similar
+margin.  The min lands as an explicit `min` in the proof, which is
+exactly the visible-distinct-thresholds property A is being chosen
+for: if a future edit (W̄ refactor, or any reshape of one of the
+constraints) changes one threshold, the type system points at the
+consumers that depend on which.  B would re-bury this in a single
+predicate's value.
+
+### Scope expansion is real — and this is the legitimate-reorder case from Observation 1's caveat
+
+The original Stage 2b part 3 budget was ~200-400 lines.  The actual
+fix is now:
+
+* q de-conflation at L6495 (single-line redefinition + hq_lt
+  one-line citation).
+* **Split LocalSmallness into two predicates** (new definitions +
+  retire the old name).
+* **Thread both predicates through the three top-level theorems**
+  (`_local`, `_glue_step`, `_forward`) — every signature site that
+  takes `hTL : LocalSmallness L T` becomes
+  `(hTL_PL : LocalSmallness_PL_buffer L T) (hTL_con : LocalSmallness_contraction L T)`.
+* **Fix the `T_0`-min choice** at `vlasovWellPosedness_forward` — the
+  `T_0 := (1/√L - 1)/2` derivation becomes `T_0 := min(...) / 2`-style
+  with both thresholds proved.
+* The 3 structural reworks (R-selection, q-redefinition, T_0
+  derivation).
+* The 6 cosmetic citation updates (forwarders pick the right
+  predicate).
+* The 6 docstring corrections.
+
+That's materially larger than the original budget.  **This is the
+legitimate-reorder case from Observation 1's caveat** (`16ea5ed`,
+"a decaying task that turns out blocked yields to a ready one").  It
+isn't park-the-soundness-fix-because-unappealing; it's the gate read
+revealing the fix is a multi-part architectural change that doesn't
+fit one heroic session.
+
+### Distinguishing this from defer-bias (per Observation 3, `ffe573d`)
+
+The third observation's discriminator (assertion-without-action vs.
+assertion-with-action) applies here as the test for whether this scope
+update is honest or another defer-by-scoping.  The test:
+
+**Am I scoping *instead of* touching the constraint, or scoping
+*because I touched it and it revealed structure*?**
+
+This session opened on the L6495 read — execution.  The read surfaced
+a genuine architectural finding.  Scoping that finding before
+proceeding is **action revealing structure**, not action substituted-
+for-by-scoping.  The previous three diagnostic commits were
+scoping-without-touching; this one is touching-and-discovering.
+Different category.
+
+**But the rule from Observation 3 still binds**: only ONE more scope
+commit is legitimate here.  The next session must open on the actual
+predicate split, not on a further read.  If the next session generates
+yet another scope-update commit before any predicate edit lands, the
+defer-bias is back regardless of how the prior scoping was justified.
+That's the bar.
+
+### Execution ordering (foundational layer first)
+
+The fix is too large for one session; commit-level decomposition that
+keeps the build green at each step:
+
+**Commit 1 — foundational layer** (the predicate split + q de-conflation):
+1. Redefine LocalSmallness → split into `LocalSmallness_PL_buffer`
+   and `LocalSmallness_contraction`.  Both new predicates land in
+   CharFlow (near the old L3840 site).
+2. Update q at L6495 to the M-independent form.
+3. Close hq_lt at L6503 by citing `LocalSmallness_contraction`.
+4. Thread both predicates through the 3 top-level signatures
+   (`_local`, `_glue_step`, `_forward`) and the 2 sub-helpers' `_hTL`
+   underscored hypotheses (split into `_hTL_PL`, `_hTL_con`).
+5. Update the cosmetic forwarders (5 sites) to forward both
+   predicates.
+6. Fix the `T_0`-min choice at `_forward`.
+
+After Commit 1: build is green; PL-buffer sites take
+`LocalSmallness_PL_buffer` (algebraically equivalent to the old
+LocalSmallness — old proofs survive at those sites); contraction
+sites take `LocalSmallness_contraction` (the new exp-form constraint);
+the q-redefinition lands at L6495 and hq_lt closes by citation.
+
+**Commit 2 — structural rework at `exists_vlasov_perz_trajectory`**:
+The R-selection at L4204-L4210 already uses `(T+1)²` and continues to
+satisfy the unchanged-algebraically PL-buffer constraint.  Likely
+*minimal* rework if any — the predicate split preserves the algebraic
+shape at the PL-site.  Verify and update citations.
+
+**Commit 3 — docstring corrections + lint clear**:
+The 6 docstring sites (L3814-L3825, L4212-L4221, L5722, L6308, L6323,
+L7044) reframed to reflect the two-predicate structure.  Final pass.
+
+**Sorry trajectory**: 13 → 13 declarations.  Sub-sub-sorry at L6503
+(`hq_lt`) retires after Commit 1.  Sub-sub-sorry counts: -1 if
+Commits 2-3 don't introduce any honest sub-placeholders; honestly
+sub-placeholdered if a structural site genuinely resists (per the
+no-fallback-to-quadratic bar — never the false constraint).
+
+### Watch-list update — Observation 3 promotion guard
+
+The "assertion-without-action as defer signal" watch-list entry (1
+sighting, `ffe573d`) discriminator fires correctly in this case:
+**this is action**, the scoping IS the structural finding the action
+revealed.  The watch-list entry's discriminator works — it correctly
+distinguishes legitimate-action-scoping from defer-bias-scoping.  But
+no promotion yet; the entry doesn't earn promotion from a single
+correct discrimination, only from a second confirming defer-without-
+action sighting (per P5).  Status: discriminator functioning,
+promotion still gated on a true second sighting.
+
+### Next session opens on Commit 1 (actual predicate edit), per the one-more-scope-commit bar
+
+This is the last scope commit for Stage 2b part 3.  Next session
+opens on the foundational layer execution — predicate definitions,
+q-redefinition, hq_lt citation, signature threading through the three
+top-level theorems.  No further reads; no further scoping.  The
+predicate split is the first edit.
