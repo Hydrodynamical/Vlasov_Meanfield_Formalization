@@ -2651,22 +2651,32 @@ lemma vlasov_pointwise_deriv_aestronglymeas
   exact hg_cont.comp_aestronglyMeasurable h_flow_meas_t.aestronglyMeasurable
 
 
-/-- **SC.8: Dominated Lipschitz bound (the hard sub-helper).**
+/-- **Mathlib-TODO (SC.8 universal): Dominated Lipschitz bound for the
+universal characteristic flow.**
 
 The bundled existential: a neighborhood `nhd` of `t` plus a per-z
 Lipschitz coefficient `bound z` such that
 `s ↦ φ(charX s z, charV s z)` is `Real.nnabs (bound z)`-Lipschitz on
 `nhd` for ae-z, with `bound` `f₀`-integrable.
 
-**Status: sorry'd.**  Closing this helper requires a uniform-in-(s, z)
-bound on the trajectory speed `(charV s z, V̇(s, z))` on
+**Status: MathlibTODO placeholder** (closure-plan Sorry 2, 2026-05-31).
+Closing the universal-flow version requires a uniform-in-(s, z) bound on
+the trajectory speed `(charV s z, V̇(s, z))` on
 `nhd × (flow_t)⁻¹(supp φ)`.  Standard approach: compact image of flow
-under continuous map + uniform-in-s bound on the convolution.  May
-require widening with an `h_speed_bound` hypothesis at the wrapper
-level (deferred per the plan).
+under continuous map + uniform-in-s bound on the convolution.
 
-In-project consumer: the Stage C wrapper's `h_diff_data` compose step. -/
-lemma vlasov_trajectory_lipschitz_bound
+**Project alternatives**: `vlasov_trajectory_lipschitz_bound_lag` and
+`vlasov_trajectory_lipschitz_bound_on` (below) are SUBSTANTIVELY PROVED
+variants that take additional `M_ρ` first-moment hypotheses.  The
+universal version's closure would either widen with such hypotheses
+(restate) or substantively close ~150 lines mirroring `_on`'s body.
+Deferred to MathlibTODO state per the closure plan's category framing.
+
+In-project consumer: the Stage C wrapper's `h_diff_data` compose step
+(L3146).  Eventually-retiring path: refactor the Stage C universal wrapper
+to use `_lag`/`_on` directly (which would remove this placeholder), or
+substantively close as a focused future commit. -/
+theorem MathlibTODO_vlasovTrajectoryLipschitzBound
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d))
@@ -3143,7 +3153,7 @@ theorem vlasovSolutionViaPushforward_isVlasovSolution
       φ gradXφ gradVφ t := by
     -- Extract the hard sub-bundle from SC.8.
     obtain ⟨nhd, bound, hnhd, h_lipsch, h_bound_int⟩ :=
-      vlasov_trajectory_lipschitz_bound gradW ρ charX charV f₀ φ
+      MathlibTODO_vlasovTrajectoryLipschitzBound gradW ρ charX charV f₀ φ
         hφ_smooth hφ_compact hflow hgradW_cont hconv_cont t
     -- Assemble: ⟨nhd, bound, hnhd, hF_meas, hF_int, hF'_meas, h_lipsch, h_bound_int⟩.
     refine ⟨nhd, bound, hnhd, ?_, ?_, ?_, h_lipsch, h_bound_int⟩
@@ -8663,6 +8673,14 @@ theorem vlasovWellPosedness
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
     (hgradW : ∀ x, gradW x = gradient W x)
+    -- Lipschitz constant of gradW, with L < 1 (the Dobrushin smallness regime).
+    -- The L ≥ 1 regime requires the W̄ refactor (truncated Wasserstein metric, per
+    -- Dobrushin 1979's full proof) and is registered as deliberate future work in
+    -- `formalize/planning-notes.md`'s Phase B sequencing decision.  Restate per
+    -- closure-plan Sorry 11 (Category 3, 2026-05-31): explicit `hL_lt_one`
+    -- hypothesis eliminates the L≥1 sub-sorry'd branch.  External callers extract
+    -- L from `[AssW W]`'s `lipschitzGrad` existential and prove `< 1` themselves.
+    (L : NNReal) (hL_gradW : LipschitzWith L gradW) (hL_lt_one : (L : ℝ) < 1)
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀) :
     -- Existence-only (refactor 2026-05-30): Vlasov well-posedness is a forward-
@@ -8687,37 +8705,20 @@ theorem vlasovWellPosedness
       -- time domain `Set.Ici 0`, for every bounded continuous g.
       (∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0)) := by
-  -- Step 1: Extract Lipschitz constant L from [AssW W].
-  obtain ⟨L, hL_fderiv⟩ := (inferInstance : AssW W).lipschitzGrad
-  -- Sub-sorry 1 (Lipschitz bridge): LipschitzWith L (fun x => fderiv ℝ W x)
-  -- implies LipschitzWith L gradW via the Riesz isometry
-  -- gradW x = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm (fderiv ℝ W x).
-  have hL_gradW : LipschitzWith L gradW := by
-    have hiso : Isometry (InnerProductSpace.toDual ℝ (PhysSpace d)).symm :=
-      SemilinearIsometryClass.isometry _
-    have hfun : gradW = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm ∘
-        (fun x => fderiv ℝ W x) := by
-      funext x; simp only [Function.comp, hgradW x, gradient]
-    rw [hfun]
-    exact (hiso.lipschitzWith_iff L).mpr hL_fderiv
-  -- Step 2: Case split on the Lipschitz regime.
-  -- The substantive case is 0 < L < 1.  The L = 0 case (constant force)
-  -- and the L ≥ 1 case (out of scope pending M-series +1 removal) are
-  -- each marked with a named sub-sorry.
+  -- Step 1: Case split on whether L = 0 (constant force) or 0 < L.
+  -- L < 1 is hypothesized (`hL_lt_one`), so both branches stay in scope.
+  -- Closure-plan Sorry 11 (2026-05-31): the original L ≥ 1 sub-sorry'd branch
+  -- has been removed by adding `hL_lt_one` as an explicit hypothesis.  The
+  -- L ≥ 1 regime is registered as deliberate future work (W̄ refactor) in
+  -- `formalize/planning-notes.md`'s Phase B sequencing decision.
   by_cases hL_pos : (0 : ℝ) < L
-  · -- Case: 0 < L.  Sub-split on L < 1 vs L ≥ 1.
-    by_cases hL_lt : (L : ℝ) < 1
-    · -- Sub-case 0 < L < 1 — the substantive path.
-      -- Existence-only refactor (2026-05-30): Stage 6 produces per-T_target
-      -- IsLagrangianVlasovSolutionOn (forward-only); marquee bundles that
-      -- shape directly as the existence claim.  No uniqueness clause (∃!
-      -- → ∃ refactor); per-window uniqueness available via Stage 8 as a
-      -- separate interface.
-      exact vlasovWellPosedness_universal_existence W gradW hgradW L hL_gradW
-        hL_pos hL_lt f₀ hf₀
-    · -- Sub-case L ≥ 1: out of scope pending M-series +1 removal.
-      -- Sub-sorry 2 (L ≥ 1 regime).
-      sorry
+  · -- Case: 0 < L < 1 — the substantive path via Stage 6 (forward iteration).
+    -- Stage 6 produces per-T_target `IsLagrangianVlasovSolutionOn` (forward-only);
+    -- marquee bundles that shape directly as the existence claim.  Per-window
+    -- uniqueness is available via Stage 8 (`vlasovWellPosedness_uniqueness`) as
+    -- a separate interface.
+    exact vlasovWellPosedness_universal_existence W gradW hgradW L hL_gradW
+      hL_pos hL_lt_one f₀ hf₀
   · -- Case: L = 0 (gradW is constant; explicit constant-force solution).
     -- Step L0-1: L = 0 as an NNReal.
     have hL_zero : L = 0 := by
