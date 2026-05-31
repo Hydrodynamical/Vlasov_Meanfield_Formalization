@@ -6145,40 +6145,68 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
 -- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`.  The
 -- `HasFiniteFirstMoment` predicate remains in `Basic.lean`.
 
-/-- **Mathlib-TODO: AEMeasurability of the characteristic flow in initial
-condition.**
+/-- **Mathlib-TODO (pure functional-analytic): AEMeasurability of an ODE
+flow in initial condition.**
 
-Stage 1.9's `exists_vlasov_characteristicFlow_global_smallT` constructs a
-characteristic flow `(charX, charV)` against a given `ρ`-curve.  The
-construction is via per-`z` Picard iteration on bounded balls.  Continuity-
-in-`z` of the Picard fixed-point (Hartman, *Ordinary Differential Equations*
-Ch. V; Coddington-Levinson Ch. 2) implies Borel-measurability over the full
-phase space, which in turn gives AEMeasurability against any measure.
+If `b : ℝ → α → α` is a time-dependent vector field that's Lipschitz in
+the spatial variable uniformly in time, and `Φ : ℝ → α → α` is a flow
+satisfying `HasDerivAt (fun s => Φ s z) (b t (Φ t z)) t` for each `z`
+and `t`, then `Φ s : α → α` is AEMeasurable against any measure `μ`.
 
-The current Stage 1.9 output predicate `IsCharacteristicFlowOn` provides
-HasDerivAt in `s` (time) at each `(z, s)`, but does not directly expose
-continuity-in-`z`.  Bridging the predicate to AEMeasurability requires
-either (a) enriching `IsCharacteristicFlowOn` with a continuity-in-z
-conjunct, or (b) a separate Picard-regularity lemma.  This placeholder
-takes the conclusion directly per closure-plan Sorry 7 (2026-05-31).
+Standard ODE Picard regularity: continuity-in-initial-condition (Hartman,
+*Ordinary Differential Equations* Ch. V; Coddington-Levinson Ch. 2)
+implies Borel-measurability over the full phase space, which gives
+AEMeasurability against any measure.
 
-**Bucket-1 PR scope**: standard ODE Picard regularity (continuity in
-initial condition + Borel-measurability).  Same OT/ODE infrastructure
-family as `MathlibTODO_dobrushin_uniqueness_On`; both are characteristic-
-flow-API placeholders pending stable Mathlib characteristic-flow theory.
+**Bucket-1 PR scope**: pure-functional-analytic; Villani / Hartman-style
+ODE regularity result, statable in pure Mathlib `Analysis.ODE` language
+once the relevant API stabilizes.  No project-specific instantiation
+in the statement.
+
+**Decomposed from `MathlibTODO_picardFlowAEMeasurable`** (Phase 1.5,
+2026-05-31).  The Vlasov-specific composition lives below as
+`picardCharFlow_aemeasurable`. -/
+private theorem MathlibTODO_lipschitzFlowAEMeasurable
+    {α : Type*} [NormedAddCommGroup α] [NormedSpace ℝ α]
+    [MeasurableSpace α] [BorelSpace α]
+    (b : ℝ → α → α) (L : NNReal) (_hL : ∀ t, LipschitzWith L (b t))
+    (Φ : ℝ → α → α)
+    (_hflow : ∀ z t, HasDerivAt (fun s => Φ s z) (b t (Φ t z)) t)
+    (μ : Measure α) :
+    ∀ s, AEMeasurable (Φ s) μ := by
+  sorry
+
+/-- **Project-internal composition (Phase 1.5 decomposition target,
+2026-05-31)**: AEMeasurability of the Vlasov characteristic flow's joint
+map `z ↦ (charX s z, charV s z)`, derived from
+`MathlibTODO_lipschitzFlowAEMeasurable` by packaging the Vlasov phase-space
+vector field `b(t, z) := (z.2, -convolveFunctionMeasure gradW (ρ t) z.1)`
+and the joint flow `Φ t z := (charX t z, charV t z)`.
+
+**Status**: body sorry'd as a Phase 2-4 close target.  The composition is
+mostly mechanical: extract the joint Lipschitz constant `max(1, L)` for
+`b` from `LipschitzWith L gradW`, package `Φ`'s HasDerivAt from
+`IsCharacteristicFlowOn`'s two HasDerivAt clauses, apply the pure-FA
+placeholder.
 
 **In-project consumer**: `vlasovWellPosedness_local_picard_fixedPointFlow`'s
-`h_aemeas_out` sub-sub-sorry below (L6494+). -/
-private theorem MathlibTODO_picardFlowAEMeasurable
+`h_aemeas_out`. -/
+private lemma picardCharFlow_aemeasurable
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (_hL : LipschitzWith L gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (ρ t)]
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
-    {T : ℝ} (_hT : 0 ≤ T)
-    (_hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    {T : ℝ} (hT : 0 ≤ T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
     (μ : Measure (PhaseSpace d)) :
     ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) μ := by
+  -- Decomposition target: compose MathlibTODO_lipschitzFlowAEMeasurable with the
+  -- Vlasov joint flow Φ t z := (charX t z, charV t z) on PhaseSpace d.
+  -- The Vlasov vector field b(t, z) := (z.2, -conv gradW (ρ t) z.1) is
+  -- Lipschitz with constant max(1, L), and Φ satisfies HasDerivAt for b
+  -- from IsCharacteristicFlowOn's two HasDerivAt clauses combined via
+  -- HasDerivAt.prodMk.  Body closes in Phase 2-4 substantive work.
   sorry
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — the Picard fixed-point
@@ -6533,14 +6561,15 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       convolveFunctionMeasure gradW
         (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x_pt) := by
     sorry
-  -- AEMeasurable witness via Mathlib-TODO placeholder for Picard flow
-  -- regularity (closure-plan Sorry 7, 2026-05-31).  Instance
-  -- `VlasovMeasureCurve.extend_isProb` (L3942) provides probability-measure-
-  -- ness for the extended curve at every `t`; the placeholder consumes it
-  -- via Lean's instance resolution.
+  -- AEMeasurable witness via project-internal composition lemma
+  -- `picardCharFlow_aemeasurable` (Phase 1.5 decomposition target,
+  -- 2026-05-31; closure-plan Sorry 7).  The composition uses
+  -- `MathlibTODO_lipschitzFlowAEMeasurable` (pure-FA) as its abstract input.
+  -- Instance `VlasovMeasureCurve.extend_isProb` (L3942) provides probability-
+  -- measureness for the extended curve via Lean's instance resolution.
   have h_aemeas_out : ∀ s, AEMeasurable
       (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
-    MathlibTODO_picardFlowAEMeasurable gradW L hL ρ_lim.extend
+    picardCharFlow_aemeasurable gradW L hL ρ_lim.extend
       charX charV hT.le hflow_on_ρlim f₀
   -- Sub-sub-sorry: universal-in-s convolution integrability.  For
   -- s ∈ Icc 0 T follows from h_y_int_ρ + Lipschitz of gradW; for s outside
