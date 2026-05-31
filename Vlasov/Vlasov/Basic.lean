@@ -1421,6 +1421,45 @@ theorem MathlibTODO_convolveLipschitzEstimate
     ((L : ℝ) * (wasserstein1 ρ σ).toReal)
     (convolveLipschitz_inner_bound gradW L hL ρ σ x hW hρ_int hσ_int)
 
+/-- **Mathlib-TODO: continuity of `t ↦ convolveFunctionMeasure gradW (μ t) x` at
+a fixed evaluation point `x`, from narrow continuity of `μ`, moment continuity of
+`μ`, and Lipschitz `gradW`.**
+
+This is the standard W₁-stability-under-narrow-convergence-with-moment-control
+corollary (Villani, *Optimal Transport*, Ch. 6) specialized to the convolution
+operator.  In full Mathlib-form: `μₙ → μ` narrowly with `∫‖y‖ dμₙ → ∫‖y‖ dμ`
+plus uniform integrability of `‖·‖` implies `W₁(μₙ, μ) → 0`; composed with
+`MathlibTODO_convolveLipschitzEstimate` gives convolution continuity.
+
+The project's existing infrastructure provides narrow continuity directly
+(via DCT on the pushforward equation, see `vlasovWellPosedness_glue_step`
+case (a)'s `h_cont_f` close at commits `360813f` + `81c1748`).  The
+narrow→W₁ bridge is what's deferred to this placeholder.
+
+**Bucket-1 PR scope**: Villani-standard OT result; same OT-infrastructure
+family as `MathlibTODO_cauchyW1_hasNarrowLimit` (which goes the other
+direction — Cauchy in W₁ to narrow limit).  Both are appropriate single-
+PR units for upstream Mathlib OT API once that ecosystem stabilizes.
+
+**In-project consumer**: `vlasovWellPosedness_glue_step` case (a)'s
+`h_cont_g` — continuity of the derivative-function at the glue point T,
+which requires continuity of `t' ↦ conv gradW (spatialMarginal (f_next t')) x`
+at T for each fixed x. -/
+theorem MathlibTODO_convolveContinuousAtOfNarrowMoment
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (_hL : LipschitzWith L gradW)
+    (μ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (μ t)]
+    (t₀ : ℝ) (x : PhysSpace d)
+    (_h_narrow : ∀ (g : PhysSpace d → ℝ), Continuous g →
+      Bornology.IsBounded (Set.range g) →
+      ContinuousAt (fun t => ∫ y, g y ∂(μ t)) t₀)
+    (_h_mom_cont : ContinuousAt (fun t => ∫ y, ‖y‖ ∂(μ t)) t₀)
+    (_h_mom_int : ∀ t, Integrable (fun y => ‖y‖) (μ t))
+    (_h_int : ∀ t, Integrable (fun y => gradW (x - y)) (μ t)) :
+    ContinuousAt (fun t => convolveFunctionMeasure gradW (μ t) x) t₀ := by
+  sorry
+
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
 
