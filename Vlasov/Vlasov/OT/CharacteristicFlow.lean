@@ -8408,18 +8408,35 @@ theorem vlasovWellPosedness_forward
 -- flow — requires the Eulerian-to-Lagrangian / DiPerna-Lions superposition
 -- principle, which is out of scope.)
 
--- Helper (Stage 8): Localized Dobrushin uniqueness on [0, T].
--- Two `IsVlasovSolutionOn` solutions with the same initial data and finite
--- first moments on the window must agree pointwise on `[0, T]`.
--- This combines the localized Gronwall stability bound for W₁ (parallel to
--- `MathlibTODO_wassersteinGronwallCoupling` in Basic.lean but restricted to
--- `[0, T]`) with the KR-duality fact that W₁ = 0 characterises measure
--- equality for probability measures on a separable metric space.
--- Body is sorry'd: depends on sub-axioms for measure-valued ODE continuity,
--- coupling, and KR duality localised to the window [0, T].
--- (Path A localized placeholder — mirrors the structure of
--- `MathlibTODO_wassersteinGronwallCoupling` in Basic.lean.)
-private theorem MathlibTODO_dobrushin_uniqueness_On
+/-- **Project-internal Stage 8 helper (Phase 1.5 reclassification target,
+2026-05-31)**: Localized Dobrushin uniqueness on [0, T] for two
+`IsVlasovSolutionOn` solutions with same initial data and finite moments.
+
+**Reclassified from `MathlibTODO_dobrushin_uniqueness_On`** (Phase 1.5):
+this is NOT a Mathlib OT gap; it's a corollary of the decomposed pure-FA
+W₁-stability estimate (`MathlibTODO_w1RightDerivBoundAlongLipschitzMeasureFlow`,
+to be added in Phase 1.5 item 5) plus the standard Mathlib characterization
+`wasserstein1_eq_zero_iff_measure_eq` (or equivalent).
+
+**Closure path** (sorry'd, Phase 2-4 target):
+1. Build Vlasov phase-space vector field b(t, z) := (z.2,
+   -convolveFunctionMeasure gradW (spatialMarginal (f t)) z.1).
+2. Verify `IsVlasovSolutionOn` implies the continuity equation for b.
+3. Apply the localized version of
+   `MathlibTODO_w1RightDerivBoundAlongLipschitzMeasureFlow` to get the
+   right-derivative liminf bound on `t ↦ W₁(f t, g t)`.
+4. Gronwall-integrate via existing `wassersteinGronwallCoupling_gronwall_le`
+   (Basic.lean, already proved) with initial value 0 (since `f 0 = g 0`
+   implies `W₁(f 0, g 0) = 0`).
+5. Conclude `W₁(f t, g t) = 0` for all t ∈ Icc 0 T.
+6. Apply `wasserstein1_eq_zero_iff_measure_eq` (Mathlib) to get `f t = g t`.
+
+**Justification for reclassification**: per the user's Phase 1.5 worked
+example, this is Vlasov-specific composition (uses `IsVlasovSolutionOn`
+unpacking + Vlasov vector-field construction), not a pure Mathlib OT
+gap.  The placeholder's prior `MathlibTODO_*` naming overstated its
+Mathlib-track relevance.  -/
+private theorem dobrushin_uniqueness_On
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -8468,7 +8485,7 @@ theorem vlasovWellPosedness_uniqueness
   -- The two solutions share the same initial datum f₀
   have hfg0 : f 0 = g 0 := hf_init.trans hg_init.symm
   -- Apply the localized Dobrushin uniqueness (Helper above)
-  exact MathlibTODO_dobrushin_uniqueness_On gradW L hL f g T_target hT_target
+  exact dobrushin_uniqueness_On gradW L hL f g T_target hT_target
     hf_pde hg_pde hf_mom hg_mom hfg0
 
 -- ---------------------------------------------------------------------------
