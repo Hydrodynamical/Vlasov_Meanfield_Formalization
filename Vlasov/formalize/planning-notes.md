@@ -148,6 +148,60 @@ cadence discipline, the strategic conversation needs the option-set
 pre-loaded so the session opens as type-(a) execution-mode against a
 verified plan rather than type-(b) diagnostic-mode mid-close.
 
+**Decision committed (2026-05-31)**: option B per user authorization.
+Placeholder `MathlibTODO_convolveContinuousAtOfNarrowMoment` landed in
+commit `a123d63` (Basic.lean L1424+).
+
+**h_cont_g substantive close — scope re-estimate** (post-placeholder
+landing, 2026-05-31):
+
+The user's original estimate ("~100-200 lines, bridge-and-compose")
+assumed the auxiliary narrow + moment + integrability properties for
+`spatialMarginal ∘ f_next` were already in scope or trivially derivable.
+They're not — the project's existing infrastructure provides narrow
+continuity for the SPECIFIC h_cont_f integrand (compact-support φ), not
+the general bounded continuous test functions the placeholder requires
+for its narrow-continuity hypothesis.  Plus moment continuity isn't in
+scope at all.
+
+**Realistic scope re-estimate**:
+
+* **Sub-helper 1**: narrow continuity of `t ↦ spatialMarginal(f_next t)`
+  at T for general bounded continuous test functions.  ~50-80 lines
+  (h_cont_f's pattern generalized from compact-support to bounded-range).
+* **Sub-helper 2**: moment continuity of `t ↦ ∫ ‖y‖ ∂(spatialMarginal(f_next t))`
+  at T.  ~50-80 lines (DCT with flow-distance-growth-bound dominator).
+* **Sub-helper 3**: convolution integrability uniformity across t.
+  ~30-50 lines (Lipschitz + moment finiteness).
+* **h_cont_g main close** composing sub-helpers 1-3 + placeholder + outer
+  DCT.  ~100-200 lines per side (LEFT + RIGHT) + union.
+
+**Total realistic**: ~330-540 lines.  Above the user's ~100-200 estimate
+by a factor of ~2-3x.  Substantively achievable but requires multi-
+commit structuring per P4 API-lock pattern.
+
+**Recommended decomposition** (per P4 discipline for dense composition):
+
+* Commit 1 (this commit's predecessor `a123d63`): placeholder landed.
+* Commit 2: sub-helper 1 (narrow continuity for general bounded
+  continuous integrands).  ~80 lines.  Single focused close.
+* Commit 3: sub-helper 2 (moment continuity).  ~80 lines.  Single focused
+  close.
+* Commit 4: h_cont_g LEFT substantive close composing sub-helpers + placeholder.
+  ~150 lines.  Single focused close.
+* Commit 5: h_cont_g RIGHT substantive close mirroring LEFT.  ~150 lines.
+* Commit 6: union for h_cont_g → `_glue_step` cluster retirement.
+  ~20 lines.
+
+**Session-budget allocation**: 2-3 focused sessions per the per-commit
+estimate.  Phase A endpoint shifts from "3-4 focused sessions" to
+"4-5 focused sessions" with this revised scope.
+
+**Per session-cadence**: each commit above is a type-(a) execution
+session with pre-loaded brief from the preceding commit's residual
+structure.  No diagnostic pivots expected since the path is now
+characterized end-to-end.
+
 ## Phase B sequencing — deliberate decision pending
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
