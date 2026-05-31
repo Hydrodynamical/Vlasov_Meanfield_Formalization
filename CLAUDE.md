@@ -530,6 +530,71 @@ the two patterns produce the project's empirical productivity
 compounding across sessions — P3 (the cognitive pattern) +
 P4 (the commit-level pattern) = reliable session-bounded progress.
 
+### P5. Discipline framework's own pattern-extrapolation needs atom-level verification
+
+**Failure mode**: when the discipline framework's pattern-recognition
+machinery (P-series, B-series, watch-list candidates) produces a
+strategic recommendation that extrapolates from prior sightings to a
+new situation, the recommendation is treated as a *conclusion* rather
+than as a *hypothesis to verify*.  Pattern-extrapolation is a
+reasonable starting hypothesis — established patterns predict likely
+architectures — but the framework's own recommendations need the same
+atom-level verification (P1) as any other claim.  Treating them as
+exempt from verification produces over-scoped surgery plans, misdirected
+architectural commitments, and the kind of cascade-discovery friction
+that P2 then has to clean up mid-execution.
+
+**Empirical confirmation** (two sightings):
+
+1. **Stage 2 → Stage 1.9 pivot (commit `c00ba3b` arc, earlier session)**:
+   the strategic recommendation "Stage C is the project blocker for
+   `_glue_step` case (a)" was an extrapolation from the pattern "Stage C
+   sorries are the hard substantive work in the project."  Atom-level
+   reading discovered that the relevant Stage C `_on` producer
+   (`vlasovSolutionViaPushforward_isVlasovSolutionOn` at L3337) is
+   actually FULLY PROVED; the only sorry'd Stage C lemma is
+   `vlasov_trajectory_lipschitz_bound` (universal, non-`_on`, at L2669)
+   which is unrelated to `_glue_step` case (a).  The "Stage C is blocker"
+   diagnostic was incorrect; the actual blocker was the B2 predicate-layer
+   mismatch.
+
+2. **B2 cascade extrapolation (commit `c25c8b0`, this session)**: the
+   strategic recommendation "case (a) needs B2 surgery on
+   `IsVlasovSolutionOn` (~400-600 lines, 4-layer cascade)" was an
+   extrapolation from B2's three prior sightings.  Atom-level reading
+   discovered Mathlib's `hasDerivAt_of_hasDerivAt_of_ne`
+   (`Mathlib/Analysis/Calculus/FDeriv/Extend.lean` L177) and its one-sided
+   variants `hasDerivWithinAt_{Iic,Ici}_of_tendsto_deriv` (L108, L142)
+   provide a localized close path that sidesteps the B2 cascade entirely.
+   Scope reduction: 30-50% (B2 surgery ~400-600 lines → localized inline
+   DCT ~280-350 lines), plus avoidance of predicate-layer disruption.
+
+**Fix**: when the discipline framework produces a strategic recommendation
+(e.g., "this is a B2 cascade", "this is a Stage C blocker", "this is an
+M-series statement-correction situation"), apply P1 (atom-level reading)
+to verify the recommendation matches what the actual Mathlib + project
+infrastructure supports.  The recommendation is the starting hypothesis;
+the verification is the determinant.
+
+**Generalisation**: P5 is the *self-referential* application of P1.  P1
+says "verify the API exists in the assumed form before writing code
+against it."  P5 says "the discipline framework's pattern-extrapolation
+recommendations are claims, and like any claim they need verification
+before acting on them."  The two patterns compose: P1 catches mismatches
+at the implementation level; P5 catches mismatches at the *strategic*
+level (which would otherwise produce over-scoped or misdirected
+implementations downstream).
+
+**Operational rule**: at the top of any session whose work composes
+against a strategic recommendation from prior sessions, spend 15-30
+minutes on atom-level reading to *verify* the recommendation's
+premise.  The session's first commit can then be either (a) execution
+against the verified premise or (b) a discovery commit refining the
+recommendation per atom-level findings.  Pattern (b) is high-value —
+it produces P3-style loaded context for the *next* session at the cost
+of one session's execution work, but the loaded context typically
+unblocks 2-3 future sessions of substantive work.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
@@ -714,6 +779,49 @@ The cleanup document should reference this prophylactic rule for any
 post-cleanup architectural work to avoid relitigating the B2 surgery
 at new layers.
 
+**B2-anti-prophylaxis (counter-refinement, 2026-05-30, commit `c25c8b0`)**:
+B2 surgery isn't always the right shape — sometimes Mathlib infrastructure
+provides a *localized* alternative that sidesteps the B2 cascade entirely.
+Discovered empirically when scoping `_glue_step` case (a)'s close: the
+originally-planned B2 cascade on `IsVlasovSolutionOn` (~400-600 lines,
+4-layer cascade + new HasDerivWithinAt-DUI helper) was sidestepped by
+Mathlib's `hasDerivAt_of_hasDerivAt_of_ne` (`Mathlib/Analysis/Calculus/
+FDeriv/Extend.lean` L177) + one-sided variants
+`hasDerivWithinAt_{Iic,Ici}_of_tendsto_deriv` (L108, L142).  Localized
+inline close: ~280-350 lines, no predicate-layer disruption, no new
+Mathlib placeholders.
+
+**Operational rule (B2-anti-prophylaxis)**: when a B2 pattern is
+*hypothesized* for a new boundary mismatch, before committing to the
+B2 surgery, **check Mathlib for localized derivative-extension lemmas**
+(`FDeriv/Extend.lean` is the canonical home).  Specifically:
+1. Does the consumer need HasDerivAt at a boundary point that's interior
+   to a larger open set (where HasDerivAt holds at every nearby
+   non-boundary point)?  → Try `hasDerivAt_of_hasDerivAt_of_ne` or its
+   neighborhood-localized variant.
+2. Does the consumer need HasDerivWithinAt on `Iic T` or `Ici a` at a
+   boundary point that already has HasDerivAt on the open interior +
+   continuous extension of the derivative?  → Try
+   `hasDerivWithinAt_{Iic,Ici}_of_tendsto_deriv`.
+3. Only if Mathlib provides no localized alternative, commit to the
+   B2 cascade.
+
+**Generalisation**: B2-prophylaxis says "enrich predicates at definition
+time to avoid reactive surgery."  B2-anti-prophylaxis says "before
+committing to B2 surgery reactively, check whether Mathlib provides a
+*localized* alternative that closes the consumer without touching the
+predicate."  The two are not in tension — prophylaxis applies at
+predicate-definition time (proactive); anti-prophylaxis applies at
+consumer-close time (reactive).  The forward-looking lesson for future
+kinetic-theory formalization: when localized predicates produce boundary
+mismatches, search `FDeriv/Extend.lean` (and analogues) *before*
+committing to predicate enrichment.
+
+This is also P5 (discipline framework's pattern-extrapolation needs
+atom-level verification) operating concretely: B2's three prior sightings
+predicted "case (a) needs B2 cascade"; P1 atom-level reading of Mathlib's
+extension lemmas refuted the prediction.
+
 ## Watch-list
 
 Candidates accumulating sightings, not yet promotion-ready under
@@ -766,6 +874,43 @@ indefinite watch-listing):
   architectural patterns.  Trigger: 2 more sightings.
   (B2 promoted to B-series proper at commit reflecting this session,
   with 3rd sighting: Stage 6 narrow continuity boundary at t = 0.)
+* **Session-type cadence — diagnostic vs execution as distinct operating
+  modes**: 1 sighting (this session, 2026-05-30, commits `56f8ddf` +
+  `c25c8b0`).  Diagnostic: sessions that prioritize atom-level reading
+  (P1) and diagnostic-loading (P3) produce *more* strategic value per
+  session than sessions that prioritize execution against pre-loaded
+  diagnostics.  Diagnostic sessions are higher-information-density
+  (each commit unblocks multiple future sessions); execution sessions
+  are higher-line-count-density (each commit closes substantive work).
+  Both are valuable; the project's pace would probably improve from
+  *deliberately interleaving* them rather than treating diagnostic work
+  as "preparation" for execution work.
+
+  **Empirical example (this session)**: option 3 substantive close
+  (commit `56f8ddf`, +112 lines, -2 sub-sub-sorries — execution-mode)
+  paired with discovery commit (`c25c8b0`, +42 lines doc, 30-50% scope
+  reduction on next session's planned work — diagnostic-mode).  The
+  discovery commit's value (P3 loaded context that retired the B2
+  cascade framing and rerouted to a localized Mathlib path) is arguably
+  larger than the execution commit's, despite zero direct sorry
+  closure.  Three P1 atom-level wins in this single session
+  (option-3 close path discovery, Stage C verdict refinement, case-(a)
+  close path discovery) correlate with the session's deliberate
+  diagnostic orientation.
+
+  **Operational hypothesis**: the project's session-cadence should
+  alternate roughly 1:1 between diagnostic-oriented and execution-
+  oriented sessions, rather than running pure-execution sessions until
+  diagnostic gaps surface mid-execution (which produces P2-style
+  cascade-friction).  Empirical confirmation: the user's strategic
+  framing of this session as "B2 surgery focused execution" with
+  authorization for diagnostic pivoting produced the highest-value
+  discovery commit of the recent arc despite being scoped as execution.
+
+  Trigger: 2 more sightings.  Promotion candidate as a P-series
+  meta-discipline (P6?) about session cadence, or as a stand-alone
+  watch-list category at the operational-cadence layer.
+
 * **Cascade-as-signal**: 1 sighting (Stage 4 Bridge #1 →
   Friction 5 discovery).  Diagnostic: "resolving friction N
   requires infrastructure that's currently blocked by friction
