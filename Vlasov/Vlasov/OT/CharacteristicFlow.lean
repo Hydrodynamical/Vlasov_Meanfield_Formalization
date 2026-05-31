@@ -7413,11 +7413,133 @@ theorem vlasovWellPosedness_glue_step
                 rw [h_fnext_T, h_prev_push T hT_Icc, h_prev_init]
                 exact integral_map h_aemeas_f₀_T hφ_cont.aestronglyMeasurable
               exact h_cont_pf.congr_of_eventuallyEq h_eq_L h_val_T
-            -- RIGHT side: sorry'd focused leaf (~80 lines, symmetric structure but with
-            -- charX_g ∘ (charX_prev T, ·) chain + hg_init_cond bridge at the boundary).
+            -- RIGHT side: substantive close via DCT on the composed pushforward
+            -- (charX_g (s-T), charV_g (s-T)) ∘ (charX_prev T, charV_prev T).
+            -- At s = T, hg_init_cond bridges (charX_g 0, charV_g 0) = id, matching f_prev T.
             have h_cont_f_right : ContinuousWithinAt (fun s => ∫ z, φ z ∂f_next s)
                 (Set.Ici T) T := by
-              sorry
+              have h_nhd_R : Set.Icc T (T + T_0) ∈ nhdsWithin T (Set.Ici T) :=
+                Icc_mem_nhdsGE (by linarith : T < T + T_0)
+              have hT_Icc : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+              have h_outer_aemeas : AEMeasurable
+                  (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ :=
+                h_prev_init ▸ h_prev_aemeas T hT_Icc
+              -- Eventually-equal: f_next s = composed pushforward on Icc T (T+T_0)
+              have h_eq_R : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhdsWithin T (Set.Ici T)]
+                  (fun s => ∫ z, φ
+                    (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                     charV_g (s - T) (charX_prev T z, charV_prev T z)) ∂f₀) := by
+                apply Filter.Eventually.mono h_nhd_R
+                intro s hs
+                show ∫ z, φ z ∂f_next s = ∫ z, φ
+                    (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                     charV_g (s - T) (charX_prev T z, charV_prev T z)) ∂f₀
+                have hs_T : T ≤ s := hs.1
+                have hsT_Icc : s - T ∈ Set.Icc (0 : ℝ) T_0 :=
+                  ⟨by linarith, by linarith [hs.2]⟩
+                by_cases hs_eq : s = T
+                · -- s = T: f_next s = f_next T = f_prev T = (charX_prev T, charV_prev T)#f₀
+                  --   RHS at s = T uses hg_init_cond to collapse (charX_g 0, charV_g 0) = id
+                  have hs_T_zero : s - T = 0 := by rw [hs_eq]; exact sub_self T
+                  have h_fnext_s : f_next s = f_prev T := by
+                    rw [hs_eq]; exact if_pos (le_refl T)
+                  rw [h_fnext_s, h_prev_push T hT_Icc, h_prev_init,
+                      integral_map h_outer_aemeas hφ_cont.aestronglyMeasurable]
+                  congr 1
+                  funext z
+                  rw [hs_T_zero, (hg_init_cond _).1, (hg_init_cond _).2]
+                · -- s > T: f_next s = g (s - T) = composed pushforward
+                  have hs_gt : T < s := lt_of_le_of_ne hs_T (Ne.symm hs_eq)
+                  have h_fnext_s : f_next s = g (s - T) := if_neg (not_le.mpr hs_gt)
+                  rw [h_fnext_s, hg_push_ex (s - T) hsT_Icc, hg_init,
+                      h_prev_push T hT_Icc, h_prev_init]
+                  have h_g_at_sT : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_g (s - T) z, charV_g (s - T) z))
+                      (Measure.map (fun z : PhaseSpace d =>
+                        (charX_prev T z, charV_prev T z)) f₀) := by
+                    have := hg_aemeas_ex (s - T) hsT_Icc
+                    rw [hg_init, h_prev_push T hT_Icc, h_prev_init] at this
+                    exact this
+                  have h_comp_aem : AEMeasurable
+                      (fun z : PhaseSpace d =>
+                        (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                         charV_g (s - T) (charX_prev T z, charV_prev T z))) f₀ :=
+                    h_g_at_sT.comp_aemeasurable h_outer_aemeas
+                  rw [AEMeasurable.map_map_of_aemeasurable h_g_at_sT h_outer_aemeas]
+                  exact integral_map h_comp_aem hφ_cont.aestronglyMeasurable
+              -- DCT for the composed-pushforward form
+              have h_cont_pf : ContinuousWithinAt
+                  (fun s => ∫ z, φ
+                    (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                     charV_g (s - T) (charX_prev T z, charV_prev T z)) ∂f₀)
+                  (Set.Ici T) T := by
+                apply continuousWithinAt_of_dominated (bound := fun _ => Cφ)
+                · apply Filter.Eventually.mono h_nhd_R
+                  intro s hs
+                  have hsT_Icc : s - T ∈ Set.Icc (0 : ℝ) T_0 :=
+                    ⟨by linarith [hs.1], by linarith [hs.2]⟩
+                  have h_g_at_sT : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_g (s - T) z, charV_g (s - T) z))
+                      (Measure.map (fun z : PhaseSpace d =>
+                        (charX_prev T z, charV_prev T z)) f₀) := by
+                    have := hg_aemeas_ex (s - T) hsT_Icc
+                    rw [hg_init, h_prev_push T hT_Icc, h_prev_init] at this
+                    exact this
+                  have h_comp_aem : AEMeasurable
+                      (fun z : PhaseSpace d =>
+                        (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                         charV_g (s - T) (charX_prev T z, charV_prev T z))) f₀ :=
+                    h_g_at_sT.comp_aemeasurable h_outer_aemeas
+                  exact (hφ_cont.measurable.comp_aemeasurable h_comp_aem).aestronglyMeasurable
+                · apply Filter.Eventually.mono h_nhd_R
+                  intro s _
+                  exact Filter.Eventually.of_forall fun z => hCφ _
+                · exact integrable_const _
+                · -- Pointwise continuity: chain rule for (· - T) at T with charX_g/charV_g at 0
+                  apply Filter.Eventually.of_forall
+                  intro z
+                  have h0_Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T_0 := ⟨le_refl 0, hT_0_pos.le⟩
+                  have h_g_bX := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_Icc).1
+                  have h_g_bV := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_Icc).2
+                  have h_nhdsW_0 : Set.Icc (0 : ℝ) T_0 ∈ nhdsWithin 0 (Set.Ici 0) :=
+                    Icc_mem_nhdsGE hT_0_pos
+                  have h_g_bX_cont : ContinuousWithinAt
+                      (fun s' => charX_g s' (charX_prev T z, charV_prev T z))
+                      (Set.Ici 0) 0 :=
+                    h_g_bX.continuousWithinAt.mono_of_mem_nhdsWithin h_nhdsW_0
+                  have h_g_bV_cont : ContinuousWithinAt
+                      (fun s' => charV_g s' (charX_prev T z, charV_prev T z))
+                      (Set.Ici 0) 0 :=
+                    h_g_bV.continuousWithinAt.mono_of_mem_nhdsWithin h_nhdsW_0
+                  have h_sub_cont : ContinuousWithinAt (fun s : ℝ => s - T) (Set.Ici T) T :=
+                    ((continuous_id.sub continuous_const).continuousAt).continuousWithinAt
+                  have h_sub_maps : Set.MapsTo (fun s : ℝ => s - T) (Set.Ici T) (Set.Ici 0) :=
+                    fun s hs => Set.mem_Ici.mpr (by linarith [Set.mem_Ici.mp hs])
+                  have h_chainX : ContinuousWithinAt
+                      (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
+                      (Set.Ici T) T :=
+                    ContinuousWithinAt.comp_of_eq h_g_bX_cont h_sub_cont h_sub_maps (sub_self T)
+                  have h_chainV : ContinuousWithinAt
+                      (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
+                      (Set.Ici T) T :=
+                    ContinuousWithinAt.comp_of_eq h_g_bV_cont h_sub_cont h_sub_maps (sub_self T)
+                  have h_pair : ContinuousWithinAt
+                      (fun s => (charX_g (s - T) (charX_prev T z, charV_prev T z),
+                                 charV_g (s - T) (charX_prev T z, charV_prev T z)))
+                      (Set.Ici T) T :=
+                    h_chainX.prodMk h_chainV
+                  exact hφ_cont.continuousAt.comp_continuousWithinAt h_pair
+              -- Value at T: integrate the s = T case
+              have h_val_T : (∫ z, φ z ∂f_next T) = ∫ z, φ
+                  (charX_g (T - T) (charX_prev T z, charV_prev T z),
+                   charV_g (T - T) (charX_prev T z, charV_prev T z)) ∂f₀ := by
+                have h_fnext_T : f_next T = f_prev T := if_pos (le_refl T)
+                rw [h_fnext_T, h_prev_push T hT_Icc, h_prev_init,
+                    integral_map h_outer_aemeas hφ_cont.aestronglyMeasurable]
+                congr 1; funext z
+                rw [show T - T = (0 : ℝ) from sub_self T,
+                    (hg_init_cond _).1, (hg_init_cond _).2]
+              exact h_cont_pf.congr_of_eventuallyEq h_eq_R h_val_T
             -- Combine via union
             have h_cont_f : ContinuousAt (fun s => ∫ z, φ z ∂f_next s) T := by
               have h_union := h_cont_f_left.union h_cont_f_right
