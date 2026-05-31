@@ -364,6 +364,57 @@ Strategic conversation can confirm at next session open.
 
 ---
 
+## Item 1 deeper analysis (2026-05-31, post-Item-2 attempt)
+
+**Atom-level reading update on the consumer cascade**: `_picard_fixedPointFlow`'s
+output `h_aemeas_out : ∀ s, AEMeasurable ...` (universal s) is consumed by
+`_finalAssembly_isLagrangian`'s body in the
+`IsCharacteristicFlowSelfConsistent` step.  The SelfConsistent predicate
+quantifies `∀ t, ρ t = Measure.map (charX t) f₀`, which uses `h_aemeas t`
+for ALL t (not just Icc 0 T).
+
+**Cascade implications**:
+* **Option B (restate composition output)** would require either:
+  - Weakening `IsCharacteristicFlowSelfConsistent` to set-restricted form
+    (architectural change to a core project predicate).
+  - Threading the universal-t AEMeasurable hypothesis from elsewhere
+    (where? — IsLagrangianVlasovSolution's AEMeasurable conjunct is also
+    set-restricted).
+* **Option A (refine pure-FA placeholder)** doesn't help directly — the
+  refined placeholder still provides set-restricted conclusion, which
+  doesn't satisfy the universal consumer.
+* **Option C (substantive Picard regularity inline)** bypasses the
+  cascade by constructing AEMeasurable from the project's own
+  Stage 1.9 flow construction details, without going through the
+  pure-FA placeholder.  ~80-100 lines but doesn't ripple to other
+  declarations.
+
+**Revised recommendation**: Option C.  Bypasses the cascade entirely.
+The pure-FA `MathlibTODO_lipschitzFlowAEMeasurable` remains in the
+Mathlib OT contribution arc as a banked placeholder for other potential
+consumers; the in-project AEMeasurable witness routes through
+substantive Picard regularity.
+
+**Or**: defer item 1 entirely.  The IsCharacteristicFlowSelfConsistent
+universal-t issue is genuinely a deeper architectural question
+(arguably the predicate IS overstated and should be weakened to
+match the construction's actual domain).  Phase A endpoint trajectory
+isn't materially impacted by deferring item 1 — it just means the
+`MathlibTODO_lipschitzFlowAEMeasurable` placeholder ships with the
+project as a "consumer-pending" placeholder in the Mathlib contribution
+arc, while `_picard_fixedPointFlow`'s `h_aemeas_out` remains sorry'd
+as a substantive Phase 2-4 close target.
+
+**Decision pending**: Option C vs deferral.  Strategic conversation at
+next session open should resolve this.
+
+**Phase 3 Session 2 deliverable summary**:
+* Item 2 closed substantively (sorry 16 → 15).
+* Item 1 atom-level analysis revealed deeper cascade; deferred.
+* Net: 1 of 6 compositions closed.
+
+---
+
 ## Phase B sequencing — deliberate decision pending (legacy section)
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
