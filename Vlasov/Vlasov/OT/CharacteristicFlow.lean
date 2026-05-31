@@ -3825,20 +3825,47 @@ lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
 -- used in new theorems going forward; existing closed proofs continue to
 -- compile against the unfolded form.
 
-/-- Smallness predicate for the local well-posedness theorem.
+/-- **Smallness predicate for the per-ball Picard-Lindelöf flow's
+ball-geometry constraint** (Stage 2b part 3 split, 2026-05-31).
 
-Currently defined as `(L : ℝ) * (T + 1) ^ 2 < 1`, the smallness condition
-produced by the project's `W₁`-based contraction analysis.  This shape is
-metric-dependent: under a `W̄ = W_{min(|x-y|,1)}` refactor (the textbook
-form per Dobrushin 1979), the constraint becomes `C₂(L) · T < 1` with no
-additive offset and no `L < 1` restriction.
+Defined as `(L : ℝ) * (T + 1) ^ 2 < 1`, this is the smallness condition
+the per-ball flow's R-selection requires: `R · (1 - L·(T+1)²) ≥ N(z)`
+forces R > 0 only when `L·(T+1)² < 1`.  It comes from the
+`(T+1)`-time-buffer Picard-Lindelöf geometry + L-Lipschitz fixed-point
+analysis, NOT from contraction.
 
-The named predicate isolates the metric-dependent algebra from downstream
-consumers, which take `LocalSmallness L T` as their hypothesis rather than
-the specific algebraic form.  The `W̄` refactor changes this single
-definition; downstream proofs recompile without proof changes. -/
-def LocalSmallness (L : NNReal) (T : ℝ) : Prop :=
+**Stage 2b part 3 split**: the original `LocalSmallness` conflated this
+PL-buffer constraint with the supW1On *contraction-ratio* constraint
+`LocalSmallness_contraction` (below).  Those are genuinely independent
+mathematical constraints from distinct sub-arguments; carrying them as
+two predicates rather than one prevents future edits from fusing them
+back into "the constraint" (per M1: predicates match the mathematical
+structure).  See planning-notes for the M1-recursion reasoning. -/
+def LocalSmallness_PL_buffer (L : NNReal) (T : ℝ) : Prop :=
   (L : ℝ) * (T + 1) ^ 2 < 1
+
+/-- **Smallness predicate for the supW1On contraction-ratio constraint**
+(Stage 2b part 3 split, 2026-05-31).
+
+For `Phi_supW1_contraction`'s output to satisfy `q < 1` — the genuine
+M-independent contraction ratio — the constraint is
+`L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`.  This comes from Gronwall
+on the W₁-based contraction analysis, inherited off
+`vlasovVectorField_lipschitzWith` (CharFlow L629, the joint phase-space
+`max(1, L)`-Lipschitz constant).  Same constant items 5 and 6 cite
+(commits `33e8baa`, `e9d9aa4`); banked once, used three times.
+
+For the `0 < L < 1` regime the marquee operates in, `max(1, L) = 1` and
+the constraint simplifies to `L · (exp T - 1) < 1`.
+
+**W₁-regime gating**: this predicate is intentionally NOT generalized
+to accommodate L ≥ 1.  The L ≥ 1 regime requires the truncated-distance
+Wasserstein W̄ refactor (Dobrushin 1979 §5), a separate arc.  A future
+L ≥ 1 proof attempting to cite this predicate via downstream lemmas
+fails loudly at the `hL_lt : (L : ℝ) < 1` binder of the consequence
+lemma, not silently broadens the W₁-regime estimate. -/
+def LocalSmallness_contraction (L : NNReal) (T : ℝ) : Prop :=
+  (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ)) < 1
 
 /-- The curve metric used by the project's `VlasovMeasureCurve` Banach
 iteration.  Currently `supW1On` (sup of `W₁` distances over the time
@@ -4184,7 +4211,7 @@ theorem exists_vlasov_perz_trajectory
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
     (T : ℝ) (hT : 0 ≤ T)
-    (hTL : LocalSmallness L T)
+    (hTL_PL : LocalSmallness_PL_buffer L T)
     (z : PhaseSpace d) :
     ∃ γ : ℝ → PhaseSpace d,
       γ 0 = z ∧
@@ -4219,7 +4246,7 @@ theorem exists_vlasov_perz_trajectory
   -- contraction constant `C₂(L)`.  Flagged as a metric-dependent
   -- algebraic touchpoint; the single existing unfold here is the entire
   -- "metric-dependent lemmas section" identified by Move A.
-  have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL
+  have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL_PL
   set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
   -- N(z) is the right-hand-side numerator; non-negative.
   set N_z : ℝ := 2 + (‖z.2‖ + 1 / 2) * (T + 1)
@@ -4405,7 +4432,7 @@ theorem exists_vlasov_characteristicFlow_global_smallT
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ t) ≤ M_ρ)
     (T : ℝ) (hT : 0 ≤ T)
-    (hTL : LocalSmallness L T) :
+    (hTL_PL : LocalSmallness_PL_buffer L T) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ ∧
       -- **Boundary regularity bundle** (Friction 5 surgery): expose the
@@ -4430,7 +4457,7 @@ theorem exists_vlasov_characteristicFlow_global_smallT
           (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) (Set.Icc 0 T) t) := by
     intro z
     exact exists_vlasov_perz_trajectory W gradW hgradW L hL ρ h_int hρ_cont
-      h_y_int M_ρ hM_ρ_nn hM_ρ T hT hTL z
+      h_y_int M_ρ hM_ρ_nn hM_ρ T hT hTL_PL z
   -- Bundle via Classical.choose.
   let γ_func : PhaseSpace d → ℝ → PhaseSpace d := fun z =>
     Classical.choose (h_perZ z)
@@ -5214,7 +5241,7 @@ theorem Phi_step
     (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
     {T M : ℝ} (hT : 0 ≤ T) (hM_nn : 0 ≤ M)
-    (hTL : LocalSmallness L T)
+    (hTL_PL : LocalSmallness_PL_buffer L T)
     (ρ : VlasovMeasureCurve d T M)
     (h_int_ext : ∀ t (x : PhysSpace d),
                   Integrable (fun y => gradW (x - y)) (ρ.extend t)) :
@@ -5244,7 +5271,7 @@ theorem Phi_step
     fun t => VlasovMeasureCurve.extend_hasMoment hT ρ t
   obtain ⟨charX, charV, hflow_on, h_boundary⟩ :=
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
-      ρ.extend h_int_ext hρ_cont h_y_int M hM_nn hM_ρ T hT hTL
+      ρ.extend h_int_ext hρ_cont h_y_int M hM_nn hM_ρ T hT hTL_PL
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
     Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
       hflow_on h_boundary
@@ -6355,7 +6382,8 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL : LocalSmallness L T) :
+    (hTL_PL : LocalSmallness_PL_buffer L T)
+    (hTL_con : LocalSmallness_contraction L T) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (M_ρ : ℝ), 0 ≤ M_ρ ∧
       -- Self-consistent characteristic flow: against the spatial marginal
       -- of its own phase-space pushforward.
@@ -6490,17 +6518,47 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   -- (`vlasovWellPosedness_local`, `_glue_step`, `_forward`).  Recorded as
   -- a structural-debt item for a focused refactor session.
   --
-  -- Until the refactor, the q below is the wrong formula but compiles;
-  -- `hq_lt` is sorry'd with the structural-debt comment above.
-  let q : ℝ := gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L : ℝ) * (2 * M)) T
+  -- **Stage 2b part 3 fix (2026-05-31)**: q is the M-INDEPENDENT genuine
+  -- contraction ratio, NOT 2M·q_true.  The old q-definition
+  -- `gronwallBound 0 (max 1 L) (L · 2M) T` conflated the contraction
+  -- factor with the W₁-input bound D₀ = 2M (which appears separately
+  -- below).  Per the L6495 read of the structural-debt note (now retired):
+  -- the standard Phi_supW1_contraction output is `q · D` per step, so
+  -- `q^k · D₀ = q^k · (2M)` is the iterated contraction bound.  The
+  -- de-conflation drops 2M from the ε-input of gronwallBound, leaving q
+  -- = `gronwallBound 0 (max 1 L) L T = (L/(max 1 L)) · (exp((max 1 L)·T) - 1)`
+  -- — the M-independent ratio.  hq_lt closes by direct citation of
+  -- `hTL_con` (LocalSmallness_contraction) after one-line unfold.
+  let q : ℝ := gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L : ℝ) T
   have hq_nn : 0 ≤ q := by
     have hK_nn : (0 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := NNReal.coe_nonneg _
-    have hε_nn : (0 : ℝ) ≤ (L : ℝ) * (2 * M) := by positivity
+    have hε_nn : (0 : ℝ) ≤ (L : ℝ) := L.coe_nonneg
     have := gronwallBound_mono (δ := (0 : ℝ)) (K := ((max 1 L : NNReal) : ℝ))
-      (ε := (L : ℝ) * (2 * M)) (le_refl 0) hε_nn hK_nn hT.le
+      (ε := (L : ℝ)) (le_refl 0) hε_nn hK_nn hT.le
     rw [gronwallBound_x0] at this; exact this
-  -- Sub-sub-sorry: q < 1 from hTL.
-  have hq_lt : q < 1 := by sorry
+  -- Direct citation: `LocalSmallness_contraction L T` IS `q < 1` after
+  -- unfolding both definitions.  No local derivation; the named-lemma
+  -- pattern from the soundness-fix mechanism.
+  have hq_lt : q < 1 := by
+    show gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L : ℝ) T < 1
+    -- gronwallBound 0 K ε T = ε/K · (exp(K·T) - 1) when K ≠ 0.
+    -- With K = max 1 L ≥ 1 > 0, this is (L/(max 1 L)) · (exp((max 1 L)·T) - 1).
+    have hK_pos : (0 : ℝ) < ((max 1 L : NNReal) : ℝ) := by
+      have : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+        rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_left _ _
+      linarith
+    have hK_ne : ((max 1 L : NNReal) : ℝ) ≠ 0 := ne_of_gt hK_pos
+    rw [gronwallBound_of_K_ne_0 hK_ne]
+    simp only [zero_mul, zero_add]
+    -- Goal: L / (max 1 L) * (exp((max 1 L) * T) - 1) < 1, which is exactly
+    -- `LocalSmallness_contraction L T` after one rewrite of `a/b · c = a·c/b`.
+    have h_eq : (L : ℝ) / ((max 1 L : NNReal) : ℝ) *
+        (Real.exp (((max 1 L : NNReal) : ℝ) * T) - 1) =
+        (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T) - 1) / (max 1 (L : ℝ)) := by
+      rw [NNReal.coe_max, NNReal.coe_one]
+      ring
+    rw [h_eq]
+    exact hTL_con
   -- D₀: initial supW1On bound = supW1On (x 0).ρ (x 1).ρ ≤ 2 * M.
   let D₀ : ℝ := 2 * M
   have hD₀_nn : 0 ≤ D₀ := by linarith
@@ -6572,7 +6630,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       (fun t => VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim t)
       M hM_nn
       (fun t => VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim t)
-      T hT.le hTL
+      T hT.le hTL_PL
   -- ============================================================
   -- Step 8: Self-consistency.
   -- Sub-sub-sorry: for t ∈ Icc 0 T,
@@ -6686,7 +6744,8 @@ theorem vlasovWellPosedness_local_finalAssembly_moment
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL : LocalSmallness L T)
+    (_hTL_PL : LocalSmallness_PL_buffer L T)
+    (_hTL_con : LocalSmallness_contraction L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -6812,7 +6871,8 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL : LocalSmallness L T)
+    (_hTL_PL : LocalSmallness_PL_buffer L T)
+    (_hTL_con : LocalSmallness_contraction L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -6983,7 +7043,8 @@ theorem vlasovWellPosedness_local
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL : LocalSmallness L T) :
+    (hTL_PL : LocalSmallness_PL_buffer L T)
+    (hTL_con : LocalSmallness_contraction L T) :
     ∃ (f : ℝ → Measure (PhaseSpace d))
       (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       f 0 = f₀ ∧
@@ -7083,7 +7144,7 @@ theorem vlasovWellPosedness_local
   obtain ⟨charX, charV, _M_ρ, _hM_ρ_nn, _hflow_on, _h_boundary,
           _hM_ρ_bound, _h_y_int_ρ, _hconv_cont, _h_aemeas, _h_int_conv⟩ :=
     vlasovWellPosedness_local_picard_fixedPointFlow W gradW hgradW L hL
-      f₀ hf₀_int hT hTL
+      f₀ hf₀_int hT hTL_PL hTL_con
   -- Bundle the f-shape result.
   refine ⟨vlasovSolutionViaPushforward charX charV f₀, charX, charV, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (a) f 0 = f₀.  The flow's initial-condition clause (post-Friction-5
@@ -7109,7 +7170,7 @@ theorem vlasovWellPosedness_local
     -- the _finalAssembly sub-helper handles).
     intro t ht
     exact vlasovWellPosedness_local_finalAssembly_moment W gradW hgradW L hL
-      f₀ hf₀_int hT hTL charX charV
+      f₀ hf₀_int hT hTL_PL hTL_con charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
       _h_aemeas _h_int_conv
       t ht
@@ -7120,7 +7181,7 @@ theorem vlasovWellPosedness_local
     -- of `_hconv_cont`'s implications), and threads all 20+ hypotheses
     -- through `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn`.
     exact vlasovWellPosedness_local_finalAssembly_isLagrangian W gradW hgradW L hL
-      f₀ hf₀_int hT hTL charX charV
+      f₀ hf₀_int hT hTL_PL hTL_con charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
       _h_aemeas _h_int_conv
   · -- (d) Explicit pushforward equation for the outer charX charV.
@@ -7319,7 +7380,8 @@ theorem vlasovWellPosedness_glue_step
           (Set.Icc 0 T) t)
     (h_prev_ic : ∀ z : PhaseSpace d, charX_prev 0 z = z.1 ∧ charV_prev 0 z = z.2)
     {T_0 : ℝ} (hT_0_pos : 0 < T_0)
-    (hT_0_small : LocalSmallness L T_0) :
+    (hT_0_small_PL : LocalSmallness_PL_buffer L T_0)
+    (hT_0_small_con : LocalSmallness_contraction L T_0) :
     ∃ (f_next : ℝ → Measure (PhaseSpace d))
       (charX_next charV_next : ℝ → PhaseSpace d → PhysSpace d),
       (∀ t ∈ Set.Icc (0 : ℝ) T, f_next t = f_prev t) ∧
@@ -7368,7 +7430,7 @@ theorem vlasovWellPosedness_glue_step
   obtain ⟨g, charX_g, charV_g, hg_init, hg_mom, hg_lag, hg_push_ex, hg_aemeas_ex,
           hg_boundary, hg_init_cond⟩ :=
     vlasovWellPosedness_local W gradW hgradW L hL
-      (f_prev T) h_prev_T_mom hT_0_pos hT_0_small
+      (f_prev T) h_prev_T_mom hT_0_pos hT_0_small_PL hT_0_small_con
   -- Step 2: define the glued solution piecewise
   let f_next : ℝ → Measure (PhaseSpace d) :=
     fun t => if t ≤ T then f_prev t else g (t - T)
@@ -8287,48 +8349,102 @@ theorem vlasovWellPosedness_forward
       f 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t)) ∧
       IsLagrangianVlasovSolutionOn gradW f T_target := by
-  -- Step 1: Choose the contraction step size T_0 = (1/√L - 1)/2.
-  -- T_0 depends only on L < 1; the local theorem's smallness constraint is
-  -- L·(T_0+1)² < 1, which equals (1+√L)²/4 < 1 (verified below).
-  let T_0 : ℝ := (1 / Real.sqrt L - 1) / 2
+  -- **Stage 2b part 3 (Soundness fix, 2026-05-31)**: T_0 must satisfy BOTH
+  -- the PL-buffer constraint (`L·(T_0+1)² < 1`) AND the contraction constraint
+  -- (`L·(exp T_0 - 1) < 1`, simplified for `L < 1`).  Per the M1-recursion
+  -- (planning-notes commit `b7d4d05`), these are two genuinely independent
+  -- constraints from distinct sub-arguments; T_0 = min(T_0_PL, T_0_con) / 2
+  -- with strict-inequality margin lands both.
+  let T_0_PL : ℝ := 1 / Real.sqrt L - 1
+  let T_0_con : ℝ := Real.log (1 / (L : ℝ) + 1)
+  let T_0 : ℝ := min T_0_PL T_0_con / 2
   have hL_nn : (0 : ℝ) ≤ L := NNReal.coe_nonneg L
   have hsqrtL_pos : 0 < Real.sqrt (L : ℝ) := Real.sqrt_pos.mpr hL_pos
   have hsqrtL_lt1 : Real.sqrt (L : ℝ) < 1 := by
     rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 1)]
     simpa using hL_lt
-  have hT0_pos : 0 < T_0 := by
-    show 0 < (1 / Real.sqrt (L : ℝ) - 1) / 2
+  have hT_0_PL_pos : 0 < T_0_PL := by
+    show 0 < 1 / Real.sqrt (L : ℝ) - 1
     have h1 : 1 < 1 / Real.sqrt (L : ℝ) := by
       rw [one_lt_div hsqrtL_pos]
       linarith
     linarith
-  -- Sub-sorry (a): L·(T_0+1)² < 1.  Algebraic: T_0+1 = (1/√L+1)/2, so
-  -- L·(T_0+1)² = L·(1/√L+1)²/4 = (1+√L)²/4 < 1 since √L < 1.
-  have hTL_T0 : (L : ℝ) * (T_0 + 1) ^ 2 < 1 := by
+  have h_one_div_L_plus_one_pos : 0 < 1 / (L : ℝ) + 1 := by
+    have : 0 < 1 / (L : ℝ) := by positivity
+    linarith
+  have h_one_div_L_plus_one_gt_one : 1 < 1 / (L : ℝ) + 1 := by
+    have : 0 < 1 / (L : ℝ) := by positivity
+    linarith
+  have hT_0_con_pos : 0 < T_0_con :=
+    Real.log_pos h_one_div_L_plus_one_gt_one
+  have hT_0_min_pos : 0 < min T_0_PL T_0_con :=
+    lt_min hT_0_PL_pos hT_0_con_pos
+  have hT0_pos : 0 < T_0 := by
+    show 0 < min T_0_PL T_0_con / 2
+    linarith
+  -- **PL-buffer constraint at T_0** (existing algebra at T_0_PL_old, lifted
+  -- to T_0 via monotonicity since T_0 ≤ T_0_PL_old).
+  have hTL_T0_PL : LocalSmallness_PL_buffer L T_0 := by
+    show (L : ℝ) * (T_0 + 1) ^ 2 < 1
+    let T_0_PL_old : ℝ := (1 / Real.sqrt (L : ℝ) - 1) / 2
+    have h_T_0_le_old : T_0 ≤ T_0_PL_old := by
+      show min T_0_PL T_0_con / 2 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2
+      have h_min_le : min T_0_PL T_0_con ≤ T_0_PL := min_le_left _ _
+      show min T_0_PL T_0_con / 2 ≤ T_0_PL / 2
+      linarith
+    have h_T_0_PL_old_nn : 0 ≤ T_0_PL_old := by
+      show 0 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2; linarith
+    have h_T_0_nn : 0 ≤ T_0 := le_of_lt hT0_pos
+    have h_sq_mono : (T_0 + 1) ^ 2 ≤ (T_0_PL_old + 1) ^ 2 := by
+      have h_nn : 0 ≤ T_0 + 1 := by linarith
+      have h_le : T_0 + 1 ≤ T_0_PL_old + 1 := by linarith
+      exact pow_le_pow_left₀ h_nn h_le 2
+    have h_mul_le : (L : ℝ) * (T_0 + 1) ^ 2 ≤ (L : ℝ) * (T_0_PL_old + 1) ^ 2 :=
+      mul_le_mul_of_nonneg_left h_sq_mono hL_nn
+    -- L · (T_0_PL_old + 1)² = (1 + √L)² / 4 < 1 (the existing algebra).
     have hs_ne : Real.sqrt (L : ℝ) ≠ 0 := ne_of_gt hsqrtL_pos
     have hs_eq : (Real.sqrt (L : ℝ)) ^ 2 = (L : ℝ) := Real.sq_sqrt hL_nn
-    -- T_0 + 1 = (1 + √L) / (2 · √L).
-    have hT0_plus_1 : T_0 + 1 = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ)) := by
+    have hT0_old_plus_1 :
+        T_0_PL_old + 1 = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ)) := by
       show (1 / Real.sqrt (L : ℝ) - 1) / 2 + 1
           = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ))
-      field_simp
-      ring
-    -- L · (T_0 + 1)² = (1 + √L)² / 4.
-    have key : (L : ℝ) * (T_0 + 1) ^ 2 = (1 + Real.sqrt (L : ℝ)) ^ 2 / 4 := by
-      rw [hT0_plus_1, div_pow]
+      field_simp; ring
+    have key : (L : ℝ) * (T_0_PL_old + 1) ^ 2 = (1 + Real.sqrt (L : ℝ)) ^ 2 / 4 := by
+      rw [hT0_old_plus_1, div_pow]
       have h_sq_denom : (2 * Real.sqrt (L : ℝ)) ^ 2 = 4 * (L : ℝ) := by
-        rw [mul_pow]
-        rw [hs_eq]
-        ring
-      rw [h_sq_denom]
-      field_simp
-    rw [key]
-    -- (1 + √L)² / 4 < 1 ⟺ (1 + √L)² < 4, which follows from √L < 1.
+        rw [mul_pow, hs_eq]; ring
+      rw [h_sq_denom]; field_simp
+    rw [key] at h_mul_le
     have h_lt : (1 + Real.sqrt (L : ℝ)) ^ 2 < 4 := by
       have h_sum_lt2 : 1 + Real.sqrt (L : ℝ) < 2 := by linarith
       have h_sum_nn : 0 ≤ 1 + Real.sqrt (L : ℝ) := by positivity
       nlinarith [h_sum_lt2, h_sum_nn]
     linarith
+  -- **Contraction constraint at T_0** (T_0 < T_0_con since T_0 ≤ T_0_con/2 <
+  -- T_0_con; then exp_lt_exp gives `exp T_0 < 1/L + 1`, and L·(...) < 1).
+  have hTL_T0_con : LocalSmallness_contraction L T_0 := by
+    show (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T_0) - 1) / (max 1 (L : ℝ)) < 1
+    have hmax_eq : max 1 (L : ℝ) = 1 := max_eq_left hL_lt.le
+    rw [hmax_eq, one_mul, div_one]
+    -- T_0 ≤ T_0_con / 2 < T_0_con.
+    have h_T_0_lt : T_0 < T_0_con := by
+      show min T_0_PL T_0_con / 2 < T_0_con
+      have h_min_le : min T_0_PL T_0_con ≤ T_0_con := min_le_right _ _
+      linarith
+    -- exp T_0 < exp T_0_con = 1/L + 1.
+    have h_exp_lt : Real.exp T_0 < 1 / (L : ℝ) + 1 := by
+      have h_exp_log : Real.exp T_0_con = 1 / (L : ℝ) + 1 :=
+        Real.exp_log h_one_div_L_plus_one_pos
+      calc Real.exp T_0 < Real.exp T_0_con := Real.exp_lt_exp.mpr h_T_0_lt
+        _ = 1 / (L : ℝ) + 1 := h_exp_log
+    -- L · (exp T_0 - 1) < L · (1/L) = 1.
+    have h_step : (L : ℝ) * (Real.exp T_0 - 1) < (L : ℝ) * (1 / (L : ℝ)) := by
+      have h_sub_lt : Real.exp T_0 - 1 < 1 / (L : ℝ) := by linarith
+      exact mul_lt_mul_of_pos_left h_sub_lt hL_pos
+    have h_L_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
+    have h_L_inv : (L : ℝ) * (1 / (L : ℝ)) = 1 := by field_simp
+    rw [h_L_inv] at h_step
+    exact h_step
   -- Step 2: N = ⌈T_target / T_0⌉₊ windows of size T_0 cover T_target.
   let N : ℕ := ⌈T_target / T_0⌉₊
   have hN_pos : 0 < N := by
@@ -8367,7 +8483,7 @@ theorem vlasovWellPosedness_forward
       -- Base: n = 0, need solution on [0, 1·T_0] = [0, T_0].
       simp only [T_n, Nat.cast_zero, zero_add, Nat.cast_one, one_mul]
       obtain ⟨f, charX, charV, hf_init, hf_mom, hf_lag, hf_push, hf_aemeas, hf_boundary, hf_ic⟩ :=
-        vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0
+        vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0_PL hTL_T0_con
       exact ⟨f, charX, charV, hf_init, hf_mom, hf_lag.1, hf_push, hf_aemeas, hf_boundary, hf_ic⟩
     | succ n ih =>
       -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
@@ -8393,7 +8509,7 @@ theorem vlasovWellPosedness_forward
           f_n hfn_init hfn_mom
           charX_n charV_n hfn_vlasov hfn_flow
           hfn_push hfn_aemeas hfn_boundary hfn_ic
-          hT0_pos hTL_T0
+          hT0_pos hTL_T0_PL hTL_T0_con
       -- Need: T_n (n+1) = T_n n + T_0
       have h_T_eq : T_n (n + 1) = T_n n + T_0 := by
         simp only [T_n]; push_cast; ring
