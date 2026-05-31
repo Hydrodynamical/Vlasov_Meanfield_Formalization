@@ -311,6 +311,59 @@ hypothesis-design questions).
 
 ---
 
+## Phase 3 Session 2 outcomes (2026-05-31)
+
+**Item 2 (`vlasovTrajectoryLipschitzBound`) substantively closed**.
+Commit `ddf3cd0`.  Sorry trajectory: 16 → 15.  Cascade through 3
+declarations + 1 call site (~80 lines including signature restates
+through `vlasovSolutionViaPushforward_isVlasovSolution`,
+`_isLagrangianVlasovSolution`, and the marquee L=0 case).  Body closed
+via 6-line composition: `prodMk` of HasDerivAt clauses +
+`vlasovVectorField_lipschitzWith` Lipschitz constant + pure-FA placeholder.
+
+**Item 1 (`picardCharFlow_aemeasurable`) deferred via P2**: atom-level
+reading revealed the pure-FA placeholder
+`MathlibTODO_lipschitzFlowAEMeasurable` requires `∀ z t, HasDerivAt`
+(universal-t), but Vlasov flow from `IsCharacteristicFlowOn` only gives
+HasDerivAt on `Set.Ioo 0 T`.  Mismatch.
+
+**Closure paths for item 1**:
+* **Option A**: restate pure-FA placeholder to take per-set HasDerivAt
+  hypothesis (`∀ z, ∀ t ∈ s, HasDerivAt ...` for some set s).  Requires
+  placeholder refinement (not a new placeholder — refining an existing
+  Phase 1.5 statement).  Ripples to composition lemma's output if
+  consumer needs universal AEMeasurable.
+* **Option B**: project composition restated to limit output to
+  `∀ s ∈ Set.Icc 0 T, AEMeasurable ...` (matching IsCharacteristicFlowOn's
+  domain).  Ripples to `_picard_fixedPointFlow`'s consumer site
+  (`h_aemeas_out`) which currently uses `∀ s` universal.
+* **Option C**: substantive close via Picard regularity (continuity-in-z
+  derivable from Lipschitz vector field + Picard fixed-point).  Avoids
+  HasDerivAt-based hypothesis entirely.  ~50-100 lines.
+
+**Decision deferred to next focused session**: Option A appears cleanest
+(placeholder refinement matches the standard "ODE on a time domain"
+formulation; doesn't require redoing the composition's output type).
+Strategic conversation can confirm at next session open.
+
+**Phase 3 progress after this session**:
+* Items closed: 2 (item 2).
+* Items remaining: 5 (items 1, 3, 4, 5, 6).
+* Sorry trajectory: 16 → 15 (-1 this session; estimate -5 more across
+  the next 3-4 sessions).
+
+**Next-after-next session brief**:
+* Decide on item 1 close path (Option A vs B vs C).
+* If Option A: refine `MathlibTODO_lipschitzFlowAEMeasurable` statement;
+  close `picardCharFlow_aemeasurable` body.  Estimated ~40 lines.
+* If Option B: restate composition output; update consumer; close
+  body.  Estimated ~60 lines.
+* If Option C: substantive Picard-regularity inline.  Estimated ~80-100
+  lines.
+* Then proceed to items 3, 4 (or 5, 6 if combined).
+
+---
+
 ## Phase B sequencing — deliberate decision pending (legacy section)
 
 **Banked 2026-05-31**, decision required before Phase A endpoint arrives
