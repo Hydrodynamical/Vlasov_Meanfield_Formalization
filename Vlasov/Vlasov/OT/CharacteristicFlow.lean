@@ -8594,47 +8594,162 @@ theorem vlasovWellPosedness_forward
 -- flow — requires the Eulerian-to-Lagrangian / DiPerna-Lions superposition
 -- principle, which is out of scope.)
 
-/-- **Project-internal Stage 8 helper (Phase 1.5 reclassification target,
-2026-05-31)**: Localized Dobrushin uniqueness on [0, T] for two
-`IsVlasovSolutionOn` solutions with same initial data and finite moments.
+/-- **`_On`-localized W₁-continuity placeholder (Stage 2b part 5,
+2026-05-31)**: for two localized Lagrangian Vlasov solutions on `[0, T]`,
+the real-valued W₁ distance `t ↦ (wasserstein1 (f t) (g t)).toReal` is
+`ContinuousOn (Set.Icc 0 T)`.
 
-**Reclassified from `MathlibTODO_dobrushin_uniqueness_On`** (Phase 1.5):
-this is NOT a Mathlib OT gap; it's a corollary of the decomposed pure-FA
-W₁-stability estimate (`MathlibTODO_w1RightDerivBoundAlongLipschitzMeasureFlow`,
-to be added in Phase 1.5 item 5) plus the standard Mathlib characterization
-`wasserstein1_eq_zero_iff_measure_eq` (or equivalent).
+**Why a placeholder and not a free restriction of the proved universal
+`MathlibTODO_wassersteinGronwallCoupling_W1ContOn`** (the question the
+2026-05-31 atom-level check resolved): the universal lemma already concludes
+`ContinuousOn (Icc 0 T)` — so there is *no output-domain superset* for
+`ContinuousOn.mono` to act on; the prior "free restriction" mechanism does
+not apply.  The real gap is in the hypotheses.  The universal proof routes
+`IsVlasovSolution`'s *all-`t`* `HasDerivAt` (every real `t`, so the endpoints
+`0, T` are interior) through `W1ContOn_integralContAt` (Basic L2020) to a
+*global* `Continuous (fun t => ∫ φ ∂(f t))`, then downgrades to `ContinuousOn`.
+The localized class only carries `WeakEvolutionEqOn` = `HasDerivAt` on the
+*open* `Ioo 0 T`; continuity of `t ↦ ∫ φ ∂(f t)` (hence of `toReal W₁`) **at
+the endpoints `t ∈ {0, T}` is genuinely unavailable** from open-interval data
+alone (a weak solution may even jump at `t = T`).  Soundness therefore
+requires the *Lagrangian*-On class: the flow witness supplies
+`f t = (charX t)_# (f 0)` on the **closed** `Icc 0 T` plus boundary flow
+regularity (Stage 1.9 / Friction-5), which pins the endpoint values and gives
+closed-window continuity.
 
-**Closure path** (sorry'd, Phase 2-4 target):
-1. Build Vlasov phase-space vector field b(t, z) := (z.2,
-   -convolveFunctionMeasure gradW (spatialMarginal (f t)) z.1).
-2. Verify `IsVlasovSolutionOn` implies the continuity equation for b.
-3. Apply the localized version of
-   `MathlibTODO_w1RightDerivBoundAlongLipschitzMeasureFlow` to get the
-   right-derivative liminf bound on `t ↦ W₁(f t, g t)`.
-4. Gronwall-integrate via existing `wassersteinGronwallCoupling_gronwall_le`
-   (Basic.lean, already proved) with initial value 0 (since `f 0 = g 0`
-   implies `W₁(f 0, g 0) = 0`).
-5. Conclude `W₁(f t, g t) = 0` for all t ∈ Icc 0 T.
-6. Apply `wasserstein1_eq_zero_iff_measure_eq` (Mathlib) to get `f t = g t`.
+**Eventual fill (B2-anti-prophylaxis target)**: `FDeriv/Extend.lean`'s
+one-sided derivative-extension lemmas supply the endpoint continuity from the
+interior derivative + continuous extension.  The genuine irreducible content
+is exactly the endpoint continuity; everything below it (finiteness, interior
+continuity) is provable now, but isolating it would force the consumer (item
+3) to acquire the flow witness anyway (the USC route, item 5, needs it), so
+the weakest-sufficient *sound* statement for item 3 is this whole closed-window
+continuity over the Lagrangian-On class. -/
+theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (T : ℝ) (hT : 0 ≤ T)
+    (hf : IsLagrangianVlasovSolutionOn gradW f T)
+    (hg : IsLagrangianVlasovSolutionOn gradW g T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (g t)) :
+    ContinuousOn (fun t => (wasserstein1 (f t) (g t)).toReal) (Set.Icc 0 T) := by
+  sorry
 
-**Justification for reclassification**: per the user's Phase 1.5 worked
-example, this is Vlasov-specific composition (uses `IsVlasovSolutionOn`
-unpacking + Vlasov vector-field construction), not a pure Mathlib OT
-gap.  The placeholder's prior `MathlibTODO_*` naming overstated its
-Mathlib-track relevance.  -/
+/-- **`_On`-localized right-derivative Gronwall bound (Stage 2b part 5,
+2026-05-31; API-locked, body sorry'd)**: window mirror of
+`wassersteinGronwallCoupling_derivBound_via_pureFA` (CharFlow §10) over the
+localized Lagrangian class.
+
+**Closure strategy (mechanical mirror, next-session target)**: reproduce item
+6's ~220-line body with window restrictions — extract the window flow witness
+from `IsLagrangianVlasovSolutionOn` (giving `IsCharacteristicFlowOn ... (Ioo 0 T)`,
+window pushforward on `Icc 0 T`, window AEMeasurable on `Icc 0 T`), keep the
+universal-in-`t` integrability / `vlasovVectorField_lipschitzWith` / diff-bound
+sub-proofs verbatim (they hold for every `t`), and feed
+`MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` (Basic L2299, abstract,
+already window-shaped: `Ioo`-HasDerivAt + `Icc`-pushforward/moment/diff-bound).
+No new mathematics — a pure window-restriction re-threading of an existing
+proved lemma; deferred to its own focused session per P4 (API-lock vs.
+substantive). -/
+theorem wassersteinGronwallCoupling_derivBound_via_pureFA_On
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (T : ℝ) (hT : 0 ≤ T)
+    (hf : IsLagrangianVlasovSolutionOn gradW f T)
+    (hg : IsLagrangianVlasovSolutionOn gradW g T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (g t))
+    (C : ℝ) (hC : 0 < C) (hCL : ((max 1 L : NNReal) : ℝ) ≤ C) :
+    ∀ s ∈ Set.Ico 0 T,
+      ∀ r : ℝ, C * (wasserstein1 (f s) (g s)).toReal < r →
+        ∃ᶠ z in nhdsWithin s (Set.Ioi s),
+          (z - s)⁻¹ * ((wasserstein1 (f z) (g z)).toReal -
+            (wasserstein1 (f s) (g s)).toReal) < r := by
+  sorry
+
+/-- **Project-internal Stage 8 helper (realigned to the Lagrangian class,
+Stage 2b part 5, 2026-05-31)**: Localized Dobrushin uniqueness on `[0, T]`
+for two `IsLagrangianVlasovSolutionOn` solutions with the same initial data
+and finite first moments.
+
+**Soundness realignment (2026-05-31)**: previously stated over the *weak*
+`IsVlasovSolutionOn` class.  That class cannot soundly carry this conclusion:
+the Gronwall step (`wassersteinGronwallCoupling_gronwall_le`) demands
+`ContinuousOn (Icc 0 T)` of `t ↦ (W₁ (f t) (g t)).toReal` — *closed* interval
+— but `IsVlasovSolutionOn` constrains the weak PDE only on the *open*
+`Ioo 0 T`, leaving the endpoint values `f T`, `g T` free (a weak solution may
+jump at `t = T`).  So closed-window W₁-continuity is not a consequence of the
+weak class.  Realigning to `IsLagrangianVlasovSolutionOn` fixes this: the
+flow witness supplies `f t = (charX t)_# (f 0)` on the closed `Icc 0 T` plus
+boundary flow regularity, pinning the endpoints.  This also matches the plan's
+decision #5 (uniqueness is over the Lagrangian class; lifting to the weak
+class would need the DiPerna-Lions superposition principle, out of scope).
+The caller `vlasovWellPosedness_uniqueness` already holds the Lagrangian
+witness, so the realignment is zero-cost upstream.
+
+**Closure path** (now closed by composition):
+1. `MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On` → closed-window
+   continuity `hcont`.
+2. `wassersteinGronwallCoupling_derivBound_via_pureFA_On` → right-derivative
+   liminf bound `hderiv`.
+3. `wassersteinGronwallCoupling_gronwall_le` with `δ = (W₁ (f 0) (g 0)).toReal`.
+4. `f 0 = g 0` ⇒ `W₁ (f 0) (g 0) = 0` ⇒ `δ = 0` ⇒ `(W₁ (f t) (g t)).toReal ≤ 0`
+   ⇒ `= 0` (with `≥ 0`); finiteness from window moments lifts to `W₁ = 0`.
+5. `wasserstein1_eq_zero_iff_measure_eq` (separation lemma) ⇒ `f t = g t`. -/
 private theorem dobrushin_uniqueness_On
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f g : ℝ → Measure (PhaseSpace d))
     (T : ℝ) (hT : 0 < T)
-    (hf : IsVlasovSolutionOn gradW f T)
-    (hg : IsVlasovSolutionOn gradW g T)
+    (hf : IsLagrangianVlasovSolutionOn gradW f T)
+    (hg : IsLagrangianVlasovSolutionOn gradW g T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (g t))
     (hfg0 : f 0 = g 0) :
     ∀ t ∈ Set.Icc (0 : ℝ) T, f t = g t := by
-  sorry
+  intro t ht
+  -- C := max(1, L): strictly positive, and (max 1 L) ≤ C by reflexivity.
+  have hmax1 : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+    rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_left _ _
+  have hC : (0 : ℝ) < ((max 1 L : NNReal) : ℝ) := by linarith
+  -- (1) closed-window continuity from the W1ContOn_On placeholder.
+  have hcont : ContinuousOn (fun s => (wasserstein1 (f s) (g s)).toReal)
+      (Set.Icc 0 T) :=
+    MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On
+      gradW L hL f g T hT.le hf hg hf_mom hg_mom
+  -- (2) right-derivative liminf bound from the derivBound_On mirror.
+  have hderiv := wassersteinGronwallCoupling_derivBound_via_pureFA_On
+    gradW L hL f g T hT.le hf hg hf_mom hg_mom
+    ((max 1 L : NNReal) : ℝ) hC (le_refl _)
+  -- (3) Gronwall integrate with δ = (W₁ (f 0) (g 0)).toReal.
+  have key := wassersteinGronwallCoupling_gronwall_le
+    (fun s => (wasserstein1 (f s) (g s)).toReal)
+    ((wasserstein1 (f 0) (g 0)).toReal) ((max 1 L : NNReal) : ℝ) T hT.le
+    hcont (le_refl _) hderiv
+  have h_bound := key t ht
+  -- (4) f 0 = g 0 ⇒ δ = 0 ⇒ (W₁ (f t) (g t)).toReal = 0.
+  have h0 : wasserstein1 (f 0) (g 0) = 0 := by rw [hfg0]; exact wasserstein1_self (g 0)
+  have h0_real : (wasserstein1 (f 0) (g 0)).toReal = 0 := by rw [h0]; simp
+  rw [h0_real, zero_mul] at h_bound
+  have h_nonneg : 0 ≤ (wasserstein1 (f t) (g t)).toReal := ENNReal.toReal_nonneg
+  have h_zero_real : (wasserstein1 (f t) (g t)).toReal = 0 := le_antisymm h_bound h_nonneg
+  -- finiteness lifts toReal = 0 to W₁ = 0.
+  haveI hf_prob_t : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+  haveI hg_prob_t : IsProbabilityMeasure (g t) := (hg_mom t ht).1
+  have hW_ne_top : wasserstein1 (f t) (g t) ≠ ⊤ :=
+    wasserstein1_ne_top_of_finite_moment (f t) (g t) (hf_mom t ht).2 (hg_mom t ht).2
+  have h_zero : wasserstein1 (f t) (g t) = 0 := by
+    rw [ENNReal.toReal_eq_zero_iff] at h_zero_real
+    exact h_zero_real.resolve_right hW_ne_top
+  -- (5) separation lemma.
+  exact (wasserstein1_eq_zero_iff_measure_eq (f t) (g t)
+    (hf_mom t ht).2 (hg_mom t ht).2).mp h_zero
 
 /-- **Stage 8: uniqueness on the local window**.
 
@@ -8665,14 +8780,13 @@ theorem vlasovWellPosedness_uniqueness
     (hf_lag : IsLagrangianVlasovSolutionOn gradW f T_target)
     (hg_lag : IsLagrangianVlasovSolutionOn gradW g T_target) :
     ∀ t ∈ Set.Icc (0 : ℝ) T_target, f t = g t := by
-  -- Extract IsVlasovSolutionOn from IsLagrangianVlasovSolutionOn
-  have hf_pde : IsVlasovSolutionOn gradW f T_target := hf_lag.1
-  have hg_pde : IsVlasovSolutionOn gradW g T_target := hg_lag.1
   -- The two solutions share the same initial datum f₀
   have hfg0 : f 0 = g 0 := hf_init.trans hg_init.symm
-  -- Apply the localized Dobrushin uniqueness (Helper above)
+  -- Apply the localized Dobrushin uniqueness (Helper above).  Pass the full
+  -- Lagrangian witness directly (post-realignment, item 3 is over the
+  -- Lagrangian-On class for soundness — see its docstring).
   exact dobrushin_uniqueness_On gradW L hL f g T_target hT_target
-    hf_pde hg_pde hf_mom hg_mom hfg0
+    hf_lag hg_lag hf_mom hg_mom hfg0
 
 -- ---------------------------------------------------------------------------
 -- §9.7  Stage 6 — universal-in-`t` bridge to `IsLagrangianVlasovSolution`

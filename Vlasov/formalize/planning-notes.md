@@ -1675,3 +1675,66 @@ happens; survivor proofs are also more robust to other W₁ refactors).
 Likely M-series at promotion (about mathematical structure: use the
 structural properties, not the concrete representation), per the same
 M1-recursion reasoning that landed the predicate split.
+
+## Phase 4 Stage 2b part 5 Commit 2 — item 3 realign + close (2026-05-31)
+
+**The W1ContOn `_On` check (the question the user posed before minting):**
+is window-W1ContOn a *free restriction* of the proved universal
+`MathlibTODO_wassersteinGronwallCoupling_W1ContOn` (→ proved corollary,
+−1) or a *genuine new fact* (→ placeholder, 0)?  Atom-level read settled it
+**against the prior**:
+
+* The universal lemma already concludes `ContinuousOn (Icc 0 T)`, so there
+  is no output-domain superset for `ContinuousOn.mono` to act on — the
+  imagined "free restriction" mechanism doesn't apply.
+* The gap is in the *hypotheses*.  The universal proof launders
+  `IsVlasovSolution`'s **all-`t`** `HasDerivAt` through
+  `W1ContOn_integralContAt` (Basic L2020) into *global* `Continuous`; the
+  localized class (`WeakEvolutionEqOn`, CharFlow L534) carries `HasDerivAt`
+  only on the **open** `Ioo 0 T`.  Endpoint continuity at `t ∈ {0,T}` is
+  genuinely unsupplied → genuine new fact, net 0 on that fact.
+
+**Soundness bug surfaced (the real finding).** Item 3 `dobrushin_uniqueness_On`
+was stated over the *weak* `IsVlasovSolutionOn` class.  That class **cannot
+soundly carry** the conclusion: the Gronwall step demands `ContinuousOn
+(Icc 0 T)` (closed) of `t ↦ (W₁ (f t) (g t)).toReal`, but the weak PDE only
+constrains the open `Ioo 0 T`, leaving the endpoint measures `f T`, `g T`
+free (a weak solution may jump at `t = T`).  The "obvious" weak-class
+placeholder would have been *banking a false statement*.  Fix: realign item 3
+to `IsLagrangianVlasovSolutionOn` (the flow witness supplies the closed-window
+pushforward `f t = (charX t)_# (f 0)` + boundary regularity, pinning the
+endpoints).  This is exactly plan decision #5 (uniqueness over the Lagrangian
+class), at **zero upstream cost** — the caller `vlasovWellPosedness_uniqueness`
+already held the witness and was discarding it via `.1`.
+
+**Granularity decided by soundness, not minimalism.** Considered peeling the
+placeholder to the bare endpoint-continuity sub-fact, but the minimal
+decomposition routes through item 5's USC, which *needs the flow witness item
+3 lacks* — peeling would force a *stronger* hypothesis on the consumer.  The
+weakest-sufficient *sound* statement is the whole closed-window continuity over
+the Lagrangian-On class.  Not harmful fusion; the alternative is strictly worse.
+
+**Deliverable.** Closed item 3 by composing:
+`MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On` (genuine boundary
+placeholder, L8628) + `wassersteinGronwallCoupling_derivBound_via_pureFA_On`
+(API-lock, L8657) + `wassersteinGronwallCoupling_gronwall_le` + `f 0 = g 0`
+⇒ `W₁ = 0` + `wasserstein1_eq_zero_iff_measure_eq` (separation lemma).
+
+**Cumulative-trajectory honesty (per watch-list).** Sorry count **14 → 15
+(net +1)**: item 3 closed (−1), two `_On` things banked (+2).  Not net-0.
+But item 3 is now a proved theorem; the genuine finding (boundary placeholder)
+is isolated; only mechanical work is deferred.
+
+**Named next-session mechanical task**:
+`wassersteinGronwallCoupling_derivBound_via_pureFA_On` — a pure window-
+restriction re-threading of item 6's ~220-line body (extract window flow
+witness, keep the universal-in-`t` integrability/Lipschitz/diff-bound verbatim,
+feed the already-window-shaped abstract placeholder
+`MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn`).  No new mathematics.
+
+**Statement-correctness watch-list sighting (the inverse direction).** The
+existing watch-list candidate is "statement too strong → weaken to match the
+proof" (the `vlasovWellPosedness` forward-only refactor).  This is the
+*inverse*: a statement *too weak to be sound* → strengthen the hypothesis
+class.  Same statement-correctness axis (distinct from sorry-count metrics);
+a second sighting of either direction advances the candidate.
