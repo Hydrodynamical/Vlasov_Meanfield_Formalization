@@ -708,6 +708,205 @@ broader meta-observation about cadence as a concept; P6 is the
 concrete pattern that makes one half of the cadence work
 reliably.
 
+### P7. Decay-asymmetry strictly dominates compounding-asymmetry as sequencing signal (among ready tasks)
+
+**Failure mode**: when two tasks compete for a session slot and one
+decays (gets harder per session of delay) while the other is
+delay-invariant (same difficulty whenever attempted), the natural
+framing is "ossification-cost vs. compounding-payoff," which presents
+them as competing claims of similar weight.  That framing is wrong.
+The decaying task and the delay-invariant task differ in *what changes
+under delay*, not in *how appealing they are*; spending the
+delay-invariant slot first leaves work-product on the table that could
+have come for free later, while spending the decaying slot last loses
+work-product that was reachable cheaply earlier.
+
+**Empirical confirmation** (Stage 2b part 2 → part 3, 2026-05-31): two
+candidates competed for the post-item-6 session slot — the soundness
+fix (`LocalSmallness` retiring a false constraint) versus the
+separation lemma (a bankable pure-FA export unblocking item 3).  The
+initial framing as "ossification vs. compounding" presented them as
+symmetric trade-offs.  The user-applied reframing as
+"decay-vs-delay-invariant" identified the asymmetry: the separation
+lemma keeps; the soundness fix degrades each session that proof
+structure ossifies around the false constraint.  Decision: soundness
+first.  Empirically validated when the L6495 read surfaced a second-
+order finding that would have invalidated a separation lemma built
+atop the about-to-change constraint.
+
+**Boundary condition (part of the rule)**: the rule applies *among
+ready tasks*.  A decaying task that turns out blocked yields to a
+ready one — that's not a defection from the rule, it's the rule's
+ready-condition.  At Stage 2b part 3 execution, the L6495 read was the
+specific gate determining which case the soundness fix was in (turned
+out to be Branch 3: scoped enough, ready).  Without the gate-read,
+"always do the decaying task first" would harden into an unconditional
+constraint — exactly the overgeneralization the discipline framework
+distrusts.
+
+**Operational rule**: when sequencing among ready tasks, weight by
+decay-asymmetry, not by appeal-symmetry-of-competing-arguments.
+Compounding-payoff is an argument for "do this soon," not "do this
+first."  If both tasks are ready, the decaying one goes first; the
+delay-invariant one yields, since it'll be exactly as bankable later.
+If the decaying task turns out blocked, the rule's ready-condition
+fires and the delay-invariant task legitimately takes the slot.
+
+### P8. Appeal-asymmetry between competing tasks is itself a risk gradient
+
+**Failure mode**: when two tasks compete for a slot and one is
+appealing (clean banked-export, satisfying signature work,
+metric-visible payoff) while the other isn't (audit-and-rework grind,
+no sorry-count movement, corrects an existing artifact), the natural
+weighting assigns each task its mathematical merits and lets the
+choice emerge.  But the appeal-gap is itself a signal — it's the
+slope along which "do the appealing one first, the grindy one next
+session" silently becomes "the grindy one the session after that,"
+because each session that passes leaves the appealing task as
+satisfying as ever and the grindy task as unappealing as ever.  The
+appeal gap is decision-stable across sessions; it doesn't get
+resolved by deferral, only re-encountered.
+
+**Empirical confirmation** (Stage 2b part 2 → part 3, 2026-05-31):
+the separation lemma vs. soundness fix choice (see P7) ALSO had a
+strong appeal asymmetry — separation lemma was the clean banked-
+export move; soundness fix was an audit-and-rework grind that didn't
+move the sorry count.  The same appeal asymmetry made the
+"compounding payoff" framing more attractive than the decay framing,
+which is exactly the slope that would have re-encountered the choice
+session-after-session.
+
+**Operational rule**: when choosing between two tasks where one is
+appealing and the other isn't, **weight the unappealing task's case
+heavier by the magnitude of the appeal asymmetry**.  Appeal pulls
+scheduling in a direction; the sequencing decision should counter-
+pull when the unappealing task is the substantive one.  This is the
+inverse of how appeal-weighting feels natural; the rule deliberately
+fights the natural gradient.
+
+**Composition with P7**: P7 says "decay dominates among ready tasks."
+P8 says "appeal-asymmetry is a defer signal pointing at the
+unappealing task as the substantive one."  Together: when a decaying
+task is also unappealing and a delay-invariant task is also
+appealing, BOTH rules point the same direction (unappealing-decaying
+first).  When they point opposite directions, the decay rule
+dominates per P7's structure.
+
+### P9. Assertion-without-action as defer-tell (NOT assertion-frequency)
+
+**Failure mode**: across multiple sessions, the same task can be
+named as time-sensitive or urgent multiple times without being acted
+on substantively — each session that mentions urgency might also
+produce a diagnostic, a scope refinement, a "next session executes"
+brief, etc.  Each individual urgency-naming is correct; the *pattern*
+across them is that scoping advances while the urgent thing itself
+sits untouched.  This is slow-motion ossification happening to the
+urgent task; the diagnostic-and-refinement cycle becomes the
+legitimating mechanism for not executing.
+
+**Empirical confirmation** (Stage 2b part 3 diagnostic arc,
+2026-05-31): the soundness fix (`LocalSmallness` correcting a false
+predicate) was named as time-sensitive in three commits — the
+initial scope-commit (`f38ba8b`), the contingency-refinements commit
+(`16ea5ed`), and the sequencing-decision commit (`ffe573d`).  Each
+individual naming was correct (the false constraint genuinely was
+ossifying).  But across the three, the pattern was urgency asserted
+while scoping advanced and the actual constraint stayed untouched.
+The fourth commit (`b7d4d05`, L6495 read result) was the first
+commit that *acted* — it executed L6495 reading rather than
+re-scoping.  The first three were "urgency asserted, scoping
+advanced"; the fourth was "scoping discovered structure during
+action."
+
+**Discriminator (the tight formulation, NOT the bald one)**: the
+defer-signal is *urgency repeatedly asserted without being acted on*,
+not *repeated urgency*.  Some tasks genuinely *are* urgent and each
+session legitimately surfaces a new reason to name them.  The
+discriminator is **did the urgency claim do any work each time, or
+was it restated while acting on something else?**  The bald version
+("repeated urgency = defer signal") would cause second-guessing of
+genuinely-urgent tasks named-with-action; the discriminator
+distinguishes the failure mode (assertion-without-action) from the
+healthy mode (assertion-with-action).
+
+**Distinguishing the failure mode in real time**: scoping-because-
+touching-revealed-structure ≠ scoping-instead-of-touching.  The
+L6495 read at Stage 2b part 3 execution (commit `b7d4d05`) is an
+instance of scoping-because-touching: the session opened on
+execution, the read surfaced structure, the scoping commit captured
+the finding.  That's not defer-bias; that's the gate-read doing its
+job.  Defer-bias is when the session opens on scoping *instead of*
+opening on execution.
+
+**P5 connection (the meta-discipline guard)**: at the second sighting
+of this pattern in the future, the discriminator that earns promotion
+is the same discriminator that defines the pattern — was urgency
+named-and-deferred, or named-and-addressed.  This pattern earns
+promotion when it correctly flags a *second* defer-without-action,
+not a false positive on a task that was simply mentioned twice with
+action.  P5 ("verify the framework's own pattern-extrapolations
+atom-by-atom") operates on this pattern's own promotion candidacy.
+
+**Generalisation**: this is the most cross-project of the three new
+P-series entries.  P7 and P8 are about sequencing under bias; P9 is
+the meta-rule about distinguishing legitimate-urgency-naming from
+urgency-as-deferral-cover.  Useful wherever a process generates
+diagnostic-and-refinement cycles around urgent work.
+
+### P10. Build-permits vs. audit-certifies — green build is consistent with multiple stories
+
+**Failure mode**: after a non-trivial refactor (predicate split,
+hypothesis rename, signature cascade), `lake build` clean is
+necessary but not sufficient for "the refactor preserved meaning."
+The build certifies typechecking against the new types; it does not
+certify that consumers are using the new types *for the same
+mathematical purpose* as the old.  A predicate that was doing
+double-duty inside a body — discharging two conceptually distinct
+sub-arguments off one hypothesis — would split cleanly at the
+signature layer (each consumer takes whichever new predicate matches
+its signature site) but the body might silently drop the second use,
+because the contraction obligation (e.g.) might be discharged
+elsewhere or be vacuous.  The build doesn't catch that; only a body-
+level audit does.
+
+**Empirical confirmation** (Stage 2b part 3 Commit 2,
+`exists_vlasov_perz_trajectory` audit, 2026-05-31): the triage
+predicted this site was "structural-but-survivable" — meaning the
+PL-buffer-only constraint should suffice for the body that previously
+took the conflated `LocalSmallness`.  The build at Commit 1 was clean,
+which is *consistent with* single-purpose use but does not *prove*
+it.  The actual audit traced every consumption of `hTL_PL` (single
+unfold at L4249 → R-existence chain at L4250-L4310; `hbound_local`
+at L4316-L4373 leans on R and Lipschitz growth, not the predicate;
+flow call at L4377-L4396 passes R, not the predicate).  The trace
+confirmed single-purpose; the build merely permitted single-purpose
+to be a story consistent with typechecking.
+
+**Operational rule**: after a refactor that changes hypothesis
+semantics (predicate splits, signature reshapes, predicate renames
+that fuse-or-defuse meaning), don't certify the refactor "complete"
+on the strength of a green build alone.  Body-level audit at each
+consumer is the certification step.  This applies even — especially
+— when the triage predicted the consumer survives.  "Survivable" is
+the prediction; the read is the confirmation.  Predictions that
+turn out wrong AFTER a green build are exactly the failure mode
+this rule prevents.
+
+**Composition with P1**: P1 says "atom-level signature reading at
+the API layer before drafting helper signatures."  P10 is the same
+discipline at the body layer after refactoring: atom-level consumer
+reading after green build to confirm single-purpose use of refactored
+hypotheses.  P1 is pre-execution; P10 is post-execution.  Both are
+applications of "the answer that *typechecks* is not necessarily the
+answer that *means what you think it means*."
+
+**Generalisation**: the "build-permits vs. audit-certifies" pattern
+applies past Lean — to any compiled or statically-typed system where
+type-correctness is consistent with multiple semantic interpretations.
+After a refactor whose correctness depends on consumer-level
+semantics (not just consumer-level types), the audit is the
+certification step.  Green build is a precondition, not a proof.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
