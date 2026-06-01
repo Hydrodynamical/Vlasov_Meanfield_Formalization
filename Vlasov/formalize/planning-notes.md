@@ -1738,3 +1738,48 @@ proof" (the `vlasovWellPosedness` forward-only refactor).  This is the
 *inverse*: a statement *too weak to be sound* → strengthen the hypothesis
 class.  Same statement-correctness axis (distinct from sorry-count metrics);
 a second sighting of either direction advances the candidate.
+
+## Phase 4 Stage 2b part 5 Commit 3 — derivBound_On closed via clamping (2026-05-31)
+
+**Correction to Commit 2's "mechanical mirror, no new mathematics" claim.**
+Atom-level reading of the helper signatures found a structural obstruction
+(P2): `vlasovVectorField_lipschitzWith` (CharFlow L629) over-demands universal
+`[∀ t, IsProbabilityMeasure (ρ t)]` + universal `h_int`, unsatisfiable by the
+window class.  Resolved with the **local-clamping technique** (now promoted to
+CLAUDE.md **L11**): clamp time into `[0, T]` via `clampT t := max 0 (min t T)`,
+apply the universal helper to `spatialMarginal ∘ (f ∘ clampT)`, transfer the
+Lipschitz bound to `f` on `[0, T]` via `clampT t = t` (`funext z; simp only
+[vlasovVectorField, hmeas]`).  Everything else window-restricted cleanly.
+Landed clean on the first build (commit `4eb294c`), sorry 15 → 14.  The
+universal-`t` over-strength is recorded as an instance of the bidirectional
+statement-correctness lesson (CLAUDE.md **M2**), not a new theme.
+
+### ⚠ OWED — uniqueness is "structurally complete modulo two placeholders",
+### but only *sound* once `W1ContOn_On` is discharged honestly.
+
+The uniqueness chain (`vlasovWellPosedness_uniqueness` → `dobrushin_uniqueness_On`)
+now bottoms out at two FA placeholders:
+1. `MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` — abstract pure-FA
+   right-deriv bound, shared with the universal item 6.  Genuine Mathlib-OT
+   deferral.
+2. `MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On` — closed-window
+   W₁-continuity over the Lagrangian-On class.  **NOT mechanical, and OWED.**
+
+**Why W1ContOn_On is owed and load-bearing**: it is exactly the place where we
+find out whether `IsLagrangianVlasovSolutionOn` *carries the endpoint
+regularity* needed for closed-window (`Icc 0 T`) W₁-continuity, or whether the
+predicate needs **enriching** (B2 boundary-regularity surgery) to expose the
+`t ∈ {0, T}` continuity.  Until that's discharged, "uniqueness is closed" is a
+claim resting on an unfilled placeholder whose *fillability* (and whose
+predicate adequacy) is unverified.  The realign-to-Lagrangian-class fix
+(`94d44a9`) made W1ContOn_On *sound to state*; it did not prove the endpoints
+are actually available from the predicate.
+
+**Sequencing rule**: fill `W1ContOn_On` **before** anything that depends on
+uniqueness being truly closed (Stage 6 wire-up consumers, any "uniqueness ⇒ X"
+downstream).  Treat the W1ContOn_On fill as a *diagnostic-first* task: open by
+reading whether `IsLagrangianVlasovSolutionOn`'s flow witness + closed-window
+pushforward already pin `t ∈ {0,T}` continuity (then it's provable, possibly
+via `FDeriv/Extend` one-sided lemmas, B2-anti-prophylaxis), or whether the
+predicate must be enriched first (B2 surgery).  The answer determines whether
+this is a fill or a predicate-enrichment commit.

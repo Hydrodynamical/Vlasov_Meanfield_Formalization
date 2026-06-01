@@ -360,6 +360,50 @@ for every analogous future proof.  The watch-list exists for patterns
 whose generality is unclear; this one's generality is locked in by
 the math.
 
+### L11. Local-clamping to satisfy universal-`t` hypotheses from window data
+
+**Failure mode**: a downstream proof has data only on a window `[0, T]`
+(window probability, window integrability, window moments), but a helper
+lemma it must call demands *universal*-in-`t` hypotheses — typically a
+`[∀ t, IsProbabilityMeasure (ρ t)]` instance or a
+`(h_int : ∀ t x, …)` argument.  The window class cannot synthesise the
+universal instance (off-window the measures are unconstrained), so the
+helper cannot be applied directly.  Restating the helper to take pointwise
+hypotheses is the "clean" fix but is invasive when the helper has many
+consumers.
+
+**Empirical confirmation** (3 sightings: `Phi_step`'s clamped flow,
+`VlasovMeasureCurve.extend`, and `wassersteinGronwallCoupling_derivBound_via_pureFA_On`
+— the last on 2026-05-31, landed clean on the first build):
+`vlasovVectorField_lipschitzWith` (CharFlow L629) demands universal
+`[∀ t, IsProbabilityMeasure (ρ t)]` + universal `h_int`, but a window
+Lagrangian solution supplies probability only on `[0, T]`.
+
+**Fix**: extend the window object to a universally-valid one by *clamping
+the parameter into the window*, apply the universal helper to the clamped
+object, then transfer the conclusion back on the window where clamp = id:
+
+1. `set clampT : ℝ → ℝ := fun t => max 0 (min t T)` — lands in `[0, T]`
+   for every `t`, and `clampT t = t` on `[0, T]`
+   (`min_eq_left ht.2`, `max_eq_right ht.1`).
+2. Build the universal instance / hypothesis for the clamped curve
+   `fun t => ρ (clampT t)` from the window data at `clampT t ∈ [0, T]`.
+3. Apply the universal helper to the clamped curve.
+4. Transfer on `[0, T]`: since the consumed object depends on the curve
+   only through its value at `t` (e.g. `vlasovVectorField gradW ρ t`
+   reads only `ρ t`), `clampT t = t` gives a *value* equality; discharge
+   the function equality with `funext z; simp only [theDef, hmeas]`
+   (where `hmeas : ρ (clampT t) = ρ t` by `rw [hclampT_id t ht]`), then
+   `rw [← h_eq]; exact (clamped result)`.
+
+**Generalisation**: prefer clamping over a pointwise restatement of the
+helper when the helper has ≥3 consumers (additive, non-invasive — B-series
+preference).  The technique works whenever the consumed quantity depends on
+the universally-quantified parameter only locally (so a value-equality on
+the window suffices to transfer the conclusion).  This is the L-series
+(tactical) companion to the B1 "enrich vs. bridge" decision: clamping is a
+*local* bridge that avoids touching shared infrastructure.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
@@ -951,6 +995,66 @@ isn't ℝ — at the boundary between any two related structures,
 prefer to do the algebra in whichever one is the natural home of
 the argument.
 
+### M2. Match the statement to the mathematics — bidirectional
+
+**Principle**: a declaration's statement (both its conclusion *and* its
+hypotheses) should match exactly what the mathematics supports — no more,
+no less.  Mismatches go in two directions, and the fix direction is the
+opposite of the mismatch:
+
+* **Too strong → weaken.**  When proving a declaration forces case
+  structure or machinery for content that isn't in the mathematics, the
+  statement claims more than the proof produces; tighten the *external*
+  statement rather than build proof machinery for the phantom cases.
+  This is the inverse of the P4 API-lock pattern (API-lock *loosens
+  internal* interfaces for incremental closure; statement-correction
+  *tightens the external* interface to match what's proved).
+* **Too weak → strengthen.**  When a statement's hypotheses are too weak
+  to make the conclusion *sound* (the conclusion can fail under the stated
+  hypotheses), strengthen the hypothesis class.  A green build does not
+  protect you here (the body may be sorry'd, or the unsoundness only bites
+  a consumer); soundness is a property of the *statement*, checked by
+  asking "can I build a model of the hypotheses where the conclusion
+  fails?"
+
+**Empirical confirmation** (3 sightings):
+
+1. **Conclusion too strong → weaken** (`vlasovWellPosedness`, commit
+   `de135c7`): the `∃!` over all `t : ℝ` forced ~30 lines of `t < 0`
+   case-split machinery for a *forward* Cauchy problem.  Restated to
+   forward-only `∃` on `Ici 0` (matching Dobrushin 1979); the phantom
+   machinery vanished.
+2. **Hypotheses too weak → strengthen** (`dobrushin_uniqueness_On`, commit
+   `94d44a9`, 2026-05-31): stated over the weak `IsVlasovSolutionOn` class,
+   whose open-interval weak PDE leaves the endpoint measures `f T`, `g T`
+   free — so the closed-window W₁-continuity the Gronwall step needs is
+   *not a consequence* (a weak solution may jump at `T`).  The obvious
+   placeholder would have banked a false statement.  Strengthened to
+   `IsLagrangianVlasovSolutionOn` (flow witness pins the endpoints via the
+   closed-window pushforward); plan-consistent, zero upstream cost.
+3. **Hypotheses too strong → weaken — *the universal-`t` over-strength
+   instance*** (placeholder instances + `vlasovVectorField_lipschitzWith`,
+   commit `21dbaf7`, 2026-05-31): helper lemmas whose bodies use data only
+   at a single `t` nonetheless quantified `[∀ t, IsProbabilityMeasure (ρ t)]`
+   universally.  This is *not a new theme* — it is the too-strong direction
+   of M2 applied to *hypothesis signatures* (as sighting 1 applies it to
+   the *conclusion*).  The abstract placeholder's universal instances were
+   weakened to window-explicit `∀ t ∈ Icc 0 T, …` (weakest-sufficient);
+   `vlasovVectorField_lipschitzWith` itself was left universal (≥3 consumers
+   → clamp instead, per L11, rather than restate).  The general tell:
+   a hypothesis quantified more broadly than the body consumes is
+   over-strong, and the right fix is to weaken the *quantifier* to what's
+   actually used.
+
+**Operational rule**: when a statement and its proof disagree, ask which
+direction the disagreement runs.  Phantom proof-machinery for absent
+content ⇒ the conclusion (or a hypothesis quantifier) is too strong, weaken
+it.  A conclusion that can fail under the stated hypotheses ⇒ the
+hypotheses are too weak, strengthen them.  Both are *statement-correctness*
+fixes — a metric axis distinct from sorry-count, and genuine
+research-artifact value (the formalisation surfaced and corrected a
+statement↔content mismatch).
+
 ## B-series — Bridging architecture / structural-fix patterns
 
 ### B1. Predicate enrichment over per-site bridging
@@ -1141,49 +1245,17 @@ the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
 
-* **Statement-level mismatches between claimed and proved — the
-  inverse-of-API-lock pattern**: 1 sighting (forward-only refactor
-  in commit `de135c7`, 2026-05-30).  Diagnostic: when proving a
-  theorem requires significant case structure for edge cases that
-  aren't part of the mathematical content (here, the `t < 0`
-  backward-time case for a forward Cauchy problem), the statement
-  is probably too strong, and tightening the *external* statement
-  is the right fix rather than building proof machinery for the
-  unnecessary cases.  This is the inverse of the API-lock pattern
-  (P4): API-lock loosens *internal* interfaces to allow incremental
-  closure; statement-correction tightens the *external* interface
-  to match what the proof actually produces.
-
-  **Empirical evidence**: the marquee theorem `vlasovWellPosedness`
-  was originally stated as `∃! f : ℝ → Measure (PhaseSpace d), ...`
-  with universal-in-`t` conjuncts.  The proof's content (forward
-  Picard iteration from `t = 0`) only establishes forward-time
-  existence.  The mismatch required ~30 lines of sub-sub-sorried
-  case-split machinery in the marquee body to "handle" `t < 0` —
-  machinery that wasn't actually proving anything.  The refactor
-  restated the marquee to forward-only existence (`∃ f, f 0 = f₀
-  ∧ ∀ t ∈ Ici 0, ... ∧ ∀ T > 0, IsLagrangianVlasovSolutionOn ...`),
-  matching Dobrushin 1979's actual claim, and the case-split
-  machinery disappeared along with the corresponding sub-sub-sorry.
-
-  **Adds a new metric axis** (per the 2026-05-30 strategic message):
-  "statement correctness" — distinct from declaration count and
-  sub-sub-sorry count.  A statement-correctness improvement doesn't
-  move sorry-count metrics but is genuine research-artifact value,
-  worth foregrounding in the cleanup document as evidence that the
-  formalization surfaced and corrected a statement-mathematical-
-  content mismatch.
-
-  **General principle**: when an `∃!` (or universal-in-`t`)
-  conclusion forces case structure for cases not in the
-  mathematical content, replace `∃!` with `∃` and restrict the
-  quantification to the domain the proof actually covers.  The
-  inverse of "enrich the predicate" (B1) — here we *restrict*
-  the predicate.
-
-  Probably M-series rather than P or B — about the mathematics of
-  correctly stating theorems, not about process discipline or
-  architectural patterns.  Trigger: 2 more sightings.
+* **Statement-level mismatches between claimed and proved → PROMOTED
+  to M2** (2026-05-31).  Reached 3 sightings across both directions:
+  conclusion-too-strong (`vlasovWellPosedness` forward-only refactor,
+  `de135c7`); hypotheses-too-weak-for-soundness (`dobrushin_uniqueness_On`
+  → Lagrangian class, `94d44a9`); hypotheses-too-strong (universal-`t`
+  over-strength on pointwise-true helpers, `21dbaf7`).  See M-series M2
+  ("Match the statement to the mathematics — bidirectional"); the
+  universal-`t` over-strength is recorded there as an *instance* of the
+  too-strong direction, not a separate theme.  The "statement correctness"
+  metric axis (distinct from declaration / sub-sub-sorry counts) is part
+  of M2.
   (B2 promoted to B-series proper at commit reflecting this session,
   with 3rd sighting: Stage 6 narrow continuity boundary at t = 0.)
 * **Session-type cadence — diagnostic vs execution as distinct operating
@@ -1247,16 +1319,11 @@ indefinite watch-listing):
   B-series companion to B1 (B2?) or as a P-series companion
   to P2 (P3?); decide at promotion based on whether the
   pattern is observed structurally or process-discipline-wise.
-* **Local-clamping technique**: 1-2 sightings (Phi_step's
-  clamped-flow technique; possibly `VlasovMeasureCurve.extend`
-  if counted as the same pattern at the measure-curve level).
-  Diagnostic: "downstream consumer demands universal-in-t
-  hypotheses, upstream provides on-Icc behavior; define a
-  clamped version internally and discharge equality via
-  clamp-identity-on-Icc."  Trigger: 1-2 more sightings.
-  Promotion candidate as L-series (tactical Lean pattern) or
-  M-series (mathematical structure of clamping); decide at
-  promotion.
+* **Local-clamping technique → PROMOTED to L11** (2026-05-31).
+  Reached 3 sightings (Phi_step's clamped flow; `VlasovMeasureCurve.extend`;
+  `wassersteinGronwallCoupling_derivBound_via_pureFA_On`, `4eb294c`).
+  Landed as L-series (tactical Lean pattern), the local-bridge companion
+  to B1's enrich-vs-bridge decision; see L11.
 * **Strategic-conversation diagnosis → focused-session execution
   (meta-level P3)**: 1 sighting (Stage 6 + architectural priming
   session, 2026-05-30).  Diagnostic: when the strategic conversation
