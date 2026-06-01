@@ -1905,3 +1905,43 @@ witness (L6445) + convolution continuity/integrability.  Since
 `_finalAssembly_isLagrangian` consumes #11, the boundary bundle is in scope at
 the one #13-surgery site previously flagged as least-certain to thread.  Source
 confirmed present.
+
+### #13 B2 enrichment surgery — LANDED, with a conjunct-shape flip (2026-06-01)
+
+The pre-surgery Stage-C read (the last unverified bundle-source) **surprised**,
+and flipped the conjunct shape — exactly the feasibility gap the read existed
+to catch before the batch:
+
+* Stage C (`vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn`, L3602-
+  3613) carries boundary regularity as inputs `h_cont_Icc` (**`ContinuousOn
+  (Icc 0 T)`**, directly) + `h_deriv_Ico` (`HasDerivWithinAt _ (Ici s) s` on
+  `Ico`).  The `Ici s`/`Ico` derivative form does **not** convert to the two-
+  sided `Icc`-form `HasDerivWithinAt` (#11's output form) I'd planned — the
+  left half at interior points is missing.
+* So `HasDerivWithinAt`-Icc would have broken Stage C mid-batch (need to enrich
+  Stage C's input).  But `ContinuousOn (Icc 0 T)` is carried **verbatim**.
+
+**Flip: conjunct = `ContinuousOn`, not `HasDerivWithinAt`.**  My earlier
+"`HasDerivWithinAt` because item 5 takes `HasDerivAt`" reasoning mirrored item
+5's *over-strong* hypotheses; the soundness `W1ContOn_On` actually needs is
+closed-window W₁-continuity ⟸ closed-window narrow continuity ⟸ `ContinuousOn`
+of the flow.  `ContinuousOn` is M2-weakest-sufficient *and* the form every
+producer already supplies.  This **reverses** the earlier recorded decision
+(which assumed `HasDerivWithinAt`); the read caught it before, not during.
+
+**Surgery (atomic, landed green; declaration sorry count 14 → 14)**:
+predicate `IsLagrangianVlasovSolutionOn` gained `∀ z, ContinuousOn (fun s =>
+(charX s z, charV s z)) (Icc 0 T)`.  Producers threaded: `.toOn` (real, from
+universal `HasDerivAt`→continuity), Stage C (real, `h_cont_Icc` verbatim),
+per-`T_target` + `h_sol_m_on_n` (real, restrict via `.mono` from the boundary
+bundle / `h_cont`); glue_step (#12) + universal-`f` assembly (#14) cont conjunct
+**sorry'd** (those declarations were already sorry'd — bounded piecewise/colimit
+continuity, no new declaration sorry).  Consumers: `derivBound_On` obtain + two
+`h_sol_lag N` obtains gained trailing binders.
+
+**Soundness discharged**: `W1ContOn_On`'s hypothesis now carries `ContinuousOn`
+at the endpoints, so its closed-window W₁-continuity claim is **derivable** —
+the owed-soundness item is closed.  `W1ContOn_On` remains a sorry'd FA
+placeholder, but now a *soundly-stated* one (like the other FA items), no longer
+"honesty in question."  Tactical notes for the file: `Continuous(On|WithinAt).prodMk`
+(camelCase, not `.prod`); `HasDerivWithinAt.continuousWithinAt` is the bridge.

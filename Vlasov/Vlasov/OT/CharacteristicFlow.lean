@@ -583,7 +583,17 @@ def IsLagrangianVlasovSolutionOn {d : ℕ} [NeZero d]
     (∀ t ∈ Set.Icc (0 : ℝ) T,
       f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
     (∀ s ∈ Set.Icc (0 : ℝ) T,
-      AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0))
+      AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0)) ∧
+    -- **Boundary regularity (B2 enrichment, 2026-06-01)**: the flow is
+    -- continuous up to the *closed* window `[0, T]`.  This is the
+    -- weakest-sufficient boundary fact for `W1ContOn_On` soundness — closed-
+    -- window W₁-continuity ⟸ closed-window narrow continuity of `f` ⟸
+    -- `ContinuousOn` of the flow (pushforward + DCT).  Exposed because the
+    -- `Ioo`-only flow conjunct above leaves the endpoints `t ∈ {0,T}`
+    -- unconstrained; producers supply this from data already in hand
+    -- (Stage C's `h_cont_Icc`, universal `HasDerivAt`, #11's boundary bundle).
+    (∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
 
 /-- A global `IsVlasovSolution` restricts to `IsVlasovSolutionOn T` for any
 `T : ℝ`.  Projects the universal HasDerivAt claim onto `Ioo 0 T` by direct
@@ -610,13 +620,20 @@ lemma IsLagrangianVlasovSolution.toOn {d : ℕ} [NeZero d]
     (h : IsLagrangianVlasovSolution gradW f) (T : ℝ) :
     IsLagrangianVlasovSolutionOn gradW f T := by
   obtain ⟨h_sol, charX, charV, h_flow, h_push, h_meas⟩ := h
-  refine ⟨h_sol.toOn T, charX, charV, ?_, ?_, ?_⟩
+  refine ⟨h_sol.toOn T, charX, charV, ?_, ?_, ?_, ?_⟩
   · -- IsCharacteristicFlowOn from IsCharacteristicFlow.
     exact ⟨fun z _ => h_flow.1 z,
            fun t _ z _ => h_flow.2.1 t z,
            fun t _ z _ => h_flow.2.2 t z⟩
   · intro t _; exact h_push t
   · intro s _; exact h_meas s
+  · -- Boundary ContinuousOn from universal HasDerivAt → continuity everywhere.
+    intro z
+    have hX : Continuous (fun s => charX s z) :=
+      continuous_iff_continuousAt.mpr (fun t => (h_flow.2.1 t z).continuousAt)
+    have hV : Continuous (fun s => charV s z) :=
+      continuous_iff_continuousAt.mpr (fun t => (h_flow.2.2 t z).continuousAt)
+    exact (hX.prodMk hV).continuousOn
 
 /-- Global Lipschitz constant for the Vlasov phase-space vector field.
 `b_t(x, v) = (v, -(∇W ∗ ρ_t)(x))` is `max(1, L)`-Lipschitz when
@@ -3635,7 +3652,7 @@ theorem vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
   refine ⟨vlasovSolutionViaPushforward_isVlasovSolutionOn gradW L hL charX charV f₀
             hf₀_fm hT hflow_on h_init h_cont_Icc h_deriv_Ico M_ρ hM_ρ_nn hM_ρ
             h_y_int h_int hself h_flow_meas hgradW_cont hconv_cont,
-          charX, charV, hflow_on, ?_, ?_⟩
+          charX, charV, hflow_on, ?_, ?_, h_cont_Icc⟩
   · -- Pushforward equation: f t = (flow_t)_# (f 0) for t ∈ Icc 0 T.
     -- Identical to the global wrapper's body, using IsCharacteristicFlowOn's
     -- initial-condition clause `hflow_on.1 z (Set.mem_univ z)`.
@@ -8042,8 +8059,10 @@ theorem vlasovWellPosedness_glue_step
         rw [hg_init, h_prev_push T hT_mem] at h_g_at_tT
         rw [AEMeasurable.map_map_of_aemeasurable h_g_at_tT h_prev_T_aemeas]
         rfl
-    · -- AEMeasurability on Icc 0 (T + T_0)
-      -- Sub-sorry: piecewise AEMeasurability
+    · -- AEMeasurability ∧ boundary ContinuousOn on Icc 0 (T + T_0).
+      -- glue_step is #12 (sorry'd); the B2 boundary-ContinuousOn conjunct is
+      -- sorry'd here alongside the existing piecewise-AEMeasurability sorry.
+      refine ⟨?_, sorry⟩
       -- Key: f_next 0 = f_prev 0 (since 0 ≤ T, so if_pos applies)
       have h_next_0 : f_next 0 = f_prev 0 := by
         simp only [f_next, if_pos hT_pos.le]
@@ -8578,9 +8597,16 @@ theorem vlasovWellPosedness_forward
     · -- pushforward eq: restrict Icc 0 T_target ⊆ Icc 0 (N·T_0)
       intro t ht
       exact hf_push t ⟨ht.1, le_trans ht.2 hN_covers⟩
-    · -- AEMeasurable: restrict Icc 0 T_target ⊆ Icc 0 (N·T_0)
-      intro s hs
-      exact hf_aemeas s ⟨hs.1, le_trans hs.2 hN_covers⟩
+    · -- AEMeasurable ∧ boundary ContinuousOn, restricted to Icc 0 T_target.
+      refine ⟨?_, ?_⟩
+      · intro s hs
+        exact hf_aemeas s ⟨hs.1, le_trans hs.2 hN_covers⟩
+      · intro z
+        have h_big : ContinuousOn (fun s => (charX_f s z, charV_f s z))
+            (Set.Icc 0 ((N : ℝ) * T_0)) := fun t ht =>
+          ((hf_boundary z t ht).1.continuousWithinAt).prodMk
+            ((hf_boundary z t ht).2.continuousWithinAt)
+        exact h_big.mono (fun t ht => ⟨ht.1, le_trans ht.2 hN_covers⟩)
 
 -- ---------------------------------------------------------------------------
 -- §9.6  Stage 8 — uniqueness over `IsLagrangianVlasovSolutionOn` per window
@@ -8699,9 +8725,10 @@ theorem wassersteinGronwallCoupling_derivBound_via_pureFA_On
     fun t ht => (hf_mom t ht).1
   have hg_isProb : ∀ t ∈ Set.Icc (0 : ℝ) T, IsProbabilityMeasure (g t) :=
     fun t ht => (hg_mom t ht).1
-  -- Extract the window Lagrangian flow witnesses.
-  obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f⟩ := hf
-  obtain ⟨_, charX_g, charV_g, hflow_g, hpush_g, haem_g⟩ := hg
+  -- Extract the window Lagrangian flow witnesses (trailing `_` is the new
+  -- B2 boundary-ContinuousOn conjunct, unused here).
+  obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f, _⟩ := hf
+  obtain ⟨_, charX_g, charV_g, hflow_g, hpush_g, haem_g, _⟩ := hg
   obtain ⟨_, hflow_f_x, hflow_f_v⟩ := hflow_f
   obtain ⟨_, hflow_g_x, hflow_g_v⟩ := hflow_g
   -- Integrability of gradW(x - ·) on the spatial marginals (window-generic over μ).
@@ -9153,14 +9180,16 @@ theorem vlasovWellPosedness_universal_existence
       linarith
     -- Restrict sol m from [0, m+1] to [0, n+1] via inline monotonicity
     have h_sol_m_on_n : IsLagrangianVlasovSolutionOn gradW (sol m) ((n : ℝ) + 1) := by
-      obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas⟩ := h_sol_lag m
+      obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas, h_cont⟩ := h_sol_lag m
       refine ⟨?_, charX, charV, ?_, ?_, ?_⟩
       · intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s hs
         exact h_sol φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s
           ⟨hs.1, lt_of_lt_of_le hs.2 hnm_cast⟩
       · exact h_flow.mono (Set.Ioo_subset_Ioo le_rfl hnm_cast) Set.Subset.rfl
       · intro s hs; exact h_push s ⟨hs.1, le_trans hs.2 hnm_cast⟩
-      · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hnm_cast⟩
+      · refine ⟨?_, ?_⟩
+        · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hnm_cast⟩
+        · intro z; exact (h_cont z).mono (fun u hu => ⟨hu.1, le_trans hu.2 hnm_cast⟩)
     -- Apply vlasovWellPosedness_uniqueness (Stage 8) on window [0, n+1]
     exact vlasovWellPosedness_uniqueness W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
       (by linarith [Nat.cast_nonneg (α := ℝ) n] : (0 : ℝ) < (n : ℝ) + 1)
@@ -9202,7 +9231,7 @@ theorem vlasovWellPosedness_universal_existence
       simp only [ht_nn, ↓reduceIte]
       exact h_agree ⌈t⌉₊ N (Nat.ceil_mono ht.2) t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
     -- Extract components from h_sol_lag N
-    obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N⟩ := h_sol_lag N
+    obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, _⟩ := h_sol_lag N
     -- Compute f 0 = sol N 0
     have h_f0_solN : f 0 = sol N 0 :=
       h_agree_fN 0 ⟨le_refl 0, hT_target_pos.le⟩
@@ -9238,7 +9267,9 @@ theorem vlasovWellPosedness_universal_existence
       intro t ht
       rw [h_agree_fN t ht, h_f0_solN]
       exact h_push_N t ⟨ht.1, le_trans ht.2 (by linarith)⟩
-    · -- AEMeasurable on Icc 0 T_target: h_aemeas_N gives w.r.t. sol N 0 = f 0.
+    · -- AEMeasurable ∧ boundary ContinuousOn on Icc 0 T_target.
+      -- universal_existence is #14 (sorry'd); B2 cont conjunct sorry'd here.
+      refine ⟨?_, sorry⟩
       intro s hs
       rw [h_f0_solN]
       exact h_aemeas_N s ⟨hs.1, le_trans hs.2 (by linarith)⟩
@@ -9286,7 +9317,7 @@ theorem vlasovWellPosedness_universal_existence
         exact h_agree ⌈t⌉₊ N ((Nat.ceil_mono ht.2).trans_eq (Nat.ceil_natCast N))
           t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
       -- Extract flow witnesses from h_sol_lag N
-      obtain ⟨_h_pde, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N⟩ := h_sol_lag N
+      obtain ⟨_h_pde, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, _⟩ := h_sol_lag N
       -- The integral ∫ g ∂(f t) = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
       -- for all t ∈ Icc 0 N (via pushforward formula + h_agree).
       have h_integral_eq : ∀ t ∈ Set.Icc 0 (N : ℝ),
