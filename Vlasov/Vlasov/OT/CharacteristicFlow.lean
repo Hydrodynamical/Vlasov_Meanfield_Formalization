@@ -8643,17 +8643,41 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn_On
 `wassersteinGronwallCoupling_derivBound_via_pureFA` (CharFlow §10) over the
 localized Lagrangian class.
 
-**Closure strategy (mechanical mirror, next-session target)**: reproduce item
-6's ~220-line body with window restrictions — extract the window flow witness
-from `IsLagrangianVlasovSolutionOn` (giving `IsCharacteristicFlowOn ... (Ioo 0 T)`,
-window pushforward on `Icc 0 T`, window AEMeasurable on `Icc 0 T`), keep the
-universal-in-`t` integrability / `vlasovVectorField_lipschitzWith` / diff-bound
-sub-proofs verbatim (they hold for every `t`), and feed
-`MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` (Basic L2299, abstract,
-already window-shaped: `Ioo`-HasDerivAt + `Icc`-pushforward/moment/diff-bound).
-No new mathematics — a pure window-restriction re-threading of an existing
-proved lemma; deferred to its own focused session per P4 (API-lock vs.
-substantive). -/
+**Closure strategy (next-session target).  NB: this is NOT the "pure mechanical
+mirror, no new mathematics" the prior framing claimed** — atom-level reading of
+the helper signatures (Stage 2b part 5, 2026-05-31) revealed a structural
+obstruction (P2 cascade signal):
+
+* Most of item 6's body *does* window-restrict cleanly: extract the window flow
+  witness from `IsLagrangianVlasovSolutionOn` (giving
+  `IsCharacteristicFlowOn ... (Ioo 0 T) Set.univ`, window pushforward/AEMeasurable
+  on `Icc 0 T`); the HasDerivAt for the joint flow comes straight from the flow
+  witness on `Ioo 0 T`; the integrability helper is generic-over-`μ` and
+  window-restricts; the diff-bound uses `convolveDiff_norm_le` (Basic L2410)
+  which is *pointwise* (takes specific measures with pointwise
+  `[IsProbabilityMeasure]`), so it window-restricts.  All of these feed the
+  abstract `MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` (Basic L2299),
+  already window-shaped.
+* **The one genuine obstruction is the Lipschitz step.**
+  `vlasovVectorField_lipschitzWith` (CharFlow L629) demands *universal*
+  `[∀ t, IsProbabilityMeasure (ρ t)]` + universal `h_int : ∀ t x, …` — over-strong
+  signatures (the body only uses data at the single `t`, but the statement
+  quantifies universally).  The window solution class supplies probability only
+  on `[0, T]`, so this lemma cannot be applied directly.  With ~6 consumers, a
+  pointwise restatement of the helper is invasive (against the additive
+  preference); the **resolution is the local-clamping technique** (watch-list
+  pattern, cf. `Phi_step` / `VlasovMeasureCurve.extend`): define the
+  time-clamped curve `f̃ t := f (max 0 (min t T))` — universally a probability
+  measure since `max 0 (min t T) ∈ [0, T]` — apply `vlasovVectorField_lipschitzWith`
+  to `spatialMarginal ∘ f̃`, then transfer the Lipschitz bound to `f` on `[0, T]`
+  via `f̃ t = f t` for `t ∈ [0, T]` (so the two vector fields agree there, the
+  vector field depending only on `ρ t`).  ~40 lines for the clamp; the rest is
+  window-restricted transcription.
+
+This commit's setup: the abstract placeholder's `[∀ t, IsProbabilityMeasure]`
+instances were weakened to window-explicit hypotheses (they were an over-strong
+leftover, unsatisfiable by the window consumer); item 6's call passes
+`fun t _ => …` adapters.  Body deferred to its own focused session per P4. -/
 theorem wassersteinGronwallCoupling_derivBound_via_pureFA_On
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -9846,6 +9870,7 @@ theorem wassersteinGronwallCoupling_derivBound_via_pureFA
     (fun t z => (charX_g t z, charV_g t z))
     (fun z t _ => hΦ_f z t) (fun z t _ => hΦ_g z t)
     f g
+    (fun t _ => hf_isProb t) (fun t _ => hg_isProb t)
     (fun t _ => hpush_f t) (fun t _ => hpush_g t)
     (fun t _ => haem_f t) (fun t _ => haem_g t)
     (fun t _ => hf_mom t) (fun t _ => hg_mom t)

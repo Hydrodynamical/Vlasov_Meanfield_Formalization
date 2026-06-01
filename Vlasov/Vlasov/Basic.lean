@@ -2311,7 +2311,13 @@ theorem MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn
     (_hΦ_g : ∀ z, ∀ t ∈ Set.Ioo (0 : ℝ) T,
       HasDerivAt (fun s => Φ_g s z) (b_g t (Φ_g t z)) t)
     (f g : ℝ → Measure (PhaseSpace d))
-    [∀ t, IsProbabilityMeasure (f t)] [∀ t, IsProbabilityMeasure (g t)]
+    -- Probability: localized to `[0, T]` (weakened from universal `[∀ t, …]`
+    -- instances, Stage 2b part 5, 2026-05-31 — the universal form was an
+    -- over-strong leftover, unsatisfiable by the window solution class whose
+    -- consumer `wassersteinGronwallCoupling_derivBound_via_pureFA_On` only has
+    -- probability on `[0, T]`).
+    (_hf_prob : ∀ t ∈ Set.Icc (0 : ℝ) T, IsProbabilityMeasure (f t))
+    (_hg_prob : ∀ t ∈ Set.Icc (0 : ℝ) T, IsProbabilityMeasure (g t))
     -- Pushforward, AEMeasurable, moment: localized to `[0, T]`.
     (_hf_push : ∀ t ∈ Set.Icc (0 : ℝ) T, f t = Measure.map (Φ_f t) (f 0))
     (_hg_push : ∀ t ∈ Set.Icc (0 : ℝ) T, g t = Measure.map (Φ_g t) (g 0))
