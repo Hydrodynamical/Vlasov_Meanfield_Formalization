@@ -3810,20 +3810,35 @@ lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
 -- Metric-dependent abstractions (architectural priming for the W̄ refactor)
 -- ---------------------------------------------------------------------------
 --
--- The project's contraction analysis uses the `W₁`-based metric `supW1On`
--- and the smallness constraint `L · (T+1)² < 1` that arises from the
--- per-ball Picard-Lindelöf flow's `(T+1)`-buffer.  Two structural-debt
--- findings (the `+1` additive offset and the polynomial-vs-exponential
--- constraint mismatch surfaced in `_picard_fixedPointFlow`'s body, commit
--- `580548e`) trace to this metric choice.  Switching to the
--- truncated-distance Wasserstein `W̄ = W_{min(|x-y|,1)}` (per Dobrushin 1979,
--- §5) retires both findings and the `L < 1` restriction simultaneously.
+-- The project's existence-and-contraction analysis uses TWO independent
+-- smallness constraints in the `0 < L < 1` `W₁`-regime, captured as two
+-- separate predicates:
+--   * `LocalSmallness_PL_buffer L T := L · (T+1)² < 1` — per-ball
+--     Picard-Lindelöf flow ball-geometry (the `(T+1)`-buffer + L-Lipschitz
+--     R-existence fixed-point).
+--   * `LocalSmallness_contraction L T := L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
+--     — supW1On contraction-ratio (Gronwall on the W₁-based flow).
 --
--- The two named abstractions below isolate the metric-dependent surface so
--- the eventual `W̄` refactor is bounded engineering (~500-900 lines)
--- rather than a full Stage 4 redo.  `LocalSmallness` and `CurveMetric` are
--- used in new theorems going forward; existing closed proofs continue to
--- compile against the unfolded form.
+-- **Stage 2b part 3 (commit `2eed838`, 2026-05-31)** retired a structural
+-- debt where these two were conflated under one `LocalSmallness L T` with
+-- the `L · (T+1)² < 1` shape; the `(T+1)²` form, plausible for ball
+-- geometry, does NOT imply the exponential contraction constraint (and is
+-- not implied by it).  The original `q < 1` sub-sub-sorry inside
+-- `_picard_fixedPointFlow` traced to that conflation, which itself traced
+-- one layer further to the q-definition at L6529 fusing the contraction
+-- factor with the W₁-input bound D₀ = 2M.  Both layers fixed together.
+--
+-- Switching to the truncated-distance Wasserstein `W̄ = W_{min(|x-y|,1)}`
+-- (per Dobrushin 1979, §5) is a separate post-cleanup arc that would
+-- retire the `L < 1` restriction by replacing the `LocalSmallness_contraction`
+-- exponential with a linear-in-T form; the named-predicate split makes
+-- that future edit hit one definition rather than a fused predicate
+-- carrying two distinct claims.
+--
+-- Existing closed proofs at PL-buffer-only call sites continue to compile
+-- against `LocalSmallness_PL_buffer` (algebraically identical to the old
+-- `LocalSmallness`); the new contraction-only sites take
+-- `LocalSmallness_contraction` directly.
 
 /-- **Smallness predicate for the per-ball Picard-Lindelöf flow's
 ball-geometry constraint** (Stage 2b part 3 split, 2026-05-31).
@@ -4234,18 +4249,21 @@ theorem exists_vlasov_perz_trajectory
   -- Substituting: R·(1 - L·(T+1)²) ≥ N(z)
   --   where N(z) := 2 + (‖z.2‖ + 1/2)(T+1)
   --                + (‖gradW(0)‖ + L·‖z.1‖ + L·M_ρ)·(T+1)²
-  -- Use R := N(z) / (1 - L·(T+1)²)  (positive since hTL).
+  -- Use R := N(z) / (1 - L·(T+1)²)  (positive since `hTL_PL`).
   -- ============================================================
-  -- TODO(W̄-refactor): LocalSmallness unfold site.  This body uses the
-  -- algebraic form `(L : ℝ) * (T + 1) ^ 2 < 1` directly (the linarith on
-  -- the next line consumes `hTL_pos := 1 - L·(T+1)² > 0`, derived from
-  -- this hypothesis).  Under the W̄ refactor, `LocalSmallness L T` becomes
-  -- `C₂(L) · T < 1` (linear in T, no `+1`); this `have` will need updating
-  -- to expose the new algebraic form, and the subsequent `R := N(z) /
-  -- (1 - L·(T+1)²)` selection will need re-derivation under the new
-  -- contraction constant `C₂(L)`.  Flagged as a metric-dependent
-  -- algebraic touchpoint; the single existing unfold here is the entire
-  -- "metric-dependent lemmas section" identified by Move A.
+  -- **`LocalSmallness_PL_buffer` unfold site** (Stage 2b part 3 split,
+  -- 2026-05-31).  This body consumes the PL-buffer constraint
+  -- `L · (T+1)² < 1` directly for R-existence — the linarith on the next
+  -- line derives `hTL_pos := 1 - L·(T+1)² > 0` from `hTL_PL`'s algebraic
+  -- form, and the subsequent `R := N(z) / (1 - L·(T+1)²)` selection
+  -- depends on the quadratic shape.  This is a SINGLE-PURPOSE use of the
+  -- PL-buffer predicate (verified by the Stage 2b part 3 Commit 2 read):
+  -- no contraction-flavored step in this body discharges off the same
+  -- hypothesis.  Under the W̄ refactor, `LocalSmallness_PL_buffer L T`
+  -- would become `C₂(L) · T < 1` (linear in T, no `+1`); this `have`
+  -- updates to expose the new algebraic form and R re-derives under
+  -- `C₂(L)`.  The `LocalSmallness_contraction` predicate is governed
+  -- separately at `_picard_fixedPointFlow`'s `hq_lt` close, NOT here.
   have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL_PL
   set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
   -- N(z) is the right-hand-side numerator; non-negative.
@@ -5744,16 +5762,20 @@ exploits.
 **Metric-dependence note** (architectural priming for the W̄ refactor):
 The contraction factor `K_contract(T) := (L/K)·(exp(K·T) − 1)` is
 *exponential in T*.  For contraction (`K_contract < 1`), this requires
-`L · (exp T - 1) < 1` when `K = 1` (i.e., `L < 1`).  This constraint
-shape is incompatible with the per-ball Picard-Lindelöf flow's
-quadratic-in-`T` smallness `LocalSmallness L T = L·(T+1)² < 1`
-(structural-debt finding in commit `580548e`).
+`L · (exp T - 1) < 1` when `K = 1` (i.e., `L < 1`) — exactly the
+`LocalSmallness_contraction L T` predicate (CharFlow §3.5).  This is
+genuinely independent of the per-ball Picard-Lindelöf flow's
+quadratic-in-`T` ball-geometry constraint `LocalSmallness_PL_buffer L T
+:= L·(T+1)² < 1`.  The two predicates are the M1-recursive split that
+retired the original conflation under one `LocalSmallness` name
+(structural-debt finding in commit `580548e`, fixed in commit
+`2eed838`).
 
 Under the `W̄` refactor (Dobrushin 1979, §5), the contraction factor
 becomes `C₂(L) · T` — *linear in T*, no exponential, no `L < 1`
-restriction.  The contraction constraint reduces to `C₂(L) · T < 1`,
-which matches the quadratic-shape smallness modulo the additive `+1`
-that the W̄ refactor also removes. -/
+restriction.  `LocalSmallness_contraction` would reduce to `C₂(L) · T <
+1` and the `L < 1` restriction lifts; `LocalSmallness_PL_buffer` is
+independent of that change. -/
 theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -6332,7 +6354,10 @@ of `vlasovWellPosedness_local`'s 7-step plan):
   `A = gronwallBound 1 (1+L) ‖gradW 0‖ T · (M_f₀ + 1)` and
   `B = L · (exp((1+L)·T) - 1)/(1+L) · (M_f₀ + 1)`.  Requires `B < 1`,
   which is the genuine convergence criterion for the moment iteration
-  (stronger than `hTL : L · (T+1)² < 1` alone for large `M_f₀`).
+  (stronger than the contraction predicate `LocalSmallness_contraction
+  L T` alone for large `M_f₀` — the contraction predicate gates the q
+  factor; the M-fixed-point additionally requires the moment iteration
+  to converge).
 * Picard sequence `x_n : ℕ → VlasovMeasureCurve d T M` starting from
   `x_0 := constantCurve (spatialMarginal f₀)` and `x_{n+1} := Phi_step(x_n)`.
 * Contraction via `Phi_supW1_contraction`: `supW1On (Φρ) (Φσ) ≤ q · D`
@@ -6344,19 +6369,23 @@ of `vlasovWellPosedness_local`'s 7-step plan):
   to get the flow.
 
 **Metric-dependence note** (architectural priming for the W̄ refactor):
-The Picard fixed-point body's structural-debt finding (commit `580548e`):
-the contraction constraint `L · (exp T - 1) < 1` (exponential in T,
-from `Phi_supW1_contraction`'s W₁-based shape) is NOT implied by the
-quadratic-shape smallness `LocalSmallness L T = L·(T+1)² < 1`.  The
-two constraints arise from different sub-arguments: the quadratic
-comes from per-ball Picard-Lindelöf's `(T+1)`-buffer, the exponential
-from Gronwall on the W₁-based contraction.
+The two-predicate structure introduced in Stage 2b part 3 (commit
+`2eed838`, retiring the structural-debt finding from `580548e`):
+* `LocalSmallness_contraction L T := L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
+  — exponential in T, from `Phi_supW1_contraction`'s W₁-based shape.
+* `LocalSmallness_PL_buffer L T := L · (T+1)² < 1` — quadratic, from
+  per-ball Picard-Lindelöf's `(T+1)`-buffer.
+
+These are GENUINELY INDEPENDENT (neither universally implies the other;
+verified numerically per planning-notes `b7d4d05`).  Carrying them as
+two predicates rather than one prevents fusing them back into "the
+constraint" — predicates match the mathematical structure (M1).
 
 Under the W̄ refactor (Dobrushin 1979, §5), both constraints become
-linear-in-T and align: the contraction shape changes from
-`L·(exp T - 1) < 1` to `C₂(L)·T < 1`, and the PL window's `(T+1)`-
-buffer disappears.  The single algebraic constraint `C₂(L)·T < 1` then
-suffices and is satisfiable for any `L > 0` by taking `T < 1/C₂(L)`.
+linear-in-T and align: `LocalSmallness_contraction` reduces to
+`C₂(L)·T < 1`, and the PL window's `(T+1)`-buffer disappears.  The
+single algebraic constraint `C₂(L)·T < 1` then suffices and is
+satisfiable for any `L > 0` by taking `T < 1/C₂(L)`.
 
 **Output bundle** (designed to feed
 `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` directly):
@@ -6498,25 +6527,20 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   -- The construction uses Phi_step + induction.
   -- The contraction uses Phi_supW1_contraction applied to consecutive iterates.
   -- ============================================================
-  -- **Structural-debt note (2026-05-29 sorry-prover analysis)**: the q
-  -- definition below uses `(L · (2·M))` as the gronwallBound ε₀-input.  Per
-  -- `Phi_supW1_contraction`'s actual output shape, the genuine contraction
-  -- ratio is `gronwallBound 0 (max 1 L) (L · D) T / D` where D is the
-  -- *input W₁ bound* — INDEPENDENT of M.  The current `(2·M)` is the
-  -- placeholder D for `supW1On (constantCurve) (Φ constantCurve)`, but it
-  -- conflates the contraction factor itself with this initial distance.
-  --
-  -- The TRUE contraction constraint is `L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
-  -- (equivalent to `L · (exp T - 1) < 1` when `L < 1`).  This is *not* a
-  -- consequence of `hTL : L · (T+1)² < 1` — the two constraints have
-  -- different shapes (quadratic vs exponential in T), and for very small `L`
-  -- the smallness `hTL` permits T_0 large enough that `L · (exp T_0 - 1)`
-  -- exceeds 1.
-  --
-  -- Cleanest fix: add `hTL_contraction : L · (exp T - 1) < 1` as an
-  -- additional hypothesis to this theorem and propagate through Stage 5
-  -- (`vlasovWellPosedness_local`, `_glue_step`, `_forward`).  Recorded as
-  -- a structural-debt item for a focused refactor session.
+  -- **Historical structural-debt note (2026-05-29 sorry-prover analysis,
+  -- FIXED in commit `2eed838` 2026-05-31)**: the original q-definition
+  -- used `gronwallBound 0 (max 1 L) (L · (2·M)) T`, conflating the
+  -- contraction factor with the W₁-input bound D = 2M.  The contraction
+  -- constraint `L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1` was not
+  -- implied by the then-current `LocalSmallness L T = L · (T+1)² < 1`
+  -- predicate (which fused two independent constraints).  Fix: predicate
+  -- split into `LocalSmallness_PL_buffer` (PL ball-geometry) and
+  -- `LocalSmallness_contraction` (this contraction-ratio constraint),
+  -- plus q de-conflation (drop 2M from ε).  Both layers fixed together
+  -- so the named-lemma citation (`hq_lt` discharges from
+  -- `LocalSmallness_contraction` directly, no inline derivation) wires
+  -- through without rebuilding the fusion-generator pattern.  This note
+  -- preserved historically since it documents the original design.
   --
   -- **Stage 2b part 3 fix (2026-05-31)**: q is the M-INDEPENDENT genuine
   -- contraction ratio, NOT 2M·q_true.  The old q-definition
@@ -7102,7 +7126,8 @@ theorem vlasovWellPosedness_local
   -- Step 6 — Flow construction (~30 lines):
   --   obtain ⟨charX, charV, hflow_on⟩ :=
   --     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
-  --       ρ_lim.extend ... hT.le (by linarith [hTL])
+  --       ρ_lim.extend ... hT.le hTL_PL  -- PL-buffer; per Stage 2b part 3
+  --                                       -- split (commit `2eed838`).
   --   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
   --     Stage_1_9_flow_boundary_regularity gradW ρ_lim.extend charX charV T
   --       hT.le hflow_on
