@@ -1279,6 +1279,23 @@ the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
 
+* **Framework ossification — lessons must CHANGE AN ACTION, not just be
+  cited** (meta-discipline, flagged 2026-06-01).  The framework grew a lot
+  this arc (B3, M2, L11, the P7-P10 sequencing cluster) and it paid — every
+  lesson fired changed a concrete move: B3 flipped a conjunct, M2 realigned a
+  hypothesis class, P5 held an edit at a tail, L11 chose clamping over a
+  pointwise restatement.  As the count climbs, the risk shifts from *missing a
+  lesson* to *the framework being consulted as ritual rather than as
+  load-bearing*.  **The tell it is still load-bearing**: each time a lesson is
+  cited in a writeup, it should have *altered* something done — a tactic, an
+  ordering, a hold, a statement.  **The tell it has started ossifying**: a
+  session where lessons get name-dropped in the report but did not change any
+  action taken.  When that appears, apply M1/weakest-sufficient *to the
+  framework itself* — keep what is load-bearing, prune what has become
+  decorative commentary.  Not a problem now (every lesson this arc changed a
+  move); the thing to watch as the lesson count grows.  Trigger: first session
+  where a cited lesson demonstrably changed nothing → prune pass.
+
 * **Statement-level mismatches between claimed and proved → PROMOTED
   to M2** (2026-05-31).  Reached 3 sightings across both directions:
   conclusion-too-strong (`vlasovWellPosedness` forward-only refactor,

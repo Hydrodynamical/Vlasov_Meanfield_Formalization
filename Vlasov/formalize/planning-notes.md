@@ -2026,6 +2026,22 @@ classes:
    `h_int_ρ_lim`.  This is the maneuver (weaken an over-strong statement) with
    the **highest hidden-soundness risk on the board** — run it with the P5 gate,
    never at a tail.
+
+   **Fold item (d) — the soundness-cycle check — into THIS gate** (it becomes
+   checkable here and is maximally relevant here, not as an orphaned later
+   audit).  Stage C feeds the #13 producers; #13 feeds uniqueness; uniqueness
+   feeds existence (#14); #14 consumes #11.  That is close to a *loop*, and
+   weakening a conclusion (Stage C's) that sits upstream of a chain curving back
+   toward #11 is exactly how a **circular soundness dependency** announces
+   itself.  So the P5 gate's verification is **two questions, not one**:
+   (i) does the weak-PDE cascade need only window-`s`?  and
+   (ii) does any consumer of Stage C's universal form sit *downstream of #11*
+   such that this weakening is circular?
+   Prior (not proof): the #11-seam read showed self-consistency is
+   *existential-from-non-self-consistent-data*, the structural fact that usually
+   *prevents* such a cycle — but "usually prevents" is a prior, and step 1
+   perturbs the exact edge, so verify rather than assume.  Same trace, one extra
+   question; retires (d).
 2. **L6610 Picard sequence**: assemble `x_n` + contraction (plumbing, bounded).
 3. **L6693 self-consistency — THE ONE GENUINELY-NEW INTERNAL PROOF.**  Not
    "subtlety 3 alongside plumbing": it is the *only remaining internal step that
