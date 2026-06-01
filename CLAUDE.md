@@ -1350,6 +1350,59 @@ indefinite watch-listing):
   property of the constraint"); decide at promotion based on
   whether subsequent sightings are architectural or proof-shape.
 
+  **Update (Stage 2b part 3, 2026-05-31)**: now at 2 sightings —
+  the original Stage 1.9 sighting (`+1` additive offset diagnosis)
+  plus the Stage 2b part 3 confirmation by actual constraint
+  correction (predicate split into PL-buffer with `(T+1)²` and
+  contraction with `exp((max 1 L)·T)`, retiring the false single
+  predicate).  Discriminator at the second sighting fired correctly:
+  the additive-offset-is-structurally-fatal prediction matched the
+  actual breakage shape.  **Near-locked for M-series promotion** at
+  a third structural sighting of the pattern in a different
+  manifestation (probably the W̄ refactor when it lands — different
+  smallness constraint family, same additive-offset-vs-multiplicative-
+  shape distinction).
+
+* **Property-based proof discipline for forward-looking closes —
+  `wasserstein1` touches proofs only through its abstract
+  properties, never through its `⨆`-definition**: 1 sighting
+  (formulation post-Stage-2b-part-3, 2026-05-31).  Diagnostic: when
+  closing a sorry whose proof would naturally `simp [wasserstein1]`
+  or `unfold wasserstein1` to reason about the dual sup directly,
+  the resulting close is W̄-reopened (when the eventual truncated-
+  metric W̄ refactor replaces `wasserstein1`'s concrete form, the
+  unfold-based proofs must be re-derived).  A close that uses only
+  the four named property lemmas — non-expansion under Lipschitz
+  pushforward (`wasserstein1_le_of_lipschitz_map`), triangle, zero-
+  iff-equal (the separation lemma to be banked), KR-dual lower
+  bound — is W̄-survivor by construction, because W̄ satisfies all
+  four.
+
+  **Empirical pattern (the one to test at subsequent sightings)**:
+  property-only closes are durable across refactors of the
+  underlying metric, but cost vigilance per proof (every `simp` that
+  wants to expand `wasserstein1` is a discipline checkpoint).  The
+  cost-benefit: friction now ↔ free extension later, proportional
+  to how consistently the discipline is paid.
+
+  **Discriminator at subsequent close-sightings**: does the proof
+  body reference the property API only, or does it `simp
+  [wasserstein1]` / `unfold wasserstein1` / reason about the `⨆`-form
+  directly?  Property-only = W̄-survivor; unfold = W̄-reopened.
+  Promotion at 2-3 sightings WITH discriminator-validated separation
+  of survivor-vs-reopened on actual subsequent closes.
+
+  **Why not promote now**: the rule is stated cleanly but hasn't been
+  TESTED.  P5 (verify framework's pattern-extrapolations atom-by-atom)
+  says wait for empirical confirmation: the next session's separation
+  lemma is the first test, item 3's Dobrushin uniqueness body is the
+  largest test.  If both close property-only, the rule is empirically
+  earned at 2-3 sightings.  Promote to M-series likely
+  ("predicates/proofs match the mathematical structure, not the
+  concrete representation" — same M1-recursion reasoning that landed
+  the LocalSmallness predicate split).  See planning-notes commit
+  TBD for the full operational rule + separation-lemma application.
+
 ## Vlasov-specific design choices
 
 (See `formalize/DESIGN.md` for the full version. Highlights:)

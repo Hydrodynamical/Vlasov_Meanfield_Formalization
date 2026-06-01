@@ -1517,3 +1517,161 @@ opens on the foundational layer execution — predicate definitions,
 q-redefinition, hq_lt citation, signature threading through the three
 top-level theorems.  No further reads; no further scoping.  The
 predicate split is the first edit.
+
+---
+
+## Forward-looking close discipline for the remaining internal queue (2026-05-31, post Stage 2b part 3)
+
+Stage 2b part 3 is sealed (commits `2eed838`, `25c205b`, `d57c892`); the
+next units in the close queue are the separation lemma (next session),
+Stage 3 (Newton-flow Lagrangian producer), and item 3
+(`dobrushin_uniqueness_On`).  Per user 2026-05-31, these closes proceed
+under one new operational rule that makes them serve both the present
+sorry count AND the W̄ horizon in one motion — forward-looking-and-closing
+rather than one or the other.
+
+### The rule
+
+**Close the sorry now, but let `wasserstein1` touch the proof only
+through its abstract properties — never through its concrete
+`⨆`-definition.**
+
+Four properties cover everything the project's W₁ proofs actually need:
+
+* **Non-expansion under Lipschitz pushforward**:
+  `wasserstein1_le_of_lipschitz_map` (Basic.lean, commit `bbd98f5`).
+* **Triangle inequality**: standard W₁ triangle (cite project helper if
+  needed; same shape under W̄).
+* **Zero-iff-equal**: the separation lemma
+  `wasserstein1_eq_zero_iff_measure_eq` to be banked next session.
+* **Dual lower bound**: `W₁(μ, ν) ≥ ∫ f dμ - ∫ f dν` for 1-Lipschitz f
+  (KR-dual lower direction, already implicit in project use).
+
+A close that uses only these four is **W̄-survivor by construction**
+because W̄ satisfies all four.  A close that unfolds `wasserstein1` to
+its `⨆` is **W̄-reopened** — the unfold ties the proof to the concrete
+dual representation; when W̄ arrives with a truncated-cost coupling
+form, the proof has to be re-derived.
+
+### Why this works without the typeclass
+
+The full abstraction would be a `WassersteinLike` typeclass with these
+properties as axioms, instances for both W₁ and W̄, and proofs
+parameterized over the typeclass.  That is the eventual W̄-refactor
+shape — but it's not required NOW.  Each proof that *behaves as if*
+the typeclass existed (citing properties rather than unfolding) is
+W̄-portable when the typeclass actually lands; the consumer interface
+is already the interface.
+
+This is the cheap version of the abstraction: discipline at proof
+level now, harvest the typeclass mechanically later.
+
+### The audible tell
+
+**When a tactic wants to `simp [wasserstein1]`, `unfold wasserstein1`,
+or reason about the `⨆`-form directly, that's the moment a close is
+about to reopen under W̄.**  Discipline: reach for a property lemma
+instead.
+
+This costs friction on closes that would go faster by unfolding.  That
+friction *is* the forward-looking work; the W̄ extension is cheap later
+exactly in proportion to how consistently the friction is paid now.
+Same trade as the Stage 2b part 3 predicate split — match the
+structure to the math you're heading toward, not the math that's
+locally fastest.
+
+### Separation lemma — concrete statement shape (next session)
+
+State `W₁(μ, ν) = 0 → μ = ν` (hypothesis-only contact with `wasserstein1`).
+Body structure:
+
+1. **Named sub-lemma** "equal integrals against a separating class → μ
+   = ν" (pure separation-theory step, no W₁ in scope; routes via
+   Mathlib's `ext_of_forall_integral_eq_of_IsFiniteMeasure`).
+2. **W₁ feeds the class via dual lower bound**: `W₁(μ, ν) = 0` gives
+   `∫ f dμ = ∫ f dν` for every 1-Lipschitz f (dual lower bound gives
+   `∫ f dμ - ∫ f dν ≤ 0`; symmetry via `-f` 1-Lipschitz gives equality).
+   This is the ONLY place W₁ enters the proof body.
+3. **Apply the sub-lemma.**
+
+When W̄ arrives, only step 2's W₁-specific feeder gets a W̄ variant
+(`W̄(μ, ν) = 0` also gives equal integrals on 1-Lipschitz, because
+truncated cost still controls bounded-Lipschitz test functions).  The
+separation sub-lemma in step 1 is reused verbatim.
+
+### P1 grep with forward-looking second question
+
+**Original grep** (per the Stage 2b part 1 brief and prior sessions):
+`ext_of_forall_integral_eq_of_IsFiniteMeasure` (Mathlib
+`HasOuterApproxClosed.lean` L268) wants `f : Ω →ᵇ ℝ` (bounded
+continuous).  That sets the approximation target: bounded continuous,
+not Lipschitz directly.  Approximation step (~50 lines) lifts
+1-Lipschitz equality of integrals to BC equality of integrals via
+truncation-and-mollification on a Polish space with first-moment-bound.
+
+**Added forward-looking question**: is the separating class (BC) one
+that **W̄'s zero-condition also controls**?  Both W₁ and W̄ dominate
+integration against bounded-Lipschitz functions (truncated cost still
+controls 1-Lipschitz test functions with bounded-by-1 added on top),
+and bounded-Lipschitz is dense in BC for Polish spaces — so W̄=0 also
+gives equal BC integrals.  Survivor property confirmed.
+
+If the proof's approximation step needs a property stronger than this
+(unlikely but worth watching for), check W̄ satisfies it before
+banking.
+
+### Extends to Stage 3 + item 3
+
+* **Stage 3 (Newton-flow Lagrangian producer)**: composes
+  `IsLagrangianVlasovSolution` structure with Newton trajectories.  W₁
+  doesn't appear in `IsLagrangianVlasovSolution`'s definition or in
+  the Newton pushforward equation, so the rule mostly doesn't bite —
+  but if any intermediate step routes through W₁, property-only is
+  the rule.
+
+* **Item 3 (`dobrushin_uniqueness_On` body)**: this DOES touch W₁
+  heavily.  Composition:
+  - Gronwall integration of `(W₁ (f t) (g t)).toReal` via item 6's
+    right-deriv bound.
+  - Initial value `W₁(f 0, g 0) = 0` from `f 0 = g 0` (via
+    `wasserstein1_self` property).
+  - Conclude `W₁(f t, g t) = 0` on `[0, T]`.
+  - Apply separation lemma → `f t = g t`.
+
+  Every step expressible property-only.  Item 3 is the largest test of
+  the discipline — if it lands property-only, the rule is strongly
+  validated as W̄-survivor for the project's full uniqueness chain.
+
+### The honest cost flag
+
+The rule costs vigilance per proof.  Every `simp` that wants to expand
+`wasserstein1` is a decision point; the discipline is to inspect the
+property family for a lemma covering the same step before letting the
+unfold happen.
+
+**Property-shortage = banking opportunity**: if a step genuinely needs
+a property the family doesn't yet have, that's not a violation — it's
+a finding.  Bank a new property lemma (named, stated abstractly) for
+the step rather than leaving the unfold inline.  Same pattern as
+`wasserstein1_le_of_lipschitz_map`'s banking against item 6's need
+(commit `bbd98f5`), operating one level deeper: each W₁-shortage
+becomes a banked-export opportunity that strengthens the property API
+for both W₁ and future W̄.
+
+### Watch-list candidate (1 sighting, pending discriminator-validated promotion)
+
+This rule earns watch-list status at 1 sighting (the formulation in
+this section, post-Stage-2b-part-3, 2026-05-31).  Discriminator at
+subsequent close-sightings: does the proof body reference the property
+API only (`wasserstein1_le_of_lipschitz_map`, the to-be-banked
+separation lemma, etc.), or does it `simp [wasserstein1]` /
+`unfold wasserstein1` / reason about the `⨆`-form directly?  Property-
+only = W̄-survivor; unfold = W̄-reopened.
+
+Promotion at 2-3 sightings WITH discriminator-validated separation of
+survivor vs reopened closes during actual subsequent W̄-extension work
+(or its absence — the discriminator works whether or not W̄ refactor
+happens; survivor proofs are also more robust to other W₁ refactors).
+Likely M-series at promotion (about mathematical structure: use the
+structural properties, not the concrete representation), per the same
+M1-recursion reasoning that landed the predicate split.
