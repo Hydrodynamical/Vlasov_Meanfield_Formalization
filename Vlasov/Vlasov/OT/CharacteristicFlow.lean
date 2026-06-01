@@ -9277,7 +9277,8 @@ example {d : ℕ} [NeZero d] (W : PhysSpace d → ℝ) [AssW W]
 -- items 5/6 + the marquee `meanFieldLimit` which takes the Dobrushin estimate
 -- as a hypothesis):
 --   * `MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows` (pure-FA)
---   * `MathlibTODO_w1RightDerivBoundAlongLagrangianFlows` (pure-FA)
+--   * `MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` (pure-FA;
+--     `_On`-localized primary form, Stage 2b part 5 2026-05-31)
 --   * `W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
 --     `wassersteinGronwallCoupling_gronwall_le`,
 --     `wassersteinGronwallCoupling_ennreal_mul_comm`,
@@ -9479,11 +9480,14 @@ theorem MathlibTODO_wassersteinGronwallCoupling_W1ContOn
   exact h_goal
 
 /-- **Project-internal composition (Phase 1.5 Session 3, 2026-05-31;
-relocated to CharFlow per Phase 4 Path A Stage 2a, 2026-05-31)**:
+relocated to CharFlow per Phase 4 Path A Stage 2a, 2026-05-31;
+re-pointed at `_On` primary form per Stage 2b part 5, 2026-05-31)**:
 right-derivative Gronwall bound for W₁ between two Vlasov solutions,
-derived from `MathlibTODO_w1RightDerivBoundAlongLagrangianFlows` by
-packaging the Vlasov phase-space vector fields (each derived from gradW
-+ the respective solution's spatial marginal via convolution).
+derived from `MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn` (the
+localized form is primary; this consumer's universal hypotheses
+restrict trivially to `[0, T]` via `fun t _ => h_univ t`) by packaging
+the Vlasov phase-space vector fields (each derived from gradW + the
+respective solution's spatial marginal via convolution).
 
 **Status**: body sorry'd as Phase 4 Stage 2b close target.  Now that this
 declaration takes `IsLagrangianVlasovSolution` (Stage 1 cascade) AND lives
@@ -9715,14 +9719,23 @@ theorem wassersteinGronwallCoupling_derivBound_via_pureFA
       _ ≤ ((max 1 L : NNReal) : ℝ) * (wasserstein1 (f t) (g t)).toReal :=
           mul_le_mul_of_nonneg_right h_L_le_max hW_nn
   -- Step 9: apply the pure-FA placeholder with placeholder_L = max(1, L).
-  exact MathlibTODO_w1RightDerivBoundAlongLagrangianFlows
+  -- Item 6 has universal-t hypotheses naturally (`vlasovVectorField_lipschitzWith` is
+  -- universal-t; `IsCharacteristicFlow`'s clauses are universal-t).  Re-point at
+  -- the `_On` form via trivial restriction `fun t _ => h_univ t` (Stage 2b part 5,
+  -- 2026-05-31, per the "one placeholder for one fact" architectural correction).
+  exact MathlibTODO_w1RightDerivBoundAlongLagrangianFlowsOn
     (fun t => vlasovVectorField gradW (fun t => spatialMarginal (f t)) t)
     (fun t => vlasovVectorField gradW (fun t => spatialMarginal (g t)) t)
-    (max 1 L) hL_b_f hL_b_g
+    (max 1 L) T hT
+    (fun t _ => hL_b_f t) (fun t _ => hL_b_g t)
     (fun t z => (charX_f t z, charV_f t z))
     (fun t z => (charX_g t z, charV_g t z))
-    hΦ_f hΦ_g f g hpush_f hpush_g haem_f haem_g hf_mom hg_mom
-    h_diff_bound C hC hCL T hT
+    (fun z t _ => hΦ_f z t) (fun z t _ => hΦ_g z t)
+    f g
+    (fun t _ => hpush_f t) (fun t _ => hpush_g t)
+    (fun t _ => haem_f t) (fun t _ => haem_g t)
+    (fun t _ => hf_mom t) (fun t _ => hg_mom t)
+    (fun t _ x => h_diff_bound t x) C hC hCL
 
 /-- Given the sub-axioms MathlibTODO_wassersteinGronwallCoupling_W1ContOn and
 MathlibTODO_wassersteinGronwallCoupling_derivBound, apply the Gronwall wrapper
