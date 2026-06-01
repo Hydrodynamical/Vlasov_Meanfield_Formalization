@@ -1238,6 +1238,40 @@ atom-level verification) operating concretely: B2's three prior sightings
 predicted "case (a) needs B2 cascade"; P1 atom-level reading of Mathlib's
 extension lemmas refuted the prediction.
 
+### B3. Conjunct shape: lower bound = consumer-need, upper bound = producer-capacity
+
+**Principle**: when enriching a predicate with a new conjunct (B1/B2), the
+conjunct's *strength* is bounded **below** by what the consumer needs and
+**above** by what *every* producer can supply.  Weakest-sufficient (M2) lives
+in that intersection.  Reading only the consumer fixes the lower bound and can
+leave you at an over-strong shape that some producer cannot supply — which
+breaks the producer mid-surgery.  Reading only the producers risks
+under-strength.  **Read both before fixing the conjunct.**
+
+**Empirical confirmation — first clean sighting** (the #13 B2 enrichment,
+2026-06-01, commit `f113581`): the conjunct shape was first set to
+`HasDerivWithinAt` by reading the *consumer* (item 5's USC takes `HasDerivAt`,
+so the window analog "needs the derivative").  That reasoning was
+correct-for-the-right-reason about the consumer and **still wrong**, because it
+never checked the *producers*.  The pre-surgery Stage-C read supplied the
+missing half: Stage C carries boundary regularity as `ContinuousOn (Icc 0 T)`
+(directly) + `HasDerivWithinAt _ (Ici s) s` (on `Ico`) — and the `Ici`/`Ico`
+form does **not** convert to the two-sided `Icc` `HasDerivWithinAt`.  So no
+producer could supply the over-strong shape; the upper bound was `ContinuousOn`.
+The intersection (and the M2-weakest-sufficient point) was `ContinuousOn`, which
+also turned out sound for the consumer (USC of W₁ comes from flow continuity,
+not its derivative — item 5's `HasDerivAt` was itself over-strong).  Flipping
+to `ContinuousOn` *simplified* the surgery rather than enlarging it.
+
+**Operational rule**: before committing a predicate-enrichment conjunct, read
+(a) the consumer's genuine need (lower bound, often weaker than the existing
+consumer's *stated* hypotheses, which may be over-strong) **and** (b) every
+producer's available data (upper bound).  The conjunct goes at the
+weakest-sufficient point in `[lower, upper]`.  This is the producer-side
+complement to the consumer-need rule; the cost is one extra read (the
+producer-capacity read), and it is the read that catches "over-strong-but-
+unsupplyable" *before* the atomic batch rather than mid-break.
+
 ## Watch-list
 
 Candidates accumulating sightings, not yet promotion-ready under

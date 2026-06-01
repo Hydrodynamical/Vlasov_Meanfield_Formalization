@@ -1945,3 +1945,39 @@ the owed-soundness item is closed.  `W1ContOn_On` remains a sorry'd FA
 placeholder, but now a *soundly-stated* one (like the other FA items), no longer
 "honesty in question."  Tactical notes for the file: `Continuous(On|WithinAt).prodMk`
 (camelCase, not `.prod`); `HasDerivWithinAt.continuousWithinAt` is the bridge.
+
+### Proved-modulo-sorry sweep (2026-06-01) — accounting the surgery's growth
+
+The "14 → 14, all soundly stated" headline is true at the *declaration* level;
+this sweep verifies it at the *obligation* level (the surgery grew #12/#14 by a
+cont conjunct — declaration count flat, obligation grown).
+
+**#12/#14 cont obligations are BOUNDED-INTERNAL, not hidden boundary lemmas.**
+glue_step's signature already carries `h_prev_boundary` (L7418-7422 — f_prev's
+flow as `HasDerivWithinAt _ (Icc 0 T)`), so f_prev's closed-window
+`ContinuousOn` is derivable in-signature; g (= `local (f_prev T)`) carries its
+own cont conjunct (enriched predicate); the **seam at s=T is pointwise-at-T
+agreement by construction** (`charX_g(0, w) = w.1 = charX_prev T z`).  The
+"more-than-pointwise" subtlety lives one level up at `t ↦ W₁` across the seam —
+that is `W1ContOn_On`'s obligation, **not** #12's.  #12 grew by a bounded
+piecewise-`ContinuousOn` glue; #14 by the same shape (colimit pieces agreeing
+on overlaps via `h_agree`).  **No third hard-OT item; #2 + #7 remain the only
+two.**
+
+**General sweep CLEAN.**  Structural fact: a green build precludes the
+"consumer destructures more than the type promises" pattern from hiding in
+*proved* consumers (it would be a build error); it can only hide where a
+*sorry'd* consumer sorry's over a missing witness.  The substantive sorry'd
+bodies (#10/#11/#14) compose *proved* scaffolding (`picard_iterate_*`,
+`exists_vlasov_characteristicFlow*`, `Phi_supW1_contraction`) or proved-modulo
+declarations with green-honored types.  `_finalAssembly` (proved) absorbed the
+surgery's cont via Stage C / #11's bundle, so #11's obligation did **not** grow
+(its type already carried the `HasDerivWithinAt` bundle).  The only
+obligation-growth on the board is the surgery's #12/#14 — fully accounted across
+all six producers (4 absorbed with real proofs, 2 grew bounded).  No hidden
+third instance.
+
+**Tagging (hidden/visible × bounded/hard) of the 14**: all *visible* (green
+build).  Bounded-internal: #10, #11, #12, #13, #14.  Bucket-1 FA (pure or
+mod-W₁): #1, #4, #5, #6, #8, #9.  Internal-reclassified: #3.  **Hard-OT
+(Mathlib-blocked): #2, #7 — and only these two.**
