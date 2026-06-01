@@ -1981,3 +1981,45 @@ third instance.
 build).  Bounded-internal: #10, #11, #12, #13, #14.  Bucket-1 FA (pure or
 mod-W₁): #1, #4, #5, #6, #8, #9.  Internal-reclassified: #3.  **Hard-OT
 (Mathlib-blocked): #2, #7 — and only these two.**
+
+### #11 assembly read (2026-06-01) — bounded, 3 subtleties, 1 over-strength
+
+Read #11's body before editing (the discipline that's caught every false/over-
+strong statement this arc).  Steps 1-3, 5-7 + the conjunct-derivations
+(`h_boundary`, `hM_ρ_bound`, `h_y_int_ρ`, `h_aemeas_out`) are **already proved**
+(ride on `h_self_consist` + proved scaffolding).  Four sorries remain, in three
+classes:
+
+* **L6610 — Picard sequence + contraction (heart)**: build `x : ℕ →
+  VlasovMeasureCurve d T M` by `Phi_step` + induction; per-step contraction
+  `supW1On (x k) (x (k+1)) ≤ ofReal (q^k · D₀)` from `Phi_supW1_contraction`
+  (which takes ~16 hyps — integrability/AEmeas/moment/two-flows — to supply for
+  consecutive iterates).  `q < 1`, `picard_iterate_bundlesAs_VlasovMeasureCurve`
+  (proved) consumes it (L6614 already wired).  Plumbing-heavy but bounded.
+* **L6693 — self-consistency `Φ(ρ_lim) = ρ_lim`** (the subtle one): the Step-7
+  flow (`exists_vlasov_..._global_smallT` against `ρ_lim.extend`) and Φ's
+  internal flow are *separately constructed* against the same `ρ_lim` —
+  identifying them is an **ODE-uniqueness** argument, not definitional.  This is
+  the genuine mathematical content of the fixed point.
+* **L6740 / L6757 — universal-`s` OVER-STRENGTH (B3)**: conclusion demands
+  `∀ s, Continuous/Integrable (conv against spatialMarginal(pushforward s))` —
+  universal `s` — but the construction controls only `[0,T]`; off-window
+  `charX_s` is an uncharacterized total-function value (no finite-moment
+  guarantee).  Traced up: **Stage C's hyps `hconv_cont`/`h_int` are `∀ s`**
+  (L3620/L3630), forcing #11's conclusion universal.  The window weak-PDE
+  (`Ioo 0 T`) almost certainly only needs window-`s` → these are likely
+  over-strong, weakenable to `∀ s ∈ Icc 0 T`.  **P5 caveat**: do NOT assume —
+  verify the weak-PDE cascade (`vlasovSolutionViaPushforward_isVlasovSolutionOn`
+  and below) only consumes window-`s` before weakening.
+
+**3-step assembly plan (focused next session)**:
+1. **Verify + weaken the universal-`s` over-strength** (B3/M2 statement-
+   correction): trace Stage C's `hconv_cont`/`h_int` consumption; if window-only,
+   weaken Stage C + #11 conclusion to `∀ s ∈ Icc 0 T` → L6740/L6757 close from
+   `h_self_consist` + `h_int_ρ_lim`.  (Statement-correctness first, à la item-3
+   realign.)
+2. **L6610 Picard sequence**: assemble `x_n` + contraction.
+3. **L6693 self-consistency**: the ODE-uniqueness fixed-point argument.
+
+Order matters: (1) is a statement fix that may *shrink* the obligation before
+(2)/(3) build on it — the M2 "fix the statement before proving the body" rule.
