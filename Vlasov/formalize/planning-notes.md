@@ -2012,14 +2012,50 @@ classes:
   verify the weak-PDE cascade (`vlasovSolutionViaPushforward_isVlasovSolutionOn`
   and below) only consumes window-`s` before weakening.
 
-**3-step assembly plan (focused next session)**:
-1. **Verify + weaken the universal-`s` over-strength** (B3/M2 statement-
-   correction): trace Stage C's `hconv_cont`/`h_int` consumption; if window-only,
-   weaken Stage C + #11 conclusion to `∀ s ∈ Icc 0 T` → L6740/L6757 close from
-   `h_self_consist` + `h_int_ρ_lim`.  (Statement-correctness first, à la item-3
-   realign.)
-2. **L6610 Picard sequence**: assemble `x_n` + contraction.
-3. **L6693 self-consistency**: the ODE-uniqueness fixed-point argument.
+**3-step assembly plan (focused next session — do NOT start at a session tail)**:
 
-Order matters: (1) is a statement fix that may *shrink* the obligation before
-(2)/(3) build on it — the M2 "fix the statement before proving the body" rule.
+1. **Verify + weaken the universal-`s` over-strength** — *a soundness-sensitive
+   cascade, not a cheap verification*.  Weakening Stage C's `∀ s`
+   `hconv_cont`/`h_int` ripples to **every consumer of Stage C's universal form**,
+   including the producers threaded in the #13 surgery.  **P5 gate**: the read
+   *found* the over-strength; it did **not** prove the weakening is safe — those
+   are different, and the gap is a P5 obligation.  Trace the weak-PDE cascade
+   (`vlasovSolutionViaPushforward_isVlasovSolutionOn` and below) and confirm it
+   consumes only window-`s` **before** weakening Stage C + #11 conclusion to
+   `∀ s ∈ Icc 0 T`.  Only then do L6740/L6757 close from `h_self_consist` +
+   `h_int_ρ_lim`.  This is the maneuver (weaken an over-strong statement) with
+   the **highest hidden-soundness risk on the board** — run it with the P5 gate,
+   never at a tail.
+2. **L6610 Picard sequence**: assemble `x_n` + contraction (plumbing, bounded).
+3. **L6693 self-consistency — THE ONE GENUINELY-NEW INTERNAL PROOF.**  Not
+   "subtlety 3 alongside plumbing": it is the *only remaining internal step that
+   is neither assembly nor statement-correction*.  Two separately-constructed
+   flows against the same `ρ_lim` get identified, and that identification **is**
+   an ODE-uniqueness theorem (Picard-Lindelöf uniqueness for the characteristic
+   system).  **Step 3's opening move** (the #11 analogue of the separation-lemma
+   grep): *is ODE uniqueness already banked in the scaffolding* — does some
+   `exists_vlasov_characteristicFlow*` / PicardLindelof lemma give **uniqueness**,
+   not just existence?  If existence-only, L6693 has a sub-target that is its own
+   lemma, and step 3's size changes materially.  **Check banked-uniqueness before
+   assuming self-consistency is "compose what's there."**
+
+**Ordering rationale (lock this so the fresh session doesn't reorder under the
+pull toward the substantive part)**: statement-correction (1) **before** body-
+proof (2)/(3), per M2 — *fix the target, then aim*.  Proving the Picard assembly
+against a universal-`s` conclusion you cannot deliver is wasted work you'd
+unwind.  The natural temptation is "prove the heart first, fix the statement
+after"; resist it — weaken to the correct, achievable `∀ s ∈ Icc 0 T` target
+first, then steps 2/3 prove the right thing once.
+
+### Complete map of remaining internal work (post-#11-read, 2026-06-01)
+
+The internal pile is now fully characterized:
+* **Bounded assembly**: #10 (mechanical), #12 (glue), #14 (colimit), #11 steps
+  1-2 (Picard sequence + statement-correction).
+* **One statement-correction cascade**: #11 step 1 (P5-gated, soundness-sensitive).
+* **Exactly one genuinely-new internal proof**: #11 step 3 (ODE-uniqueness,
+  pending the banked-uniqueness check).
+
+Everything else is the FA partition (#1/#4/#5/#6/#8/#9 Bucket-1, #3 internal-
+reclassify, #2/#7 the two hard-OT deliverables).  That is the whole distance to
+the endpoint.
