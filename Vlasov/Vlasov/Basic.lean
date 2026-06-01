@@ -1238,6 +1238,168 @@ lemma wasserstein1_le_of_lipschitz_map
     -- Use le_iSup at (h, h_lip).
     exact le_iSup_of_le h (le_iSup_of_le h_lip le_rfl)
 
+/-- **KR-dual lower bound for `wasserstein1`** (the fourth property of the
+W₁-property API, banked as a property lemma for forward-looking
+close discipline per planning-notes commit `9b70ecb`).
+
+For any 1-Lipschitz `f : α → ℝ` and any measures μ, ν on a pseudo-metric
+measurable space, the (positive part of the) integral difference is a
+lower bound on `W₁(μ, ν)`:
+  `ENNReal.ofReal (∫ f dμ - ∫ f dν) ≤ wasserstein1 μ ν`.
+
+This is the "easy direction" of the Kantorovich-Rubinstein dual
+characterization — it is built into the definition `wasserstein1 :=
+⨆ f hf, ENNReal.ofReal (∫ f dμ - ∫ f dν)` and follows by `le_iSup`.
+
+**The unfold is appropriate here**: this lemma IS the property-API
+exposure of `wasserstein1`'s dual structure.  The forward-looking
+discipline ("let `wasserstein1` touch proofs only through abstract
+properties") applies to *consumers* of W₁; property lemmas like this
+one ARE the abstraction layer and unfold to establish the
+property-level interface.  W̄-survivor automatically: when W̄ replaces
+`wasserstein1`, this lemma's proof gets re-derived against W̄'s
+concrete form (the KR-dual lower bound is generic across cost
+formulations).
+
+**Application** (sketch): chained with `f → -f` 1-Lipschitz, gives the
+"W₁=0 → ∫f dμ = ∫f dν for 1-Lipschitz f" reduction at the entry to
+the separation lemma. -/
+lemma wasserstein1_dual_lower_bound
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) (f : α → ℝ) (hf : LipschitzWith 1 f) :
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wasserstein1 μ ν := by
+  unfold wasserstein1
+  exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+
+/-- **Mathlib-TODO (pure measure theory + functional analysis):
+bounded-continuous integral equality from 1-Lipschitz integral equality
+on first-moment-integrable probability measures over Polish normed
+spaces.**
+
+For probability measures μ, ν on a normed-AddCommGroup space `α` with
+the Borel σ-algebra, both having finite first moments, if
+`∫ f dμ = ∫ f dν` for every 1-Lipschitz function `f : α → ℝ` (with
+appropriate integrability), then the same equality holds for every
+bounded continuous function `f : α →ᵇ ℝ`.
+
+**Proof idea (sketch — substantive Bucket-1 Mathlib gap)**:
+1. For bounded-Lipschitz `g` with Lipschitz constant `L > 0`,
+   `g / L` is 1-Lipschitz, so equality of integrals at scale `L`
+   follows from the 1-Lipschitz hypothesis.
+2. For BC `φ`, approximate by bounded-Lipschitz functions in
+   `L¹(μ + ν)` via truncation + Lipschitz mollification:
+   * Truncation: replace `φ` with `φ · χ_R` where `χ_R` is a Lipschitz
+     bump supported on a ball of radius `R + 1`; the tail
+     `μ({|y| > R}) + ν({|y| > R}) → 0` as `R → ∞` (Markov + finite
+     first moments).
+   * Lipschitz mollification: on a Polish normed space, BC functions
+     can be uniformly approximated on bounded sets by Lipschitz
+     functions (Stone-Weierstrass-flavored density of bounded-Lipschitz
+     in BC under the appropriate uniformity).
+3. Combining truncation + mollification + the 1-Lipschitz hypothesis
+   gives `|∫ φ dμ - ∫ φ dν| ≤ ε` for any ε > 0, hence equality.
+
+**Bucket-1 PR scope**: standard measure theory + functional analysis.
+Same family as `MathlibTODO_bcNarrowFromSmoothCompactNarrow`
+(Basic.lean L1794) — both are BC-extension-from-smaller-class results,
+operating on different sub-classes (smooth-CS for narrow continuity
+along curves vs 1-Lipschitz for integral equality on static measures).
+
+**Banked for forward-looking close discipline**: the separation lemma
+`wasserstein1_eq_zero_iff_measure_eq` consumes this as its W̄-survivor
+middle step.  When W̄ arrives, this placeholder doesn't change (its
+hypothesis is a 1-Lipschitz integral equality, not a W₁ fact); only
+the *feeder* changes (W̄=0 → 1-Lipschitz equality replacing W₁=0 →
+1-Lipschitz equality), which is a one-line `wasserstein1_dual_lower_bound`
+analogue for W̄. -/
+theorem MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment
+    {α : Type*}
+    [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (_hμ_int : Integrable (fun y : α => ‖y‖) μ)
+    (_hν_int : Integrable (fun y : α => ‖y‖) ν)
+    (_h_1lip : ∀ (f : α → ℝ), LipschitzWith 1 f →
+               Integrable f μ → Integrable f ν →
+               ∫ x, f x ∂μ = ∫ x, f x ∂ν) :
+    ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν := by
+  sorry
+
+/-- **Separation lemma for `wasserstein1`** (Stage 2b part 4, 2026-05-31).
+
+For probability measures μ, ν on a Polish normed space with finite
+first moments, `W₁(μ, ν) = 0` iff `μ = ν`.
+
+**Property-only proof per forward-looking close discipline** (planning-
+notes commit `9b70ecb`).  `wasserstein1` enters the proof body
+exclusively through banked property lemmas:
+* `wasserstein1_self` (trivial direction).
+* `wasserstein1_dual_lower_bound` (W₁=0 → 1-Lipschitz integral
+  equality).
+
+The substantive middle (1-Lipschitz equality → BC equality) is
+banked as the named pure-FA placeholder
+`MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` (above).
+The final step (BC equality → μ = ν) routes through Mathlib's
+`ext_of_forall_integral_eq_of_IsFiniteMeasure`
+(`HasOuterApproxClosed.lean` L268).
+
+**No `simp [wasserstein1]` or `unfold wasserstein1` anywhere in the
+body** — `wasserstein1` enters only via the property API and the
+hypothesis `h_w1_zero : wasserstein1 μ ν = 0`.  W̄-survivor by
+construction: when W̄ replaces `wasserstein1`, the only changes are
+the property-lemma proofs (mechanical re-derivation); this lemma's
+body composes against the abstract property API and recompiles. -/
+lemma wasserstein1_eq_zero_iff_measure_eq
+    {α : Type*}
+    [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
+    [HasOuterApproxClosed α]
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (hμ_int : Integrable (fun y : α => ‖y‖) μ)
+    (hν_int : Integrable (fun y : α => ‖y‖) ν) :
+    wasserstein1 μ ν = 0 ↔ μ = ν := by
+  constructor
+  · -- Forward (substantive): W₁=0 → μ=ν.
+    intro h_w1_zero
+    -- Step 1 (property-only via `wasserstein1_dual_lower_bound`):
+    -- W₁=0 → ∫f dμ = ∫f dν for every integrable 1-Lipschitz f.
+    have h_1lip_eq : ∀ (f : α → ℝ), LipschitzWith 1 f →
+                     Integrable f μ → Integrable f ν →
+                     ∫ x, f x ∂μ = ∫ x, f x ∂ν := by
+      intro f hf _hf_int_μ _hf_int_ν
+      -- Apply the property at f and -f; combine.
+      have h_pos : ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wasserstein1 μ ν :=
+        wasserstein1_dual_lower_bound μ ν f hf
+      have hf_neg : LipschitzWith 1 (-f) := by
+        simpa using hf.neg
+      have h_neg : ENNReal.ofReal (∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν) ≤ wasserstein1 μ ν :=
+        wasserstein1_dual_lower_bound μ ν (-f) hf_neg
+      rw [h_w1_zero] at h_pos h_neg
+      -- ENNReal.ofReal ≤ 0 (in ENNReal) iff = 0 iff the real argument is ≤ 0.
+      have h_pos_eq : ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) = 0 :=
+        le_antisymm h_pos (zero_le _)
+      have h_neg_eq : ENNReal.ofReal (∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν) = 0 :=
+        le_antisymm h_neg (zero_le _)
+      have h_diff_pos : ∫ x, f x ∂μ - ∫ x, f x ∂ν ≤ 0 :=
+        (ENNReal.ofReal_eq_zero).mp h_pos_eq
+      have h_diff_neg : ∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν ≤ 0 :=
+        (ENNReal.ofReal_eq_zero).mp h_neg_eq
+      -- ∫(-f) dμ - ∫(-f) dν = -(∫f dμ - ∫f dν).
+      have h_neg_int : ∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν =
+          -(∫ x, f x ∂μ - ∫ x, f x ∂ν) := by
+        simp only [Pi.neg_apply, integral_neg]; ring
+      rw [h_neg_int] at h_diff_neg
+      linarith
+    -- Step 2 (placeholder, W̄-survivor): 1-Lipschitz integral equality → BC integral
+    -- equality.  See `MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` above.
+    have h_bc_eq : ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
+      MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment μ ν hμ_int hν_int h_1lip_eq
+    -- Step 3 (Mathlib `ext_of_forall_integral_eq_of_IsFiniteMeasure`): BC equality → μ=ν.
+    exact ext_of_forall_integral_eq_of_IsFiniteMeasure h_bc_eq
+  · -- Backward (trivial): μ=ν → W₁=0, via the property `wasserstein1_self`.
+    intro h_eq
+    subst h_eq
+    exact wasserstein1_self μ
+
 /-- **Mathlib-TODO: completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.**
 
 A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit
