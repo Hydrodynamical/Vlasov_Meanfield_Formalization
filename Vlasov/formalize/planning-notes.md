@@ -1775,11 +1775,52 @@ predicate adequacy) is unverified.  The realign-to-Lagrangian-class fix
 (`94d44a9`) made W1ContOn_On *sound to state*; it did not prove the endpoints
 are actually available from the predicate.
 
-**Sequencing rule**: fill `W1ContOn_On` **before** anything that depends on
-uniqueness being truly closed (Stage 6 wire-up consumers, any "uniqueness ⇒ X"
-downstream).  Treat the W1ContOn_On fill as a *diagnostic-first* task: open by
-reading whether `IsLagrangianVlasovSolutionOn`'s flow witness + closed-window
-pushforward already pin `t ∈ {0,T}` continuity (then it's provable, possibly
-via `FDeriv/Extend` one-sided lemmas, B2-anti-prophylaxis), or whether the
-predicate must be enriched first (B2 surgery).  The answer determines whether
-this is a fill or a predicate-enrichment commit.
+**Sequencing rule (corrected framing, 2026-06-01 regroup)**: #13 goes first
+**not** because it gates many consumers (consumer-count is the weak argument the
+P7/P8 arc warned against) but because it is the **only board item whose honesty
+is currently in question**.  The other 13 sorries are *known, soundly-stated
+obligations* waiting to be filled; #13 is the one where "structurally complete
+modulo placeholders" is **not yet sound**, because the predicate enrichment it
+needs has not been shown to carry the boundary fact.  You do not build further
+on a foundation whose soundness is owed.  That is a **soundness** rule, not a
+dependency-count rule — restate it that way so the next ordering pass doesn't
+re-derive it from consumer-count and get the right answer for the wrong reason.
+
+### #13 fill-read result (2026-06-01) — conjunct shape DECIDED: `HasDerivWithinAt`
+
+The gating sub-step: *what does `W1ContOn_On`'s fill consume at the endpoint?*
+Read `MathlibTODO_w1UpperSemicontinuousAlongLagrangianFlows` (item 5, the USC
+half, Basic L2185).  It consumes the flow as
+`_hΦ_f : ∀ z t, HasDerivAt (fun s => Φ_f s z) (b_f t (Φ_f t z)) t` — the
+**derivative** form, not mere continuity.  So the window USC analog the fill
+routes through demands `HasDerivWithinAt ... (Icc 0 T)`.  Therefore:
+
+* Conjunct shape = the **`HasDerivWithinAt` boundary bundle** (exactly Stage
+  1.9's `exists_vlasov_characteristicFlow_global_smallT` output, CharFlow
+  L4459–4463).  Matched, not over-strength (M2): the consumer genuinely
+  demands the derivative form, and it is the form already proven upstream, so
+  producers thread it at zero cost.
+* `ContinuousOn`-only would be the **under-strength** failure mode (re-enrich
+  mid-surgery when the window item 5 needs the derivative).
+
+### #11 long-pole audit (2026-06-01) — the contraction is PROVED; #11 is bounded
+
+Per the regroup's instruction to convert the long-pole unknown to a known:
+cross-checked the Picard scaffolding against the sorry set.  **None of it is
+sorry'd** — `Phi_step` (L5252), **`Phi_supW1_contraction` (L5779, the Stage-3
+contraction crux)**, `picard_iterate_isCauchy_of_contraction` (L5957),
+`picard_iterate_bundlesAs_VlasovMeasureCurve` (L6102),
+`Phi_isProbabilityMeasure`/`Phi_hasMoment_le`/`Phi_asVlasovMeasureCurve`,
+`VlasovMeasureCurve.extend*`, `constantCurve`, `supW1On` all have sorry-free
+bodies.  So #11 `picard_fixedPointFlow` is **assembly of proved pieces**
+(~150-220 lines: Picard sequence → apply contraction → bundle limit → extract
+flow), **not** novel contraction proof.
+
+**Endgame consequence**: the project has **no unbounded research-grade long
+pole**.  All four project-internal items (#10 mechanical, #11 bounded assembly,
+#12 glue assembly, #14 colimit assembly) are bounded; the substantive math
+(contraction, pushforward W₁ bounds, flow growth) is already proved.  The
+"close all internal sorries, leaving only FA placeholders" endpoint is
+*bounded effort*, not a research effort.  Risk classes on the board: one
+bounded-owed item (#13, soundness) and four bounded-assembly items; the nine FA
+items are known/externalizable.  No item is unbounded-until-looked-at anymore.
