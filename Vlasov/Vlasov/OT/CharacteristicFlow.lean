@@ -682,7 +682,8 @@ theorem phi_moment_envelope_le {d : ℕ} [NeZero d]
       ‖(charX t z, charV t z)‖ ≤ gronwallBound ‖z‖ (1 + (L : ℝ)) (g0 + (L : ℝ) * m t) t)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
-    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀) :
+    (h_meas : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX t z) f₀) :
     ∀ t ∈ Set.Icc (0 : ℝ) T,
       ∫ x, ‖x‖ ∂(Measure.map (fun z : PhaseSpace d => charX t z) f₀)
         ≤ gronwallBound (∫ z, ‖z‖ ∂f₀) (1 + (L : ℝ)) (g0 + (L : ℝ) * m t) t := by
@@ -700,10 +701,10 @@ theorem phi_moment_envelope_le {d : ℕ} [NeZero d]
   have h_charX_le : ∀ z : PhaseSpace d, ‖charX t z‖ ≤ gronwallBound ‖z‖ K εt t := fun z =>
     le_trans (norm_fst_le (charX t z, charV t z)) (h_growth t ht z)
   have h_charX_int : Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀ :=
-    h_dom_int.mono' ((h_meas t).norm.aestronglyMeasurable)
+    h_dom_int.mono' ((h_meas t ht).norm.aestronglyMeasurable)
       (Filter.Eventually.of_forall fun z => by
         rw [Real.norm_of_nonneg (norm_nonneg _)]; exact h_charX_le z)
-  rw [integral_map (h_meas t) continuous_norm.aestronglyMeasurable]
+  rw [integral_map (h_meas t ht) continuous_norm.aestronglyMeasurable]
   calc ∫ z, ‖charX t z‖ ∂f₀
       ≤ ∫ z, gronwallBound ‖z‖ K εt t ∂f₀ :=
         integral_mono h_charX_int h_dom_int h_charX_le
@@ -738,21 +739,17 @@ identity on the velocity coordinate, combined via `LipschitzWith.prodMk`).
 The global Lipschitz immediately restricts to any closed ball,
 giving the first of the four `IsPicardLindelof` fields.
 
-Status: the constructor `vlasovVectorField_lipschitzWith` is closed.
-The full `exists_vlasov_characteristicFlow` still has a documented
-sorry — the open work is (a) packaging the global norm bound
-(`vlasovVectorField_norm_le`) into a `LipschitzOnWith`-restricted-
-to-ball with a chosen radius, (b) extracting the in-time
-continuity from `hρ_cont`, (c) selecting `(a, r, L, K)` so the
-contraction condition `L · (tmax - t₀) ≤ a - r` holds on a small
-window, (d) invoking
-`exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`,
-(e) bridging `HasDerivWithinAt` ↔ `HasDerivAt` for interior times,
-and (f) stitching overlapping windows to cover `[0, T]`.
-
-Each of (a)-(f) is intricate but routine.  Downstream callers can
-already write against the export shape; closing (a)-(f) is the
-follow-up session. -/
+Status: the constructor `vlasovVectorField_lipschitzWith` is closed,
+and the full `exists_vlasov_characteristicFlow` is **closed** (no
+`sorry`).  Its proof packages the global norm bound into a per-window
+`IsPicardLindelof`, invokes the vendored Picard-Lindelöf
+(`exists_vlasov_extend_one_window`), and stitches `N = ⌈T/δ⌉` windows
+per-`z` via `HasDerivWithinAt.union` under the position/velocity
+inductive invariant.  Downstream callers discharge its `hR`/`hbound`
+hypotheses; the single-ball-over-`[0,T+1]` `hR` discharge in
+`exists_vlasov_perz_trajectory` is what introduces the
+`LocalSmallness_PL_buffer L T := L·(T+1)² < 1` constraint — see that
+theorem's docstring for the `+1`-offset / arbitrary-`L` discussion. -/
 
 /-- Localized variant of `IsCharacteristicFlow` from `Basic.lean`:
 the same initial condition + position/velocity ODEs, but quantified
@@ -1537,10 +1534,14 @@ lemma vlasov_window_position_bound
 
 /-- **Global** characteristic-flow existence on `[0, T]`.
 
-This is the eventual N-window stitching target: iterate the
-two-window combine (`exists_vlasov_characteristicFlow_twoWindow`
-below) on `⌈T/δ⌉` windows and glue via `ODE_solution_unique`
-(`Mathlib/Analysis/ODE/Gronwall.lean:379`) at each interior join.
+Proven via a per-`z` N-window induction (`h_perZ` below): for each
+initial `z ∈ closedBall z₀ (a/2)`, iterate `exists_vlasov_extend_one_window`
+across `N = ⌈T/δ_uniform⌉` windows of uniform width `δ_uniform`, gluing
+adjacent windows at their joins via `HasDerivWithinAt.union` under the
+inductive invariant (within-derivative ODE on `Icc 0 (k·δ)`, tight
+velocity bound, linear position bound).  No `sorry`; fully closed by
+composition (and its vendored `Vlasov.Mathlib.ODE.PicardLindelof`
+dependency is also `sorry`-free).
 
 The conclusion is `IsCharacteristicFlowOn ... (Ioo 0 T) ...` rather
 than the unconstrained `IsCharacteristicFlow` (which would require
@@ -1549,7 +1550,16 @@ Picard solutions).  The hypothesis `hR` enforces that the global
 position-ball radius `R` covers the a-priori reachable set —
 `(3a/2 + M·T)` is the loose bound; tighter forms work too.
 
-Currently sorry'd; closing it is the next follow-up session. -/
+**Note on the `(T+1)²` in `hR`** (the additive-`+1` offset): consumers
+that discharge `hR` by a *single* ball over `[0, T+1]`
+(`exists_vlasov_perz_trajectory`, via `R := N(z)/(1 - L(T+1)²)`) thereby
+incur the smallness `LocalSmallness_PL_buffer L T := L·(T+1)² < 1`, which
+forces `L < 1` (overclaim-by-restriction vs. Dobrushin's arbitrary `L`).
+That constraint lives in the *consumer's* `hR`-discharge, not here — this
+theorem takes `hR`/`hbound` as hypotheses and is `L`-agnostic.  A fixed-`δ`
+N-window *re-consumption* of this (proven) theorem would discharge `hR`
+per short window with `L·δ² < 1` (satisfiable for any `L`), dropping the
+`+1`-offset smallness — a localized consumer swap, not a rebuild. -/
 theorem exists_vlasov_characteristicFlow
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
@@ -5714,6 +5724,207 @@ theorem Phi_step
   show charX (clampToIcc T t) z = charX t z
   rw [h_clamp_eq]
 
+/-- **Piece D keystone (Option 2): `Φ`-step landing in the fixed envelope space.**
+
+`Phi_step` produces a flow `(charX, charV)` against `ρ.extend` and bundles its
+position pushforward into the *constant* space `VlasovMeasureCurve d T (fun _ =>
+C_T·(M_f₀+1))`.  The constant bound grows with each `Φ`-iteration (the moment
+fixed-point pathology, M2 sighting 4 / M3).  This wrapper **re-bundles the same
+pushforward into the fixed envelope space** `VlasovMeasureCurve d T m`, where
+`m` is the canonical Gronwall envelope of `gronwall_envelope_exists` (Piece A.3):
+because `m` is `Φ`-invariant at the moment level, `Φ` maps `space(m)` to itself,
+so the Picard sequence stays in one fixed curve space — dissolving the
+fixed-point in `M`.
+
+The moment re-bundling is the measure-level data-free escape:
+`∫‖x‖∂(map (charX t) f₀) ≤ gronwallBound (∫z‖z‖∂f₀) (1+L) (‖gradW 0‖ + L·m t) t`
+(Piece A.2 `phi_moment_envelope_le`, fed the per-`z` growth bound `Phi_step`
+exposes) `≤ m t` (Piece A.3 invariance `hm_inv`).
+
+Output also exposes the **boundary-regularity bundle** (as
+`exists_vlasov_characteristicFlow_global_smallT`) so the Picard recursion can
+discharge `Phi_supW1_contraction`'s per-`z` regularity hypotheses at each step.
+
+The envelope's anchor moment is the **phase-space** `∫z‖z‖∂f₀` (matching A.2's
+`integral_map` initial value), NOT the spatial marginal — see Piece D brief F1.
+
+API-lock (body deferred): the construction is `Phi_step` + boundary exposure +
+A.2/A.3 moment re-bundle; closing it is a focused leaf. -/
+theorem Phi_step_envelope
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 ≤ T)
+    (m : ℝ → ℝ) (hm_mono : MonotoneOn m (Set.Icc 0 T))
+    (hm_nn : ∀ t ∈ Set.Icc (0 : ℝ) T, 0 ≤ m t)
+    (hm_inv : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      gronwallBound (∫ z, ‖z‖ ∂f₀) (1 + (L : ℝ)) (‖gradW 0‖ + (L : ℝ) * m t) t ≤ m t)
+    (hTL_PL : LocalSmallness_PL_buffer L T)
+    (ρ : VlasovMeasureCurve d T m)
+    (h_int_ext : ∀ t (x : PhysSpace d),
+                  Integrable (fun y => gradW (x - y)) (ρ.extend t)) :
+    ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
+      IsCharacteristicFlowOn gradW ρ.extend charX charV (Set.Ioo 0 T) Set.univ ∧
+      (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charV s z)
+          (-(convolveFunctionMeasure gradW (ρ.extend t) (charX t z)))
+          (Set.Icc 0 T) t) ∧
+      ∃ σ : VlasovMeasureCurve d T m,
+        ∀ t ∈ Set.Icc (0 : ℝ) T,
+          σ.ρ t = Measure.map (fun z : PhaseSpace d => charX t z) f₀ := by
+  haveI hExt_prob : ∀ t, IsProbabilityMeasure (ρ.extend t) :=
+    VlasovMeasureCurve.extend_isProb ρ
+  have hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ.extend t) x) := by
+    intro x
+    have h_int_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
+        Integrable (fun y => gradW (x - y)) (ρ.ρ t) := by
+      intro t ht
+      have h_eq : ρ.extend t = ρ.ρ t := by
+        unfold VlasovMeasureCurve.extend clampToIcc
+        congr 1
+        rw [min_eq_left ht.2, max_eq_right ht.1]
+      rw [← h_eq]; exact h_int_ext t x
+    exact VlasovMeasureCurve.extend_convCont gradW L hL hT ρ x h_int_Icc
+  have h_y_int : ∀ t, Integrable (fun y : PhysSpace d => ‖y‖) (ρ.extend t) :=
+    fun t => VlasovMeasureCurve.extend_yIntegrable hT ρ t
+  have hMbar_nn : 0 ≤ m T := hm_nn T ⟨hT, le_refl T⟩
+  have hMbar : ∀ t ∈ Set.Icc (0:ℝ) T, m t ≤ m T :=
+    fun t ht => hm_mono ht ⟨hT, le_refl T⟩ ht.2
+  have hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ m T :=
+    fun t => le_trans (VlasovMeasureCurve.extend_hasMoment hT ρ t)
+      (hMbar (clampToIcc T t) (clampToIcc_mem hT t))
+  obtain ⟨charX, charV, hflow_on, h_boundary⟩ :=
+    exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
+      ρ.extend h_int_ext hρ_cont h_y_int (m T) hMbar_nn hM_ρ T hT hTL_PL
+  obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
+      hflow_on h_boundary
+  have hm_M : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ m t := by
+    intro t ht
+    have h_eq : ρ.extend t = ρ.ρ t := by
+      unfold VlasovMeasureCurve.extend clampToIcc
+      congr 1
+      rw [min_eq_left ht.2, max_eq_right ht.1]
+    rw [h_eq]; exact ρ.hasMoment t ht
+  have h_growth_timedep : ∀ t ∈ Set.Icc (0:ℝ) T, ∀ z : PhaseSpace d,
+      ‖(charX t z, charV t z)‖ ≤
+        gronwallBound ‖z‖ (1 + (L : ℝ)) (‖gradW 0‖ + (L : ℝ) * m t) t :=
+    flow_distance_growth_bound_on_timedep gradW L hL ρ.extend charX charV T hT
+      h_init h_cont_Icc h_deriv_Ico m hm_mono hm_M (fun t _ => h_y_int t) h_int_ext
+  obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
+    flow_distance_growth_bound_on gradW L hL ρ.extend charX charV T hT
+      h_init h_cont_Icc h_deriv_Ico (m T) hMbar_nn
+      (fun t _ => hM_ρ t) (fun t _ => h_y_int t) h_int_ext
+  have h_meas_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) :=
+    charFlow_measurable_via_gronwall gradW L hL ρ.extend h_int_ext charX charV
+      T hT h_init h_cont_Icc h_deriv_Ico
+  let charX_clamped : ℝ → PhaseSpace d → PhysSpace d :=
+    fun t z => charX (clampToIcc T t) z
+  have h_meas_clamped : ∀ t,
+      AEMeasurable (fun z : PhaseSpace d => charX_clamped t z) f₀ := by
+    intro t
+    have h_clamp_mem := clampToIcc_mem hT t
+    have h_meas_full := h_meas_Icc (clampToIcc T t) h_clamp_mem
+    exact (measurable_fst.comp h_meas_full).aemeasurable
+  have h_growth_clamped : ∀ t ∈ Set.Icc (0:ℝ) T, ∀ z : PhaseSpace d,
+      ‖charX_clamped t z‖ ≤ C_T * (‖z‖ + 1) := by
+    intro t ht z
+    have h_clamp_eq : clampToIcc T t = t := by
+      unfold clampToIcc
+      rw [min_eq_left ht.2, max_eq_right ht.1]
+    show ‖charX (clampToIcc T t) z‖ ≤ _
+    rw [h_clamp_eq]
+    have h_full := h_growth t ht z
+    have h_proj : ‖charX t z‖ ≤ ‖(charX t z, charV t z)‖ := by
+      simp [Prod.norm_def]
+    linarith
+  have h_int_charX_clamped : ∀ t,
+      Integrable (fun z : PhaseSpace d => ‖charX_clamped t z‖) f₀ := by
+    intro t
+    have h_clamp_mem := clampToIcc_mem hT t
+    have h_bound : ∀ z, ‖charX_clamped t z‖ ≤ C_T * (‖z‖ + 1) := by
+      intro z
+      show ‖charX (clampToIcc T t) z‖ ≤ _
+      have h_full := h_growth (clampToIcc T t) h_clamp_mem z
+      have h_proj : ‖charX (clampToIcc T t) z‖ ≤
+                    ‖(charX (clampToIcc T t) z, charV (clampToIcc T t) z)‖ := by
+        simp [Prod.norm_def]
+      linarith
+    have h_dom_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+      have h1 : Integrable (fun z : PhaseSpace d => C_T * ‖z‖) f₀ :=
+        h_f₀_int.const_mul C_T
+      have h2 : Integrable (fun _ : PhaseSpace d => C_T) f₀ := integrable_const _
+      have h_eq : (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) =
+                  fun z => C_T * ‖z‖ + C_T := by funext z; ring
+      rw [h_eq]; exact h1.add h2
+    have h_aesm : AEStronglyMeasurable
+        (fun z : PhaseSpace d => ‖charX_clamped t z‖) f₀ :=
+      (h_meas_clamped t).norm.aestronglyMeasurable
+    refine h_dom_int.mono' h_aesm ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact h_bound z
+  have h_charX_cont_clamped : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ z,
+      ContinuousWithinAt (fun t => charX_clamped t z) (Set.Icc 0 T) s := by
+    intro s hs z
+    have h_full := (h_cont_Icc z).continuousWithinAt hs
+    have h_charX_cwn : ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s :=
+      h_full.fst
+    have h_eq_on : ∀ t ∈ Set.Icc (0:ℝ) T, charX_clamped t z = charX t z := by
+      intro t ht
+      show charX (clampToIcc T t) z = charX t z
+      have h_clamp_eq : clampToIcc T t = t := by
+        unfold clampToIcc
+        rw [min_eq_left ht.2, max_eq_right ht.1]
+      rw [h_clamp_eq]
+    exact h_charX_cwn.congr h_eq_on (h_eq_on s hs)
+  let σ_const := Phi_asVlasovMeasureCurve charX_clamped f₀ h_meas_clamped
+    h_int_charX_clamped T hT C_T hC_T_nn h_growth_clamped h_f₀_int
+    (∫ z, ‖z‖ ∂f₀) (le_refl _) h_charX_cont_clamped
+  -- On `Icc`, the clamped pushforward equals the raw pushforward.
+  have h_rho_eq : ∀ t ∈ Set.Icc (0:ℝ) T,
+      σ_const.ρ t = Measure.map (fun z : PhaseSpace d => charX t z) f₀ := by
+    intro t ht
+    show Phi charX_clamped f₀ t = Measure.map (fun z => charX t z) f₀
+    unfold Phi
+    have h_clamp_eq : clampToIcc T t = t := by
+      unfold clampToIcc
+      rw [min_eq_left ht.2, max_eq_right ht.1]
+    congr 1
+    funext z
+    show charX (clampToIcc T t) z = charX t z
+    rw [h_clamp_eq]
+  -- Moment re-bundle (the data-free escape): A.2 integrates the per-`z`
+  -- envelope growth to a moment bound, A.3's `hm_inv` closes it against `m`.
+  have h_meas_charX_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX t z) f₀ :=
+    fun t ht => (measurable_fst.comp (h_meas_Icc t ht)).aemeasurable
+  have h_moment_m : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(σ_const.ρ t) ≤ m t := by
+    intro t ht
+    rw [h_rho_eq t ht]
+    calc ∫ y, ‖y‖ ∂(Measure.map (fun z : PhaseSpace d => charX t z) f₀)
+        ≤ gronwallBound (∫ z, ‖z‖ ∂f₀) (1 + (L : ℝ))
+            (‖gradW 0‖ + (L : ℝ) * m t) t :=
+          phi_moment_envelope_le L charX charV (‖gradW 0‖) T m h_growth_timedep
+            f₀ h_f₀_int h_meas_charX_Icc t ht
+      _ ≤ m t := hm_inv t ht
+  -- Re-bundle `σ_const` (constant space) into the fixed envelope space `m`:
+  -- only `hasMoment` changes; the other fields are `m`-independent.
+  let σ : VlasovMeasureCurve d T m :=
+    { ρ := σ_const.ρ
+      isProb := σ_const.isProb
+      hasMoment := h_moment_m
+      yIntegrable := σ_const.yIntegrable
+      hW1Cont := σ_const.hW1Cont }
+  exact ⟨charX, charV, hflow_on, h_boundary, σ, h_rho_eq⟩
+
 /-- **Stage 3 sub-piece: pointwise Gronwall on flow difference.**
 
 Given two characteristic flow trajectories `γ_ρ, γ_σ : ℝ → PhaseSpace d`
@@ -5978,10 +6189,14 @@ theorem Phi_pointwise_contraction {d : ℕ} [NeZero d]
     -- Two flows (ρ-driven and σ-driven) starting at f₀-distributed initials.
     (charX_ρ charV_ρ charX_σ charV_σ : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
-    (h_meas_ρ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
-    (h_meas_σ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
-    (h_int_charX_ρ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
-    (h_int_charX_σ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
+    (h_meas_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
+    (h_meas_σ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
+    (h_int_charX_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
+    (h_int_charX_σ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
     -- Per-z trajectories satisfy boundary regularity (Stage 4's Picard discharges).
     -- Phrased per-z, but uniformly across z : PhaseSpace d.
     (h_init_ρ : ∀ z, (charX_ρ 0 z, charV_ρ 0 z) = z)
@@ -6054,7 +6269,7 @@ theorem Phi_pointwise_contraction {d : ℕ} [NeZero d]
       ‖charX_ρ t z - charX_σ t z‖) f₀ := by
     -- Bounded by C_T (constant), integrable on probability measure.
     refine Integrable.mono' (integrable_const C_T)
-      (((h_meas_ρ t).sub (h_meas_σ t)).norm.aestronglyMeasurable) ?_
+      (((h_meas_ρ t ht).sub (h_meas_σ t ht)).norm.aestronglyMeasurable) ?_
     refine Filter.Eventually.of_forall fun z => ?_
     rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
     exact h_proj_bound z
@@ -6063,7 +6278,7 @@ theorem Phi_pointwise_contraction {d : ℕ} [NeZero d]
   -- ============================================================
   have h_W1 := wasserstein1_pushforward_pair_le_integral_norm_diff
     (fun z => charX_ρ t z) (fun z => charX_σ t z) f₀
-    (h_meas_ρ t) (h_meas_σ t) (h_int_charX_ρ t) (h_int_charX_σ t) h_diff_int_f₀
+    (h_meas_ρ t ht) (h_meas_σ t ht) (h_int_charX_ρ t ht) (h_int_charX_σ t ht) h_diff_int_f₀
   -- ============================================================
   -- ∫ z, ‖charX_ρ t z - charX_σ t z‖ ∂f₀ ≤ C_T.
   -- ============================================================
@@ -6127,15 +6342,19 @@ theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
     (h_W1_bound : ∀ s ∈ Set.Icc (0 : ℝ) T, (wasserstein1 (ρ s) (σ s)).toReal ≤ D)
     (charX_ρ charV_ρ charX_σ charV_σ : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
-    (h_meas_ρ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
-    (h_meas_σ : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
-    (h_int_charX_ρ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
-    (h_int_charX_σ : ∀ t, Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
+    (h_meas_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX_ρ t z) f₀)
+    (h_meas_σ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => charX_σ t z) f₀)
+    (h_int_charX_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖charX_ρ t z‖) f₀)
+    (h_int_charX_σ : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖charX_σ t z‖) f₀)
     -- The pushforwards have finite first moments (for W₁ finiteness).
-    (h_yint_Phi_ρ : ∀ t,
+    (h_yint_Phi_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T,
       Integrable (fun y : PhysSpace d => ‖y‖)
         (Measure.map (fun z => charX_ρ t z) f₀))
-    (h_yint_Phi_σ : ∀ t,
+    (h_yint_Phi_σ : ∀ t ∈ Set.Icc (0 : ℝ) T,
       Integrable (fun y : PhysSpace d => ‖y‖)
         (Measure.map (fun z => charX_σ t z) f₀))
     -- Per-z trajectory regularity (Stage 4's Picard discharges).
@@ -6181,14 +6400,14 @@ theorem Phi_supW1_contraction {d : ℕ} [NeZero d]
       ENNReal.ofReal C_T := by
     intro t ht
     haveI hΦρ_t : IsProbabilityMeasure (Measure.map (fun z => charX_ρ t z) f₀) :=
-      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_ρ t)
+      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_ρ t ht)
     haveI hΦσ_t : IsProbabilityMeasure (Measure.map (fun z => charX_σ t z) f₀) :=
-      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_σ t)
+      MeasureTheory.Measure.isProbabilityMeasure_map (h_meas_σ t ht)
     -- W₁ is finite (probability + finite first moment).
     have h_W1_t_ne_top :
         wasserstein1 (Measure.map (fun z => charX_ρ t z) f₀)
                      (Measure.map (fun z => charX_σ t z) f₀) ≠ ⊤ :=
-      wasserstein1_ne_top_of_finite_moment _ _ (h_yint_Phi_ρ t) (h_yint_Phi_σ t)
+      wasserstein1_ne_top_of_finite_moment _ _ (h_yint_Phi_ρ t ht) (h_yint_Phi_σ t ht)
     -- Pointwise contraction at time t.
     have h_pt := Phi_pointwise_contraction gradW L hL ρ σ h_int_ρ h_int_σ
       T hT D hD_nn h_W1_fin h_W1_bound
@@ -6674,6 +6893,72 @@ private lemma picardCharFlow_aemeasurable
   -- HasDerivAt.prodMk.  Body closes in Phase 2-4 substantive work.
   sorry
 
+/-- **Piece D sorry-1 helper**: from a flow's exposed facts (`IsCharacteristicFlowOn`
+on `Ioo` + the boundary bundle on `Icc` — the `Phi_step_envelope` output shape)
+against a curve `ν`, derive the six per-`z` regularity facts that the (M2-weakened)
+`Phi_supW1_contraction` consumes.  Chains `Stage_1_9_flow_boundary_regularity`
+(→ init/cont/deriv, the last three EXACT), `charFlow_measurable_via_gronwall`
+(→ AEMeasurable), and `flow_distance_growth_bound_on` (→ growth bound, integrated
+to the two integrability facts). -/
+private lemma envelopeStep_contractionInputs {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d) (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 ≤ T) {m : ℝ → ℝ}
+    (ν : VlasovMeasureCurve d T m)
+    (Mbar : ℝ) (hMbar_nn : 0 ≤ Mbar)
+    (hM_ρ : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ν.extend t) ≤ Mbar)
+    (cX cV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW ν.extend cX cV (Set.Ioo 0 T) Set.univ)
+    (hbdry : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+        HasDerivWithinAt (fun s => cX s z) (cV t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => cV s z)
+          (-(convolveFunctionMeasure gradW (ν.extend t) (cX t z))) (Set.Icc 0 T) t)
+    (h_int_ext : ∀ t (x : PhysSpace d),
+        Integrable (fun y => gradW (x - y)) (ν.extend t)) :
+    (∀ t ∈ Set.Icc (0:ℝ) T, AEMeasurable (fun z : PhaseSpace d => cX t z) f₀) ∧
+    (∀ t ∈ Set.Icc (0:ℝ) T, Integrable (fun z : PhaseSpace d => ‖cX t z‖) f₀) ∧
+    (∀ t ∈ Set.Icc (0:ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (Measure.map (fun z => cX t z) f₀)) ∧
+    (∀ z : PhaseSpace d, (cX 0 z, cV 0 z) = z) ∧
+    (∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (cX s z, cV s z)) (Set.Icc (0:ℝ) T)) ∧
+    (∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0:ℝ) T,
+      HasDerivWithinAt (fun s' => (cX s' z, cV s' z))
+        (vlasovVectorField gradW (ν.extend) s (cX s z, cV s z))
+        (Set.Ici s) s) := by
+  haveI : ∀ t, IsProbabilityMeasure (ν.extend t) := VlasovMeasureCurve.extend_isProb ν
+  obtain ⟨h_init, h_cont, h_deriv⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW ν.extend cX cV T hT hflow hbdry
+  have h_meas : ∀ t ∈ Set.Icc (0:ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => cX t z) f₀ := by
+    have h_meas_Icc := charFlow_measurable_via_gronwall gradW L hL ν.extend h_int_ext
+      cX cV T hT h_init h_cont h_deriv
+    exact fun t ht => (measurable_fst.comp (h_meas_Icc t ht)).aemeasurable
+  obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
+    flow_distance_growth_bound_on gradW L hL ν.extend cX cV T hT
+      h_init h_cont h_deriv Mbar hMbar_nn hM_ρ
+      (fun t _ => VlasovMeasureCurve.extend_yIntegrable hT ν t) h_int_ext
+  have h_int_charX : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Integrable (fun z : PhaseSpace d => ‖cX t z‖) f₀ := by
+    intro t ht
+    have h_dom_int : Integrable (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) f₀ := by
+      have h1 : Integrable (fun z : PhaseSpace d => C_T * ‖z‖) f₀ := h_f₀_int.const_mul C_T
+      have h2 : Integrable (fun _ : PhaseSpace d => C_T) f₀ := integrable_const _
+      have h_eq : (fun z : PhaseSpace d => C_T * (‖z‖ + 1)) = fun z => C_T * ‖z‖ + C_T := by
+        funext z; ring
+      rw [h_eq]; exact h1.add h2
+    refine h_dom_int.mono' (h_meas t ht).norm.aestronglyMeasurable ?_
+    refine Filter.Eventually.of_forall fun z => ?_
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact le_trans (norm_fst_le (cX t z, cV t z)) (h_growth t ht z)
+  have h_yint_Phi : ∀ t ∈ Set.Icc (0:ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (Measure.map (fun z => cX t z) f₀) := by
+    intro t ht
+    rw [integrable_map_measure continuous_norm.aestronglyMeasurable (h_meas t ht)]
+    exact h_int_charX t ht
+  exact ⟨h_meas, h_int_charX, h_yint_Phi, h_init, h_cont, h_deriv⟩
+
 /-- **Sub-helper for `vlasovWellPosedness_local`** — the Picard fixed-point
 self-consistent flow.
 
@@ -6750,7 +7035,8 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
     (hTL_PL : LocalSmallness_PL_buffer L T)
-    (hTL_con : LocalSmallness_contraction L T) :
+    (hTL_con : LocalSmallness_contraction L T)
+    (hB : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T) - 1) < 1) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (M_ρ : ℝ), 0 ≤ M_ρ ∧
       -- Self-consistent characteristic flow: against the spatial marginal
       -- of its own phase-space pushforward.
@@ -6807,19 +7093,26 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     · exact (measurable_fst.norm.aestronglyMeasurable)
     · simp only [Function.comp, Real.norm_of_nonneg (norm_nonneg _)]
       exact (norm_fst_le z)
-  let M_f₀ : ℝ := ∫ z : PhysSpace d, ‖z‖ ∂(spatialMarginal f₀)
+  -- **F1 (phase-space anchor)**: `M_f₀` is the *phase-space* first moment
+  -- `∫z‖z‖∂f₀`, NOT the spatial marginal — matching `phi_moment_envelope_le`'s
+  -- (A.2) `integral_map` initial value, so the envelope dominates both the
+  -- pushforward moments (A.2) and the spatial base case (`∫‖x‖∂μ₀ ≤ M_f₀`).
+  let M_f₀ : ℝ := ∫ z : PhaseSpace d, ‖z‖ ∂f₀
   have hM_f₀_nn : 0 ≤ M_f₀ := integral_nonneg (fun z => norm_nonneg z)
-  have hM_f₀_spec : ∫ z : PhysSpace d, ‖z‖ ∂(spatialMarginal f₀) ≤ M_f₀ := le_refl _
   -- ============================================================
-  -- Step 2: M-fixed-point.
-  -- Sub-sub-sorry: existence of M ≥ 0 such that
-  --   (a) ∫ ‖y‖ ∂μ₀ ≤ M  (initial moment bound)
-  --   (b) for any VlasovMeasureCurve ρ with moment bound M, the
-  --       Gronwall growth constant C_T satisfies C_T * (M_f₀ + 1) ≤ M.
-  -- This is the fixed-point existence whose full proof requires analysis of
-  -- the Gronwall bound's monotone structure in M. -/
-  obtain ⟨M, hM_nn, hM_init⟩ : ∃ M : ℝ, 0 ≤ M ∧ M_f₀ ≤ M := by
-    exact ⟨M_f₀, hM_f₀_nn, le_refl _⟩
+  -- Step 2: time-dependent moment envelope `m` (option 2, dissolving the
+  -- constant-`M` fixed-point).  `gronwall_envelope_exists` (Piece A.3) under
+  -- `hB := B(T) < 1` yields a monotone `m` that is `Φ`-invariant at the moment
+  -- level, so `Φ : space(m) → space(m)` and the Picard sequence stays in one
+  -- fixed curve space.
+  -- ============================================================
+  obtain ⟨m, hm_mono, hm_ge, hm_inv⟩ :=
+    gronwall_envelope_exists M_f₀ ‖gradW 0‖ hM_f₀_nn (norm_nonneg _) L T hT.le hB
+  have hm_nn : ∀ t ∈ Set.Icc (0:ℝ) T, 0 ≤ m t :=
+    fun t ht => le_trans hM_f₀_nn (hm_ge t ht)
+  have hMbar_nn : 0 ≤ m T := hm_nn T ⟨hT.le, le_refl T⟩
+  have hMbar_mono : ∀ t ∈ Set.Icc (0:ℝ) T, m t ≤ m T :=
+    fun t ht => hm_mono ht ⟨hT.le, le_refl T⟩ ht.2
   -- ============================================================
   -- Step 3: Convolution integrability for constantCurve.
   -- For the base case x 0 = constantCurve μ₀, need h_int_ext:
@@ -6922,17 +7215,231 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     rw [h_eq]
     exact hTL_con
   -- D₀: initial supW1On bound = supW1On (x 0).ρ (x 1).ρ ≤ 2 * M.
-  let D₀ : ℝ := 2 * M
-  have hD₀_nn : 0 ≤ D₀ := by linarith
-  -- Sub-sub-sorry: Picard sequence + contraction.
-  obtain ⟨x, h_contract⟩ : ∃ x : ℕ → VlasovMeasureCurve d T (fun _ => M),
-      ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
-           ENNReal.ofReal (q ^ k * D₀) := by
-    sorry
+  let D₀ : ℝ := 2 * (m T)
+  have hD₀_nn : 0 ≤ D₀ := by linarith [hMbar_nn]
+  -- Sub-sub-sorry: Picard sequence + contraction, in the fixed envelope
+  -- space `m`.  The closing recursion uses `Phi_step_envelope` (proven) per
+  -- step + `Phi_supW1_contraction` for the geometric bound.
+  -- **Enriched existential (architecture A)**: the Picard sequence exposes, per
+  -- step `k`, the flow `(charXs k, charVs k)` against `(x k).extend` — exactly
+  -- `Phi_step_envelope`'s output shape — plus the pushforward identity
+  -- `(x(k+1)).ρ t = map (charXs k t) f₀`.  Exposing the flows lets the
+  -- self-consistency proof (Step 8) feed them directly to `Phi_supW1_contraction`,
+  -- dissolving the (un-banked) ODE-uniqueness that re-deriving them would need.
+  obtain ⟨x, charXs, charVs, h_contract, h_flow⟩ :
+      ∃ (x : ℕ → VlasovMeasureCurve d T m)
+        (charXs charVs : ℕ → ℝ → PhaseSpace d → PhysSpace d),
+        (∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
+              ENNReal.ofReal (q ^ k * D₀)) ∧
+        (∀ k,
+          IsCharacteristicFlowOn gradW (x k).extend (charXs k) (charVs k)
+            (Set.Ioo 0 T) Set.univ ∧
+          (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+            HasDerivWithinAt (fun s => charXs k s z) (charVs k t z) (Set.Icc 0 T) t ∧
+            HasDerivWithinAt (fun s => charVs k s z)
+              (-(convolveFunctionMeasure gradW ((x k).extend t) (charXs k t z)))
+              (Set.Icc 0 T) t) ∧
+          (∀ t ∈ Set.Icc (0:ℝ) T,
+            (x (k + 1)).ρ t
+              = Measure.map (fun z : PhaseSpace d => charXs k t z) f₀)) := by
+    -- General convolution integrability for ANY envelope curve `ν : space m`.
+    have h_int_ext_gen : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ) (xp : PhysSpace d),
+        Integrable (fun y => gradW (xp - y)) (ν.extend t) := by
+      intro ν t xp
+      have h_yint : Integrable (fun y : PhysSpace d => ‖y‖) (ν.extend t) :=
+        VlasovMeasureCurve.extend_yIntegrable hT.le ν t
+      have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (xp - y)) (ν.extend t) :=
+        (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+      have h_dom : ∀ y : PhysSpace d, ‖gradW (xp - y)‖ ≤
+          ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖ := by
+        intro y
+        have hd := hL.dist_le_mul (xp - y) 0
+        simp only [dist_eq_norm, sub_zero] at hd
+        have h_tri : ‖gradW (xp - y)‖ ≤ ‖gradW 0‖ + ‖gradW (xp - y) - gradW 0‖ := by
+          have := norm_add_le (gradW (xp - y) - gradW 0) (gradW 0)
+          simp only [sub_add_cancel] at this; linarith
+        have h_sub_le : ‖xp - y‖ ≤ ‖xp‖ + ‖y‖ := norm_sub_le xp y
+        have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+        linarith
+      have h_dom_int : Integrable
+          (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖) (ν.extend t) := by
+        have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖) (ν.extend t) :=
+          h_yint.const_mul (L : ℝ)
+        have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖) =
+                    fun y => (‖gradW 0‖ + (L : ℝ) * ‖xp‖) + (L : ℝ) * ‖y‖ := by funext y; ring
+        rw [h_eq]; exact (integrable_const _).add h_norm
+      exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+    -- Base-curve moment bound: ∫‖y‖∂μ₀ ≤ m t  (μ₀ = spatialMarginal f₀).
+    have hμ₀_int_fst : Integrable (fun z : PhaseSpace d => ‖z.1‖) f₀ :=
+      hf₀_int.mono' measurable_fst.norm.aestronglyMeasurable
+        (Filter.Eventually.of_forall fun z => by
+          rw [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_fst_le z)
+    have hμ₀_le_m : ∀ t ∈ Set.Icc (0:ℝ) T,
+        ∫ y, ‖y‖ ∂(spatialMarginal f₀) ≤ m t := by
+      intro t ht
+      have h_eq : ∫ y, ‖y‖ ∂(spatialMarginal f₀) = ∫ z, ‖z.1‖ ∂f₀ := by
+        unfold spatialMarginal
+        rw [integral_map measurable_fst.aemeasurable continuous_norm.aestronglyMeasurable]
+      have h_le : ∫ z, ‖z.1‖ ∂f₀ ≤ M_f₀ :=
+        integral_mono hμ₀_int_fst hf₀_int (fun z => norm_fst_le z)
+      rw [h_eq]; exact le_trans h_le (hm_ge t ht)
+    -- Per-step `Φ` via `Phi_step_envelope`, reshaped with `σ` first.
+    have step : ∀ (ν : VlasovMeasureCurve d T m),
+        ∃ (σ : VlasovMeasureCurve d T m) (cX cV : ℝ → PhaseSpace d → PhysSpace d),
+          (∀ t ∈ Set.Icc (0:ℝ) T, σ.ρ t = Measure.map (fun z => cX t z) f₀) ∧
+          IsCharacteristicFlowOn gradW ν.extend cX cV (Set.Ioo 0 T) Set.univ ∧
+          (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+            HasDerivWithinAt (fun s => cX s z) (cV t z) (Set.Icc 0 T) t ∧
+            HasDerivWithinAt (fun s => cV s z)
+              (-(convolveFunctionMeasure gradW (ν.extend t) (cX t z))) (Set.Icc 0 T) t) := by
+      intro ν
+      obtain ⟨cX, cV, hflow, hbdry, σ, hσ⟩ :=
+        Phi_step_envelope W gradW hgradW L hL f₀ hf₀_int hT.le m hm_mono hm_nn hm_inv hTL_PL
+          ν (h_int_ext_gen ν)
+      exact ⟨σ, cX, cV, hσ, hflow, hbdry⟩
+    -- The Picard sequence + its exposed flows (via `Classical.choose`).
+    haveI hμ₀_prob_inst : IsProbabilityMeasure (spatialMarginal f₀) := hμ₀_prob
+    let base : VlasovMeasureCurve d T m := constantCurve (spatialMarginal f₀) hμ₀_int hμ₀_le_m
+    let x : ℕ → VlasovMeasureCurve d T m :=
+      fun n => Nat.rec base (fun _ ν => Classical.choose (step ν)) n
+    let charXs : ℕ → ℝ → PhaseSpace d → PhysSpace d :=
+      fun k => Classical.choose (Classical.choose_spec (step (x k)))
+    let charVs : ℕ → ℝ → PhaseSpace d → PhysSpace d :=
+      fun k => Classical.choose (Classical.choose_spec (Classical.choose_spec (step (x k))))
+    have hx_succ : ∀ k, x (k + 1) = Classical.choose (step (x k)) := fun _ => rfl
+    have hspec : ∀ k,
+        (∀ t ∈ Set.Icc (0:ℝ) T,
+          (Classical.choose (step (x k))).ρ t = Measure.map (fun z => charXs k t z) f₀) ∧
+        IsCharacteristicFlowOn gradW (x k).extend (charXs k) (charVs k)
+          (Set.Ioo 0 T) Set.univ ∧
+        (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+          HasDerivWithinAt (fun s => charXs k s z) (charVs k t z) (Set.Icc 0 T) t ∧
+          HasDerivWithinAt (fun s => charVs k s z)
+            (-(convolveFunctionMeasure gradW ((x k).extend t) (charXs k t z)))
+            (Set.Icc 0 T) t) :=
+      fun k => Classical.choose_spec
+        (Classical.choose_spec (Classical.choose_spec (step (x k))))
+    -- Conjunct (b): the flow-facts, directly from `hspec`.
+    have h_flow : ∀ k,
+        IsCharacteristicFlowOn gradW (x k).extend (charXs k) (charVs k)
+          (Set.Ioo 0 T) Set.univ ∧
+        (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+          HasDerivWithinAt (fun s => charXs k s z) (charVs k t z) (Set.Icc 0 T) t ∧
+          HasDerivWithinAt (fun s => charVs k s z)
+            (-(convolveFunctionMeasure gradW ((x k).extend t) (charXs k t z)))
+            (Set.Icc 0 T) t) ∧
+        (∀ t ∈ Set.Icc (0:ℝ) T,
+          (x (k + 1)).ρ t = Measure.map (fun z : PhaseSpace d => charXs k t z) f₀) := by
+      intro k
+      obtain ⟨hpush, hcf, hbd⟩ := hspec k
+      refine ⟨hcf, hbd, fun t ht => ?_⟩
+      rw [hx_succ k]; exact hpush t ht
+    -- Conjunct (a): the geometric contraction bound (induction).
+    -- Per-step 6-fact bundle (the proven helper, `Mbar = m T`).
+    have hCI : ∀ k,
+        (∀ t ∈ Set.Icc (0:ℝ) T, AEMeasurable (fun z : PhaseSpace d => charXs k t z) f₀) ∧
+        (∀ t ∈ Set.Icc (0:ℝ) T, Integrable (fun z : PhaseSpace d => ‖charXs k t z‖) f₀) ∧
+        (∀ t ∈ Set.Icc (0:ℝ) T,
+          Integrable (fun y : PhysSpace d => ‖y‖) (Measure.map (fun z => charXs k t z) f₀)) ∧
+        (∀ z : PhaseSpace d, (charXs k 0 z, charVs k 0 z) = z) ∧
+        (∀ z : PhaseSpace d,
+          ContinuousOn (fun s => (charXs k s z, charVs k s z)) (Set.Icc (0:ℝ) T)) ∧
+        (∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0:ℝ) T,
+          HasDerivWithinAt (fun s' => (charXs k s' z, charVs k s' z))
+            (vlasovVectorField gradW ((x k).extend) s (charXs k s z, charVs k s z))
+            (Set.Ici s) s) :=
+      fun k => envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le (x k) (m T) hMbar_nn
+        (fun t _ => le_trans (VlasovMeasureCurve.extend_hasMoment hT.le (x k) t)
+          (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t)))
+        (charXs k) (charVs k) (h_flow k).1 (h_flow k).2.1 (h_int_ext_gen (x k))
+    have hK_ne : ((max 1 L : NNReal) : ℝ) ≠ 0 := by
+      have h1 : (1:ℝ) ≤ ((max 1 L : NNReal):ℝ) := by
+        rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_left _ _
+      linarith
+    have hq_scale : ∀ D : ℝ,
+        gronwallBound 0 ((max 1 L : NNReal):ℝ) ((L:ℝ)*D) T = D * q := by
+      intro D
+      show gronwallBound 0 ((max 1 L : NNReal):ℝ) ((L:ℝ)*D) T
+        = D * gronwallBound 0 ((max 1 L : NNReal):ℝ) (L:ℝ) T
+      rw [gronwallBound_of_K_ne_0 hK_ne, gronwallBound_of_K_ne_0 hK_ne]; ring
+    -- Abstractly-typed extend-probability (M = m pinned in the binder, so applying
+    -- to a `let`-bound `x k` is pure substitution — sidesteps the stuck `{M}`-synthesis).
+    have hPext : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ),
+        IsProbabilityMeasure (ν.extend t) :=
+      fun ν => VlasovMeasureCurve.extend_isProb ν
+    have h_contract : ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
+        ENNReal.ofReal (q ^ k * D₀) := by
+      intro k
+      induction k with
+      | zero =>
+        simp only [pow_zero, one_mul]
+        exact supW1On_le_two_moment_of_VlasovMeasureCurve (m T) hMbar_mono (x 0) (x 1)
+      | succ k ih =>
+        set D : ℝ := q ^ k * D₀ with hD_def
+        have hD_nn : 0 ≤ D := mul_nonneg (pow_nonneg hq_nn k) hD₀_nn
+        -- `extend = ρ` on `Icc`.
+        have he : ∀ (ν : VlasovMeasureCurve d T m) s, s ∈ Set.Icc (0:ℝ) T → ν.extend s = ν.ρ s := by
+          intro ν s hs
+          unfold VlasovMeasureCurve.extend clampToIcc; congr 1
+          rw [min_eq_left hs.2, max_eq_right hs.1]
+        -- W₁ finiteness + bound on `Icc`, from `ih`.
+        have h_W1_fin : ∀ s ∈ Set.Icc (0:ℝ) T,
+            wasserstein1 ((x k).extend s) ((x (k+1)).extend s) ≠ ⊤ := by
+          intro s hs
+          rw [he (x k) s hs, he (x (k+1)) s hs]
+          haveI := (x k).isProb s; haveI := (x (k+1)).isProb s
+          exact wasserstein1_ne_top_of_finite_moment _ _
+            ((x k).yIntegrable s hs) ((x (k+1)).yIntegrable s hs)
+        have h_W1_bound : ∀ s ∈ Set.Icc (0:ℝ) T,
+            (wasserstein1 ((x k).extend s) ((x (k+1)).extend s)).toReal ≤ D := by
+          intro s hs
+          rw [he (x k) s hs, he (x (k+1)) s hs]
+          have h_le : wasserstein1 ((x k).ρ s) ((x (k+1)).ρ s)
+              ≤ ENNReal.ofReal D :=
+            le_trans (wasserstein1_le_supW1On _ _ _ s hs) ih
+          have h_ne : wasserstein1 ((x k).ρ s) ((x (k+1)).ρ s) ≠ ⊤ := by
+            haveI := (x k).isProb s; haveI := (x (k+1)).isProb s
+            exact wasserstein1_ne_top_of_finite_moment _ _
+              ((x k).yIntegrable s hs) ((x (k+1)).yIntegrable s hs)
+          calc (wasserstein1 ((x k).ρ s) ((x (k+1)).ρ s)).toReal
+              ≤ (ENNReal.ofReal D).toReal := ENNReal.toReal_mono ENNReal.ofReal_ne_top h_le
+            _ = D := ENNReal.toReal_ofReal hD_nn
+        -- Apply the (weakened) contraction.
+        have h_contr := @Phi_supW1_contraction d _ gradW L hL ((x k).extend) ((x (k+1)).extend)
+          (hPext (x k)) (hPext (x (k+1)))
+          (h_int_ext_gen (x k)) (h_int_ext_gen (x (k+1))) T hT.le D hD_nn h_W1_fin h_W1_bound
+          (charXs k) (charVs k) (charXs (k+1)) (charVs (k+1)) f₀ _
+          (hCI k).1 (hCI (k+1)).1 (hCI k).2.1 (hCI (k+1)).2.1
+          (hCI k).2.2.1 (hCI (k+1)).2.2.1 (hCI k).2.2.2.1 (hCI (k+1)).2.2.2.1
+          (hCI k).2.2.2.2.1 (hCI (k+1)).2.2.2.2.1 (hCI k).2.2.2.2.2 (hCI (k+1)).2.2.2.2.2
+        rw [hq_scale D] at h_contr
+        -- Transfer the sup to the curve values (`map charXs = ρ` on `Icc`).
+        have h_supW1_eq : supW1On (Set.Icc 0 T) (x (k+1)).ρ (x (k+1+1)).ρ
+            = supW1On (Set.Icc 0 T)
+                (fun t => Measure.map (fun z => charXs k t z) f₀)
+                (fun t => Measure.map (fun z => charXs (k+1) t z) f₀) := by
+          unfold supW1On
+          exact iSup_congr fun t => iSup_congr fun ht => by
+            rw [(h_flow k).2.2 t ht, (h_flow (k+1)).2.2 t ht]
+        -- `D · q = q^(k+1) · D₀`.
+        have hDq : D * q = q ^ (k + 1) * D₀ := by rw [hD_def, pow_succ]; ring
+        rw [hDq] at h_contr
+        -- Lift the `.toReal` bound back to ENNReal.
+        have h_ne_top : supW1On (Set.Icc 0 T)
+            (fun t => Measure.map (fun z => charXs k t z) f₀)
+            (fun t => Measure.map (fun z => charXs (k+1) t z) f₀) ≠ ⊤ := by
+          rw [← h_supW1_eq]
+          exact supW1On_ne_top_of_VlasovMeasureCurve (m T) hMbar_mono (x (k+1)) (x (k+1+1))
+        have h_pow_nn : 0 ≤ q ^ (k + 1) * D₀ := mul_nonneg (pow_nonneg hq_nn _) hD₀_nn
+        rw [h_supW1_eq]
+        rw [← ENNReal.toReal_le_toReal h_ne_top ENNReal.ofReal_ne_top,
+            ENNReal.toReal_ofReal h_pow_nn]
+        exact h_contr
+    exact ⟨x, charXs, charVs, h_contract, h_flow⟩
   -- ============================================================
   -- Step 5: Extract limit ρ_lim via picard_iterate_bundlesAs_VlasovMeasureCurve.
   -- ============================================================
-  obtain ⟨ρ_lim, _h_tendsto⟩ :=
+  obtain ⟨ρ_lim, h_tendsto⟩ :=
     picard_iterate_bundlesAs_VlasovMeasureCurve x q hq_nn hq_lt D₀ hD₀_nn h_contract
   -- ============================================================
   -- Step 6: Convolution integrability for ρ_lim.extend.
@@ -6990,8 +7497,9 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
       ρ_lim.extend h_int_ρ_lim h_conv_cont_ρ_lim
       (fun t => VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim t)
-      M hM_nn
-      (fun t => VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim t)
+      (m T) hMbar_nn
+      (fun t => le_trans (VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim t)
+        (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t)))
       T hT.le hTL_PL
   -- ============================================================
   -- Step 8: Self-consistency.
@@ -7011,7 +7519,191 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   have h_self_consist : ∀ t ∈ Set.Icc (0 : ℝ) T,
       ρ_lim.extend t =
       spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) := by
-    sorry
+    -- The Picard fixed-point equation.  On `Icc`, `ρ_lim.extend = ρ_lim.ρ`
+    -- and `spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) =
+    -- map (charX t) f₀`; since `charX` is the flow built against `ρ_lim.extend`,
+    -- the RHS is `Φ(ρ_lim) t`.  We show `W₁(ρ_lim.ρ t, Φ(ρ_lim) t) = 0` by a
+    -- triangle through the iterate `x (n+1) = Φ(x n)`, sending both legs to 0,
+    -- then conclude via the separation lemma `wasserstein1_eq_zero_iff_measure_eq`.
+    -- Abbreviations / Lipschitz-constant bookkeeping.
+    have hK_ge1 : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+      rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_left _ _
+    have hK_ne : ((max 1 L : NNReal) : ℝ) ≠ 0 := ne_of_gt (by linarith)
+    have hK_pos : (0 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by linarith
+    -- `extend = ρ` on the window.
+    have he : ∀ (ν : VlasovMeasureCurve d T m) s, s ∈ Set.Icc (0:ℝ) T →
+        ν.extend s = ν.ρ s := by
+      intro ν s hs
+      unfold VlasovMeasureCurve.extend clampToIcc; congr 1
+      rw [min_eq_left hs.2, max_eq_right hs.1]
+    -- (1) General convolution integrability for any envelope curve (rebuilt; this
+    -- was a local `have` inside the now-closed sorry-1 block).
+    have h_int_ext_gen : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ) (xp : PhysSpace d),
+        Integrable (fun y => gradW (xp - y)) (ν.extend t) := by
+      intro ν t xp
+      have h_yint : Integrable (fun y : PhysSpace d => ‖y‖) (ν.extend t) :=
+        VlasovMeasureCurve.extend_yIntegrable hT.le ν t
+      have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (xp - y)) (ν.extend t) :=
+        (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+      have h_dom : ∀ y : PhysSpace d, ‖gradW (xp - y)‖ ≤
+          ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖ := by
+        intro y
+        have hd := hL.dist_le_mul (xp - y) 0
+        simp only [dist_eq_norm, sub_zero] at hd
+        have h_tri : ‖gradW (xp - y)‖ ≤ ‖gradW 0‖ + ‖gradW (xp - y) - gradW 0‖ := by
+          have := norm_add_le (gradW (xp - y) - gradW 0) (gradW 0)
+          simp only [sub_add_cancel] at this; linarith
+        have h_sub_le : ‖xp - y‖ ≤ ‖xp‖ + ‖y‖ := norm_sub_le xp y
+        have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+        linarith
+      have h_dom_int : Integrable
+          (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖) (ν.extend t) := by
+        have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖) (ν.extend t) :=
+          h_yint.const_mul (L : ℝ)
+        have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖xp‖ + (L : ℝ) * ‖y‖) =
+                    fun y => (‖gradW 0‖ + (L : ℝ) * ‖xp‖) + (L : ℝ) * ‖y‖ := by funext y; ring
+        rw [h_eq]; exact (integrable_const _).add h_norm
+      exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+    -- Window moment bound for any envelope curve (the `hM_ρ` arg of `envelopeStep`).
+    have hMm : ∀ (ν : VlasovMeasureCurve d T m), ∀ t ∈ Set.Icc (0:ℝ) T,
+        ∫ y, ‖y‖ ∂(ν.extend t) ≤ m T :=
+      fun ν t _ => le_trans (VlasovMeasureCurve.extend_hasMoment hT.le ν t)
+        (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t))
+    -- Explicit-instance helper (curves are obtain-binders here, but mirror sorry-1).
+    have hPext : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ),
+        IsProbabilityMeasure (ν.extend t) :=
+      fun ν => VlasovMeasureCurve.extend_isProb ν
+    -- (2) Per-step 6-fact contraction-input bundle for the iterate flows,
+    -- rebuilt at the main scope from `h_flow` (the `hCI` of sorry-1 was local).
+    have hCI := fun k => envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le (x k)
+      (m T) hMbar_nn (hMm (x k)) (charXs k) (charVs k)
+      (h_flow k).1 (h_flow k).2.1 (h_int_ext_gen (x k))
+    -- (3) The ρ_lim flow's 6-fact bundle (same helper, on the self-consistent flow).
+    have hCI_lim := envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le ρ_lim
+      (m T) hMbar_nn (hMm ρ_lim) charX charV hflow_on_ρlim h_boundary_ρlim h_int_ρ_lim
+    -- (4) Spatial-marginal identity: the pair-pushforward's first marginal is the
+    -- position pushforward.
+    have h_marg : ∀ s ∈ Set.Icc (0:ℝ) T,
+        spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
+          = Measure.map (fun z => charX s z) f₀ := by
+      intro s hs
+      have h_pair_meas := charFlow_measurable_via_gronwall gradW L hL ρ_lim.extend h_int_ρ_lim
+        charX charV T hT.le hCI_lim.2.2.2.1 hCI_lim.2.2.2.2.1 hCI_lim.2.2.2.2.2 s hs
+      unfold spatialMarginal vlasovSolutionViaPushforward
+      rw [Measure.map_map measurable_fst h_pair_meas]
+      rfl
+    -- (5) Uniform-in-`s` convergence of the iterates to `ρ_lim`, and the explicit
+    -- uniform real bound `D n := (supW1On (x n) ρ_lim).toReal → 0`.
+    have h_cauchy := picard_iterate_isCauchy_of_contraction
+      (Set.Icc (0:ℝ) T) (fun n => (x n).ρ) q hq_nn hq_lt D₀ hD₀_nn h_contract
+    have h_uniform := picard_iterate_limit_uniform_tendsto
+      (Set.Icc (0:ℝ) T) (fun n => (x n).ρ) ρ_lim.ρ h_cauchy h_tendsto
+    have h_sup_ne_top : ∀ n, supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ ≠ ⊤ :=
+      fun n => supW1On_ne_top_of_VlasovMeasureCurve (m T) hMbar_mono (x n) ρ_lim
+    have h_sup_tendsto : Filter.Tendsto
+        (fun n => supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ) Filter.atTop (nhds 0) := by
+      rw [ENNReal.tendsto_atTop_zero]
+      intro ε hε
+      obtain ⟨N, hN⟩ := h_uniform ε hε
+      refine ⟨N, fun n hn => ?_⟩
+      unfold supW1On
+      exact iSup_le fun s => iSup_le fun hs => hN n hn s hs
+    set Dn : ℕ → ℝ := fun n => (supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ).toReal with hDn_def
+    have hDn_nn : ∀ n, 0 ≤ Dn n := fun n => ENNReal.toReal_nonneg
+    have hDn_tendsto : Filter.Tendsto Dn Filter.atTop (nhds 0) := by
+      have h := (ENNReal.tendsto_toReal (show (0:ENNReal) ≠ ⊤ by simp)).comp h_sup_tendsto
+      rw [ENNReal.toReal_zero] at h
+      exact h
+    -- `gronwallBound 0 K (L·a) T = a · q`  (the contraction-ratio scaling).
+    have hq_scale : ∀ a : ℝ, gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L:ℝ) * a) T = a * q := by
+      intro a
+      show gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L:ℝ) * a) T
+        = a * gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L:ℝ) T
+      rw [gronwallBound_of_K_ne_0 hK_ne, gronwallBound_of_K_ne_0 hK_ne]; ring
+    -- Uniform W₁-finiteness and uniform-`Dn` bound on the curve distance.
+    have h_W1_fin_curve : ∀ n, ∀ s ∈ Set.Icc (0:ℝ) T,
+        wasserstein1 ((x n).extend s) (ρ_lim.extend s) ≠ ⊤ := by
+      intro n s hs
+      rw [he (x n) s hs, he ρ_lim s hs]
+      haveI := (x n).isProb s; haveI := ρ_lim.isProb s
+      exact wasserstein1_ne_top_of_finite_moment _ _
+        ((x n).yIntegrable s hs) (ρ_lim.yIntegrable s hs)
+    have h_W1_bound_curve : ∀ n, ∀ s ∈ Set.Icc (0:ℝ) T,
+        (wasserstein1 ((x n).extend s) (ρ_lim.extend s)).toReal ≤ Dn n := by
+      intro n s hs
+      rw [he (x n) s hs, he ρ_lim s hs]
+      exact ENNReal.toReal_mono (h_sup_ne_top n)
+        (wasserstein1_le_supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ s hs)
+    -- (Term 2) pointwise contraction at `t`: `W₁(Φ(x n) t, Φ(ρ_lim) t).toReal ≤ Dn n · q`.
+    have h_term2 : ∀ n t, t ∈ Set.Icc (0:ℝ) T →
+        (wasserstein1 (Measure.map (fun z => charXs n t z) f₀)
+                      (Measure.map (fun z => charX t z) f₀)).toReal ≤ Dn n * q := by
+      intro n t ht
+      have hpt := @Phi_pointwise_contraction d _ gradW L hL ((x n).extend) ρ_lim.extend
+        (hPext (x n)) (hPext ρ_lim)
+        (h_int_ext_gen (x n)) h_int_ρ_lim T hT.le (Dn n) (hDn_nn n)
+        (h_W1_fin_curve n) (h_W1_bound_curve n)
+        (charXs n) (charVs n) charX charV f₀ _
+        (hCI n).1 hCI_lim.1 (hCI n).2.1 hCI_lim.2.1
+        (hCI n).2.2.2.1 hCI_lim.2.2.2.1 (hCI n).2.2.2.2.1 hCI_lim.2.2.2.2.1
+        (hCI n).2.2.2.2.2 hCI_lim.2.2.2.2.2 t ht
+      have h_mono : gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L:ℝ) * Dn n) t
+          ≤ gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L:ℝ) * Dn n) T :=
+        gronwallBound_mono (le_refl 0) (mul_nonneg L.coe_nonneg (hDn_nn n)) hK_pos ht.2
+      rw [hq_scale (Dn n)] at h_mono
+      exact le_trans hpt h_mono
+    -- The fixed-point argument, per `t ∈ Icc 0 T`.
+    intro t ht
+    rw [he ρ_lim t ht, h_marg t ht]
+    -- Goal: `ρ_lim.ρ t = Measure.map (fun z => charX t z) f₀`.
+    haveI hP1 : IsProbabilityMeasure (ρ_lim.ρ t) := ρ_lim.isProb t
+    haveI hP2 : IsProbabilityMeasure (Measure.map (fun z => charX t z) f₀) :=
+      Measure.isProbabilityMeasure_map (hCI_lim.1 t ht)
+    have hint1 : Integrable (fun y : PhysSpace d => ‖y‖) (ρ_lim.ρ t) := ρ_lim.yIntegrable t ht
+    have hint2 : Integrable (fun y : PhysSpace d => ‖y‖)
+        (Measure.map (fun z => charX t z) f₀) := hCI_lim.2.2.1 t ht
+    refine (wasserstein1_eq_zero_iff_measure_eq (ρ_lim.ρ t)
+      (Measure.map (fun z => charX t z) f₀) hint1 hint2).mp ?_
+    -- Per-`n` triangle bound: `W₁ ≤ A n + ofReal (Dn n · q)`, both legs → 0.
+    have h_le_seq : ∀ n, wasserstein1 (ρ_lim.ρ t) (Measure.map (fun z => charX t z) f₀)
+        ≤ wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t) + ENNReal.ofReal (Dn n * q) := by
+      intro n
+      have h_mid : (x (n+1)).ρ t = Measure.map (fun z => charXs n t z) f₀ :=
+        (h_flow n).2.2 t ht
+      calc wasserstein1 (ρ_lim.ρ t) (Measure.map (fun z => charX t z) f₀)
+          ≤ wasserstein1 (ρ_lim.ρ t) ((x (n+1)).ρ t)
+              + wasserstein1 ((x (n+1)).ρ t) (Measure.map (fun z => charX t z) f₀) :=
+            wasserstein1_triangle _ _ _
+        _ = wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t)
+              + wasserstein1 ((x (n+1)).ρ t) (Measure.map (fun z => charX t z) f₀) := by
+            rw [wasserstein1_comm (ρ_lim.ρ t) ((x (n+1)).ρ t)]
+        _ ≤ wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t) + ENNReal.ofReal (Dn n * q) := by
+            gcongr
+            rw [h_mid]
+            have h_fin : wasserstein1 (Measure.map (fun z => charXs n t z) f₀)
+                (Measure.map (fun z => charX t z) f₀) ≠ ⊤ := by
+              haveI : IsProbabilityMeasure (Measure.map (fun z => charXs n t z) f₀) :=
+                Measure.isProbabilityMeasure_map ((hCI n).1 t ht)
+              exact wasserstein1_ne_top_of_finite_moment _ _
+                ((hCI n).2.2.1 t ht) (hCI_lim.2.2.1 t ht)
+            rw [← ENNReal.ofReal_toReal h_fin]
+            exact ENNReal.ofReal_le_ofReal (h_term2 n t ht)
+    -- The bounding sequence tends to 0.
+    have hA : Filter.Tendsto (fun n => wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t))
+        Filter.atTop (nhds 0) :=
+      (h_tendsto t ht).comp (Filter.tendsto_add_atTop_nat 1)
+    have hB : Filter.Tendsto (fun n => ENNReal.ofReal (Dn n * q)) Filter.atTop (nhds 0) := by
+      have hDq : Filter.Tendsto (fun n => Dn n * q) Filter.atTop (nhds 0) := by
+        have := hDn_tendsto.mul_const q
+        simpa using this
+      have := (ENNReal.continuous_ofReal.tendsto 0).comp hDq
+      simpa using this
+    have h_seq : Filter.Tendsto
+        (fun n => wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t) + ENNReal.ofReal (Dn n * q))
+        Filter.atTop (nhds 0) := by
+      have := hA.add hB
+      simpa using this
+    exact le_antisymm (ge_of_tendsto' h_seq h_le_seq) (zero_le _)
   -- ============================================================
   -- Step 9: Bundle with a CLAMPED flow `cX s := charX (clampToIcc T s)`.
   --
@@ -7044,7 +7736,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       rfl
     rw [h1, ← h_self_consist (clampToIcc T s) (clampToIcc_mem hT.le s)]
   refine ⟨fun s z => charX (clampToIcc T s) z, fun s z => charV (clampToIcc T s) z,
-    M, hM_nn, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    m T, hMbar_nn, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (1) IsCharacteristicFlowOn on Ioo 0 T (window conjunct; clamp = id there).
     refine ⟨fun z _hz => ?_, fun t ht z _hz => ?_, fun t ht z _hz => ?_⟩
     · -- initial condition.
@@ -7093,10 +7785,11 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
             (charX (clampToIcc T t) z))) (Set.Icc 0 T) t
       rw [h_rho_clamp t, hclamp_id t ht]
       exact h2.congr hEqOnV (hEqOnV ht)
-  · -- (3) Moment bound on Icc 0 T.
+  · -- (3) Moment bound on Icc 0 T (uniform witness `m T`, via monotonicity).
     intro s hs
     rw [h_rho_clamp s, hclamp_id s hs]
-    exact VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim s
+    exact le_trans (VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim s)
+      (hMbar_mono (clampToIcc T s) (clampToIcc_mem hT.le s))
   · -- (4) First-moment integrability on Icc 0 T.
     intro s hs
     rw [h_rho_clamp s, hclamp_id s hs]
@@ -7444,7 +8137,8 @@ theorem vlasovWellPosedness_local
     (hf₀ : HasFiniteFirstMoment f₀)
     {T : ℝ} (hT : 0 < T)
     (hTL_PL : LocalSmallness_PL_buffer L T)
-    (hTL_con : LocalSmallness_contraction L T) :
+    (hTL_con : LocalSmallness_contraction L T)
+    (hB : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T) - 1) < 1) :
     ∃ (f : ℝ → Measure (PhaseSpace d))
       (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       f 0 = f₀ ∧
@@ -7545,7 +8239,7 @@ theorem vlasovWellPosedness_local
   obtain ⟨charX, charV, _M_ρ, _hM_ρ_nn, _hflow_on, _h_boundary,
           _hM_ρ_bound, _h_y_int_ρ, _hconv_cont, _h_aemeas, _h_int_conv⟩ :=
     vlasovWellPosedness_local_picard_fixedPointFlow W gradW hgradW L hL
-      f₀ hf₀_int hT hTL_PL hTL_con
+      f₀ hf₀_int hT hTL_PL hTL_con hB
   -- Bundle the f-shape result.
   refine ⟨vlasovSolutionViaPushforward charX charV f₀, charX, charV, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (a) f 0 = f₀.  The flow's initial-condition clause (post-Friction-5
@@ -7782,7 +8476,8 @@ theorem vlasovWellPosedness_glue_step
     (h_prev_ic : ∀ z : PhaseSpace d, charX_prev 0 z = z.1 ∧ charV_prev 0 z = z.2)
     {T_0 : ℝ} (hT_0_pos : 0 < T_0)
     (hT_0_small_PL : LocalSmallness_PL_buffer L T_0)
-    (hT_0_small_con : LocalSmallness_contraction L T_0) :
+    (hT_0_small_con : LocalSmallness_contraction L T_0)
+    (hT_0_small_B : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1) :
     ∃ (f_next : ℝ → Measure (PhaseSpace d))
       (charX_next charV_next : ℝ → PhaseSpace d → PhysSpace d),
       (∀ t ∈ Set.Icc (0 : ℝ) T, f_next t = f_prev t) ∧
@@ -7831,7 +8526,7 @@ theorem vlasovWellPosedness_glue_step
   obtain ⟨g, charX_g, charV_g, hg_init, hg_mom, hg_lag, hg_push_ex, hg_aemeas_ex,
           hg_boundary, hg_init_cond⟩ :=
     vlasovWellPosedness_local W gradW hgradW L hL
-      (f_prev T) h_prev_T_mom hT_0_pos hT_0_small_PL hT_0_small_con
+      (f_prev T) h_prev_T_mom hT_0_pos hT_0_small_PL hT_0_small_con hT_0_small_B
   -- Step 2: define the glued solution piecewise
   let f_next : ℝ → Measure (PhaseSpace d) :=
     fun t => if t ≤ T then f_prev t else g (t - T)
@@ -8760,7 +9455,13 @@ theorem vlasovWellPosedness_forward
   -- with strict-inequality margin lands both.
   let T_0_PL : ℝ := 1 / Real.sqrt L - 1
   let T_0_con : ℝ := Real.log (1 / (L : ℝ) + 1)
-  let T_0 : ℝ := min T_0_PL T_0_con / 2
+  -- Envelope-closure threshold: `B(T) := (L/(1+L))(exp((1+L)T) − 1) < 1` holds for
+  -- `T < T_0_env`.  Positive for EVERY `L ∈ (0,1)` — it is a `T`-threshold at fixed
+  -- `L` (`B(0)=0`, `B` continuous strictly increasing), so adding it to the `min`
+  -- does NOT tighten the admissible `L`-range below the `L < 1` that `T_0_PL`
+  -- already imposes (no `L`-restriction smuggled in).
+  let T_0_env : ℝ := Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ))
+  let T_0 : ℝ := min (min T_0_PL T_0_con) T_0_env / 2
   have hL_nn : (0 : ℝ) ≤ L := NNReal.coe_nonneg L
   have hsqrtL_pos : 0 < Real.sqrt (L : ℝ) := Real.sqrt_pos.mpr hL_pos
   have hsqrtL_lt1 : Real.sqrt (L : ℝ) < 1 := by
@@ -8780,10 +9481,17 @@ theorem vlasovWellPosedness_forward
     linarith
   have hT_0_con_pos : 0 < T_0_con :=
     Real.log_pos h_one_div_L_plus_one_gt_one
-  have hT_0_min_pos : 0 < min T_0_PL T_0_con :=
-    lt_min hT_0_PL_pos hT_0_con_pos
+  have h_1L_pos : (0 : ℝ) < 1 + (L : ℝ) := by linarith [hL_pos]
+  have hT_0_env_pos : 0 < T_0_env := by
+    show 0 < Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ))
+    have h_arg_gt1 : 1 < 1 + (1 + (L : ℝ)) / (L : ℝ) := by
+      have : 0 < (1 + (L : ℝ)) / (L : ℝ) := by positivity
+      linarith
+    exact div_pos (Real.log_pos h_arg_gt1) h_1L_pos
+  have hT_0_min_pos : 0 < min (min T_0_PL T_0_con) T_0_env :=
+    lt_min (lt_min hT_0_PL_pos hT_0_con_pos) hT_0_env_pos
   have hT0_pos : 0 < T_0 := by
-    show 0 < min T_0_PL T_0_con / 2
+    show 0 < min (min T_0_PL T_0_con) T_0_env / 2
     linarith
   -- **PL-buffer constraint at T_0** (existing algebra at T_0_PL_old, lifted
   -- to T_0 via monotonicity since T_0 ≤ T_0_PL_old).
@@ -8791,9 +9499,10 @@ theorem vlasovWellPosedness_forward
     show (L : ℝ) * (T_0 + 1) ^ 2 < 1
     let T_0_PL_old : ℝ := (1 / Real.sqrt (L : ℝ) - 1) / 2
     have h_T_0_le_old : T_0 ≤ T_0_PL_old := by
-      show min T_0_PL T_0_con / 2 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2
-      have h_min_le : min T_0_PL T_0_con ≤ T_0_PL := min_le_left _ _
-      show min T_0_PL T_0_con / 2 ≤ T_0_PL / 2
+      show min (min T_0_PL T_0_con) T_0_env / 2 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2
+      have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_PL :=
+        le_trans (min_le_left _ _) (min_le_left _ _)
+      show min (min T_0_PL T_0_con) T_0_env / 2 ≤ T_0_PL / 2
       linarith
     have h_T_0_PL_old_nn : 0 ≤ T_0_PL_old := by
       show 0 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2; linarith
@@ -8831,8 +9540,9 @@ theorem vlasovWellPosedness_forward
     rw [hmax_eq, one_mul, div_one]
     -- T_0 ≤ T_0_con / 2 < T_0_con.
     have h_T_0_lt : T_0 < T_0_con := by
-      show min T_0_PL T_0_con / 2 < T_0_con
-      have h_min_le : min T_0_PL T_0_con ≤ T_0_con := min_le_right _ _
+      show min (min T_0_PL T_0_con) T_0_env / 2 < T_0_con
+      have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_con :=
+        le_trans (min_le_left _ _) (min_le_right _ _)
       linarith
     -- exp T_0 < exp T_0_con = 1/L + 1.
     have h_exp_lt : Real.exp T_0 < 1 / (L : ℝ) + 1 := by
@@ -8848,6 +9558,48 @@ theorem vlasovWellPosedness_forward
     have h_L_inv : (L : ℝ) * (1 / (L : ℝ)) = 1 := by field_simp
     rw [h_L_inv] at h_step
     exact h_step
+  -- **hB discharge at T_0** (envelope-closure `B(T_0) < 1`), CLOSED via the
+  -- `T_0_env` threshold added to the `min` above: `T_0 < T_0_env` gives
+  -- `(1+L)·T_0 < log(1 + (1+L)/L)`, hence `exp((1+L)·T_0) − 1 < (1+L)/L`, hence
+  -- `(L/(1+L))·(exp((1+L)·T_0) − 1) < (L/(1+L))·((1+L)/L) = 1`.  No `L`-restriction
+  -- beyond the `L < 1` already imposed by `T_0_PL` (this is a `T`-threshold).
+  have hTL_T0_B :
+      (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1 := by
+    have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
+    have h_1L_ne : (1 + (L : ℝ)) ≠ 0 := ne_of_gt h_1L_pos
+    have h_ratio_pos : (0 : ℝ) < (1 + (L : ℝ)) / (L : ℝ) := div_pos h_1L_pos hL_pos
+    have h_arg_pos : (0 : ℝ) < 1 + (1 + (L : ℝ)) / (L : ℝ) := by linarith
+    -- T_0 < T_0_env (the new outer-min branch).
+    have h_T_0_lt_env : T_0 < T_0_env := by
+      show min (min T_0_PL T_0_con) T_0_env / 2 < T_0_env
+      have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_env := min_le_right _ _
+      linarith
+    -- (1+L)·T_0 < log(1 + (1+L)/L)  ( = (1+L)·T_0_env by the def of T_0_env).
+    have h_lin_lt : (1 + (L : ℝ)) * T_0
+        < Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) := by
+      have h_env_eq : (1 + (L : ℝ)) * T_0_env
+          = Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) := by
+        show (1 + (L : ℝ)) *
+            (Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ)))
+          = Real.log (1 + (1 + (L : ℝ)) / (L : ℝ))
+        field_simp
+      calc (1 + (L : ℝ)) * T_0
+          < (1 + (L : ℝ)) * T_0_env := mul_lt_mul_of_pos_left h_T_0_lt_env h_1L_pos
+        _ = Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) := h_env_eq
+    -- exp((1+L)·T_0) < 1 + (1+L)/L.
+    have h_exp_lt : Real.exp ((1 + (L : ℝ)) * T_0)
+        < 1 + (1 + (L : ℝ)) / (L : ℝ) := by
+      calc Real.exp ((1 + (L : ℝ)) * T_0)
+          < Real.exp (Real.log (1 + (1 + (L : ℝ)) / (L : ℝ))) :=
+            Real.exp_lt_exp.mpr h_lin_lt
+        _ = 1 + (1 + (L : ℝ)) / (L : ℝ) := Real.exp_log h_arg_pos
+    have h_diff_lt : Real.exp ((1 + (L : ℝ)) * T_0) - 1 < (1 + (L : ℝ)) / (L : ℝ) := by
+      linarith
+    have hcoef_pos : (0 : ℝ) < (L : ℝ) / (1 + (L : ℝ)) := div_pos hL_pos h_1L_pos
+    calc (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1)
+        < (L : ℝ) / (1 + (L : ℝ)) * ((1 + (L : ℝ)) / (L : ℝ)) :=
+          mul_lt_mul_of_pos_left h_diff_lt hcoef_pos
+      _ = 1 := by field_simp
   -- Step 2: N = ⌈T_target / T_0⌉₊ windows of size T_0 cover T_target.
   let N : ℕ := ⌈T_target / T_0⌉₊
   have hN_pos : 0 < N := by
@@ -8886,7 +9638,7 @@ theorem vlasovWellPosedness_forward
       -- Base: n = 0, need solution on [0, 1·T_0] = [0, T_0].
       simp only [T_n, Nat.cast_zero, zero_add, Nat.cast_one, one_mul]
       obtain ⟨f, charX, charV, hf_init, hf_mom, hf_lag, hf_push, hf_aemeas, hf_boundary, hf_ic⟩ :=
-        vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0_PL hTL_T0_con
+        vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0_PL hTL_T0_con hTL_T0_B
       exact ⟨f, charX, charV, hf_init, hf_mom, hf_lag.1, hf_push, hf_aemeas, hf_boundary, hf_ic⟩
     | succ n ih =>
       -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
@@ -8912,7 +9664,7 @@ theorem vlasovWellPosedness_forward
           f_n hfn_init hfn_mom
           charX_n charV_n hfn_vlasov hfn_flow
           hfn_push hfn_aemeas hfn_boundary hfn_ic
-          hT0_pos hTL_T0_PL hTL_T0_con
+          hT0_pos hTL_T0_PL hTL_T0_con hTL_T0_B
       -- Need: T_n (n+1) = T_n n + T_0
       have h_T_eq : T_n (n + 1) = T_n n + T_0 := by
         simp only [T_n]; push_cast; ring

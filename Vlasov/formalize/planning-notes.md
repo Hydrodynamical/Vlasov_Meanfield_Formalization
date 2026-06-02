@@ -2194,6 +2194,46 @@ exposure (`8ae19f5`).  The data-free escape is validated + the structure carries
 the envelope; `Phi_step` now hands out Piece A's per-`z` bound (requires
 `hM_mono`).
 
+> **⚠️ CORRECTION (2026-06-01, NO-BALL-CHECK opening read — P5/M3 refutation
+> of THIS plan's premise).**  The rebuild-first decision recorded below rests
+> on a **FALSE premise**: `exists_vlasov_characteristicFlow` is **NOT sorry'd —
+> it is fully proven.**  Atom-level evidence: no `sorry` token in its body
+> (L1553–2290, grep + final-assembly read); its vendored
+> `Vlasov.Mathlib.ODE.PicardLindelof` dependency is also `sorry`-free.  The
+> "Currently sorry'd; closing it is the next follow-up session" at L1552 was a
+> **stale docstring** — and this plan read that *interface* line as "the
+> dominant fact" instead of reading the *construction* (the exact M3 corollary
+> recorded this session: read the construction, not the interface).  The
+> NO-BALL CHECK (Step 0) caught it because it forced the construction read.
+> Docstring corrected in the same arc.
+>
+> **What `hTL_PL` actually is:** a *carried hypothesis*
+> `LocalSmallness_PL_buffer L T := L·(T+1)² < 1` (CharFlow L4169), threaded from
+> `exists_vlasov_perz_trajectory` (which discharges the per-ball flow's `hR` via
+> `R := N(z)/(1-L(T+1)²)`) up to the marquee — already as a *named, droppable*
+> hyp (`_hTL_PL` unused at `_finalAssembly_*`).  Real smallness (the `+1` forces
+> `L < 1`, overclaim-by-restriction vs. Dobrushin), but **not a sorry.**
+>
+> **Consequence — the rebuild-first rationale below is VOID:** there is no
+> sorry'd dependency under Piece D.  The existence chain is **proven through
+> `Phi_step`**.  Open critical-path sorries (CharFlow): `picard_iterate_
+> bundlesAs_VlasovMeasureCurve` (L6440, ×2), **#11 `vlasovWellPosedness_local_
+> picard_fixedPointFlow`** (L6743, ×2 = Piece D), `vlasovWellPosedness_glue_
+> step` (L7756, ×2), `vlasovWellPosedness_universal_existence` (L9490, ×2),
+> plus 2 deferred `MathlibTODO_*`.
+>
+> **Revised path:** **Piece D closes NOW on the proven chain, carrying
+> `hTL_PL`** (Option A).  `hTL_PL` elimination is a *separate, decoupled*
+> faithfulness pass — a fixed-`δ` N-window *re-consumption* of the **proven**
+> per-ball flow (NOT a rebuild; ~200–300 lines), deferrable because `hTL_PL` is
+> already threaded for clean removal.  The "REBUILD SESSION — opening read" and
+> "POST-REBUILD GATE" blocks below are **superseded** (the (c) sweep already
+> ran here: per-ball flow + vendored PL both clean; the only thing the
+> interface hid was a stale docstring, now fixed).
+>
+> ---
+> _Historical record (premise now known false — retained for the P5 lesson):_
+
 **Decided (user, after the hTL_PL trace + Step-0 gate): REBUILD the per-ball
 flow FIRST, fresh session — NOT Piece D first.**  Rationale (the dominant fact):
 `exists_vlasov_characteristicFlow` (L1552) is **sorry'd and mandatory** — the
@@ -2261,3 +2301,548 @@ sweep than by stumbling into it at line 250 of a later session.  The sweep's
 job: which green declarations stand on a sorry'd or over-strong dependency the
 interface hides.  Schedule it AFTER the rebuild, BEFORE the existence side is
 called done — earned, not hypothetical hygiene.
+
+### Piece D execution brief — close #11 on envelope space `m*` (2026-06-01, atom-level loaded context)
+
+**Premise correction first:** the rebuild section above is SUPERSEDED — the
+per-ball flow is proven (see the ⚠️ CORRECTION). Piece D closes **on the proven
+chain**. Below is the complete atom-level map (all signatures read this session).
+
+**Ready plumbing (all confirmed sorry-free this session):**
+* **A.3 `gronwall_envelope_exists`** (CharFlow L579): under
+  `hB : (L/(1+L))·(exp((1+L)·T)−1) < 1`, gives `m* : ℝ→ℝ` with
+  `MonotoneOn m* (Icc 0 T)`, `∀t∈Icc, M_f₀ ≤ m* t`, and the **Φ-invariance**
+  `∀t∈Icc, gronwallBound M_f₀ (1+L) (g0 + L·m* t) t ≤ m* t`.
+* **A.2 `phi_moment_envelope_le`** (L678): from per-`z` growth `h_growth` →
+  `∀t∈Icc, ∫‖x‖∂(map (charX t) f₀) ≤ gronwallBound (∫z‖z‖∂f₀) (1+L) (g0+L·m t) t`.
+  (Initial moment is the **phase-space** `∫z‖z‖∂f₀`, not the spatial marginal.)
+* **`Phi_step`** (L5577): input `ρ : VlasovMeasureCurve d T M`; output flow
+  `(charX,charV)`, `C_T≥0`, the per-`z` growth conjunct `h_growth_timedep`
+  (= A.2's `h_growth` input, with `m = M`, `g0 = ‖gradW 0‖`), and a bundled
+  `σ : VlasovMeasureCurve d T (fun _ => C_T·(M_f₀+1))` with
+  `σ.ρ t = map (charX t) f₀` on Icc. Needs `Mbar`, `hMbar : M t ≤ Mbar`,
+  `hM_mono : MonotoneOn M (Icc)`, `hTL_PL`, `h_int_ext`.
+* **`Phi_supW1_contraction`** (L6130, PROVEN): `(supW1On(Φρ,Φσ)).toReal ≤
+  gronwallBound 0 (max 1 L) (L·D) T = q·D`, given `D` bounds `(W1(ρ,σ)).toReal`
+  on Icc + full per-`z` flow regularity (init/cont/deriv/meas/int) for both.
+* **`picard_iterate_bundlesAs_VlasovMeasureCurve`** (L6453, itself ×2 sorry —
+  separate close): contracting sequence → limit `ρ_lim` + tendsto.
+
+**KEYSTONE new infra — envelope re-bundling `Phi_step` → `space(m*)`** (helper
+`Phi_step_envelope`, API-lock first): input `ρ : VlasovMeasureCurve d T m*`,
+output flow + `σ' : VlasovMeasureCurve d T m*`.
+  1. `Mbar := m* T`; `hMbar t ht := hm_mono ht ⟨…,le_refl⟩ ht.2 : m* t ≤ m* T`.
+  2. `obtain ⟨charX,charV,C_T,_,hflow,h_growth_timedep,σ,hσ_eq⟩ :=
+      Phi_step … m* (m* T) hMbar_nn hMbar hm_mono hTL_PL ρ h_int_ext`.
+  3. New `hasMoment t ht`: `σ.ρ t = map (charX t) f₀` (hσ_eq) →
+     `∫‖x‖∂(map charX t f₀) ≤ gronwallBound M_f₀ (1+L) (g0+L·m* t) t`
+     (A.2, `m=m*`, `g0=‖gradW 0‖`, `h_growth=h_growth_timedep`, `h_meas` from
+     Phi_step) → `≤ m* t` (A.3 Φ-invariance). `σ' := {σ with hasMoment := …}`
+     (ρ/isProb/yIntegrable/hSupW1Cont carry unchanged).
+
+**#11 restructure (the migration):**
+  1. Signature: **ADD `hB : (L/(1+L))·(exp((1+L)·T)−1) < 1`.** Under Option A,
+     #11 carries `hTL_PL` + `hTL_con` + `hB`.
+  2. Replace trivial M-fixed-point (L6834) with
+     `obtain ⟨m*, hm_mono, hm_ge, hm_inv⟩ := gronwall_envelope_exists
+      M_f₀ ‖gradW 0‖ … L T hT.le hB` where **`M_f₀ := ∫z‖z‖∂f₀`** (phase-space,
+     to match A.2 — see F1).
+  3. Picard space `VlasovMeasureCurve d T (fun _ => M)` → `… d T m*` everywhere
+     (the `obtain ⟨x,h_contract⟩` type, `picard_iterate_bundlesAs` call, ρ_lim).
+  4. **Sorry 1** (Picard seq + contraction): `x : ℕ → VlasovMeasureCurve d T m*`
+     by `Nat.rec`: base `x 0 := constantCurve μ₀` (moment OK:
+     `∫‖x‖∂μ₀ ≤ ∫‖z‖∂f₀ = M_f₀ ≤ m* t` via `norm_fst_le` + hm_ge); step
+     `x(k+1) := (Phi_step_envelope (x k)).σ'`. Contraction
+     `supW1On(x k)(x(k+1)) ≤ q^k·D₀` by induction via `Phi_supW1_contraction`
+     (D = q^{k−1}·D₀ from IH; flow regularity from the Phi_step_envelope calls).
+  5. **Sorry 2** (self-consistency): `ρ_lim.extend t = spatialMarginal(pushforward
+     charX charV f₀ t)` on Icc — space-agnostic, uses x/h_contract/ρ_lim/tendsto;
+     Φ(ρ_lim)=ρ_lim by contraction+tendsto, triangle through `x n`.
+
+**Consumer cascade (`hB` thread):** #11 → `vlasovWellPosedness_local` (~L7448) →
+`vlasovWellPosedness_glue_step` (L7769) → `vlasovWellPosedness_universal_existence`
+(L9503) → marquee. Each gains `hB`; the marquee **discharges** it by choosing
+the local window `T₀` small (both `hTL_con` and `hB` → 0 as T → 0).
+
+**FLAGS to resolve at execution:**
+* **F1** A.2 initial moment is phase-space `∫z‖z‖∂f₀`; feed `gronwall_envelope_exists`
+  the SAME `M_f₀`. Spatial `hasMoment` then follows (spatial moment ≤ phase-space).
+* **F2** Is `hB` independent of `hTL_con` (= `q<1`, `gronwallBound 0 (max 1 L) L T<1`)?
+  `K_env=1+L` vs `K_con=max 1 L`. Not obviously ordered — carry both unless a
+  provable implication is found (then drop the weaker).
+* **F3** `D₀` under envelope: currently `2*M`; recompute base `supW1On(x0)(x1)`
+  bound with uniform `m* T` (likely `D₀ := 2·m*(T)` via `supW1On_le_two_moment`).
+* **F4** `Phi_step_envelope` standalone (API-lock, cleaner) vs inline in #11. Prefer
+  standalone.
+
+**Order (P4 API-lock → leaves):** (1) `Phi_step_envelope` API-lock → green;
+(2) #11 envelope restructure (+hB, two sorries restated) → green = API-lock commit;
+(3) close `Phi_step_envelope` body (A.2+A.3); (4) close #11 sorry 1; (5) close #11
+sorry 2; (6) thread `hB`, discharge at marquee small-T₀.
+
+#### Piece D cascade map — refinements from execution (2026-06-01, post Phi_step_envelope API-lock)
+
+**Landed:** `Phi_step_envelope` API-lock (CharFlow, right after `Phi_step` ~L5752):
+signature locked + typechecks green; body `sorry` (+1, → CharFlow sorry inventory
+11). Output = `_global_smallT` shape (flow + `IsCharacteristicFlowOn` + boundary
+bundle) **+** `∃ σ : VlasovMeasureCurve d T m, σ.ρ t = map (charX t) f₀ on Icc`.
+Body close = `Phi_step` internals + expose boundary + A.2/A.3 moment re-bundle.
+
+**`hB` cascade — exact threading sites (mirror the `hTL_con` thread):**
+* #11 `…_picard_fixedPointFlow` (L6807): add `hB`; sig currently `hTL_PL`(L6816)+
+  `hTL_con`(L6817). Body: replace trivial M-fixed-point (L6885
+  `⟨M_f₀, hM_f₀_nn, le_refl⟩`) with `gronwall_envelope_exists`; **redefine
+  `M_f₀ := ∫z‖z‖∂f₀` (phase-space, F1)** — currently it is the *spatial* marginal
+  moment (L6874). Picard space `(fun _ => M)` → `m`. Two sorries restated in
+  `space(m)`. `q`/`hq_lt` UNCHANGED (M-independent, uses `hTL_con`).
+* `vlasovWellPosedness_local` (`hTL_con` at L7511): add `hB`, pass to #11 (call L7611).
+* `_finalAssembly_moment` / `_finalAssembly_isLagrangian` (`_hTL_con` at L7212/L7339):
+  add `_hB` unused.
+* `vlasovWellPosedness_glue_step` (`hT_0_small_con` at L7849): add `hB` for the window.
+* `vlasovWellPosedness_universal_existence`: **the discharge site.** Currently
+  `T_0 := min T_0_PL T_0_con / 2` and **already restricts to `L < 1`** (the
+  `T_0_PL = (1/√L − 1)/2` selection at L8856 needs `√L < 1`; `hL_lt` used at L8894).
+  To discharge `hB`: introduce `T_0_env` (threshold for `(L/(1+L))(e^{(1+L)T)−1)<1`),
+  set `T_0 := min (min T_0_PL T_0_con) T_0_env / 2`, update the existing
+  `min_le_left/right` steps in the `hTL_PL`(L8855) + `hTL_con`(L8892) discharges to
+  the nested-min form, and add an `hB`-at-`T_0` discharge mirroring `hTL_T0_con`
+  (L8892–8914): `T_0 < T_0_env`, `exp` monotone, `(L/(1+L))(e^{(1+L)T_0}−1) < 1`.
+
+**Risk note:** the cascade is wide (6 theorems) + a real (small) analytic discharge.
+Keep the tree green: legitimate to API-lock the `universal_existence` `hB`-discharge
+as a 1-line `sorry` first (mirrors `hTL_T0_con` shape), then close. Don't half-land.
+
+**Sorry accounting (cumulative-honesty):** project 14 → 15 at the `Phi_step_envelope`
+API-lock (P4 expected temporary +1). Net trajectory once Piece D closes: the two
+#11 sorries + the `Phi_step_envelope` body sorry retire (−3), modulo the
+`picard_iterate_bundlesAs` ×2 (separate close) and the cascade adding no sorries.
+
+#### Piece D — keystone CLOSED + mechanical #11 migration edit-list (2026-06-01)
+
+**`Phi_step_envelope` body CLOSED first build try** (CharFlow ~L5752). Proven
+infra; net-zero sorry (API-lock +1 retired). A.2 (`phi_moment_envelope_le`)
+weakened `h_meas : ∀ t` → `∀ t ∈ Icc` (M2, no consumers) so the on-`Icc`-only
+`charFlow_measurable_via_gronwall` measurability suffices. **Interface confirmed
+at body level**: F1 anchor `∫z‖z‖∂f₀` (phase-space) matches A.2's `integral_map`
+literal; `hm_inv` matches A.3's 3rd conjunct exactly ⇒ **cascade threads exactly
+`hB`**, no side conditions, no form-mismatch.
+
+**#11 `vlasovWellPosedness_local_picard_fixedPointFlow` migration — exact edits
+(current line numbers):**
+1. **Sig L6964**: add after `hTL_con` →
+   `(hB : (L:ℝ)/(1+(L:ℝ))*(Real.exp((1+(L:ℝ))*T)-1) < 1)`.
+2. **L7021 (F1)**: `let M_f₀ : ℝ := ∫ z, ‖z‖ ∂f₀` (drop `(spatialMarginal …)`).
+   Fix `hM_f₀_spec` (L7023) — it is `∫spatial ≤ M_f₀`; either drop (check
+   usage) or reprove `≤` via `norm_fst_le` (no longer `le_refl`).
+3. **L7032-7033 (replace trivial M)**:
+   `obtain ⟨m, hm_mono, hm_ge, hm_inv⟩ := gronwall_envelope_exists M_f₀ ‖gradW 0‖
+     hM_f₀_nn (norm_nonneg _) L T hT.le hB`
+   `have hm_nn : ∀ t ∈ Icc 0 T, 0 ≤ m t := fun t ht => le_trans hM_f₀_nn (hm_ge t ht)`
+   `have hMbar_nn : 0 ≤ m T := hm_nn T ⟨hT.le, le_refl T⟩`
+   `have hMbar_mono : ∀ t ∈ Icc 0 T, m t ≤ m T := fun t ht => hm_mono ht ⟨hT.le, le_refl T⟩ ht.2`
+4. **L7136**: `let D₀ : ℝ := 2 * (m T)`; `hD₀_nn` via `by positivity`/`linarith [hMbar_nn]`.
+5. **L7139 (sorry-1 type)**: `∃ x : ℕ → VlasovMeasureCurve d T m, ∀ k,
+     supW1On (Icc 0 T) (x k).ρ (x (k+1)).ρ ≤ ENNReal.ofReal (q^k * D₀)`.
+   (Body stays `sorry` — leaf. NOTE: the recursion closing this uses
+   `Phi_step_envelope` per step; that helper is now proven.)
+6. **L7147 (picard call)**: unchanged shape; `x : space m` flows through
+   (`picard_iterate_bundlesAs` is generic in `M`), giving `ρ_lim : space m`.
+7. **Step 7 `_global_smallT` (the `M hM_nn` + `extend_hasMoment` args)**: replace
+   `M hM_nn (fun t => extend_hasMoment hT.le ρ_lim t)` with
+   `(m T) hMbar_nn (fun t => le_trans (extend_hasMoment hT.le ρ_lim t)
+      (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t)))`.
+8. **Final witness L7257-7258**: `… , m T, hMbar_nn, ?_, …`.
+9. **Conjunct (3) moment bound L7307-7310**: after the `rw`, goal is
+   `∫‖y‖∂(ρ_lim.extend s) ≤ m T`; replace `exact extend_hasMoment …` with
+   `exact le_trans (extend_hasMoment hT.le ρ_lim s)
+     (hMbar_mono (clampToIcc T s) (clampToIcc_mem hT.le s))`.
+   (`q`/`hq_lt` UNCHANGED — M-independent. Sorry-2 self-consistency UNCHANGED.)
+
+**Consumer thread (add `hB`, mirror `hTL_con`):** `vlasovWellPosedness_local`
+(sig L7658, pass to #11 call), `_finalAssembly_moment` (L7349) +
+`_finalAssembly_isLagrangian` (L7476) as unused `_hB`, `glue_step` (L7967).
+**Discharge** at `universal_existence` (L9701): add `T_0_env`, set
+`T_0 := min (min T_0_PL T_0_con) T_0_env / 2`, fix the nested-`min` `min_le`
+steps in the `hTL_PL`(L8855-area)+`hTL_con`(L8892-area) discharges, add
+`hB`-at-`T_0` mirroring `hTL_T0_con`. **API-lock the hB-discharge as a 1-line
+`sorry` first if the T_0-tightening is fiddly; keep green; close after.**
+
+#### Piece D — envelope cascade LANDED GREEN (2026-06-02)
+
+**Fired as pure mechanical signature-threading (discharge sorry'd upfront,
+unconditionally). Built green on the first attempt; net +1 sorry (14→15), the
+`hTL_T0_B` discharge — matching prediction.** The compiler verified threading
+completeness (a missing `hB` arg = hard error, not silent pass).
+
+Landed edits:
+* **#11** migrated to envelope space `m` (F1 phase-space `M_f₀ = ∫z‖z‖∂f₀`;
+  `gronwall_envelope_exists` → `m`; Picard space `space(m)`; `m T` uniform bound
+  in Steps 6–9 + final witness; conjunct-(3) via `hMbar_mono`). Its **2 leaves
+  preserved** (L7152 Picard-in-`space(m)`, L7236 self-consistency). `q`/`hq_lt`
+  untouched (M-independent).
+* **`hB` threaded**: `_local` (sig + #11 call), `glue_step` (sig + `_local`
+  call), and **`vlasovWellPosedness_forward`** (the continuation tower — NOT
+  `universal_existence`; my earlier edit-list mislabeled this) which *derives*
+  `hTL_T0_B` internally (L9084, sorry'd) and threads to its `_local`/`glue_step`
+  calls. `_finalAssembly_*` need no `hB` (downstream of #11's output, confirmed
+  by green build). `universal_existence` calls `_forward` (signature unchanged) ⇒
+  marquee unaffected.
+* **A.2** (`phi_moment_envelope_le`) `h_meas` weakened `∀ t` → `∀ t ∈ Icc` (M2).
+
+**Remaining Piece D leaves (close against the GREEN tree, isolated):**
+1. **`hTL_T0_B` discharge** (`_forward` L9084): the analytic `T_0`-tightening —
+   add `T_0_env` (exists since `B(0)=0`, `B` cont. strictly incr.), set
+   `T_0 := min (min T_0_PL T_0_con) T_0_env / 2`, update the nested-`min`
+   `min_le` steps in the PL(L~9015)+con(L~9053) discharges, prove
+   `B(T_0) < 1`. Touches `_forward`'s `T_0` def only.
+2. **#11 sorry-1** (L7152): Picard recursion in `space(m)` — base
+   `constantCurve μ₀` (moment OK: `∫‖x‖∂μ₀ ≤ M_f₀ ≤ m t`), step via
+   **`Phi_step_envelope`** (proven) + geometric contraction via
+   `Phi_supW1_contraction` (proven), `D = q^{k-1}·D₀`.
+3. **#11 sorry-2** (L7236): self-consistency `ρ_lim.extend t = spatialMarginal(
+   pushforward charX f₀ t)` — space-agnostic, Φ(ρ_lim)=ρ_lim via contraction+
+   tendsto, triangle through `x n`.
+Plus `picard_iterate_bundlesAs` (×2, pre-existing) on the same path.
+
+#### Piece D — hB discharge leaf CLOSED (2026-06-02)
+
+**`hTL_T0_B` closed first build try; 15→14. The foundational risk did NOT
+materialize** — the three thresholds intersect positively, envelope constraint
+is compatible with the existing window selection (news obtained BEFORE building
+the two #11 leaves on it, per the discharge-first ordering).
+
+Edits (all in `vlasovWellPosedness_forward`):
+* Added `T_0_env := Real.log (1 + (1+L)/L) / (1+L)`; `T_0 := min (min T_0_PL
+  T_0_con) T_0_env / 2` (nested min-of-three).
+* `hT_0_env_pos` via `div_pos (Real.log_pos _) h_1L_pos`; 3-way `lt_min`.
+* 4 ripple sites: PL discharge `min_le` → `le_trans (min_le_left) (min_le_left)`;
+  con discharge → `le_trans (min_le_left) (min_le_right)`; positivity `show`s.
+* `hTL_T0_B`: `T_0 < T_0_env` → `(1+L)T_0 < log(1+(1+L)/L)` (`exp_lt_exp` +
+  `exp_log`) → `exp((1+L)T_0)−1 < (1+L)/L` → `(L/(1+L))·(…) < (L/(1+L))·((1+L)/L)
+  = 1` (`field_simp`).
+* **L-range check (user-requested): PASS.** Proof uses only `hL_pos` (`L>0`), no
+  stricter bound; `T_0_env > 0` for every `L>0` ⇒ `L<1` ceiling unchanged
+  (it's a `T`-threshold, not an `L`-restriction). No faithfulness regression.
+
+**Piece D status:** `Phi_step_envelope` proven · #11 envelope-migrated · hB
+cascade threaded · hB discharge CLOSED. **Remaining: #11 sorry-1 (Picard
+recursion in `space(m)`, L7152) + sorry-2 (self-consistency, L7236)** — both now
+on a CONFIRMED-SOUND foundation. (Plus `picard_iterate_bundlesAs` ×2 on path.)
+Project sorry count 14 (baseline), but Piece D ~75% landed.
+
+#### Piece D — (i) enriched type LOCKED + (ii) scoped (2026-06-02)
+
+**(i) DONE:** #11 sorry-1's existential enriched (architecture A) to expose, per
+step `k`, the flow `(charXs k, charVs k)` against `(x k).extend` (= `Phi_step_
+envelope`'s output shape verbatim) + pushforward identity `(x(k+1)).ρ t =
+map (charXs k t) f₀`. **Elaborates green** (≠ validated — that's (ii)+(iii)).
+
+**(ii) scoped — regularity layer found & RESOLVED.** Opening the `Nat.rec`:
+`Phi_supW1_contraction` + `Phi_pointwise_contraction` declare the 6 flow-regularity
+hyps (`h_meas`/`h_int_charX`/`h_yint_Phi` ρ,σ) as `∀ t`, but the exposed `charXs`
+(IsCharFlowOn on `Ioo` + boundary on `Icc`) is controlled only on `Icc`.
+**Resolution: M2-weaken both** `∀ t → ∀ t ∈ Icc` — confirmed both bodies use these
+hyps only at `t ∈ Icc` (supW1On one's `intro t ht` block + its pass-through to the
+pointwise lemma), and **both have zero functional consumers** (only the pointwise
+lemma is called, inside the supW1On one), so weakening is FREE. **No clamp-bridge
+needed** — the exposed unclamped `charXs` works directly. (Mirror of the A.2
+weakening.)  [Line-drift note: `Phi_step_envelope`'s insertion shifted these ~200
+lines; caught by re-grep — the "maps drift across edits" pattern.]
+
+**sorry-1 plan (crystallized):**
+1. M2-weaken `Phi_pointwise_contraction` + `Phi_supW1_contraction` (`∀t`→`∀t∈Icc`;
+   `h_x t` → `h_x t ht`; free).
+2. Recursion: `h_int_ext_gen : ∀ (ν : space m) t x, Integrable (gradW(x-·)) (ν.extend t)`
+   (dominator, like `h_int_ρ_lim`); per-step `step ν := Phi_step_envelope … ν
+   (h_int_ext_gen ν)` reshaped `∃ σ cX cV, (pushforward id) ∧ IsCharFlowOn ∧ bdry`;
+   `x := Nat.rec (constantCurve μ₀-in-m) (fun _ ν => Classical.choose (step ν))`;
+   `charXs k := <cX of step (x k)>`, etc. Flow-facts = `step`'s spec verbatim.
+3. Contraction induction `supW1On(x k)(x(k+1)) ≤ ofReal(q^k D₀)`: base k=0 via
+   `supW1On_le_two_moment_of_VlasovMeasureCurve (m T) hMbar (x0)(x1)` (= ofReal
+   2(m T) = ofReal D₀); step via weakened `Phi_supW1_contraction` (exposed charXs
+   + derived 6 facts) giving `.toReal ≤ q·D`, IH `D ≤ q^k D₀`, ENNReal↔toReal via
+   `supW1On_ne_top_of_VlasovMeasureCurve`.
+
+**sorry-2 plan** (after sorry-1): triangle `W1(ρ_lim t)(Φ(charX) t) ≤
+W1(ρ_lim t)(x_n t)[→0, picard tendsto] + W1(x_n t)(Φ(charX) t)[=W1(Φ(charXs_{n-1}))
+(Φ(charX)) ≤ q·D_{n-1}→0 via contraction w/ exposed flows]` → separation
+(`wasserstein1_eq_zero_iff_measure_eq`, banked). **WATCH: the uniform-`D_{n-1}`
+step** (`supW1On(x_{n-1})(ρ_lim)` from pointwise picard tendsto) — read the
+`n→∞`-inside-sup for a hidden `sup_t lim_n ≤ lim_n sup_t` interchange; if it needs
+LSC, check banked `#4 w1LowerSemicontinuous` before assuming free.
+
+#### ⚠️ FRESH-SESSION OPENING for sorry-1 (read BEFORE executing — 2026-06-02)
+
+The sorry-1 plan above is right, but its **opening move is NOT the `Nat.rec`** — it is
+a **fresh re-verification of the M2-weakening's freeness**, for a specific reason:
+the "both contractions use the 6 hyps only at `t ∈ Icc`" + "zero functional
+consumers" reads were done LATE in a very long turn, in the SAME turn that the
+line-drift misread bit (read `Phi_pointwise_contraction` as `Phi_supW1_contraction`
+because `Phi_step_envelope`'s ~190 lines shifted everything). They are *probably*
+right — but "probably right, verified late, on lemmas whose line numbers just
+shifted" is exactly the state where executing-now converts a likely-clean signature
+change into a possibly-wrong one threaded through a `Nat.rec` you'd then unwind.
+
+**So sorry-1 opens with, in order:**
+1. **Re-grep at CURRENT line numbers** (they will have drifted again if anything
+   landed): locate `Phi_pointwise_contraction` + `Phi_supW1_contraction`; confirm
+   (a) zero functional call sites of either (all hits comments except the pointwise
+   call *inside* the supW1On one), and (b) both use `h_meas/h_int_charX/h_yint_Phi`
+   ρ,σ only at `t ∈ Icc`. This is the discharge-first/body-first discipline applied
+   to the weakening: re-confirm the thing that can quietly invalidate the assembly
+   (a misread consumer of the weakened lemma) in FRESH conditions before the change.
+2. THEN the free M2-weakening (`∀t`→`∀t∈Icc`; `h_x t`→`h_x t ht`).
+3. THEN the `Nat.rec` recursion (step 2 of the banked plan).
+4. THEN the contraction induction (step 3 of the banked plan).
+
+**Carry-forward #2 (sorry-2, when reached):** the uniform-`D_{n-1}` step —
+`supW1On(x_{n-1})(ρ_lim)` recovered from picard's POINTWISE tendsto — must be read
+for a hidden `sup_t lim_n ≤ lim_n sup_t` interchange BEFORE assuming it is
+LSC-free. The on-paper argument (geometric from conjunct (a) + triangle + pointwise
+tendsto) says no LSC is needed; confirm that in the body. If it bites, the fallback
+is the banked FA placeholder **#4 `w1LowerSemicontinuous…`** — check it exists/fits
+before treating LSC as a new obligation.
+
+Piece D standing: keystone proven · #11 migrated · cascade landed · discharge
+closed · enriched type locked (elaborates; validated-pending) · regularity layer
+resolved (free weakening, re-verify fresh per above). **Two leaves left:** sorry-1
+(assembly, opens on re-grep-then-weaken) + sorry-2 (assembly + flagged interchange).
+
+#### ⚠️ Sorry inventory — CORRECTED tiering (2026-06-02, post user purity-audit recall)
+
+Prior inventory mislabeled two things (both caught by the user's checks):
+* **`picard_iterate_bundlesAs_VlasovMeasureCurve` is PROVEN** (sorry-free, L6651–6844).
+  It was wrongly listed "2 active sorries" — the awk mapped two *`private`* decls
+  (which the `/^(theorem|lemma)/` pattern skipped) to it. So **sorry-2 consuming
+  picard's output (ρ_lim + tendsto) does NOT stand on a sorry** — Check 2 clears.
+* The two real warnings at L6845/L6870 are
+  `MathlibTODO_lipschitzFlowAEMeasurable` (deferred pure-FA) and
+  **`picardCharFlow_aemeasurable`** (INTERNAL Vlasov AEMeasurability) — the latter
+  **consumed by #11's conclusion AEMeasurable conjunct (L7355)**, so it is a THIRD
+  #11-dependency leaf beyond sorry-1/sorry-2 (closes that conjunct; itself bottoms
+  in the deferred `MathlibTODO_lipschitzFlowAEMeasurable`, "mostly mechanical").
+
+**The 14, correctly tiered:**
+* **MathlibTODO_-prefixed (10):**
+  - **7 ship-ready external**: `bcEqualFromLipschitzEqual_polish_firstMoment`,
+    `w1LowerSemicontinuousAlongNarrowMomentCurves` (= the `#4` LSC fallback for
+    sorry-2), `bcNarrowFromSmoothCompactNarrow`, `w1UpperSemicontinuousAlongLagrangianFlows`,
+    `lipschitzFlowTrajectoryLipBound`, `lipschitzFlowAEMeasurable`, `W1ContOn_On`.
+  - **2 hard-OT (multi-month; the real handoff deliverable)**:
+    `cauchyW1_hasNarrowLimit` (Prokhorov+tightness), `w1RightDerivBoundAlongLagrangianFlowsOn`.
+  - **1 MISLABELED-INTERNAL (owed, not a deferral)**: `convolveContinuousAtOfNarrowMoment`
+    — its conclusion is `ContinuousAt (fun t => convolveFunctionMeasure gradW (μ t) x) t₀`,
+    referencing the PROJECT def `convolveFunctionMeasure`; not liftable as a Mathlib
+    citation as written. Either restate into pure kernel-convolution vocabulary
+    (→ genuinely external) or close it internally. The `MathlibTODO_` prefix must
+    not re-launder it into the trust bucket.
+* **Internal / active (4):** `#11` (sorry-1 Picard recursion + sorry-2 self-consistency),
+  **`picardCharFlow_aemeasurable`** (consumed by #11 conclusion), `glue_step`,
+  `universal_existence`. **`picard_iterate_bundlesAs` PROVEN — not active.**
+
+**Honest #11 closeout:** sorry-1 → sorry-2 (NOT on a picard sorry; clear) →
+`picardCharFlow_aemeasurable` (co-requisite for #11's conclusion; internal-modulo
+deferred FA) — THEN #11 fully closes. `glue_step`/`universal_existence` are the
+genuinely-surrounding continuation work.
+
+#### Piece D — sorry-1 prerequisites DONE (2026-06-02 cont.)
+
+Two green, sorry-free pieces of sorry-1 landed (count steady 14):
+1. **M2-weakening of both contraction lemmas** — re-verified FRESH at current line
+   numbers first (zero functional consumers confirmed: `Phi_supW1_contraction`
+   uncalled, `Phi_pointwise_contraction` called only inside it; both use the 6 hyps
+   only at `t∈Icc`). Weakened `∀t`→`∀t∈Icc` (`Phi_pointwise_contraction` L6178,
+   `Phi_supW1_contraction` L6328), usages `h_x t`→`h_x t ht`. Built green first try.
+   The exposed unclamped `charXs` now feeds them directly (no clamp-bridge).
+2. **`envelopeStep_contractionInputs` helper PROVEN** (inserted before #11's
+   docstring, after `picardCharFlow_aemeasurable`). Takes a flow's exposed facts
+   (`IsCharacteristicFlowOn` Ioo + boundary Icc + `h_int_ext`) against `ν : space m`
+   and a uniform bound `Mbar`; outputs the 6 `Phi_supW1_contraction`-ready facts
+   (`∀t∈Icc`: AEMeas, Integrable‖cX‖, Integrable‖·‖∘map; `∀z`: init, ContinuousOn,
+   `vlasovVectorField (Ici s)` deriv). Body: `Stage_1_9_flow_boundary_regularity`
+   (init/cont/deriv EXACT) + `charFlow_measurable_via_gronwall` (AEMeas) +
+   `flow_distance_growth_bound_on` (growth → the 2 integrability facts via dominator
+   + `integrable_map_measure`). **The seam-1 gap is now closed as proven infra.**
+
+**Remaining sorry-1 (the Nat.rec + induction):** construct `x : ℕ → space m`,
+`charXs/charVs` via `Phi_step_envelope` + `Classical.choose` (σ-first existential so
+`x(k+1) = Classical.choose (step (x k))`); conjunct (b) flow-facts = `step`'s spec
+verbatim; conjunct (a) contraction bound by induction — base `supW1On_le_two_moment`
+(`= ofReal D₀`), step `Phi_supW1_contraction` fed by `envelopeStep_contractionInputs`
+(both flows), `gronwallBound 0 K (L·D) T = q·D`, IH, ENNReal↔toReal via
+`supW1On_ne_top`. (Placement gotcha learned: a helper between a docstring and its
+theorem orphans the docstring — insert helpers BEFORE the consumer's docstring.)
+
+#### ⚠️ FRESH-SESSION OPENING for the sorry-1 Nat.rec+induction (read BEFORE coding)
+
+The seam-1 uncertainty is CLOSED (`envelopeStep_contractionInputs` proven, M2-weaken
+done). What remains — dependent `Nat.rec` over `Classical.choose` + the contraction
+induction with ENNReal↔toReal — is the most mechanically-fiddly construction left,
+and a mechanical slip already happened this turn (helper placement orphaned #11's
+docstring). So open the induction on TWO soundness checks BEFORE the `Nat.rec`,
+because both are wrong-number traps invisible to a green build:
+
+1. **Base-case `D₀`-IDENTITY (not just same-shape bound).** The induction proves
+   `supW1On (x k) (x(k+1)) ≤ ENNReal.ofReal (q^k · D₀)`; at `k=0`,
+   `supW1On (x 0) (x 1) ≤ ofReal D₀`. `D₀ := 2 * (m T)`. `supW1On_le_two_moment_of_
+   VlasovMeasureCurve Mbar hMbar (x0) (x1)` outputs `≤ ofReal (2 * Mbar)` with
+   `Mbar = m T` ⇒ `ofReal (2 * (m T)) = ofReal D₀`. **Verify this is a DEFINITIONAL
+   match, not "a bound of the same shape you then massage to D₀."** This is the exact
+   layer the project's first soundness bug lived (the `q := gronwallBound 0 (max 1 L)
+   (L·2M) T` D₀/contraction-factor conflation, fixed `2eed838`). A `2·moment` vs `D₀`
+   gap typechecks as `ℝ` and goes invisible. Pin `Mbar = m T` so `2*Mbar` IS `D₀`.
+
+2. **ENNReal `ofReal`-NONNEGATIVITY carried explicitly.** The step needs
+   `ofReal (q^k·D₀) * ofReal q = ofReal (q^(k+1)·D₀)` (or the additive/`toReal`
+   analog). `ENNReal.ofReal` of a NEGATIVE collapses to `0` SILENTLY — so a bound can
+   read `≤ 0` vacuously and look proved. Carry `0 ≤ q^k · D₀` (from `hq_nn` +
+   `hD₀_nn`, both in scope) EXPLICITLY at each step so the `ofReal` multiplications
+   compose. Finiteness side is `supW1On_ne_top_of_VlasovMeasureCurve` (banked); the
+   nonnegativity side is the one to not assume. (M1 — sign errors hide at the
+   structure-projection boundary; do the algebra in the natural home, project once.)
+
+THEN the `Nat.rec`: `x := Nat.rec (constantCurve μ₀ ...) (fun _ ν => Classical.choose
+(step ν))`; `step ν` = reshaped `Phi_step_envelope ... ν (h_int_ext_gen ν)` with σ
+FIRST so `x(k+1) = Classical.choose (step (x k))`; `charXs/charVs` = the chosen
+flow; conjunct (b) = `step` spec verbatim; conjunct (a) = the induction above, each
+step calling the proven `envelopeStep_contractionInputs` (Mbar = m T) for both flows
+to discharge `Phi_supW1_contraction`'s 6 hyps.
+
+#### Piece D — sorry-1 CLOSED (2026-06-02 cont.) — #11 down to its last sorry
+
+**The Picard recursion + contraction induction is fully proven (sorry-free).**
+#11 now has ONLY sorry-2 (self-consistency, ~L7522). Declaration count holds at 14
+(#11 still emits one warning for sorry-2); the token-level win is the whole ~250-line
+sorry-1 body.
+
+What landed:
+* **Scaffold** (first pass, green first try): `h_int_ext_gen` (general conv-integrability),
+  base-moment bound `hμ₀_le_m` (∫‖y‖∂μ₀ = ∫‖z.1‖∂f₀ ≤ M_f₀ ≤ m t), `step` (reshaped
+  `Phi_step_envelope`, σ-first), the sequence `x/charXs/charVs` via `Nat.rec` +
+  `Classical.choose`, `hx_succ` by `rfl`, `hspec` (triple-`choose_spec`), conjunct (b)
+  `h_flow` from `hspec` verbatim.
+* **Conjunct (a)** (contraction induction): base via `supW1On_le_two_moment` (the
+  banked D₀-IDENTITY check passed — `Mbar = m T`, `2*Mbar` IS `D₀ = 2*(m T)`); step via
+  the M2-weakened `Phi_supW1_contraction` fed by the proven `envelopeStep_contractionInputs`
+  (both flows, 12 facts) + `hq_scale` (gronwallBound 0 K (L·D) T = D·q) + supW1On
+  congruence-on-Icc (`iSup_congr` + the pushforward identity) + the banked NONNEGATIVITY
+  check (`0 ≤ q^k·D₀` carried explicitly for the `ofReal`↔`toReal` lift via
+  `ENNReal.toReal_mono`/`toReal_ofReal`).
+
+**Mechanical gotcha (banked for next time):** the `[∀ t, IsProbabilityMeasure (ρ t)]`
+instance arg to `Phi_supW1_contraction` would NOT synthesize for `ρ = (x k).extend`
+(`x` is `let`-bound over `Classical.choose`, so `{M}`-inference is stuck "due to
+metavariables") — local `haveI`s of the Pi type were not consulted either. Fix:
+`@Phi_supW1_contraction d _ … (hPext (x k)) (hPext (x (k+1))) … f₀ _ …` — pass the two
+`[∀ t, IsProb]` instances EXPLICITLY (via an abstractly-typed `hPext : ∀ ν t, IsProb
+(ν.extend t)`, so applying to `x k` is substitution, not re-inference). The `@` bypasses
+synthesis entirely; build green.
+
+**Remaining on #11:** sorry-2 (self-consistency, the architecture-A triangle: open on
+the uniform-`D` interchange read per the earlier banked flag) + the co-requisite
+`picardCharFlow_aemeasurable` (internal-modulo-deferred-FA).
+
+#### ⚠️ FRESH-SESSION OPENING for sorry-2 (run checks 1–2 BEFORE sorry-2 itself)
+
+sorry-2 (self-consistency) is the one genuinely-new proof in the internal pile, and it
+CONSUMES sorry-1's output (the exposed flows + the contraction bound). So before touching
+it, run two cheap re-reads on the just-closed sorry-1 — green build proved the TYPES
+elaborated, not that the semantics are right where it was non-mechanical:
+
+1. **sorry-1 base-case hidden-dependency check** (the `D₀`-identity layer — where the
+   project's first soundness bug lived). The base does
+   `supW1On_le_two_moment_of_VlasovMeasureCurve (m T) hMbar_mono (x 0) (x 1)`. That lemma
+   bounds `supW1On ρ σ ≤ ofReal(2·Mbar)` using BOTH `ρ.hasMoment` and `σ.hasMoment`
+   (each `≤ m t ≤ m T`). `x 0 = constantCurve μ₀ ∈ space m` (A.3 domination, `m 0 ≥ M_f₀`).
+   `x 1 = Classical.choose (step (x 0))` = `Phi_step_envelope`'s `σ`, which is in `space m`
+   **via the A.2+A.3 envelope invariance** — so `x 1.hasMoment ≤ m t` is genuine, not
+   vacuous. CONFIRM by reading that `x 1`'s `space m` membership routes to the
+   `Phi_step_envelope` re-bundle, i.e. BOTH curves' moments genuinely `≤ m T`. (Green
+   build already forces `x 1 : VlasovMeasureCurve d T m` at the lemma call — this is the
+   semantic confirmation that the membership isn't leaning on an undischarged fact.)
+2. **`@Phi_supW1_contraction` explicit-instance positional check.** The `@`-form passes
+   `(hPext (x k)) (hPext (x (k+1)))` into the two `[∀ t, IsProb (·)]` slots (positions 8–9,
+   right after `ρ = (x k).extend`, `σ = (x (k+1)).extend`). These two instances have
+   DISTINCT types (`∀ t, IsProb ((x k).extend t)` vs `… (x (k+1)).extend …`), so a swap
+   would NOT typecheck — green build ⇒ positionally correct. Quick-confirm they're not
+   swapped (curve-specific types make this a 30-second read), closing the "green =
+   elaborated, not correct" gap on the one non-synthesized part of the close.
+
+3. **THEN sorry-2** (L~7522), opening on the **uniform-`D` interchange read**: the
+   triangle's Term-2 needs `supW1On(x_{n-1})(ρ_lim)` (uniform) but picard exposes only
+   POINTWISE `wasserstein1((x n).ρ t)(ρ_lim t) → 0`. Recover the uniform bound by geometric
+   series (from `h_contract`) + triangle + pointwise tendsto — read whether the
+   `n→∞`-inside-`sup_t` step smuggles a `sup_t lim_n ≤ lim_n sup_t` interchange. If it
+   needs LSC, that is the banked PLACEHOLDER `#4 MathlibTODO_w1LowerSemicontinuous…` —
+   meaning sorry-2 would STAND ON A SORRY (handle deliberately, don't let it pass as
+   closed). The architecture-A bet is that the contraction bridges curve-distance to
+   pushforward-distance WITHOUT ever taking a flow limit, so no LSC is needed — confirm
+   that holds in the body. Final step: `wasserstein1 = 0 → μ = ν` is banked
+   (`wasserstein1_eq_zero_iff_measure_eq`). Plus the co-requisite
+   `picardCharFlow_aemeasurable` for #11's conclusion (internal-modulo-deferred-FA).
+
+#### ✅ #11 sorry-2 CLOSED — #11 fully proven (2026-06-02) — sorry 14 → 13
+
+`vlasovWellPosedness_local_picard_fixedPointFlow` is now **sorry-free**.  Build green
+(`lake build Vlasov.OT.CharacteristicFlow`, EXIT 0).  The Picard fixed-point / self-
+consistency equation — *the project's one genuinely-new piece of mathematics* — is
+proven.
+
+**Checks 1–2 (pre-write, both CLEAN):**
+* (1) base-case hidden-dependency: `supW1On_le_two_moment_of_VlasovMeasureCurve` (L4248)
+  genuinely consumes BOTH `ρ.hasMoment`/`σ.hasMoment` (each `≤ m t ≤ m T`); `x 1`'s
+  `space m` membership is a structure field forced by the green build — `D₀ = 2·(m T)`
+  matches `q^0·D₀`.  No undischarged fact.
+* (2) `@`-instance positional: `Phi_supW1_contraction` takes `(ρ σ)` then
+  `[∀t IsProb ρ][∀t IsProb σ]`; the call passes the two curves then the two `hPext`
+  in matching order (distinct curve-specific types ⇒ green = not swapped).
+
+**Interchange-read VERDICT — architecture-A bet HELD; sorry-2 does NOT stand on a sorry.**
+NO LSC / NO `#4 MathlibTODO_w1LowerSemicontinuous…` dependency.  The mechanism (realised
+in the body): the uniform bound `supW1On (x n) ρ_lim → 0` comes from sup-ing the *t-uniform*
+helper `picard_iterate_limit_uniform_tendsto` over `s` — i.e. a **t-independent constant**
+is passed through the *pointwise* limit, so no `sup_t lim_n ≤ lim_n sup_t` interchange ever
+occurs.  Used `Dn n := (supW1On (Icc) (x n).ρ ρ_lim.ρ).toReal` as the explicit uniform `D`
+feeding `Phi_pointwise_contraction` (Term 2).
+
+**Proof shape (≈170 lines, CharFlow L7519+):** on `Icc`, `ρ_lim.extend t = ρ_lim.ρ t` and
+`spatialMarginal(vlasovSolutionViaPushforward charX charV f₀ t) = map (charX t) f₀`
+(`h_marg`, via `Measure.map_map measurable_fst` + `rfl`); `charX` is the flow built against
+`ρ_lim.extend`, so RHS = `Φ(ρ_lim) t`.  Show `W₁(ρ_lim.ρ t, Φ(ρ_lim) t) = 0` by triangle
+through `x(n+1) = Φ(x n)` (`h_flow n .2.2`): Term1 `= W₁(x(n+1) t, ρ_lim t) → 0` (pointwise
+`h_tendsto` reindexed by `n+1`); Term2 `≤ ofReal(Dn n · q)` via `Phi_pointwise_contraction`
++ `gronwallBound_mono` + `hq_scale` (`gronwallBound 0 K (L·a) T = a·q`); both legs `→ 0`,
+`ge_of_tendsto'` ⇒ `≤ 0`, then `wasserstein1_eq_zero_iff_measure_eq` (banked separation).
+
+**Engineering notes for future scope:** `hCI` (per-step 6-fact `envelopeStep` bundle) and
+`h_int_ext_gen` were LOCAL to the closed sorry-1 block — **rebuilt at main scope** from
+`h_flow` + main-scope hyps (no touching the closed existential).  The ρ_lim flow's bundle
+`hCI_lim` comes from `envelopeStep_contractionInputs` on `hflow_on_ρlim`/`h_boundary_ρlim`
+(the `_global_smallT` boundary bundle matches `envelopeStep`'s `hbdry` exactly).  Un-discarded
+`_h_tendsto → h_tendsto` at the picard-bundling `obtain` (L7442).
+
+#### State-of-the-board after #11 close (13 declaration-level sorries, 2026-06-02)
+
+**Deferred Mathlib-OT (9)** — `MathlibTODO_*`, separate-swing closures:
+`bcEqualFromLipschitzEqual_polish_firstMoment` (Basic 1315), `cauchyW1_hasNarrowLimit`
+(Basic 1428), `w1LowerSemicontinuousAlongNarrowMomentCurves` (Basic 1995 — the `#4` LSC,
+NOT on #11's path), `bcNarrowFromSmoothCompactNarrow` (Basic 2074),
+`w1UpperSemicontinuousAlongLagrangianFlows` (Basic 2185),
+`w1RightDerivBoundAlongLagrangianFlowsOn` (Basic 2299),
+`lipschitzFlowTrajectoryLipBound` (CharFlow 2994), `lipschitzFlowAEMeasurable`
+(CharFlow 6853, private), `wassersteinGronwallCoupling_W1ContOn_On` (CharFlow 9765).
+
+**Internal / active (4)** — the real remaining work:
+* `MathlibTODO_convolveContinuousAtOfNarrowMoment` (Basic 1728) — internal-wearing-the-
+  prefix (conclusion references project `convolveFunctionMeasure`); owed internal work.
+* `picardCharFlow_aemeasurable` (CharFlow 6878, private) — #11's AEMeasurable-conjunct
+  co-requisite (internal-modulo-deferred-FA).
+* `vlasovWellPosedness_glue_step` (CharFlow 8450) — continuation glue.
+* `vlasovWellPosedness_universal_existence` (CharFlow 10242) — universal-existence assembly.
+
+The marquee `vlasovWellPosedness` is green (composes the above); per the watch-list
+"clean-interface-over-a-load-bearing-sorry'd node", it is proved-modulo glue_step +
+universal_existence (+ their deferred-FA leaves) — a `(c)` proved-modulo-sorry sweep is
+the scheduled gate before declaring the existence side finished.
+
+**Nothing committed this session.**
