@@ -2214,17 +2214,32 @@ eliminate `hTL_PL`.  The self-consistency is in the per-ball flow's `hR`
 `[0,T+1]` *geometry*, two levels below the clean interface.  Read the
 construction, not the interface.
 
-**REBUILD SESSION — opening move (the symmetric gate; do BEFORE the ~200-300
-lines)**: verify the N-window construction *avoids* the self-consistency rather
-than *relocating* it.  Two checks: (i) per-window `hR` on a *fixed* small `δ`
-(e.g. `δ` with `L·δ² < 1/4`) is genuinely satisfiable; (ii) chaining
-`⌈(T+1)/δ⌉` windows does NOT re-accumulate a smallness at the *chain* level —
-the moment/position envelope must **re-anchor per window** (each window's ball
-centered at the previous window's endpoint), else the window-count compounding
-is `hTL_PL` in disguise one level *above* per-window feasibility (same disease
-as the inter-window `hTL_con` compounding).  The gate just taught that the
-constraint hides one level *below* expected; the symmetric trap is one level
-*above*.  Find it in the opening read, not at line 250.
+**REBUILD SESSION — opening read (do BEFORE the ~200-300 lines; ORDER matters).**
+This is M3 applied to the *construction*, not the constraint: is the ball an
+artifact to **replace** (now that Piece A is the dynamic object) or a node to
+**refine**?  The banked plan silently assumed "refine into N windows" — that
+assumption is exactly the kind the gate teaches to *check, not inherit*.
+
+* **(0) NO-BALL CHECK — ask FIRST; it can shrink or eliminate the rebuild.**
+  Does Piece A's *global* a-priori bound (`‖Z(t)‖ ≤ gronwallBound …`, already
+  built) let me skip ball-localization entirely — invoke a global ODE existence
+  on `[0,T+1]` (Mathlib's, or a direct Picard) with Piece A supplying the growth
+  control the ball was manufacturing locally?  **If YES** → the rebuild is
+  "balls → NO balls," smaller/cleaner than N-window, and the per-window
+  re-anchoring + chaining management below is **moot** (no windows to manage).
+  **If NO** — the ball plays a *compactness / fixed-point-domain* role Piece A
+  can't replace, not just growth control → genuinely load-bearing; proceed to
+  N-window **knowing** it (not assuming).  Either way you've run the M3 check on
+  the construction: refining an artifact vs. replacing it.
+* **(1)** [only if (0) = NO] per-window `hR` on a *fixed* small `δ` (e.g.
+  `L·δ² < 1/4`) is genuinely satisfiable — no `T`-smallness.
+* **(2)** [only if (0) = NO] chaining `⌈(T+1)/δ⌉` windows does NOT re-accumulate
+  a smallness at the *chain* level — the envelope must **re-anchor per window**
+  (each ball centered at the prior window's endpoint), else the window-count
+  compounding is `hTL_PL` one level *above* per-window feasibility (same disease
+  as inter-window `hTL_con` compounding).  The gate taught: constraint hides one
+  level *below* expected (in `hR`); symmetric trap is one level *above* (chain
+  count).  Find it in the opening read, not at line 250.
 
 **Then**: rebuild closes the L1552 per-ball sorry + drops `hTL_PL` from every
 threading site (`exists_vlasov_perz_trajectory` L4541, `global_smallT` L4765,
@@ -2235,3 +2250,14 @@ threading site (`exists_vlasov_perz_trajectory` L4541, `global_smallT` L4765,
 `space(m*)` → `Phi_supW1_contraction`.  Remaining smallness = the genuine pair
 `hTL_con` + `B(T)<1` (carry both; do NOT derive one from the other — independent
 near-counterexample; W̄-consolidation target).  Weakest-sufficient: NO `hTL_env`.
+
+**POST-REBUILD GATE — run the proved-modulo-sorry (c) sweep BEFORE declaring the
+existence side finished.**  Clean-interface-over-a-load-bearing-sorry'd-node is
+now a CONFIRMED recurring shape in this codebase — TWO instances (the per-ball
+flow `exists_vlasov_characteristicFlow` L1552; the `_finalAssembly`/#11 seam),
+both green-modulo-a-sorry in a load-bearing spot.  "The marquee bottoms out
+cleanly" has been wrong twice in the *same* way; a third is cheaper to find by
+sweep than by stumbling into it at line 250 of a later session.  The sweep's
+job: which green declarations stand on a sorry'd or over-strong dependency the
+interface hides.  Schedule it AFTER the rebuild, BEFORE the existence side is
+called done — earned, not hypothetical hygiene.

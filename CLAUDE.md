@@ -1367,6 +1367,29 @@ the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
 
+* **Clean-interface-over-a-load-bearing-sorry'd/over-strong node → the
+  proved-modulo-sorry sweep is a SCHEDULED gate, not optional hygiene** (process
+  discipline, 2 sightings, 2026-06-01).  **Pattern**: a declaration whose
+  *interface* (signature/conclusion) is clean and green nonetheless stands on a
+  dependency that is sorry'd or over-strong *in a load-bearing spot* — the
+  interface hides the obligation, so "this side bottoms out cleanly" reads true
+  while the real work sits one or two levels down.  **Sightings**: (1) the
+  `_finalAssembly`/#11 seam (green-modulo a sorry in the load-bearing spot); (2)
+  the per-ball flow `exists_vlasov_characteristicFlow` (L1552) — sorry'd,
+  mandatory, the marquee's existence side bottoms out through it, surfaced only
+  by reading the *construction* not the interface (M3 gate corollary).  **Why it
+  promotes the sweep**: "the marquee bottoms out cleanly" has now been wrong
+  *twice in the same way*; a third instance is cheaper to find by a deliberate
+  `(c)` proved-modulo-sorry sweep (which green declarations rest on a sorry'd /
+  over-strong dependency the interface hides) than by stumbling into it at
+  line 250 of some later session.  **Operational rule (forming)**: schedule the
+  sweep as a *gate before declaring a side (existence / uniqueness) finished*,
+  not as discretionary cleanup — the recurring shape has earned it.  This is the
+  scheduling sharpening of P10 (build-permits-vs-audit-certifies): P10 says
+  green ≠ certified; this says *when* the recurring shape makes the audit
+  mandatory.  Trigger: 1 more sighting → promote (likely as a P10 addendum or a
+  standalone P-series "audit-as-scheduled-gate").
+
 * **Future-proofing-as-secondary — present-faithfulness is the primary axis for
   scoped work** (process discipline, flagged 2026-06-01, user-corrected).
   **Failure mode**: when a present scoping decision has a clean forward-
