@@ -657,6 +657,62 @@ theorem gronwall_envelope_exists
       ring
     linarith [div_nonneg hkey hD_pos.le, hexpand]
 
+/-- **Piece A.2 (Option 2): integrate the per-`z` growth bound to a moment bound.**
+
+The measure-level bridge between Piece A and Piece A.3: given the per-`z`
+time-local growth bound (Piece A's conclusion, taken here as the hypothesis
+`h_growth` so this lemma is decoupled from the flow construction), the
+**position pushforward** `Measure.map (charX t ·) f₀` has first moment bounded
+by the same Gronwall functional evaluated at the *initial* moment `∫‖z‖ ∂f₀`:
+
+  `∫ x, ‖x‖ ∂(Measure.map (charX t ·) f₀) ≤ gronwallBound (∫‖z‖ ∂f₀) (1+L) (g0 + L·m t) t`.
+
+Proof: `integral_map` exchanges the pushforward; `‖charX t z‖ ≤ ‖(charX t z, charV t z)‖`
++ `h_growth` bounds the integrand by `gronwallBound ‖z‖ …`, which is affine in `‖z‖`,
+so its `f₀`-integral is `gronwallBound (∫‖z‖) …` (probability measure ⇒ the constant
+term integrates to itself).
+
+Composing with `gronwall_envelope_exists` (Piece A.3): when `m = m*` the canonical
+envelope and `g0 = ‖gradW 0‖`, the RHS is `≤ m* t`, i.e. `Φ` maps the envelope to
+itself at the moment level — the measure-level statement of the data-free escape. -/
+theorem phi_moment_envelope_le {d : ℕ} [NeZero d]
+    (L : NNReal) (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (g0 : ℝ) (T : ℝ) (m : ℝ → ℝ)
+    (h_growth : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+      ‖(charX t z, charV t z)‖ ≤ gronwallBound ‖z‖ (1 + (L : ℝ)) (g0 + (L : ℝ) * m t) t)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    (h_meas : ∀ t, AEMeasurable (fun z : PhaseSpace d => charX t z) f₀) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ∫ x, ‖x‖ ∂(Measure.map (fun z : PhaseSpace d => charX t z) f₀)
+        ≤ gronwallBound (∫ z, ‖z‖ ∂f₀) (1 + (L : ℝ)) (g0 + (L : ℝ) * m t) t := by
+  intro t ht
+  set K : ℝ := 1 + (L : ℝ) with hK_def
+  set εt : ℝ := g0 + (L : ℝ) * m t with hεt_def
+  have hK_ne : K ≠ 0 := by positivity
+  -- gronwallBound is affine in its initial value: gb r = e^{Kt}·r + C.
+  have h_gb : ∀ r : ℝ,
+      gronwallBound r K εt t = Real.exp (K * t) * r + εt / K * (Real.exp (K * t) - 1) := by
+    intro r; rw [gronwallBound_of_K_ne_0 hK_ne]; ring
+  have h_dom_int : Integrable (fun z : PhaseSpace d => gronwallBound ‖z‖ K εt t) f₀ := by
+    simp only [h_gb]
+    exact (hf₀_int.const_mul _).add (integrable_const _)
+  have h_charX_le : ∀ z : PhaseSpace d, ‖charX t z‖ ≤ gronwallBound ‖z‖ K εt t := fun z =>
+    le_trans (norm_fst_le (charX t z, charV t z)) (h_growth t ht z)
+  have h_charX_int : Integrable (fun z : PhaseSpace d => ‖charX t z‖) f₀ :=
+    h_dom_int.mono' ((h_meas t).norm.aestronglyMeasurable)
+      (Filter.Eventually.of_forall fun z => by
+        rw [Real.norm_of_nonneg (norm_nonneg _)]; exact h_charX_le z)
+  rw [integral_map (h_meas t) continuous_norm.aestronglyMeasurable]
+  calc ∫ z, ‖charX t z‖ ∂f₀
+      ≤ ∫ z, gronwallBound ‖z‖ K εt t ∂f₀ :=
+        integral_mono h_charX_int h_dom_int h_charX_le
+    _ = gronwallBound (∫ z, ‖z‖ ∂f₀) K εt t := by
+        simp only [h_gb]
+        rw [integral_add (hf₀_int.const_mul _) (integrable_const _), integral_const_mul,
+            integral_const]
+        simp [measureReal_def, measure_univ]
+
 /-! ## Stage B — Characteristic flow existence (Picard-Lindelöf wrapper)
 
 This stage wraps Mathlib's parametric Picard-Lindelöf theorem to
