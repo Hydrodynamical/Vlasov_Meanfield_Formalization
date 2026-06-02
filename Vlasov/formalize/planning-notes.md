@@ -2134,3 +2134,54 @@ decide the envelope's shape (drop `M` constant → `hasMoment t ≤ M(t)` with
 `M : ℝ → ℝ` monotone, or a Gronwall-closed family).  Steps 2/3 (Picard sequence
 + self-consistency ODE-uniqueness) resume **after** the curve space is the
 honest object.
+
+### Option 2 progress: consumer sweep + escape VALIDATED in isolation (2026-06-01)
+
+**Consumer sweep done.** The structure's only `M`-dependent field is
+`hasMoment : ∀ t ∈ Icc 0 T, ∫‖y‖ ∂(ρ t) ≤ M` (L3931).  Every consumer is a
+mechanical re-thread (`≤ M` → `≤ M t`) **except** `Phi_step`'s output growth
+bound — the one place the envelope must be *proven preserved*.  Mechanical:
+`supW1On_le_two_moment` (→ `sup_{[0,T]}M`), `extend_hasMoment` (→ `M (clamp t)`),
+`constantCurve` (→ `M_f₀ ≤ M t`), `picard_iterate_bundlesAs` (`cauchyW1` is
+applied **pointwise in t**, so just `M t`).
+
+**Envelope shape (user-confirmed): general monotone `M : ℝ → ℝ`** (not a
+hardcoded exponential), so `Phi_step` outputs its own envelope and `constantCurve`'s
+constant `M_f₀` still fits.  Monotonicity is a property of the *specific* `m*`
+(carried where used), NOT a structure field — keeps the structure clean.
+
+**The escape is M_f₀-FREE** (key discovery): feeding the *time-local* moment
+`m(t)` (not the sup `m(T)`) into the force, with `m` monotone, gives
+`M_Φρ(t) ≤ A(t) + B(t)·m(t)` with `B(t)=(L/(1+L))(e^{(1+L)t}-1)` — `M_f₀`-free.
+Canonical `m*(t)=A(t)/(1-B(T))` is Φ-invariant under `B(T)<1`, a constraint of
+#11's existing **data-independent** shape (cf. `hTL_con`), NOT option 1's
+`B·(M_f₀+1)<1`.  Fully faithful.
+
+**VALIDATED (committed, additive, no structure change yet):**
+* Piece A — `flow_distance_growth_bound_on_timedep` (commit `d8986f1`): the
+  time-local per-`z` growth bound with monotone envelope forcing.
+* Piece A.3 — `gronwall_envelope_exists` (commit `b758ba1`): the canonical
+  envelope closes (monotone / dominates `M_f₀` / Φ-invariant) under `B(T)<1`.
+
+**Remaining — the wide structural surgery (the "re-threading" unit):**
+* **Piece A.2** (additive glue, ~30-40 lines): `phi_moment_envelope_le` —
+  integrate Piece A over `f₀` via `integral_map` + `gronwallBound` affine-in-δ →
+  `∫‖x‖ ∂(spatialMarginal (Measure.map (charX t) f₀)) ≤ gronwallBound M_f₀ (1+L)
+  (g0 + L·m t) t`.  Completes the measure-level escape; can be standalone or
+  folded into Piece C.
+* **Piece B** (WIDE, atomic-structural-cascade): `VlasovMeasureCurve d T M` →
+  `… (M : ℝ → ℝ)`, field `hasMoment : ∀ t ∈ Icc, ∫‖y‖ ≤ M t`; re-thread the 4
+  mechanical consumers.  **Wrinkle to handle**: `supW1On_le_two_moment` needs a
+  uniform `sup_{[0,T]} M` — for the monotone `m*` this is `m*(T)`, but the
+  general structure needs either a `bddAbove`/continuity hook or to bound via
+  `M T` under a monotonicity carry.  Check `supW1On_ne_top`'s actual consumers
+  first (it may only need pointwise finiteness from `yIntegrable`).
+* **Piece C** (`Phi_step` rewire): output into the envelope space, composing
+  A.2 + A.3; the output curve's `hasMoment` uses the canonical `m*`.
+* **Piece D** (#11): rewire the Picard sequence into `space(m*)`, replacing the
+  constant-`M` obtain (L6500), closing the M-fixed-point; reconcile `B(T)<1`
+  with #11's `hTL_con` (implied, or a hypothesis tweak — verify).
+
+Order: A.2 (finish foundation) → B (wide) → C → D.  B is the risky wide one;
+the validated foundation (A/A.2/A.3) means B/C/D are pure re-threading against a
+proven escape.
