@@ -1074,6 +1074,57 @@ fixes — a metric axis distinct from sorry-count, and genuine
 research-artifact value (the formalisation surfaced and corrected a
 statement↔content mismatch).
 
+### M3. Static-self-consistency artifacts dissolve under the moving boundary; genuine analytic constraints do not
+
+**Principle**: a smallness constraint that arises from a *static* construction
+forcing some construction parameter to bound its own dynamically-generated
+growth — a self-consistency / fixed-point in the parameter — is an **artifact**.
+It dissolves when the construction is rebuilt on the sharp *time-local* (Gronwall)
+a-priori bound: feed the dynamic expansion, not the worst-case static estimate,
+and the fixed-point evaporates.  A smallness constraint that arises from a
+*genuine analytic mechanism* — a contraction ratio `< 1`, an envelope-closure
+inequality — is **real**: it does NOT dissolve and must be carried (it is the
+deferred W̄-consolidation target, not removable in W₁).
+
+**The boundary is the load-bearing half** (without it the lesson over-applies):
+one must NOT try to dissolve genuine contraction/envelope constraints (`hTL_con`,
+`B(T)<1`) the same way — they are not self-consistency artifacts; the moving
+boundary leaves them exactly where they are.
+
+**Empirical sightings — the artifacts** (one pathology, two guises):
+* **Moment fixed-point** (option 2): a *constant* `M` must bound a flow whose
+  moment growth depends on `M` — statistical self-consistency.  Dissolved by the
+  time-dependent envelope `m(t)` (Pieces A/A.2/A.3).
+* **PL-buffer `hTL_PL` = `L·(T+1)²<1`**: a *fixed radius* `R` must bound a flow
+  whose force-expansion depends on `R` (the single-ball Picard-Lindelöf `hR`:
+  `… + M·(T+1)² ≤ R` with `M = ‖∇W 0‖ + L·(R + …)`, so `M ∝ R`, giving
+  `R(1−L(T+1)²) ≥ N_z` for *any* finite `R`) — spatial self-consistency, the
+  *identical* trap in a different costume.  Dissolved by a fixed-`δ` N-window
+  reconstruction on the Gronwall a-priori bound (each short window PL-feasible
+  with no `T`-smallness; Piece A chains them globally).
+* (Earlier static-over-strength siblings: `q<1`-because-fused, universal-`s`,
+  `HasDerivWithinAt`-over-strong — all static-construction artifacts removed by
+  the right dynamic/localized form.)
+
+**The genuine constraints — NOT artifacts, carried**: `hTL_con` (measure-space
+contraction ratio `<1`) and `B(T)<1` (envelope closure, A.3).  First-order
+identical (`≈ L·T`) but independent (numerical near-counterexample); the W̄
+refactor's target, not dissolvable in W₁.
+
+**Diagnostic — artifact vs. genuine**: trace the constraint's unfold site.  If it
+makes a *construction parameter* (radius, constant moment bound) positive /
+large-enough to contain its own growth → **artifact** (dissolve via the moving
+boundary).  If it makes a *contraction ratio* `<1` or an *envelope inequality*
+close → **genuine** (carry; W̄ target).
+
+**Gate corollary (the cost of the cure)**: the moving-boundary dissolution of a
+construction-parameter artifact is a *reconstruction of the construction node*
+(here: rebuild the per-ball flow as a fixed-`δ` N-window), not a localized
+parameter-swap — because the self-consistency is intrinsic to the static node's
+shape (the single-ball `hR`), not to the *choice* of the parameter.  Read the
+unfold site's host before sizing: a parameter-swap that leaves the static node
+intact re-generates the same constraint.
+
 ## B-series — Bridging architecture / structural-fix patterns
 
 ### B1. Predicate enrichment over per-site bridging
