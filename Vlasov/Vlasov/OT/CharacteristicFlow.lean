@@ -558,6 +558,105 @@ theorem flow_distance_growth_bound_on_timedep
     h_f_cont h_deriv h_init_norm h_bound t (Set.right_mem_Icc.mpr ht0)
   simpa using h_grw
 
+/-- **Piece A.3 (Option 2): the canonical moment envelope closes (data-free).**
+
+Pure-algebra companion to `flow_distance_growth_bound_on_timedep`.  Under the
+**`M_f₀`-free** smallness `B(T) := (L/(1+L))(e^{(1+L)T}-1) < 1`, the explicit
+envelope `m*(t) := gronwallBound M_f₀ (1+L) g0 t / (1 - B(T))` is a Gronwall
+super-solution:
+
+* monotone on `[0, T]`,
+* dominates the initial moment `M_f₀`,
+* **Φ-invariant** at the moment level:
+  `gronwallBound M_f₀ (1+L) (g0 + L·m* t) t ≤ m* t`.
+
+Composed with Piece A integrated over `f₀` (which gives
+`M_{Φρ}(t) ≤ gronwallBound M_f₀ (1+L) (g0 + L·m(t)) t`, `g0 = ‖gradW 0‖`), this
+shows the Picard iterates stay inside the fixed envelope `m*` with **no**
+data-dependent hypothesis — the faithful dissolution of the constant-`M`
+fixed-point.  This lemma is the measure-free heart of the option-2 escape;
+Pieces B–D thread it through the curve space, `Phi_step`, and #11. -/
+theorem gronwall_envelope_exists
+    (M_f₀ g0 : ℝ) (hM_f₀ : 0 ≤ M_f₀) (hg0 : 0 ≤ g0)
+    (L : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (hB : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T) - 1) < 1) :
+    ∃ m : ℝ → ℝ, MonotoneOn m (Set.Icc 0 T) ∧
+      (∀ t ∈ Set.Icc 0 T, M_f₀ ≤ m t) ∧
+      (∀ t ∈ Set.Icc 0 T,
+        gronwallBound M_f₀ (1 + (L : ℝ)) (g0 + (L : ℝ) * m t) t ≤ m t) := by
+  set K : ℝ := 1 + (L : ℝ) with hK_def
+  have hK_pos : 0 < K := by positivity
+  have hK_ne : K ≠ 0 := ne_of_gt hK_pos
+  have hL_nn : (0 : ℝ) ≤ (L : ℝ) := L.coe_nonneg
+  -- B(t) and its monotonicity.
+  set Bf : ℝ → ℝ := fun t => (L : ℝ) / K * (Real.exp (K * t) - 1) with hBf_def
+  have hBT_lt : Bf T < 1 := hB
+  have hD_pos : 0 < 1 - Bf T := by linarith
+  have hD_nn : (0 : ℝ) ≤ 1 - Bf T := hD_pos.le
+  have hD_ne : (1 - Bf T) ≠ 0 := ne_of_gt hD_pos
+  have hLK_nn : 0 ≤ (L : ℝ) / K := div_nonneg hL_nn hK_pos.le
+  have hBf_T_nn : 0 ≤ Bf T := by
+    have he1 : 0 ≤ Real.exp (K * T) - 1 := by
+      have : (1 : ℝ) ≤ Real.exp (K * T) := Real.one_le_exp (by positivity)
+      linarith
+    exact mul_nonneg hLK_nn he1
+  have hBf_le : ∀ t ∈ Set.Icc (0 : ℝ) T, Bf t ≤ Bf T := by
+    intro t ht
+    have hexp : Real.exp (K * t) ≤ Real.exp (K * T) :=
+      Real.exp_le_exp.mpr (by nlinarith [ht.2, hK_pos.le])
+    simp only [hBf_def]
+    nlinarith [hexp, hLK_nn]
+  -- A(t) := gronwallBound M_f₀ K g0 t, expanded + nonneg + monotone.
+  set Af : ℝ → ℝ := fun t => gronwallBound M_f₀ K g0 t with hAf_def
+  have hAf_expand : ∀ t,
+      Af t = M_f₀ * Real.exp (K * t) + g0 / K * (Real.exp (K * t) - 1) := by
+    intro t; simp only [hAf_def]; rw [gronwallBound_of_K_ne_0 hK_ne]
+  have hAf_nn : ∀ t ∈ Set.Icc (0 : ℝ) T, 0 ≤ Af t := by
+    intro t ht
+    rw [hAf_expand t]
+    have he1 : 0 ≤ Real.exp (K * t) - 1 := by
+      have : (1 : ℝ) ≤ Real.exp (K * t) := Real.one_le_exp (by nlinarith [ht.1, hK_pos.le])
+      linarith
+    have hgK_nn : 0 ≤ g0 / K := div_nonneg hg0 hK_pos.le
+    positivity
+  have hAf_mono : MonotoneOn Af (Set.Icc 0 T) := by
+    intro s _ t _ hst
+    simp only [hAf_def]
+    exact gronwallBound_mono hM_f₀ hg0 hK_pos.le hst
+  refine ⟨fun t => Af t / (1 - Bf T), ?_, ?_, ?_⟩
+  · -- monotone: Af increasing, positive constant divisor.
+    intro s hs t ht hst
+    show Af s / (1 - Bf T) ≤ Af t / (1 - Bf T)
+    gcongr
+    exact hAf_mono hs ht hst
+  · -- M_f₀ ≤ m t.
+    intro t ht
+    have h0_mem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T := ⟨le_refl 0, hT⟩
+    have hAf0 : Af 0 = M_f₀ := by rw [hAf_expand 0]; simp [Real.exp_zero]
+    have h_mono : Af 0 / (1 - Bf T) ≤ Af t / (1 - Bf T) := by
+      gcongr
+      exact hAf_mono h0_mem ht ht.1
+    rw [hAf0] at h_mono
+    have h_self : M_f₀ ≤ M_f₀ / (1 - Bf T) := by
+      rw [le_div_iff₀ hD_pos]; nlinarith [hM_f₀, hBf_T_nn]
+    linarith
+  · -- Φ-invariance.
+    intro t ht
+    show gronwallBound M_f₀ K (g0 + (L : ℝ) * (Af t / (1 - Bf T))) t
+        ≤ Af t / (1 - Bf T)
+    have h_lhs : gronwallBound M_f₀ K (g0 + (L : ℝ) * (Af t / (1 - Bf T))) t
+              = Af t + Bf t * (Af t / (1 - Bf T)) := by
+      rw [gronwallBound_of_K_ne_0 hK_ne, hAf_expand t]
+      simp only [hBf_def]; ring
+    rw [h_lhs]
+    have hkey : 0 ≤ Af t * (Bf T - Bf t) :=
+      mul_nonneg (hAf_nn t ht) (by linarith [hBf_le t ht])
+    have hexpand : Af t / (1 - Bf T) - (Af t + Bf t * (Af t / (1 - Bf T)))
+                 = Af t * (Bf T - Bf t) / (1 - Bf T) := by
+      field_simp
+      ring
+    linarith [div_nonneg hkey hD_pos.le, hexpand]
+
 /-! ## Stage B — Characteristic flow existence (Picard-Lindelöf wrapper)
 
 This stage wraps Mathlib's parametric Picard-Lindelöf theorem to
