@@ -420,6 +420,144 @@ theorem flow_distance_growth_bound_on
           nlinarith [norm_nonneg z, Real.exp_nonneg (K * T),
             mul_nonneg hεK he1, mul_nonneg (norm_nonneg z) (mul_nonneg hεK he1)]
 
+/-- **Piece A (Option 2): time-dependent moment-envelope growth bound.**
+
+Sharper sibling of `flow_distance_growth_bound_on`.  Instead of a single
+constant moment bound `M_ρ` (which forces the constant-sup growth constant
+`C_T` and, downstream, an `M_f₀`-dependent fixed-point on the curve space),
+this takes a **monotone time-dependent envelope** `m : ℝ → ℝ` bounding the
+spatial-marginal first moment, and concludes the **time-local** Gronwall bound
+
+  `‖(charX t z, charV t z)‖ ≤ gronwallBound ‖z‖ (1+L) (‖gradW 0‖ + L · m t) t`,
+
+with the force constant `ε(t) = ‖gradW 0‖ + L · m t` evaluated at the SAME time
+`t` (not the sup `m T`).  Monotonicity of `m` lets the per-`t` Gronwall on
+`[0, t]` use the endpoint value `ε(t)` while validating the derivative bound at
+every `s ≤ t` (since `ε(s) ≤ ε(t)`).
+
+**Why this is the option-2 foundation**: integrating the conclusion over a
+probability `f₀` gives `M_{Φρ}(t) ≤ A(t) + B(t)·m(t)` with
+`A(t) = M_f₀·e^{(1+L)t} + (‖gradW 0‖/(1+L))(e^{(1+L)t}-1)` and
+`B(t) = (L/(1+L))(e^{(1+L)t}-1)` — crucially an **`M_f₀`-free** coefficient.
+The canonical envelope `m*(t) := A(t)/(1-B(T))` is then Φ-invariant under the
+**data-independent** constraint `B(T) < 1`, dissolving the constant-`M`
+fixed-point without a data-dependent hypothesis.  (Contrast the constant-sup
+bound, which feeds `m(T)` into `ε` and re-derives an `M_f₀`-dependent
+smallness.) -/
+theorem flow_distance_growth_bound_on_timedep
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 ≤ T)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z : PhaseSpace d,
+        ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+          (vlasovVectorField gradW ρ s (charX s z, charV s z))
+          (Set.Ici s) s)
+    (m : ℝ → ℝ) (hm_mono : MonotoneOn m (Set.Icc 0 T))
+    (hm : ∀ t ∈ Set.Icc 0 T, ∫ y, ‖y‖ ∂(ρ t) ≤ m t)
+    (h_y_int : ∀ t ∈ Set.Icc 0 T, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t))
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t)) :
+    ∀ t ∈ Set.Icc 0 T, ∀ z : PhaseSpace d,
+      ‖(charX t z, charV t z)‖ ≤
+        gronwallBound ‖z‖ (1 + (L : ℝ)) (‖gradW 0‖ + (L : ℝ) * m t) t := by
+  intro t ht z
+  set K : ℝ := 1 + (L : ℝ) with hK_def
+  -- m t ≥ 0 (moment of a probability measure is nonneg, bounded by m t).
+  have hmt_nn : 0 ≤ m t :=
+    le_trans (integral_nonneg (fun y => norm_nonneg y)) (hm t ht)
+  set εt : ℝ := ‖gradW 0‖ + (L : ℝ) * m t with hεt_def
+  have hK_pos : 0 < K := by positivity
+  have hεt_nn : 0 ≤ εt := by positivity
+  -- Convolution force bound on [0, t], using m s ≤ m t (monotone).
+  have h_conv_bound : ∀ s ∈ Set.Icc 0 t, ∀ x : PhysSpace d,
+      ‖convolveFunctionMeasure gradW (ρ s) x‖ ≤ εt + (L : ℝ) * ‖x‖ := by
+    intro s hs x
+    have hs_T : s ∈ Set.Icc 0 T := ⟨hs.1, le_trans hs.2 ht.2⟩
+    have hms_le_mt : m s ≤ m t := hm_mono hs_T ht hs.2
+    unfold convolveFunctionMeasure
+    have h_sub_int : Integrable (fun y => ‖x - y‖) (ρ s) :=
+      Integrable.mono' ((integrable_const ‖x‖).add (h_y_int s hs_T))
+        ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
+        (Filter.Eventually.of_forall fun y => by
+          simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
+    have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
+      (integrable_const _).add (h_sub_int.const_mul _)
+    have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      linarith
+    calc ‖∫ y, gradW (x - y) ∂(ρ s)‖
+        ≤ ∫ y, ‖gradW (x - y)‖ ∂(ρ s) := norm_integral_le_integral_norm _
+      _ ≤ ∫ y, (‖gradW 0‖ + (L : ℝ) * ‖x - y‖) ∂(ρ s) :=
+          integral_mono (h_int s x).norm h_bnd_int h_pt
+      _ = ‖gradW 0‖ + (L : ℝ) * ∫ y, ‖x - y‖ ∂(ρ s) := by
+          rw [integral_add (integrable_const _) (h_sub_int.const_mul _)]
+          simp [integral_const, measureReal_def, measure_univ, integral_const_mul]
+      _ ≤ εt + (L : ℝ) * ‖x‖ := by
+          have h_int_le : ∫ y, ‖x - y‖ ∂(ρ s) ≤ ‖x‖ + m t := by
+            calc ∫ y, ‖x - y‖ ∂(ρ s)
+                ≤ ∫ y, (‖x‖ + ‖y‖) ∂(ρ s) :=
+                  integral_mono h_sub_int ((integrable_const _).add (h_y_int s hs_T))
+                    (fun y => norm_sub_le x y)
+              _ = ‖x‖ + ∫ y, ‖y‖ ∂(ρ s) := by
+                  rw [integral_add (integrable_const _) (h_y_int s hs_T)]
+                  simp [integral_const, measureReal_def, measure_univ]
+              _ ≤ ‖x‖ + m t := by linarith [hm s hs_T, hms_le_mt]
+          simp only [hεt_def]
+          nlinarith [mul_le_mul_of_nonneg_left h_int_le (NNReal.coe_nonneg L)]
+  -- Gronwall on [0, t] with the endpoint force constant εt.
+  have ht0 : (0 : ℝ) ≤ t := ht.1
+  have h_f_cont : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc 0 t) :=
+    (h_cont_Icc z).mono (Set.Icc_subset_Icc_right ht.2)
+  have h_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (charV s z, -convolveFunctionMeasure gradW (ρ s) (charX s z))
+        (Set.Ici s) s := by
+    intro s hs
+    have hs_T : s ∈ Set.Ico 0 T := ⟨hs.1, lt_of_lt_of_le hs.2 ht.2⟩
+    have hderiv := h_deriv_Ico z s hs_T
+    unfold vlasovVectorField at hderiv
+    exact hderiv
+  have h_init_norm : ‖(charX 0 z, charV 0 z)‖ ≤ ‖z‖ := by rw [h_init z]
+  have h_bound : ∀ s ∈ Set.Ico 0 t,
+      ‖(charV s z, -convolveFunctionMeasure gradW (ρ s) (charX s z))‖ ≤
+        K * ‖(charX s z, charV s z)‖ + εt := by
+    intro s hs
+    have hs_mem : s ∈ Set.Icc 0 t := ⟨hs.1, le_of_lt hs.2⟩
+    simp only [Prod.norm_def, norm_neg]
+    have hFsz := le_max_left ‖charX s z‖ ‖charV s z‖
+    have hGsz := le_max_right ‖charX s z‖ ‖charV s z‖
+    have hM_nn : 0 ≤ max ‖charX s z‖ ‖charV s z‖ :=
+      le_max_iff.mpr (Or.inl (norm_nonneg _))
+    have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + εt :=
+      calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
+        _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
+            le_mul_of_one_le_left hM_nn (by linarith)
+        _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + εt := le_add_of_nonneg_right hεt_nn
+    have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
+        K * max ‖charX s z‖ ‖charV s z‖ + εt :=
+      calc ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖
+          ≤ εt + (L : ℝ) * ‖charX s z‖ := h_conv_bound s hs_mem _
+        _ ≤ εt + K * max ‖charX s z‖ ‖charV s z‖ := by
+            have hLK : (L : ℝ) ≤ K := le_add_of_nonneg_left zero_le_one
+            linarith [mul_le_mul_of_nonneg_left hFsz (NNReal.coe_nonneg L),
+                      mul_le_mul_of_nonneg_right hLK hM_nn]
+        _ = K * max ‖charX s z‖ ‖charV s z‖ + εt := by ring
+    exact max_le h_v_le h_conv_le
+  have h_grw := norm_le_gronwallBound_of_norm_deriv_right_le
+    h_f_cont h_deriv h_init_norm h_bound t (Set.right_mem_Icc.mpr ht0)
+  simpa using h_grw
+
 /-! ## Stage B — Characteristic flow existence (Picard-Lindelöf wrapper)
 
 This stage wraps Mathlib's parametric Picard-Lindelöf theorem to
