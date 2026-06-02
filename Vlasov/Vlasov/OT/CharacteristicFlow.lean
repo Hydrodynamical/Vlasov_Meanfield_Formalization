@@ -6692,71 +6692,109 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) := by
     sorry
   -- ============================================================
-  -- Step 9: Bundle the result.
-  -- Convert hflow_on_ρlim (against ρ_lim.extend) to the conclusion
-  -- (against spatialMarginal ∘ vlasovSolutionViaPushforward) using h_self_consist.
+  -- Step 9: Bundle with a CLAMPED flow `cX s := charX (clampToIcc T s)`.
+  --
+  -- The raw flow from `exists_vlasov_characteristicFlow_global_smallT` is
+  -- controlled only on `[0, T]`; off-window it is uncontrolled
+  -- `Classical.choose` data with no growth bound.  The conclusion's
+  -- universal-in-`s` conjuncts (convolution integrability + continuity-in-x
+  -- for ALL `s`) therefore cannot hold for the raw flow.  We return instead
+  -- the clamped flow, whose pushforward at any `s` equals the on-window
+  -- pushforward at `clampToIcc T s ∈ [0, T]` — hence globally controlled.
+  -- On `[0, T]` the clamp is the identity (`clampToIcc T s = s`), so every
+  -- window conjunct (flow ODE on Ioo, boundary on Icc, moment, integrability)
+  -- transfers from the raw flow via `clampToIcc`-congruence.
   -- ============================================================
-  have hflow_on : IsCharacteristicFlowOn gradW
-      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
-      charX charV (Set.Ioo 0 T) Set.univ := by
-    refine ⟨hflow_on_ρlim.1, hflow_on_ρlim.2.1, fun t ht z _hz => ?_⟩
-    have h_eq := h_self_consist t (Set.Ioo_subset_Icc_self ht)
-    have h_orig := hflow_on_ρlim.2.2 t ht z (Set.mem_univ z)
-    -- h_orig: HasDerivAt ... (-(convolveFunctionMeasure gradW (ρ_lim.extend t) ...)) t
-    -- Goal: HasDerivAt ... (-(convolveFunctionMeasure gradW (spatialMarginal ...) ...)) t
-    -- These are equal since ρ_lim.extend t = spatialMarginal ... (h_eq).
-    rwa [h_eq] at h_orig
-  -- Boundary regularity conjunct: convert h_boundary_ρlim using h_self_consist.
-  have h_boundary : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
-      HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
-      HasDerivWithinAt (fun s => charV s z)
+  have hclamp_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampToIcc T s = s := fun s hs => by
+    unfold clampToIcc; rw [min_eq_left hs.2, max_eq_right hs.1]
+  have hclamp0 : clampToIcc T 0 = 0 := hclamp_id 0 ⟨le_refl 0, hT.le⟩
+  -- ρ-slot of the clamped flow = `ρ_lim.extend` at the clamp time (definitional
+  -- identity of the pushforward + self-consistency on the window).
+  have h_rho_clamp : ∀ s : ℝ,
+      spatialMarginal (vlasovSolutionViaPushforward
+        (fun s' z => charX (clampToIcc T s') z)
+        (fun s' z => charV (clampToIcc T s') z) f₀ s) =
+      ρ_lim.extend (clampToIcc T s) := by
+    intro s
+    have h1 : spatialMarginal (vlasovSolutionViaPushforward
+        (fun s' z => charX (clampToIcc T s') z)
+        (fun s' z => charV (clampToIcc T s') z) f₀ s) =
+        spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ (clampToIcc T s)) :=
+      rfl
+    rw [h1, ← h_self_consist (clampToIcc T s) (clampToIcc_mem hT.le s)]
+  refine ⟨fun s z => charX (clampToIcc T s) z, fun s z => charV (clampToIcc T s) z,
+    M, hM_nn, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- (1) IsCharacteristicFlowOn on Ioo 0 T (window conjunct; clamp = id there).
+    refine ⟨fun z _hz => ?_, fun t ht z _hz => ?_, fun t ht z _hz => ?_⟩
+    · -- initial condition.
+      show charX (clampToIcc T 0) z = z.1 ∧ charV (clampToIcc T 0) z = z.2
+      rw [hclamp0]; exact hflow_on_ρlim.1 z (Set.mem_univ z)
+    · -- position ODE: eventuallyEq to the raw flow on the open window.
+      have hEv : (fun s => charX (clampToIcc T s) z) =ᶠ[nhds t]
+          (fun s => charX s z) := by
+        filter_upwards [Ioo_mem_nhds ht.1 ht.2] with s hs
+        rw [hclamp_id s (Set.Ioo_subset_Icc_self hs)]
+      show HasDerivAt (fun s => charX (clampToIcc T s) z) (charV (clampToIcc T t) z) t
+      rw [hclamp_id t (Set.Ioo_subset_Icc_self ht)]
+      exact (hflow_on_ρlim.2.1 t ht z (Set.mem_univ z)).congr_of_eventuallyEq hEv
+    · -- velocity ODE.
+      have hEv : (fun s => charV (clampToIcc T s) z) =ᶠ[nhds t]
+          (fun s => charV s z) := by
+        filter_upwards [Ioo_mem_nhds ht.1 ht.2] with s hs
+        rw [hclamp_id s (Set.Ioo_subset_Icc_self hs)]
+      show HasDerivAt (fun s => charV (clampToIcc T s) z)
         (-(convolveFunctionMeasure gradW
-            (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
-            (charX t z)))
-        (Set.Icc 0 T) t := by
+            (spatialMarginal (vlasovSolutionViaPushforward
+              (fun s' z' => charX (clampToIcc T s') z')
+              (fun s' z' => charV (clampToIcc T s') z') f₀ t))
+            (charX (clampToIcc T t) z))) t
+      rw [h_rho_clamp t, hclamp_id t (Set.Ioo_subset_Icc_self ht)]
+      exact (hflow_on_ρlim.2.2 t ht z (Set.mem_univ z)).congr_of_eventuallyEq hEv
+  · -- (2) Boundary regularity on Icc 0 T (clamp = id on the closed window).
     intro z t ht
-    have h_eq := h_self_consist t ht
+    have hEqOn : Set.EqOn (fun s => charX (clampToIcc T s) z) (fun s => charX s z)
+        (Set.Icc 0 T) := fun s hs => by
+      show charX (clampToIcc T s) z = charX s z; rw [hclamp_id s hs]
+    have hEqOnV : Set.EqOn (fun s => charV (clampToIcc T s) z) (fun s => charV s z)
+        (Set.Icc 0 T) := fun s hs => by
+      show charV (clampToIcc T s) z = charV s z; rw [hclamp_id s hs]
     obtain ⟨h1, h2⟩ := h_boundary_ρlim z t ht
-    rw [h_eq] at h2
-    exact ⟨h1, h2⟩
-  -- Moment bound: from ρ_lim.hasMoment + h_self_consist.
-  have hM_ρ_bound : ∀ s ∈ Set.Icc (0 : ℝ) T,
-      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) ≤ M := by
+    refine ⟨?_, ?_⟩
+    · show HasDerivWithinAt (fun s => charX (clampToIcc T s) z)
+        (charV (clampToIcc T t) z) (Set.Icc 0 T) t
+      rw [hclamp_id t ht]
+      exact h1.congr hEqOn (hEqOn ht)
+    · show HasDerivWithinAt (fun s => charV (clampToIcc T s) z)
+        (-(convolveFunctionMeasure gradW
+            (spatialMarginal (vlasovSolutionViaPushforward
+              (fun s' z' => charX (clampToIcc T s') z')
+              (fun s' z' => charV (clampToIcc T s') z') f₀ t))
+            (charX (clampToIcc T t) z))) (Set.Icc 0 T) t
+      rw [h_rho_clamp t, hclamp_id t ht]
+      exact h2.congr hEqOnV (hEqOnV ht)
+  · -- (3) Moment bound on Icc 0 T.
     intro s hs
-    rw [← h_self_consist s hs]
+    rw [h_rho_clamp s, hclamp_id s hs]
     exact VlasovMeasureCurve.extend_hasMoment hT.le ρ_lim s
-  -- First-moment integrability: from ρ_lim.yIntegrable + h_self_consist.
-  have h_y_int_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
-      Integrable (fun y : PhysSpace d => ‖y‖)
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+  · -- (4) First-moment integrability on Icc 0 T.
     intro s hs
-    rw [← h_self_consist s hs]
+    rw [h_rho_clamp s, hclamp_id s hs]
     exact VlasovMeasureCurve.extend_yIntegrable hT.le ρ_lim s
-  -- Continuity of convolveFunctionMeasure against spatial marginal (universal in s).
-  -- Sub-sub-sorry: needs extend_convCont applied via h_self_consist.
-  have hconv_cont : ∀ s, Continuous (fun x_pt =>
-      convolveFunctionMeasure gradW
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x_pt) := by
-    sorry
-  -- AEMeasurable witness via project-internal composition lemma
-  -- `picardCharFlow_aemeasurable` (Phase 1.5 decomposition target,
-  -- 2026-05-31; closure-plan Sorry 7).  The composition uses
-  -- `MathlibTODO_lipschitzFlowAEMeasurable` (pure-FA) as its abstract input.
-  -- Instance `VlasovMeasureCurve.extend_isProb` (L3942) provides probability-
-  -- measureness for the extended curve via Lean's instance resolution.
-  have h_aemeas_out : ∀ s, AEMeasurable
-      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
-    picardCharFlow_aemeasurable gradW L hL ρ_lim.extend
-      charX charV hT.le hflow_on_ρlim f₀
-  -- Sub-sub-sorry: universal-in-s convolution integrability.  For
-  -- s ∈ Icc 0 T follows from h_y_int_ρ + Lipschitz of gradW; for s outside
-  -- requires constant-extension (clamp) past T inside the Picard construction.
-  have h_int_conv_out : ∀ s (x : PhysSpace d),
-      Integrable (fun y => gradW (x - y))
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-    sorry
-  exact ⟨charX, charV, M, hM_nn, hflow_on, h_boundary, hM_ρ_bound, h_y_int_ρ,
-         hconv_cont, h_aemeas_out, h_int_conv_out⟩
+  · -- (5) Convolution continuity in x, universal in s (via clamp reduction).
+    intro s
+    rw [h_rho_clamp s]
+    haveI : IsProbabilityMeasure (ρ_lim.extend (clampToIcc T s)) :=
+      VlasovMeasureCurve.extend_isProb ρ_lim (clampToIcc T s)
+    exact (convolveFunctionMeasure_lipschitz_in_x gradW L hL
+      (ρ_lim.extend (clampToIcc T s)) (h_int_ρ_lim (clampToIcc T s))).continuous
+  · -- (6) AEMeasurable witness, universal in s (raw flow at the clamp time).
+    intro s
+    exact picardCharFlow_aemeasurable gradW L hL ρ_lim.extend charX charV hT.le
+      hflow_on_ρlim f₀ (clampToIcc T s)
+  · -- (7) Convolution integrability, universal in s (via clamp reduction).
+    intro s x
+    rw [h_rho_clamp s]
+    exact h_int_ρ_lim (clampToIcc T s) x
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — moment-bound transport.
 
