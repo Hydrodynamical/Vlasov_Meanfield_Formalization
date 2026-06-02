@@ -1045,6 +1045,25 @@ opposite of the mismatch:
    a hypothesis quantified more broadly than the body consumes is
    over-strong, and the right fix is to weaken the *quantifier* to what's
    actually used.
+4. **Hypotheses too strong → weaken — *the encoding-artifact / overclaim-by-
+   restriction instance*** (#11 M-fixed-point, decision 2026-06-01, commit
+   `72af201` arc): the constant-`M` `VlasovMeasureCurve` curve space forces a
+   fixed-point equation in `M` (need `M` bounding a flow whose growth depends on
+   `M`), which can only be closed by adding a data-dependent smallness hypothesis
+   `B·(M_f₀+1)<1` to the marquee.  That hypothesis is **not in Dobrushin's
+   theorem and not needed by the project's own contraction** (the contraction
+   ratio `q` is already `M`-free — verified).  So the over-strength is an
+   **artifact of an encoding choice** (constant-`M` field, itself downstream of
+   the KR-dual W₁ needing finite moments), not of the math.  Fix: **fix the
+   encoding** (moment as a time-dependent envelope `M(t)`), not the statement.
+   The tell distinct from sightings 1–3: the over-strength does not show up as
+   "proof needs phantom machinery" or "quantifier broader than the body" — it
+   shows up as *"the only way to close the proof is to add a hypothesis the
+   reference theorem lacks."*  When closing a proof seems to *require* narrowing
+   the theorem below the known result, suspect the encoding, not the math.
+   **Forward-compat with a deferred regime (here W̄) is a secondary bonus, never
+   the primary reason** to pick the encoding fix — see the watch-list entry on
+   future-proofing-as-secondary.
 
 **Operational rule**: when a statement and its proof disagree, ask which
 direction the disagreement runs.  Phantom proof-machinery for absent
@@ -1278,6 +1297,29 @@ Candidates accumulating sightings, not yet promotion-ready under
 the three-sighting threshold (with the discipline pairing of
 "promote within ~5 sessions of reaching threshold" to prevent
 indefinite watch-listing):
+
+* **Future-proofing-as-secondary — present-faithfulness is the primary axis for
+  scoped work** (process discipline, flagged 2026-06-01, user-corrected).
+  **Failure mode**: when a present scoping decision has a clean forward-
+  compatibility story with a *deferred* regime, the forward-compat becomes the
+  *primary* stated reason for the choice — turning a scoped decision into a
+  referendum on the unscheduled future.  This is appeal-to-future-proofing; it
+  re-subordinates a present fix to a regime you have deliberately deferred, and
+  it picks the *wrong primary axis* (the decision then gets re-made by "is it
+  X-forward" instead of "is it right now").  **Empirical sighting (1)**: #11
+  M-fixed-point — I framed option 1 vs option 2 as a "referendum on W̄"
+  (the deferred truncated-metric regime), when the load-bearing reason for
+  option 2 is **present-tense faithfulness in the W₁ regime being formalized**
+  (option 1 adds a hypothesis Dobrushin's theorem lacks — see M2 sighting 4);
+  W̄-compat is a *genuine bonus* but the *second* reason.  User flagged this as
+  a recurring pattern ("caught you before") — same family as the M2/weakest-
+  sufficient overbuild guard.  **Fix**: when a scoped choice has both a present-
+  correctness reason and a forward-compat reason, **lead with the present one**;
+  state forward-compat as the secondary bonus, never the justification.  If the
+  *only* reason for the work is forward-compat with a deferred regime, the work
+  itself is probably out of scope.  **Promotion**: P-series candidate (decision-
+  framing discipline); needs 2 more cataloged sightings with commits (the
+  user's asserted priors are not yet catalogued — P5: verify before promoting).
 
 * **Framework ossification — lessons must CHANGE AN ACTION, not just be
   cited** (meta-discipline, flagged 2026-06-01).  The framework grew a lot

@@ -2075,3 +2075,62 @@ The internal pile is now fully characterized:
 Everything else is the FA partition (#1/#4/#5/#6/#8/#9 Bucket-1, #3 internal-
 reclassify, #2/#7 the two hard-OT deliverables).  That is the whole distance to
 the endpoint.
+
+### #11 step 1 CLOSED via clamped flow — and the M-fixed-point decision (2026-06-01, commit `72af201`)
+
+**Step 1 done, build green** (4 → 2 internal sorries in #11; L6740/L6757
+closed, L6610 Picard + L6693 self-consistency remain).
+
+**The route diverged from plan — a P5 finding.** The gate passed (the `_On`
+cascade consumes `h_int`/`hconv_cont` only on `Icc 0 T`; no circular consumer).
+But atom-level reading of the *weakening target* showed the planned "weaken
+Stage C + #11 conclusion to `∀ s ∈ Icc 0 T`" is treacherous: every `_On`
+cascade lemma has a **textually-identical global twin** that must stay
+universal, and the body-threading sites (`h_int s x`) are non-unique across
+twins — one mis-target silently breaks a proven global producer.  The plan's
+premise (clean weakening) did not survive atom-level contact.
+
+Took the **contained alternative**: #11 returns the *clamped* flow
+`cX s := charX (clampToIcc T s)`.  Pushforward at any `s` = on-window
+pushforward at `clampToIcc T s ∈ [0,T]`, so the universal conjuncts become
+**genuinely true** (no weakening — conclusion stays universal), and window
+conjuncts transfer via `clampToIcc`-congruence.  Zero cascade edits; the
+soundness-cycle question (item d) is **moot** because nothing was weakened.
+
+**M-fixed-point surfaced at step 2 (L6610).**  `Phi_step` outputs moment bound
+`C_T·(M_f₀+1)`; `picard_iterate_bundlesAs` needs a *fixed-`M`* curve space; so
+the iterate must satisfy `C_T(L,M,T)·(M_f₀+1) ≤ M`.  With `∇W` Lipschitz-not-
+bounded (`AssW`, Basic L86), `C_T = A + B·M`, so this needs `B·(M_f₀+1) < 1`,
+a **data-dependent** smallness #11's `M_f₀`-free hypotheses cannot supply for
+large `M_f₀`.
+
+**DECISION (user, faithfulness-first): option 2 — drop the constant-`M`
+encoding, moment as a time-dependent envelope `M(t)` the dynamics propagate via
+Gronwall.**  The *primary* rationale is **present-tense faithfulness in the W₁
+regime**, not W̄-compatibility:
+
+* The contraction ratio `q = gronwallBound 0 (max 1 L) (L·D) T` (L5838) is
+  already **`M`-free** — the M-fixed-point is **not intrinsic to the math**, it
+  is an artifact of the constant-`M` curve space (itself a consequence of the
+  KR-dual W₁ needing finite first moments).
+* So option 1 (add `B·(M_f₀+1)<1`) is an **overclaim-by-restriction**: it adds
+  a smallness hypothesis **Dobrushin's theorem does not have and #11's own
+  contraction does not need**, purely to service a self-imposed encoding
+  artifact.  Same class as the weak-class-uniqueness and `q<1` findings — a
+  wrong-*strength* statement caused by encoding, not by the math.  M2 too-strong
+  direction: fix the *encoding*, not the statement.
+* W̄-forward is the **second** reason only.  W̄ is the explicitly-deferred
+  regime; justifying present scoped work by it would re-subordinate a present-
+  faithfulness fix to an unscheduled future (the appeal-to-future-proofing the
+  discipline has caught before).  Frame option 2 as **a W₁-regime faithfulness
+  redesign that happens to be W̄-forward — NOT a W̄ task.**
+
+**Next-session scoping (do NOT start at a tail; atomic-structural-cascade class,
+same discipline as #13/#11).**  Open option 2 as its own focused session.
+**Consumer-sweep FIRST**: enumerate every `VlasovMeasureCurve d T M` consumer
+(`Phi_step`, `Phi_supW1_contraction`, `picard_iterate_bundlesAs`,
+`constantCurve`, `.extend`/`.extend_*`, #11) before touching the field, then
+decide the envelope's shape (drop `M` constant → `hasMoment t ≤ M(t)` with
+`M : ℝ → ℝ` monotone, or a Gronwall-closed family).  Steps 2/3 (Picard sequence
++ self-consistency ODE-uniqueness) resume **after** the curve space is the
+honest object.
