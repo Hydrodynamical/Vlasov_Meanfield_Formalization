@@ -2185,3 +2185,53 @@ Canonical `m*(t)=A(t)/(1-B(T))` is Φ-invariant under `B(T)<1`, a constraint of
 Order: A.2 (finish foundation) → B (wide) → C → D.  B is the risky wide one;
 the validated foundation (A/A.2/A.3) means B/C/D are pure re-threading against a
 proven escape.
+
+### Option-2 progress + hTL_PL elimination decision (2026-06-01, commits d8986f1…8ae19f5, 462d79d)
+
+**Done + committed**: Piece A (`d8986f1`), A.3 (`b758ba1`), A.2 (`5dfcb9a`),
+B structure refactor `M : ℝ→ℝ` (`a198886`), C `Phi_step` per-`z` envelope-bound
+exposure (`8ae19f5`).  The data-free escape is validated + the structure carries
+the envelope; `Phi_step` now hands out Piece A's per-`z` bound (requires
+`hM_mono`).
+
+**Decided (user, after the hTL_PL trace + Step-0 gate): REBUILD the per-ball
+flow FIRST, fresh session — NOT Piece D first.**  Rationale (the dominant fact):
+`exists_vlasov_characteristicFlow` (L1552) is **sorry'd and mandatory** — the
+marquee bottoms out through it regardless of `hTL_PL`/W̄.  The fixed-`δ` N-window
+form is its *correct* discharge (PL-feasible on fixed `δ` → no `T`-smallness →
+`hTL_PL` never generated; Piece-A-chainable; arbitrary-`L`-faithful).  Any other
+closure re-incurs the single-ball geometry and thus `hTL_PL`.  So the N-window
+rebuild is not "extra scope for faithfulness" — it is the *avoid-building-the-
+per-ball-flow-twice* argument.  Closing D on the current sorry'd per-ball flow is
+the declaration-vs-obligation illusion in the load-bearing spot (green build
+lying about being finished where the per-ball sorry sits).
+
+**Gate finding that killed Step 1's framed approach** (M3 gate corollary, first
+use): "swap `perz_trajectory`'s R-selection to a Gronwall value" does NOT
+eliminate `hTL_PL`.  The self-consistency is in the per-ball flow's `hR`
+(`2a + … + M·(T+1)² ≤ R`, `M = ‖∇W 0‖ + L·(R+…)` so `M ∝ R` →
+`R(1−L(T+1)²) ≥ N_z` for ANY finite `R`) — intrinsic to the single-ball-over-
+`[0,T+1]` *geometry*, two levels below the clean interface.  Read the
+construction, not the interface.
+
+**REBUILD SESSION — opening move (the symmetric gate; do BEFORE the ~200-300
+lines)**: verify the N-window construction *avoids* the self-consistency rather
+than *relocating* it.  Two checks: (i) per-window `hR` on a *fixed* small `δ`
+(e.g. `δ` with `L·δ² < 1/4`) is genuinely satisfiable; (ii) chaining
+`⌈(T+1)/δ⌉` windows does NOT re-accumulate a smallness at the *chain* level —
+the moment/position envelope must **re-anchor per window** (each window's ball
+centered at the previous window's endpoint), else the window-count compounding
+is `hTL_PL` in disguise one level *above* per-window feasibility (same disease
+as the inter-window `hTL_con` compounding).  The gate just taught that the
+constraint hides one level *below* expected; the symmetric trap is one level
+*above*.  Find it in the opening read, not at line 250.
+
+**Then**: rebuild closes the L1552 per-ball sorry + drops `hTL_PL` from every
+threading site (`exists_vlasov_perz_trajectory` L4541, `global_smallT` L4765,
+`Phi_step` L5576, #11 L6752, `vlasovWellPosedness_local` L7446;
+`_finalAssembly_*` take it as unused `_hTL_PL` — clean drops).  Build green.
+**Then Piece D** against the cleaned, *proven* chain (D never stands on a sorry):
+`constantCurve` base (A.3 domination) → `Phi_step`→A.2→A.3 re-bundle into
+`space(m*)` → `Phi_supW1_contraction`.  Remaining smallness = the genuine pair
+`hTL_con` + `B(T)<1` (carry both; do NOT derive one from the other — independent
+near-counterexample; W̄-consolidation target).  Weakest-sufficient: NO `hTL_env`.

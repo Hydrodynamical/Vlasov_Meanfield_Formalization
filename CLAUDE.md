@@ -1125,6 +1125,24 @@ shape (the single-ball `hR`), not to the *choice* of the parameter.  Read the
 unfold site's host before sizing: a parameter-swap that leaves the static node
 intact re-generates the same constraint.
 
+**Read-the-construction-not-the-interface (the gate corollary proving itself,
+2026-06-01, first use)**: the read that checks *where a constraint lives* must
+read the **construction**, not the **interface**.  `exists_vlasov_perz_trajectory`'s
+*interface* (its conclusion: `γ` + ODE + boundary) was clean — no `R`, no
+`(T+1)²` — which is exactly what made "swap the R-selection" sound right.  The
+constraint lived **two levels down**, in the per-ball flow's `hR` geometry, and
+was re-generated for *any* finite `R`.  A clean interface says nothing about
+where a static self-consistency hides; only reading the construction body does.
+**The level is not fixed**: a constraint can hide one level *below* where you
+expect (here: in `hR`, not the R-selection), and — symmetrically, the trap to
+watch when *rebuilding* — one level *above* (in the window-**count** compounding
+across an N-window chain, not the per-window feasibility).  Before sizing a
+reconstruction, read for both: per-window `hR` on a fixed `δ` must be satisfiable
+*and* chaining `⌈(T+1)/δ⌉` windows must not re-accumulate a smallness (the moment
+envelope must re-anchor per window).  Found in the opening read, this is cheap;
+found at line 250 of the rebuild, it is the mid-construction refutation the gate
+exists to prevent.
+
 ## B-series — Bridging architecture / structural-fix patterns
 
 ### B1. Predicate enrichment over per-site bridging
