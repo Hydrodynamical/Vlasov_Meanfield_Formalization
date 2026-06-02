@@ -5572,6 +5572,7 @@ theorem Phi_step
     (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
     {T : ℝ} {M : ℝ → ℝ} (hT : 0 ≤ T)
     (Mbar : ℝ) (hMbar_nn : 0 ≤ Mbar) (hMbar : ∀ t ∈ Set.Icc 0 T, M t ≤ Mbar)
+    (hM_mono : MonotoneOn M (Set.Icc 0 T))
     (hTL_PL : LocalSmallness_PL_buffer L T)
     (ρ : VlasovMeasureCurve d T M)
     (h_int_ext : ∀ t (x : PhysSpace d),
@@ -5579,6 +5580,14 @@ theorem Phi_step
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (C_T : ℝ),
       0 ≤ C_T ∧
       IsCharacteristicFlowOn gradW ρ.extend charX charV (Set.Ioo 0 T) Set.univ ∧
+      -- **Piece A (time-local envelope) growth bound** — exposes the per-`z`
+      -- bound `flow_distance_growth_bound_on_timedep` produces against the input
+      -- moment envelope `M`.  Piece D integrates this (A.2) and closes it against
+      -- the canonical envelope (A.3) to re-bundle `σ` into the fixed envelope
+      -- space, dissolving the M-fixed-point.
+      (∀ t ∈ Set.Icc (0:ℝ) T, ∀ z : PhaseSpace d,
+        ‖(charX t z, charV t z)‖ ≤
+          gronwallBound ‖z‖ (1 + (L : ℝ)) (‖gradW 0‖ + (L : ℝ) * M t) t) ∧
       ∃ σ : VlasovMeasureCurve d T (fun _ => C_T * (M_f₀ + 1)),
         ∀ t ∈ Set.Icc (0:ℝ) T,
           σ.ρ t = Measure.map (fun z : PhaseSpace d => charX t z) f₀ := by
@@ -5607,6 +5616,21 @@ theorem Phi_step
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
     Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
       hflow_on h_boundary
+  -- Piece A (time-local envelope) per-`z` growth bound against the input
+  -- envelope `M` (on `Icc`, `ρ.extend t = ρ.ρ t`, so `ρ`'s moment bound `M t`
+  -- feeds the time-local Gronwall forcing).
+  have hm_M : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M t := by
+    intro t ht
+    have h_eq : ρ.extend t = ρ.ρ t := by
+      unfold VlasovMeasureCurve.extend clampToIcc
+      congr 1
+      rw [min_eq_left ht.2, max_eq_right ht.1]
+    rw [h_eq]; exact ρ.hasMoment t ht
+  have h_growth_timedep : ∀ t ∈ Set.Icc (0:ℝ) T, ∀ z : PhaseSpace d,
+      ‖(charX t z, charV t z)‖ ≤
+        gronwallBound ‖z‖ (1 + (L : ℝ)) (‖gradW 0‖ + (L : ℝ) * M t) t :=
+    flow_distance_growth_bound_on_timedep gradW L hL ρ.extend charX charV T hT
+      h_init h_cont_Icc h_deriv_Ico M hM_mono hm_M (fun t _ => h_y_int t) h_int_ext
   obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
     flow_distance_growth_bound_on gradW L hL ρ.extend charX charV T hT
       h_init h_cont_Icc h_deriv_Ico Mbar hMbar_nn
@@ -5678,7 +5702,7 @@ theorem Phi_step
   let σ : VlasovMeasureCurve d T (fun _ => C_T * (M_f₀ + 1)) :=
     Phi_asVlasovMeasureCurve charX_clamped f₀ h_meas_clamped h_int_charX_clamped
       T hT C_T hC_T_nn h_growth_clamped h_f₀_int M_f₀ hM_f₀ h_charX_cont_clamped
-  refine ⟨charX, charV, C_T, hC_T_nn, hflow_on, σ, ?_⟩
+  refine ⟨charX, charV, C_T, hC_T_nn, hflow_on, h_growth_timedep, σ, ?_⟩
   intro t ht
   show Phi charX_clamped f₀ t = Measure.map (fun z => charX t z) f₀
   unfold Phi
