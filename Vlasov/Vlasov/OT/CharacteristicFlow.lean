@@ -4218,10 +4218,10 @@ The W₁-continuity field is phrased per-base-point `s ∈ [0, T]` as
 `d` is an explicit parameter so that `VlasovMeasureCurve d T M` is fully
 determined at use sites (otherwise `NeZero d` cannot be resolved from the
 non-discriminating real-valued T, M alone). -/
-structure VlasovMeasureCurve (d : ℕ) [NeZero d] (T M : ℝ) where
+structure VlasovMeasureCurve (d : ℕ) [NeZero d] (T : ℝ) (M : ℝ → ℝ) where
   ρ : ℝ → Measure (PhysSpace d)
   isProb : ∀ t, IsProbabilityMeasure (ρ t)
-  hasMoment : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(ρ t) ≤ M
+  hasMoment : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(ρ t) ≤ M t
   yIntegrable : ∀ t ∈ Set.Icc (0 : ℝ) T, Integrable (fun y : PhysSpace d => ‖y‖) (ρ t)
   hW1Cont : ∀ s ∈ Set.Icc (0 : ℝ) T,
     ContinuousWithinAt (fun t => (wasserstein1 (ρ s) (ρ t)).toReal)
@@ -4233,8 +4233,9 @@ is bounded by `2M`, hence finite.
 Combines pointwise `wasserstein1_le_moments_sum` with `iSup_le` over the
 compact time set. -/
 lemma supW1On_le_two_moment_of_VlasovMeasureCurve {d : ℕ} [NeZero d]
-    {T M : ℝ} (ρ σ : VlasovMeasureCurve d T M) :
-    supW1On (Set.Icc 0 T) ρ.ρ σ.ρ ≤ ENNReal.ofReal (2 * M) := by
+    {T : ℝ} {M : ℝ → ℝ} (Mbar : ℝ) (hMbar : ∀ t ∈ Set.Icc 0 T, M t ≤ Mbar)
+    (ρ σ : VlasovMeasureCurve d T M) :
+    supW1On (Set.Icc 0 T) ρ.ρ σ.ρ ≤ ENNReal.ofReal (2 * Mbar) := by
   unfold supW1On
   refine iSup_le fun t => iSup_le fun ht => ?_
   -- Pointwise: W₁(ρ_t, σ_t) ≤ ofReal(∫‖y‖d(ρ_t) + ∫‖y‖d(σ_t)) ≤ ofReal(M + M)
@@ -4246,15 +4247,16 @@ lemma supW1On_le_two_moment_of_VlasovMeasureCurve {d : ℕ} [NeZero d]
       (ρ.yIntegrable t ht) (σ.yIntegrable t ht)
   refine h_bound.trans ?_
   apply ENNReal.ofReal_le_ofReal
-  have hρ_t : ∫ y, ‖y‖ ∂(ρ.ρ t) ≤ M := ρ.hasMoment t ht
-  have hσ_t : ∫ y, ‖y‖ ∂(σ.ρ t) ≤ M := σ.hasMoment t ht
-  linarith
+  have hρ_t : ∫ y, ‖y‖ ∂(ρ.ρ t) ≤ M t := ρ.hasMoment t ht
+  have hσ_t : ∫ y, ‖y‖ ∂(σ.ρ t) ≤ M t := σ.hasMoment t ht
+  linarith [hMbar t ht]
 
 /-- `supW1On` of two `VlasovMeasureCurve`s is finite (≠ ⊤). -/
-lemma supW1On_ne_top_of_VlasovMeasureCurve {d : ℕ} [NeZero d] {T M : ℝ}
+lemma supW1On_ne_top_of_VlasovMeasureCurve {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
+    (Mbar : ℝ) (hMbar : ∀ t ∈ Set.Icc 0 T, M t ≤ Mbar)
     (ρ σ : VlasovMeasureCurve d T M) :
     supW1On (Set.Icc 0 T) ρ.ρ σ.ρ ≠ ⊤ :=
-  ne_of_lt ((supW1On_le_two_moment_of_VlasovMeasureCurve ρ σ).trans_lt
+  ne_of_lt ((supW1On_le_two_moment_of_VlasovMeasureCurve Mbar hMbar ρ σ).trans_lt
             ENNReal.ofReal_lt_top)
 
 /-- Convolution continuity in time, derived from the structural
@@ -4266,7 +4268,7 @@ the convolution-continuity hypothesis of `exists_vlasov_characteristicFlow`. -/
 lemma vlasovMeasureCurve_convCont {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
-    {T M : ℝ} (ρ : VlasovMeasureCurve d T M)
+    {T : ℝ} {M : ℝ → ℝ} (ρ : VlasovMeasureCurve d T M)
     (x : PhysSpace d)
     (h_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
               Integrable (fun y => gradW (x - y)) (ρ.ρ t)) :
@@ -4364,26 +4366,26 @@ The extension preserves all structural properties (`IsProbabilityMeasure`,
 moment bound, integrability of `‖·‖`) universally in `t`, and extends
 W₁-continuity to convolveFunctionMeasure-continuity universally in `t`
 via `clampToIcc_continuous` + `vlasovMeasureCurve_convCont`. -/
-noncomputable def VlasovMeasureCurve.extend {d : ℕ} [NeZero d] {T M : ℝ}
+noncomputable def VlasovMeasureCurve.extend {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
     (ρ : VlasovMeasureCurve d T M) : ℝ → Measure (PhysSpace d) :=
   fun t => ρ.ρ (clampToIcc T t)
 
 /-- The extended curve is a probability measure at every `t : ℝ`. -/
-instance VlasovMeasureCurve.extend_isProb {d : ℕ} [NeZero d] {T M : ℝ}
+instance VlasovMeasureCurve.extend_isProb {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
     (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
     IsProbabilityMeasure (ρ.extend t) :=
   ρ.isProb _
 
 /-- The extended curve has `‖·‖` integrable at every `t : ℝ`. -/
-lemma VlasovMeasureCurve.extend_yIntegrable {d : ℕ} [NeZero d] {T M : ℝ}
+lemma VlasovMeasureCurve.extend_yIntegrable {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
     (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
     Integrable (fun y : PhysSpace d => ‖y‖) (ρ.extend t) :=
   ρ.yIntegrable _ (clampToIcc_mem hT t)
 
 /-- The extended curve preserves the moment bound `M` universally in `t`. -/
-lemma VlasovMeasureCurve.extend_hasMoment {d : ℕ} [NeZero d] {T M : ℝ}
+lemma VlasovMeasureCurve.extend_hasMoment {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
     (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M) (t : ℝ) :
-    ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M :=
+    ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M (clampToIcc T t) :=
   ρ.hasMoment _ (clampToIcc_mem hT t)
 
 /-- Convolution continuity on the extended curve, universal in `t`.
@@ -4395,7 +4397,7 @@ provides Stage 1.9's universal `hρ_cont` hypothesis directly from a
 lemma VlasovMeasureCurve.extend_convCont {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
-    {T M : ℝ} (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M)
+    {T : ℝ} {M : ℝ → ℝ} (hT : 0 ≤ T) (ρ : VlasovMeasureCurve d T M)
     (x : PhysSpace d)
     (h_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
               Integrable (fun y => gradW (x - y)) (ρ.ρ t)) :
@@ -4409,14 +4411,14 @@ lemma VlasovMeasureCurve.extend_convCont {d : ℕ} [NeZero d]
 /-- The constant curve at a probability measure with finite first moment is
 a valid `VlasovMeasureCurve` on `[0, T]` for any `T` and any moment
 bound `M ≥ ∫‖y‖dμ₀`. -/
-def constantCurve {d : ℕ} [NeZero d] {T M : ℝ}
+def constantCurve {d : ℕ} [NeZero d] {T : ℝ} {M : ℝ → ℝ}
     (μ₀ : Measure (PhysSpace d)) [IsProbabilityMeasure μ₀]
     (hμ_int : Integrable (fun y : PhysSpace d => ‖y‖) μ₀)
-    (hM : ∫ y, ‖y‖ ∂μ₀ ≤ M) :
+    (hM : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂μ₀ ≤ M t) :
     VlasovMeasureCurve d T M where
   ρ := fun _ => μ₀
   isProb := fun _ => inferInstance
-  hasMoment := fun _ _ => hM
+  hasMoment := hM
   yIntegrable := fun _ _ => hμ_int
   hW1Cont := fun s _ => by
     -- The function `t ↦ (wasserstein1 μ₀ μ₀).toReal` is identically 0;
@@ -5269,7 +5271,7 @@ noncomputable def Phi_asVlasovMeasureCurve {d : ℕ} [NeZero d]
     (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
     (h_charX_cont : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z,
       ContinuousWithinAt (fun t => charX t z) (Set.Icc 0 T) s) :
-    VlasovMeasureCurve d T (C_T * (M_f₀ + 1)) where
+    VlasovMeasureCurve d T (fun _ => C_T * (M_f₀ + 1)) where
   ρ := Phi charX f₀
   isProb := Phi_isProbabilityMeasure charX f₀ h_meas
   hasMoment := fun t ht =>
@@ -5568,7 +5570,8 @@ theorem Phi_step
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (h_f₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     (M_f₀ : ℝ) (hM_f₀ : ∫ z, ‖z‖ ∂f₀ ≤ M_f₀)
-    {T M : ℝ} (hT : 0 ≤ T) (hM_nn : 0 ≤ M)
+    {T : ℝ} {M : ℝ → ℝ} (hT : 0 ≤ T)
+    (Mbar : ℝ) (hMbar_nn : 0 ≤ Mbar) (hMbar : ∀ t ∈ Set.Icc 0 T, M t ≤ Mbar)
     (hTL_PL : LocalSmallness_PL_buffer L T)
     (ρ : VlasovMeasureCurve d T M)
     (h_int_ext : ∀ t (x : PhysSpace d),
@@ -5576,7 +5579,7 @@ theorem Phi_step
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (C_T : ℝ),
       0 ≤ C_T ∧
       IsCharacteristicFlowOn gradW ρ.extend charX charV (Set.Ioo 0 T) Set.univ ∧
-      ∃ σ : VlasovMeasureCurve d T (C_T * (M_f₀ + 1)),
+      ∃ σ : VlasovMeasureCurve d T (fun _ => C_T * (M_f₀ + 1)),
         ∀ t ∈ Set.Icc (0:ℝ) T,
           σ.ρ t = Measure.map (fun z : PhaseSpace d => charX t z) f₀ := by
   haveI hExt_prob : ∀ t, IsProbabilityMeasure (ρ.extend t) :=
@@ -5595,17 +5598,18 @@ theorem Phi_step
     exact VlasovMeasureCurve.extend_convCont gradW L hL hT ρ x h_int_Icc
   have h_y_int : ∀ t, Integrable (fun y : PhysSpace d => ‖y‖) (ρ.extend t) :=
     fun t => VlasovMeasureCurve.extend_yIntegrable hT ρ t
-  have hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ M :=
-    fun t => VlasovMeasureCurve.extend_hasMoment hT ρ t
+  have hM_ρ : ∀ t, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ Mbar :=
+    fun t => le_trans (VlasovMeasureCurve.extend_hasMoment hT ρ t)
+      (hMbar (clampToIcc T t) (clampToIcc_mem hT t))
   obtain ⟨charX, charV, hflow_on, h_boundary⟩ :=
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
-      ρ.extend h_int_ext hρ_cont h_y_int M hM_nn hM_ρ T hT hTL_PL
+      ρ.extend h_int_ext hρ_cont h_y_int Mbar hMbar_nn hM_ρ T hT hTL_PL
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
     Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
       hflow_on h_boundary
   obtain ⟨C_T, hC_T_nn, h_growth⟩ :=
     flow_distance_growth_bound_on gradW L hL ρ.extend charX charV T hT
-      h_init h_cont_Icc h_deriv_Ico M hM_nn
+      h_init h_cont_Icc h_deriv_Ico Mbar hMbar_nn
       (fun t _ => hM_ρ t) (fun t _ => h_y_int t) h_int_ext
   have h_meas_Icc : ∀ t ∈ Set.Icc (0:ℝ) T,
       Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) :=
@@ -5671,7 +5675,7 @@ theorem Phi_step
         rw [min_eq_left ht.2, max_eq_right ht.1]
       rw [h_clamp_eq]
     exact h_charX_cwn.congr h_eq_on (h_eq_on s hs)
-  let σ : VlasovMeasureCurve d T (C_T * (M_f₀ + 1)) :=
+  let σ : VlasovMeasureCurve d T (fun _ => C_T * (M_f₀ + 1)) :=
     Phi_asVlasovMeasureCurve charX_clamped f₀ h_meas_clamped h_int_charX_clamped
       T hT C_T hC_T_nn h_growth_clamped h_f₀_int M_f₀ hM_f₀ h_charX_cont_clamped
   refine ⟨charX, charV, C_T, hC_T_nn, hflow_on, σ, ?_⟩
@@ -6410,7 +6414,7 @@ produce a limit `ρ_lim : VlasovMeasureCurve d T M` such that
      `picard_iterate_limit_uniform_tendsto` for the uniform tendsto +
      `(x N).hW1Cont` for the middle term. -/
 theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
-    {T M : ℝ}
+    {T : ℝ} {M : ℝ → ℝ}
     (x : ℕ → VlasovMeasureCurve d T M)
     (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
     (D₀ : ℝ) (hD₀_nn : 0 ≤ D₀)
@@ -6435,11 +6439,11 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
   have h_per_t : ∀ t ∈ Set.Icc (0:ℝ) T, ∃ μ : Measure (PhysSpace d),
       IsProbabilityMeasure μ ∧
       Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
-      ∫ y, ‖y‖ ∂μ ≤ M ∧
+      ∫ y, ‖y‖ ∂μ ≤ M t ∧
       Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) μ) Filter.atTop (nhds 0) := by
     intro t ht
     haveI : ∀ n, IsProbabilityMeasure ((x n).ρ t) := fun n => (x n).isProb t
-    exact MathlibTODO_cauchyW1_hasNarrowLimit (fun n => (x n).ρ t) M
+    exact MathlibTODO_cauchyW1_hasNarrowLimit (fun n => (x n).ρ t) (M t)
       (fun n => (x n).hasMoment t ht) (fun n => (x n).yIntegrable t ht)
       (h_per_t_cauchy t ht)
   -- Step 4: define ρ_lim via dependent choice on whether t ∈ Icc 0 T.
@@ -6461,7 +6465,7 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
     · simp only [ρ_lim, dif_neg ht]
       exact (x 0).isProb t
   -- hasMoment: from the placeholder's strengthened conclusion.
-  have h_hasMoment : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ_lim t) ≤ M := by
+  have h_hasMoment : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ_lim t) ≤ M t := by
     intro t ht
     rw [hρ_spec t ht]
     exact (Classical.choose_spec (h_per_t t ht)).2.2.1
@@ -6897,7 +6901,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   let D₀ : ℝ := 2 * M
   have hD₀_nn : 0 ≤ D₀ := by linarith
   -- Sub-sub-sorry: Picard sequence + contraction.
-  obtain ⟨x, h_contract⟩ : ∃ x : ℕ → VlasovMeasureCurve d T M,
+  obtain ⟨x, h_contract⟩ : ∃ x : ℕ → VlasovMeasureCurve d T (fun _ => M),
       ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
            ENNReal.ofReal (q ^ k * D₀) := by
     sorry
