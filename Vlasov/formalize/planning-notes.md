@@ -3100,3 +3100,28 @@ Then glue_step L8850 as its own focused unit.  Sorry trajectory if the thread la
 11 → 9 (glue_step boundary + the two univ_exist boundary/continuity; note glue_step keeps
 its L8850 warning, so its declaration warning persists until L8850 also closes — declaration
 count 11 → 10 when univ_exist's two close, glue_step stays warned for L8850).
+
+#### ✅ B2 #1 DONE — glue_step boundary ContinuousOn closed via lemma extraction (2026-06-02)
+
+Decision: named-lemma extraction (NOT inline duplication, NOT intra-proof hoist).  Executed
+(delegated mechanical relocation, then independently verified to the leaf).  Three gates run
+first: (0) sorry inventory reconciled; (1) **(vii) is metric-independent → extraction is
+factoring/single-source, NOT W̄-insurance** — W̄ surface is the `wasserstein1`-carrying
+estimates, not this flow-ODE bundle; (2) circularity clean (`h_prev_boundary` is
+`HasDerivWithinAt`, `ContinuousOn` is a projection, never threaded).
+
+* New `private lemma glue_step_boundary_bundle` (L8395, before glue_step): takes
+  `charX_next/charV_next/f_next` abstract + defining-eq hyps (`hdef_X/V/f`) + `h_prev_boundary`
+  + `hg_boundary` + `hg_init` + `hg_init_cond`; concludes (vii)'s `HasDerivWithinAt` bundle on
+  `Icc 0 (T+T_0)` (incl. the across-seam `t=T` `.union`).  Fully proven, no sorry.
+* Conjunct (vii) (L9421) rewired to one `exact glue_step_boundary_bundle … rfl rfl rfl …`.
+* L9095 boundary sorry closed as the `.continuousWithinAt.prodMk` projection of the bundle.
+* Verified faithful: lemma conclusion = (vii)'s exactly (not weakened); PDE leaf `h_cont_g`
+  (now L9112, formerly L8850) + universal_existence sorries (L10404/L10435) untouched.
+* Build green; **code tokens 13 → 12**; **declaration count steady at 11** (glue_step keeps
+  its PDE-leaf warning).  Committed separable.
+
+**Next:** #2 = univ_exist L10404 (un-discard `sol N`'s now-genuine boundary conjunct +
+`ContinuousOn.mono`).  Read to the leaf before trusting the ~5-line estimate (standing
+expectation: continuation layer carries more than its flat size); confirm `sol N` genuinely
+supplies the boundary conjunct now that #1 made glue_step's real.  Build between #2 and #3.
