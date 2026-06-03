@@ -3482,3 +3482,34 @@ likewise.  The existence side has NO internal sorry — `glue_step` was the last
    / specific flow) the way `h_cont_g` orphaned its kernel.  Likely-genuine (stay): `cauchyW1`-
    completeness (Prokhorov), the W₁ right-derivative/stability estimate.  Likely-dissolve: candidates
    among `convolveLipschitz`-family / the moment-narrow lemmas whose consumers carry pushforwards.
+
+#### Deferred-OT consumer map + first-cut (2026-06-03) — 1 verified dissolution, 8 to leaf-read
+
+(NB grep gotcha: `\bcauchyW1…\b` does NOT match `MathlibTODO_cauchyW1…` — the `_` glues the word
+boundary; grep the FULL `MathlibTODO_` name.)  The 9 placeholders → consumers:
+
+| # | placeholder (line) | consumer (parent lemma) | status |
+|---|---|---|---|
+| 3 | `wassersteinContinuousAtOfNarrowMoment` (1722) | `convolveContinuousAtOfNarrowMoment` (**0 code consumers — orphaned by Route 2**) | **DISSOLVES ✓verified** |
+| 2 | `cauchyW1_hasNarrowLimit` (1428) | `picard_iterate_bundlesAs_VlasovMeasureCurve` (#11 limit) | likely genuine (completeness/Prokhorov) |
+| 7 | `w1RightDerivBoundAlongLagrangianFlowsOn` (2357) | `wassersteinGronwallCoupling_derivBound_via_pureFA[_On]` (11598, 12829) | likely genuine (stability estimate) |
+| 4 | `w1LowerSemicontinuousAlongNarrowMomentCurves` (2053) | `w1ContOn_lscNarrow_via_pureFA` (2222) | KR-dual LSC — leaf-read |
+| 5 | `bcNarrowFromSmoothCompactNarrow` (2132) | `w1ContOn_lscNarrow_via_pureFA` (2216, 2220) | KR-dual — leaf-read |
+| 6 | `w1UpperSemicontinuousAlongLagrangianFlows` (2243) | `w1ContOn_uscNarrow_via_pureFA` (12537) | KR-dual USC — leaf-read |
+| 9 | `wassersteinGronwallCoupling_W1ContOn_On` (11305) | `…derivBound_via_pureFA_On` (11662) | KR-dual ContOn — leaf-read |
+| 1 | `bcEqualFromLipschitzEqual_polish_firstMoment` (1315) | `wasserstein1_eq_zero_iff_measure_eq` (separation) | dissolve-candidate — leaf-read |
+| 8 | `lipschitzFlowTrajectoryLipBound` (3009) | `vlasovTrajectoryLipschitzBound` | dissolve-candidate — leaf-read |
+
+**Verified: #3 dissolves** (orphan chain `wassersteinContinuousAtOfNarrowMoment` → proven-but-orphaned
+`convolveContinuousAtOfNarrowMoment`; the Route-2 pushforward bypass left both dead).  Removal = easy
+**9→8** + retire the dead corollary.  The status column for the other 8 is HYPOTHESIS from
+consumer-identity, NOT leaf-verified — the leaf-reads must check each consumer for collapsing
+structure (pushforward / finite-moment / specific-flow), per the 5-M3 discipline (docstrings
+over-state).  First-cut: 5–7 likely genuine (the KR-dual `W1ContOn`/LSC/USC/derivBound dynamic-
+regularity family + completeness #2 + stability #7 — CLAUDE.md flags these as THE consequence of the
+W₁-sup-formula choice); #1, #8 clearest dissolve-candidates.
+
+**Next moves (existence side internally closed + axiom-certified; these are the external-boundary
+arc):** (a) #3 orphan-removal (easy, 9→8); (b) 8 consumer-leaf-reads (delegate-able) → true remainder;
+(c) M1 helper-extraction (cosmetic, fold with any (b) dissolutions sharing the pushforward/Piece-A
+route).
