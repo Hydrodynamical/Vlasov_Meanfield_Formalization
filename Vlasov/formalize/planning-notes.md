@@ -3289,3 +3289,51 @@ the growth bound `C_T` + flow continuity + pushforward as hyps (B3-suppliable fr
 `h_prev_*` + Piece A).  Project 11 (unchanged); CharFlow {3009, 9223 h_left, 9230 h_right, 9918}.
 **Next pass:** wire into `h_left` — L11-clamp to produce Piece A's `C_T` + outer DCT (constant
 dominator) consuming this helper.  Then RIGHT (read separately).
+
+#### BUILD pass 2 — h_left DCT SPINE proven (subagent, audited green); one leaf `hM_ρ` (2026-06-02)
+
+Delegated the `h_left` wiring to a subagent; **audited to the leaf** (P10 on a delegate's report —
+its "10 total" count was WRONG, actually 11; verified green + single sorry via *unfiltered* grep +
+statement-intact).  The 525-line close genuinely uses Route-2 proven tools: `integral_map`
+push-to-`f₀` (L9471), Piece A `flow_distance_growth_bound_on` on the L11-clamped curve `ρc` (L9409),
+the proven inner kernel `flowConv_continuousWithinAt_Iic_seam` (L9710), composed via
+`ContinuousWithinAt.inner`.  Affine `f₀`-integrable dominator (better than the planned constant
+bound).  Added `set_option maxHeartbeats 1600000 in` before glue_step (8×; M1 debt — see extraction
+below).  Build green; project still 11 (h_left's bare sorry → the `hM_ρ` leaf).
+
+**The one leaf `hM_ρ` (L9361) — verified to leaf, NOT a thread, NOT circular:** it needs a *uniform*
+first-moment bound `∫‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M_ρ` over `[0,T]`.  Via pushforward this is
+`∫‖charX_prev t z‖ ∂f₀`, whose only `f₀`-integrable uniform dominator is Piece A's growth bound,
+which *needs* `M_ρ` as input (`ε₀ = ‖gradW 0‖ + L·M_ρ`) — the **#11 moment fixed-point**.  Traced the
+caller: `universal_existence`'s induction invariant (`h_ind`, L10300) carries **per-`t` finiteness
+(`hfn_mom`), not a uniform bound**; glue_step's own output conjunct (iii) is per-`t` too.  So the
+uniform envelope is NOT currently carried.  BUT it is **inductive, not circular**: finitely many (`N`)
+windows to `T_target`, finite max, depends on PAST windows + #11's local envelope, not the future.
+**The spine consumes a FLAT `∃ M_ρ, ∀ t ∈ Icc 0 T, … ≤ M_ρ` for its own window** (closes via
+`clampToIcc_mem`); the window-index lives in the continuation's `M_n` *sequence*, never reaches the
+spine ⇒ **spine is sound, flat-consuming, does NOT restructure** → committed.
+
+**RESOLUTION = a `#13`-shaped tower-wide uniform-moment-invariant strengthening (3 declarations),
+NOT a one-line thread:**
+1. `vlasovWellPosedness_local` — expose #11's envelope (`m*(t)`, built internally) as an output conjunct.
+2. `glue_step` — add a flat uniform-moment *hypothesis* on `f_prev` + strengthen output to a flat
+   uniform-moment conjunct on `f_next` (provable from hyp + `g`'s local envelope).
+3. `universal_existence` — carry the uniform-moment invariant (seed from local; propagate via glue_step).
+
+**`#13` discipline for the arc (do these):** (a) bank the map committed-separable before the wide edit;
+(b) complete-unfiltered-sorry-inventory as the opener; (c) **B3 conjunct-form against the FLATTEST
+consumer** — three forms of one quantity: #11 `m*(t)` (function), glue_step flat `M_ρ` (window
+constant), continuation `M_n` (sequence); expose the *flat constant* from #11 (`sup_{[0,T]} m*` —
+exists/attained, `m*` continuous on compact, but a STEP not defeq) so the cascade threads one form,
+not project-at-each-boundary (M1/weakest-sufficient); (d) **read the inductive moment-composition
+step to the leaf before sizing** — does `M_{n+1} = max(M_n, local_envelope_{n+1})` close cleanly
+(moment of a glued measure ≤ max of pieces' moments, likely no cross-term) or does the glue introduce
+a cross-term? "probably clean" is the resized-four-times epistemic state — read it.  (e) **Fold the M1
+helper-extraction (525 inline lines + 8× heartbeats → named one-side helper, also serves RIGHT) INTO
+this same pass** so the moment quantity threads the helper ONCE, not twice.
+
+**Headline (earned, clean):** Route 2's LEFT **closes from proven tools, no deferred-OT, orphaning the
+kernel** — modulo a bounded, inductive (not circular), `#13`-shaped moment-invariant strengthening.
+The existence side *closes* rather than bottoming-out-into-deferred-OT (better than the API-lock
+scoped).  **RIGHT still rides on whether `g` is a pushforward** (banked opening question); the
+moment-invariant arc is the last bounded internal stretch before it.

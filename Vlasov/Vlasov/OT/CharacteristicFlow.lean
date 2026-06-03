@@ -8750,6 +8750,7 @@ lemma flowConv_continuousWithinAt_Iic_seam
       (hgradW_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
   exact h_cont_rhs.congr_of_eventuallyEq h_eq h_val_T
 
+set_option maxHeartbeats 1600000 in
 /-- **Stage 5 sub-helper**: one-window glue step.
 
 Given a solution `f_prev : ℝ → Measure (PhaseSpace d)` on `[0, T]`
@@ -9220,7 +9221,530 @@ theorem vlasovWellPosedness_glue_step
                           @inner ℝ (PhysSpace d) _
                             (convolveFunctionMeasure gradW (spatialMarginal (f_next s)) z.1)
                             (gradVφ z)) ∂(f_next s)) (Set.Iic T) T := by
-                sorry
+                -- Route 2 (proven tools): push f_next = f_prev to a pushforward of f₀
+                -- on the window, then DCT.  The force-term seam continuity is
+                -- `flowConv_continuousWithinAt_Iic_seam`; the velocity term uses
+                -- `h_prev_boundary` continuity; the dominator is a constant.
+                have hgradW_cont : Continuous gradW := hL.continuous
+                have h_nhd_L : Set.Icc (0 : ℝ) T ∈ nhdsWithin T (Set.Iic T) :=
+                  Icc_mem_nhdsLE hT_pos
+                -- (1) Continuity of gradXφ and gradVφ (reuse the L3580-3617 derivation).
+                have hgradXφ_cont : Continuous gradXφ := by
+                  have hfderiv_X : ∀ z : PhaseSpace d,
+                      fderiv ℝ (fun x => φ (x, z.2)) z.1 =
+                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) :=
+                    fun z => by
+                      have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+                        (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+                      have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
+                          (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
+                        hasFDerivAt_prodMk_left z.1 z.2
+                      exact (h1.comp z.1 h2).fderiv
+                  have heqX : gradXφ = fun z => gradient (fun x => φ (x, z.2)) z.1 :=
+                    funext hgradXφ
+                  rw [heqX]
+                  simp_rw [gradient, hfderiv_X]
+                  exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+                    ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+                      (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+                      (hφ_smooth.continuous_fderiv (by simp)))
+                have hgradVφ_cont : Continuous gradVφ := by
+                  have hfderiv_V : ∀ z : PhaseSpace d,
+                      fderiv ℝ (fun v => φ (z.1, v)) z.2 =
+                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) :=
+                    fun z => by
+                      have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+                        (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+                      have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
+                          (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
+                        hasFDerivAt_prodMk_right z.1 z.2
+                      exact (h1.comp z.2 h2).fderiv
+                  have heqV : gradVφ = fun z => gradient (fun v => φ (z.1, v)) z.2 :=
+                    funext hgradVφ
+                  rw [heqV]
+                  simp_rw [gradient, hfderiv_V]
+                  exact (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.continuous.comp
+                    ((ContinuousLinearMap.isBoundedLinearMap_comp_right
+                      (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d))).continuous.comp
+                      (hφ_smooth.continuous_fderiv (by simp)))
+                -- (2) Kernel integrability of `gradW (x - ·)` against `spatialMarginal (f_prev t)`
+                -- on the window (from `f_prev t`'s finite first moment).
+                have h_int_marg : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
+                    Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f_prev t)) := by
+                  intro t ht x_pt
+                  haveI : IsProbabilityMeasure (f_prev t) := (h_prev_mom t ht).1
+                  haveI : IsProbabilityMeasure (spatialMarginal (f_prev t)) :=
+                    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+                  have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+                      (spatialMarginal (f_prev t)) :=
+                    (hgradW_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+                  have h_y_int : Integrable (fun y : PhysSpace d => ‖y‖)
+                      (spatialMarginal (f_prev t)) := by
+                    unfold spatialMarginal
+                    rw [integrable_map_measure
+                      (by exact (continuous_norm.measurable).aestronglyMeasurable)
+                      measurable_fst.aemeasurable]
+                    refine Integrable.mono' (h_prev_mom t ht).2
+                      ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+                      (Filter.Eventually.of_forall fun z => ?_)
+                    show |‖z.1‖| ≤ ‖z‖
+                    rw [abs_of_nonneg (norm_nonneg _)]
+                    exact norm_fst_le z
+                  have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+                      ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+                    intro y
+                    have hd := hL.dist_le_mul (x_pt - y) 0
+                    simp only [dist_eq_norm, sub_zero] at hd
+                    have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+                      have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+                      simp only [sub_add_cancel] at this; linarith
+                    have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+                    have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+                    linarith
+                  have h_dom_int : Integrable
+                      (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+                      (spatialMarginal (f_prev t)) := by
+                    have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+                        (spatialMarginal (f_prev t)) := h_y_int.const_mul (L : ℝ)
+                    have h_eq : (fun y : PhysSpace d =>
+                        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                        fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+                      funext y; ring
+                    rw [h_eq]; exact (integrable_const _).add h_norm
+                  exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+                -- (3) The window pushforward of the spatial marginal: `spatialMarginal (f_prev s)
+                -- = Measure.map (charX_prev s) f₀` on `Icc 0 T`.
+                have h_push_marg : ∀ s ∈ Set.Icc (0 : ℝ) T,
+                    spatialMarginal (f_prev s)
+                      = Measure.map (fun z : PhaseSpace d => charX_prev s z) f₀ := by
+                  intro s hs
+                  have h_pair_aem : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                    h_prev_init ▸ h_prev_aemeas s hs
+                  unfold spatialMarginal
+                  rw [h_prev_push s hs, h_prev_init,
+                      AEMeasurable.map_map_of_aemeasurable measurable_fst.aemeasurable h_pair_aem]
+                  rfl
+                have h_aemeas_marg : ∀ s ∈ Set.Icc (0 : ℝ) T,
+                    AEMeasurable (fun z : PhaseSpace d => charX_prev s z) f₀ := by
+                  intro s hs
+                  have h_pair_aem : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                    h_prev_init ▸ h_prev_aemeas s hs
+                  exact measurable_fst.comp_aemeasurable h_pair_aem
+                -- (4) `C_T` growth bound on the window, via Piece A applied to the clamped curve
+                -- (L11 clamp for the universal probability instance).
+                set clampT : ℝ → ℝ := fun t => max 0 (min t T) with hclampT_def
+                have hclampT_mem : ∀ t, clampT t ∈ Set.Icc (0 : ℝ) T := by
+                  intro t
+                  simp only [hclampT_def, Set.mem_Icc]
+                  exact ⟨le_max_left _ _, max_le hT_pos.le (min_le_right _ _)⟩
+                have hclampT_id : ∀ t ∈ Set.Icc (0 : ℝ) T, clampT t = t := by
+                  intro t ht
+                  simp only [hclampT_def, min_eq_left ht.2, max_eq_right ht.1]
+                set ρc : ℝ → Measure (PhysSpace d) :=
+                  fun t => spatialMarginal (f_prev (clampT t)) with hρc_def
+                haveI hρc_isProb : ∀ t, IsProbabilityMeasure (ρc t) := by
+                  intro t
+                  haveI : IsProbabilityMeasure (f_prev (clampT t)) :=
+                    (h_prev_mom (clampT t) (hclampT_mem t)).1
+                  exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+                -- moment data for ρc.  FOCUSED SORRY (moment a-priori bound): a *uniform*
+                -- first-moment bound `∫ y, ‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M_ρ` over
+                -- `t ∈ Icc 0 T`.  glue_step does not carry a uniform first-moment envelope
+                -- for `f_prev` — only per-`t` finite first moments (`h_prev_mom`).  The
+                -- envelope is the marquee's moment a-priori machinery (the `m*(t)` Gronwall
+                -- envelope at L580, gated on `B(T)<1`), not exposed by `f_prev`'s hypotheses
+                -- here.  Isolated to this one leaf; all downstream plumbing consumes it.
+                obtain ⟨M_ρ, hM_ρ_nn, hM_ρ⟩ :
+                    ∃ M_ρ, 0 ≤ M_ρ ∧ ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(ρc t) ≤ M_ρ := by
+                  sorry
+                have h_y_int_ρc : ∀ t ∈ Set.Icc (0 : ℝ) T,
+                    Integrable (fun y : PhysSpace d => ‖y‖) (ρc t) := by
+                  intro t ht
+                  have h_eq : ρc t = spatialMarginal (f_prev t) := by
+                    simp only [hρc_def, hclampT_id t ht]
+                  rw [h_eq]
+                  haveI : IsProbabilityMeasure (f_prev t) := (h_prev_mom t ht).1
+                  unfold spatialMarginal
+                  rw [integrable_map_measure
+                    (by exact (continuous_norm.measurable).aestronglyMeasurable)
+                    measurable_fst.aemeasurable]
+                  refine Integrable.mono' (h_prev_mom t ht).2
+                    ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+                    (Filter.Eventually.of_forall fun z => ?_)
+                  show |‖z.1‖| ≤ ‖z‖
+                  rw [abs_of_nonneg (norm_nonneg _)]
+                  exact norm_fst_le z
+                have h_int_ρc : ∀ t (x : PhysSpace d),
+                    Integrable (fun y => gradW (x - y)) (ρc t) :=
+                  fun t x => by
+                    have := h_int_marg (clampT t) (hclampT_mem t) x
+                    simpa only [hρc_def] using this
+                -- boundary regularity of (charX_prev, charV_prev) against ρc, from h_prev_boundary
+                -- (on the window ρc agrees with spatialMarginal (f_prev ·)).
+                have h_bdry_ρc : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+                    HasDerivWithinAt (fun s => charX_prev s z) (charV_prev t z) (Set.Icc 0 T) t ∧
+                    HasDerivWithinAt (fun s => charV_prev s z)
+                      (-(convolveFunctionMeasure gradW (ρc t) (charX_prev t z)))
+                      (Set.Icc 0 T) t := by
+                  intro z t ht
+                  have h_eq : ρc t = spatialMarginal (f_prev t) := by
+                    simp only [hρc_def, hclampT_id t ht]
+                  rw [h_eq]
+                  exact h_prev_boundary z t ht
+                -- `IsCharacteristicFlowOn` for `ρc` from `h_prev_flow` (on the interior
+                -- `Ioo 0 T`, `ρc t = spatialMarginal (f_prev t)`).
+                have h_prev_flow_ρc : IsCharacteristicFlowOn gradW ρc
+                    charX_prev charV_prev (Set.Ioo 0 T) Set.univ := by
+                  refine ⟨h_prev_flow.1, h_prev_flow.2.1, fun t ht z hz => ?_⟩
+                  have h_eq : ρc t = spatialMarginal (f_prev t) := by
+                    simp only [hρc_def, hclampT_id t ⟨ht.1.le, ht.2.le⟩]
+                  rw [h_eq]
+                  exact h_prev_flow.2.2 t ht z hz
+                obtain ⟨h_init_ρc, h_cont_Icc_ρc, h_deriv_Ico_ρc⟩ :=
+                  Stage_1_9_flow_boundary_regularity gradW ρc charX_prev charV_prev T hT_pos.le
+                    h_prev_flow_ρc h_bdry_ρc
+                obtain ⟨C_T, hC_T_nn, hC_T_pair⟩ :=
+                  flow_distance_growth_bound_on gradW L hL ρc charX_prev charV_prev T hT_pos.le
+                    h_init_ρc h_cont_Icc_ρc h_deriv_Ico_ρc M_ρ hM_ρ_nn hM_ρ h_y_int_ρc h_int_ρc
+                -- Project the joint growth bound onto the position component.
+                have hC_T : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+                    ‖charX_prev s z‖ ≤ C_T * (‖z‖ + 1) := by
+                  intro s hs z
+                  exact le_trans (norm_fst_le (charX_prev s z, charV_prev s z))
+                    (hC_T_pair s hs z)
+                -- (5) Continuity of the un-pushed integrand in `z`, for `integral_map`'s
+                -- AEStronglyMeasurable side and the seam continuity composition.
+                have h_conv_z_cont : ∀ s ∈ Set.Icc (0 : ℝ) T,
+                    Continuous (fun z : PhaseSpace d =>
+                      convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) z.1) := by
+                  intro s hs
+                  haveI : IsProbabilityMeasure (f_prev s) := (h_prev_mom s hs).1
+                  haveI : IsProbabilityMeasure (spatialMarginal (f_prev s)) :=
+                    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+                  exact (convolveFunctionMeasure_lipschitz_in_x gradW L hL
+                    (spatialMarginal (f_prev s)) (h_int_marg s hs)).continuous.comp continuous_fst
+                have h_integrand_cont : ∀ s ∈ Set.Icc (0 : ℝ) T,
+                    Continuous (fun z : PhaseSpace d =>
+                      @inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                      @inner ℝ (PhysSpace d) _
+                        (convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) z.1)
+                        (gradVφ z)) := by
+                  intro s hs
+                  exact (continuous_snd.inner hgradXφ_cont).sub
+                    ((h_conv_z_cont s hs).inner hgradVφ_cont)
+                -- (6) Eventually-equal rewrite to the pushforward form.
+                have h_eq_L : (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_next s)) z.1)
+                          (gradVφ z)) ∂(f_next s))
+                    =ᶠ[nhdsWithin T (Set.Iic T)]
+                    (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                          (gradXφ (charX_prev s z, charV_prev s z)) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                            (charX_prev s z))
+                          (gradVφ (charX_prev s z, charV_prev s z))) ∂f₀) := by
+                  apply Filter.Eventually.mono h_nhd_L
+                  intro s hs
+                  have h_fnext : f_next s = f_prev s := if_pos hs.2
+                  have h_marg : spatialMarginal (f_next s) = spatialMarginal (f_prev s) :=
+                    congrArg spatialMarginal h_fnext
+                  have h_aemeas_f₀ : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                    h_prev_init ▸ h_prev_aemeas s hs
+                  show (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                          @inner ℝ (PhysSpace d) _
+                            (convolveFunctionMeasure gradW (spatialMarginal (f_next s)) z.1)
+                            (gradVφ z)) ∂(f_next s))
+                      = ∫ z, (@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                            (gradXφ (charX_prev s z, charV_prev s z)) -
+                          @inner ℝ (PhysSpace d) _
+                            (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                              (charX_prev s z))
+                            (gradVφ (charX_prev s z, charV_prev s z))) ∂f₀
+                  have h_meq : f_next s
+                      = Measure.map (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ := by
+                    rw [h_fnext, h_prev_push s hs, h_prev_init]
+                  rw [h_marg, h_meq,
+                      integral_map h_aemeas_f₀
+                        (h_integrand_cont s hs).aestronglyMeasurable]
+                -- (7) Uniform sup-bounds on `gradXφ`/`gradVφ` (gradient of a compactly
+                -- supported smooth `φ`: `‖∇ φ‖ = ‖fderiv φ‖ ≤ M_φ`).
+                have hfderiv_cont : Continuous (fderiv ℝ φ) :=
+                  hφ_smooth.continuous_fderiv (by norm_num)
+                have hfderiv_compact : HasCompactSupport (fderiv ℝ φ) :=
+                  HasCompactSupport.fderiv (𝕜 := ℝ) hφ_compact
+                obtain ⟨M_φ, hM_φ⟩ := hfderiv_cont.bounded_above_of_compact_support hfderiv_compact
+                have hM_φ_nn : 0 ≤ M_φ :=
+                  le_trans (norm_nonneg (fderiv ℝ φ (0 : PhaseSpace d))) (hM_φ _)
+                have hgradXφ_bd : ∀ z : PhaseSpace d, ‖gradXφ z‖ ≤ M_φ := by
+                  intro z
+                  have hfd : fderiv ℝ (fun x => φ (x, z.2)) z.1 =
+                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
+                    have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+                      (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+                    have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
+                        (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
+                      hasFDerivAt_prodMk_left z.1 z.2
+                    exact (h1.comp z.1 h2).fderiv
+                  rw [hgradXφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
+                  refine le_trans (mul_le_mul_of_nonneg_left
+                    (ContinuousLinearMap.norm_inl_le_one (𝕜 := ℝ)
+                      (E := PhysSpace d) (F := PhysSpace d)) (norm_nonneg _)) ?_
+                  rw [mul_one]; exact hM_φ z
+                have hgradVφ_bd : ∀ z : PhaseSpace d, ‖gradVφ z‖ ≤ M_φ := by
+                  intro z
+                  have hfd : fderiv ℝ (fun v => φ (z.1, v)) z.2 =
+                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
+                    have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
+                      (hφ_smooth.differentiable (by simp) z).hasFDerivAt
+                    have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
+                        (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
+                      hasFDerivAt_prodMk_right z.1 z.2
+                    exact (h1.comp z.2 h2).fderiv
+                  rw [hgradVφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
+                  refine le_trans (mul_le_mul_of_nonneg_left
+                    (ContinuousLinearMap.norm_inr_le_one (𝕜 := ℝ)
+                      (E := PhysSpace d) (F := PhysSpace d)) (norm_nonneg _)) ?_
+                  rw [mul_one]; exact hM_φ z
+                -- (8) Convolution force bound: `‖conv(spatialMarginal(f_prev s))(x)‖ ≤
+                -- ‖gradW 0‖ + L·(‖x‖ + M_ρ)` on the window (mirrors
+                -- `flow_distance_growth_bound_on`'s `h_conv_bound`, with the moment
+                -- envelope `M_ρ` on `ρc = spatialMarginal (f_prev ·)`).
+                have h_conv_force : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ x : PhysSpace d,
+                    ‖convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) x‖
+                      ≤ ‖gradW 0‖ + (L : ℝ) * ‖x‖ + (L : ℝ) * M_ρ := by
+                  intro s hs x
+                  have hρcs : ρc s = spatialMarginal (f_prev s) := by
+                    simp only [hρc_def, hclampT_id s hs]
+                  have h_y_int_s : Integrable (fun y : PhysSpace d => ‖y‖)
+                      (spatialMarginal (f_prev s)) := hρcs ▸ h_y_int_ρc s hs
+                  have hM_ρ_s : ∫ y, ‖y‖ ∂(spatialMarginal (f_prev s)) ≤ M_ρ :=
+                    hρcs ▸ hM_ρ s hs
+                  haveI : IsProbabilityMeasure (f_prev s) := (h_prev_mom s hs).1
+                  haveI : IsProbabilityMeasure (spatialMarginal (f_prev s)) :=
+                    Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+                  unfold convolveFunctionMeasure
+                  have h_sub_int : Integrable (fun y => ‖x - y‖) (spatialMarginal (f_prev s)) :=
+                    Integrable.mono' ((integrable_const ‖x‖).add h_y_int_s)
+                      ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
+                      (Filter.Eventually.of_forall fun y => by
+                        simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
+                  have h_pt : ∀ y : PhysSpace d,
+                      ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+                    intro y
+                    have hd := hL.dist_le_mul (x - y) 0
+                    simp only [dist_eq_norm, sub_zero] at hd
+                    have h_tri : ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x - y) - gradW 0‖ := by
+                      have := norm_add_le (gradW (x - y) - gradW 0) (gradW 0)
+                      simp only [sub_add_cancel] at this; linarith
+                    linarith
+                  have h_bnd_int :
+                      Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (spatialMarginal (f_prev s)) :=
+                    (integrable_const _).add (h_sub_int.const_mul _)
+                  calc ‖∫ y, gradW (x - y) ∂(spatialMarginal (f_prev s))‖
+                      ≤ ∫ y, ‖gradW (x - y)‖ ∂(spatialMarginal (f_prev s)) :=
+                        norm_integral_le_integral_norm _
+                    _ ≤ ∫ y, (‖gradW 0‖ + (L : ℝ) * ‖x - y‖) ∂(spatialMarginal (f_prev s)) :=
+                        integral_mono (h_int_marg s hs x).norm h_bnd_int h_pt
+                    _ = ‖gradW 0‖ + (L : ℝ) * ∫ y, ‖x - y‖ ∂(spatialMarginal (f_prev s)) := by
+                        rw [integral_add (integrable_const _) (h_sub_int.const_mul _)]
+                        simp [integral_const, measureReal_def, measure_univ, integral_const_mul]
+                    _ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x‖ + (L : ℝ) * M_ρ := by
+                        have h_int_le : ∫ y, ‖x - y‖ ∂(spatialMarginal (f_prev s)) ≤ ‖x‖ + M_ρ := by
+                          calc ∫ y, ‖x - y‖ ∂(spatialMarginal (f_prev s))
+                              ≤ ∫ y, (‖x‖ + ‖y‖) ∂(spatialMarginal (f_prev s)) :=
+                                integral_mono h_sub_int ((integrable_const _).add h_y_int_s)
+                                  (fun y => norm_sub_le x y)
+                            _ = ‖x‖ + ∫ y, ‖y‖ ∂(spatialMarginal (f_prev s)) := by
+                                rw [integral_add (integrable_const _) h_y_int_s]
+                                simp [integral_const, measureReal_def, measure_univ]
+                            _ ≤ ‖x‖ + M_ρ := by linarith
+                        nlinarith [mul_le_mul_of_nonneg_left h_int_le L.coe_nonneg]
+                -- (9) The affine dominator: integrable wrt f₀ (finite first moment),
+                -- bounding the integrand via the growth bound `C_T` + force bound.
+                set bound_fn : PhaseSpace d → ℝ := fun z =>
+                  M_φ * (C_T * (‖z‖ + 1))
+                  + (‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ) * M_φ
+                  with hbound_def
+                have hbound_int : Integrable bound_fn f₀ := by
+                  -- bound_fn z is affine in ‖z‖; combine `hf₀_int` with constants.
+                  have ha : Integrable
+                      (fun z : PhaseSpace d =>
+                        (M_φ * C_T + L * M_φ * C_T) * ‖z‖
+                        + (M_φ * C_T + (‖gradW 0‖ + L * (C_T) + L * M_ρ) * M_φ)) f₀ :=
+                    (hf₀_int.const_mul _).add (integrable_const _)
+                  refine ha.congr (Filter.Eventually.of_forall fun z => ?_)
+                  simp only [hbound_def]; ring
+                have hB : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d,
+                    ‖@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                          (gradXφ (charX_prev s z, charV_prev s z)) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                            (charX_prev s z))
+                          (gradVφ (charX_prev s z, charV_prev s z))‖ ≤ bound_fn z := by
+                  intro s hs z
+                  have hV : ‖charV_prev s z‖ ≤ C_T * (‖z‖ + 1) :=
+                    le_trans (norm_snd_le (charX_prev s z, charV_prev s z)) (hC_T_pair s hs z)
+                  have hX : ‖charX_prev s z‖ ≤ C_T * (‖z‖ + 1) :=
+                    le_trans (norm_fst_le (charX_prev s z, charV_prev s z)) (hC_T_pair s hs z)
+                  have ht1 : ‖@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                        (gradXφ (charX_prev s z, charV_prev s z))‖ ≤ M_φ * (C_T * (‖z‖ + 1)) := by
+                    refine le_trans (norm_inner_le_norm _ _) ?_
+                    have := mul_le_mul hV (hgradXφ_bd (charX_prev s z, charV_prev s z))
+                      (norm_nonneg _) (le_trans (norm_nonneg _) hV)
+                    calc ‖charV_prev s z‖ * ‖gradXφ (charX_prev s z, charV_prev s z)‖
+                        ≤ (C_T * (‖z‖ + 1)) * M_φ := this
+                      _ = M_φ * (C_T * (‖z‖ + 1)) := by ring
+                  have ht2 : ‖@inner ℝ (PhysSpace d) _
+                        (convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) (charX_prev s z))
+                        (gradVφ (charX_prev s z, charV_prev s z))‖
+                      ≤ (‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ) * M_φ := by
+                    refine le_trans (norm_inner_le_norm _ _) ?_
+                    have hc : ‖convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                        (charX_prev s z)‖ ≤ ‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ := by
+                      refine le_trans (h_conv_force s hs (charX_prev s z)) ?_
+                      have := mul_le_mul_of_nonneg_left hX L.coe_nonneg
+                      linarith
+                    have hcnn : 0 ≤ ‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ :=
+                      le_trans (norm_nonneg _) hc
+                    exact mul_le_mul hc (hgradVφ_bd (charX_prev s z, charV_prev s z))
+                      (norm_nonneg _) hcnn
+                  calc ‖_ - _‖
+                      ≤ ‖@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                            (gradXφ (charX_prev s z, charV_prev s z))‖
+                        + ‖@inner ℝ (PhysSpace d) _
+                            (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                              (charX_prev s z))
+                            (gradVφ (charX_prev s z, charV_prev s z))‖ := norm_sub_le _ _
+                    _ ≤ bound_fn z := by simp only [hbound_def]; linarith
+                have h_cont_pf : ContinuousWithinAt
+                    (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ (charV_prev s z)
+                          (gradXφ (charX_prev s z, charV_prev s z)) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                            (charX_prev s z))
+                          (gradVφ (charX_prev s z, charV_prev s z))) ∂f₀)
+                    (Set.Iic T) T := by
+                  apply continuousWithinAt_of_dominated (bound := bound_fn)
+                  · -- AEStronglyMeasurable in z, eventually in s
+                    apply Filter.Eventually.mono h_nhd_L
+                    intro s hs
+                    have h_aem_pair : AEMeasurable
+                        (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ :=
+                      h_prev_init ▸ h_prev_aemeas s hs
+                    have h_aem_X : AEMeasurable (fun z : PhaseSpace d => charX_prev s z) f₀ :=
+                      measurable_fst.comp_aemeasurable h_aem_pair
+                    have h_aem_V : AEMeasurable (fun z : PhaseSpace d => charV_prev s z) f₀ :=
+                      measurable_snd.comp_aemeasurable h_aem_pair
+                    -- first term: ⟪charV, gradXφ(flow)⟫
+                    have h1 : AEStronglyMeasurable
+                        (fun z : PhaseSpace d => @inner ℝ (PhysSpace d) _ (charV_prev s z)
+                          (gradXφ (charX_prev s z, charV_prev s z))) f₀ := by
+                      have hg : AEMeasurable
+                          (fun z : PhaseSpace d =>
+                            gradXφ (charX_prev s z, charV_prev s z)) f₀ :=
+                        hgradXφ_cont.measurable.comp_aemeasurable (h_aem_X.prodMk h_aem_V)
+                      exact (continuous_inner.measurable.comp_aemeasurable
+                        (h_aem_V.prodMk hg)).aestronglyMeasurable
+                    -- second term: ⟪conv(...)(charX), gradVφ(flow)⟫
+                    have h2 : AEStronglyMeasurable
+                        (fun z : PhaseSpace d => @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                            (charX_prev s z))
+                          (gradVφ (charX_prev s z, charV_prev s z))) f₀ := by
+                      have hconv_aem : AEMeasurable
+                          (fun z : PhaseSpace d => convolveFunctionMeasure gradW
+                            (spatialMarginal (f_prev s)) (charX_prev s z)) f₀ := by
+                        have hconv_cont' : Continuous (fun x : PhysSpace d =>
+                            convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) x) := by
+                          haveI : IsProbabilityMeasure (f_prev s) := (h_prev_mom s hs).1
+                          haveI : IsProbabilityMeasure (spatialMarginal (f_prev s)) :=
+                            Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+                          exact (convolveFunctionMeasure_lipschitz_in_x gradW L hL
+                            (spatialMarginal (f_prev s)) (h_int_marg s hs)).continuous
+                        exact hconv_cont'.measurable.comp_aemeasurable h_aem_X
+                      have hg : AEMeasurable
+                          (fun z : PhaseSpace d =>
+                            gradVφ (charX_prev s z, charV_prev s z)) f₀ :=
+                        hgradVφ_cont.measurable.comp_aemeasurable (h_aem_X.prodMk h_aem_V)
+                      exact (continuous_inner.measurable.comp_aemeasurable
+                        (hconv_aem.prodMk hg)).aestronglyMeasurable
+                    exact h1.sub h2
+                  · -- dominator bound, eventually in s
+                    apply Filter.Eventually.mono h_nhd_L
+                    intro s hs
+                    exact Filter.Eventually.of_forall fun z => hB s hs z
+                  · exact hbound_int
+                  · -- pointwise continuity in s, a.e. z (in fact ∀ z)
+                    apply Filter.Eventually.of_forall
+                    intro z
+                    -- first term: velocity ⬝ gradXφ ∘ flow
+                    have hX_cwn : ContinuousWithinAt (fun s => charX_prev s z) (Set.Iic T) T :=
+                      ((h_prev_boundary z T ⟨hT_pos.le, le_refl T⟩).1.continuousWithinAt).mono_of_mem_nhdsWithin
+                        h_nhd_L
+                    have hV_cwn : ContinuousWithinAt (fun s => charV_prev s z) (Set.Iic T) T :=
+                      ((h_prev_boundary z T ⟨hT_pos.le, le_refl T⟩).2.continuousWithinAt).mono_of_mem_nhdsWithin
+                        h_nhd_L
+                    have h_pair_cwn : ContinuousWithinAt
+                        (fun s => (charX_prev s z, charV_prev s z)) (Set.Iic T) T :=
+                      hX_cwn.prodMk hV_cwn
+                    have h_gX_cwn : ContinuousWithinAt
+                        (fun s => gradXφ (charX_prev s z, charV_prev s z)) (Set.Iic T) T :=
+                      hgradXφ_cont.continuousAt.comp_continuousWithinAt h_pair_cwn
+                    have h_gV_cwn : ContinuousWithinAt
+                        (fun s => gradVφ (charX_prev s z, charV_prev s z)) (Set.Iic T) T :=
+                      hgradVφ_cont.continuousAt.comp_continuousWithinAt h_pair_cwn
+                    have h_term1 : ContinuousWithinAt
+                        (fun s => @inner ℝ (PhysSpace d) _ (charV_prev s z)
+                          (gradXφ (charX_prev s z, charV_prev s z))) (Set.Iic T) T :=
+                      hV_cwn.inner h_gX_cwn
+                    -- second term: conv seam continuity ⬝ gradVφ ∘ flow
+                    have h_conv_cwn : ContinuousWithinAt
+                        (fun s => convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                          (charX_prev s z)) (Set.Iic T) T := by
+                      have := flowConv_continuousWithinAt_Iic_seam gradW L hL charX_prev f₀
+                        hf₀_int hT_pos (fun s => spatialMarginal (f_prev s))
+                        h_push_marg h_aemeas_marg
+                        (fun z => (h_cont_Icc_ρc z).continuousWithinAt
+                          (Set.right_mem_Icc.mpr hT_pos.le) |>.fst) C_T hC_T_nn hC_T z
+                      -- The helper concludes against `μ s = spatialMarginal (f_prev s)`.
+                      exact this
+                    have h_term2 : ContinuousWithinAt
+                        (fun s => @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                            (charX_prev s z))
+                          (gradVφ (charX_prev s z, charV_prev s z))) (Set.Iic T) T :=
+                      h_conv_cwn.inner h_gV_cwn
+                    exact h_term1.sub h_term2
+                -- (8) Value at T bridge.
+                have h_val_T : (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_next T)) z.1)
+                          (gradVφ z)) ∂(f_next T))
+                    = ∫ z, (@inner ℝ (PhysSpace d) _ (charV_prev T z)
+                          (gradXφ (charX_prev T z, charV_prev T z)) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_prev T))
+                            (charX_prev T z))
+                          (gradVφ (charX_prev T z, charV_prev T z))) ∂f₀ := by
+                  have hT_Icc : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+                  have h_fnext_T : f_next T = f_prev T := if_pos (le_refl T)
+                  have h_marg : spatialMarginal (f_next T) = spatialMarginal (f_prev T) :=
+                    congrArg spatialMarginal h_fnext_T
+                  have h_aemeas_f₀_T : AEMeasurable
+                      (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ :=
+                    h_prev_init ▸ h_prev_aemeas T hT_Icc
+                  have h_meq : f_next T
+                      = Measure.map (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ := by
+                    rw [h_fnext_T, h_prev_push T hT_Icc, h_prev_init]
+                  rw [h_marg, h_meq,
+                      integral_map h_aemeas_f₀_T (h_integrand_cont T hT_Icc).aestronglyMeasurable]
+                exact h_cont_pf.congr_of_eventuallyEq h_eq_L h_val_T
               -- RIGHT side (s ≥ T): f_next = g (·−T) = composed pushforward; symmetric.
               have h_right : ContinuousWithinAt
                   (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
