@@ -2845,4 +2845,146 @@ The marquee `vlasovWellPosedness` is green (composes the above); per the watch-l
 universal_existence (+ their deferred-FA leaves) — a `(c)` proved-modulo-sorry sweep is
 the scheduled gate before declaring the existence side finished.
 
-**Nothing committed this session.**
+**Committed:** `5d725ed` (OT: close #11 self-consistency — the full Piece D arc).
+
+#### (c) proved-modulo-sorry SWEEP — post-#11-close, CERTIFIED CLEAN (2026-06-02)
+
+Ran the scheduled `(c)` sweep immediately after closing #11, focused on #11's
+consumers — *because* closing the tree's biggest dependency (sorry'd → proven) is the
+event most likely to have grown a hidden obligation (P10: green build certifies *types*
+compose, not that consumers use the *realized* conclusion the way they used the *stub*).
+
+**Call graph (live; the `.current` file is a stale backup, ignore):**
+`picardCharFlow_aemeasurable` (sorry, L6878) → used in **#11 body** (L7806, produces #11
+conjunct 7) → #11 (sorry-free body) → **sole consumer `vlasovWellPosedness_local`**
+(destructures #11's 11-tuple at L8239) → `glue_step` (L8528) + continuation tower (L9641).
+`glue_step`/`universal_existence` consume `vlasovWellPosedness_local`, **not #11 directly**.
+
+**Finding 1 — NO grown obligation (the gate the user wanted before `glue_step`):**
+#11's conclusion type was API-locked early (P4) and is byte-identical pre/post sorry-2 —
+sorry-2 only filled the body.  `vlasovWellPosedness_local` was already written against the
+**self-consistent-flow shape**: it consumes `_hflow_on` = #11 conjunct 2 =
+`IsCharacteristicFlowOn gradW (fun t => spatialMarginal(vlasov…)) charX charV …` (the flow
+against its OWN marginal), via `.1` (initial condition, L8254/8288/8319) and a wholesale
+pass to the `_finalAssembly_*` helpers.  sorry-2 delivers the previously-*promised*
+self-consistency as now-*realized*, with the same shape.  No consumer leaned on a stub
+part the real proof realizes differently. **The descent foundation is sound.**
+
+**Finding 2 — the one certified residual (the load-bearing node, pinned):**
+#11 conjunct 7 (`_h_aemeas`, `∀ s, AEMeasurable (charX s,charV s) f₀`, consumed at L8309 +
+passed to finalAssembly) routes through the still-sorry'd `picardCharFlow_aemeasurable`
+(L6878, body = bare `sorry`).  Its documented closure = internal `HasDerivAt.prodMk` glue
+**+** the deferred `MathlibTODO_lipschitzFlowAEMeasurable` (L6853).  So
+`vlasovWellPosedness_local`, `glue_step`, `universal_existence`, and the marquee are all
+**proved-modulo `picardCharFlow_aemeasurable`** via this one conjunct — i.e. internal-glue-
+modulo-deferred-FA, NOT genuine open mathematics.  This is the watch-list's "clean-
+interface-over-load-bearing-sorry'd-node" shape, now CERTIFIED (not predicted) and pinned
+to a single node.  `_finalAssembly_moment`/`_finalAssembly_isLagrangian` pull no *other*
+sorry (sorry-free, not in the list).
+
+**Watch-list:** the sweep was run as a *scheduled gate* (its watch-list recommendation),
+and the gate paid — it certified the seam rather than leaving "marquee bottoms out cleanly"
+as an untested assertion.  This exercise argues for promoting the sweep-as-gate from
+candidate to standing practice (the scheduling sharpening of P10).
+
+#### `convolveContinuousAtOfNarrowMoment` accounting — DECISION: restate-to-purity
+
+(Basic L1728.)  Its *conclusion* is about the project def `convolveFunctionMeasure`
+(L1740), so it cannot be a clean upstream citation as-is (correctly NOT in the deferred
+nine).  But its content is a **composition**: deferred-OT kernel (narrow + moment ⇒
+`W₁(μ t, μ t₀) → 0`, Villani Ch. 6) **+** the already-PROVEN
+`MathlibTODO_convolveLipschitzEstimate` (‖conv ρ x − conv σ x‖ ≤ L·W₁).  **Resolution
+(M2 match-statement-to-math):** extract a pure narrow→W₁ placeholder
+(`MathlibTODO_*` concluding e.g. `ContinuousAt (fun t => (wasserstein1 (μ t)(μ t₀)).toReal)
+t₀` — pure measures/W₁, no `convolveFunctionMeasure`), then close
+`convolveContinuousAtOfNarrowMoment` INTERNALLY by composing it with the proven Lipschitz
+estimate (W₁→0 ⇒ ‖conv diff‖ → 0 ⇒ ContinuousAt).  Signature unchanged ⇒ consumer
+`glue_step` case (a) `h_cont_g` undisturbed.  Net: sorry moves convolve → pure-OT leaf
+(honest prefix); convolve becomes sorry-free-by-composition.  ~40-line body (ContinuousAt-
+via-bound squeeze) — its own focused unit.
+
+**Next-step menu (sweep gate now PASSED):**
+1. `picardCharFlow_aemeasurable` (L6878) — highest leverage: its closure retires the single
+   transitive sorry the whole existence side carries through #11 conjunct 7.  But hard part
+   is deferred FA (`MathlibTODO_lipschitzFlowAEMeasurable`) → close-modulo-deferred-FA.
+2. `convolveContinuousAtOfNarrowMoment` restate-to-purity (decided above) — additive,
+   low-risk, sig-stable.
+3. `glue_step` (L8450) / `universal_existence` (L10242) — continuation assembly, own
+   sorries, now on a swept/sound foundation.
+
+#### ✅ `picardCharFlow_aemeasurable` CLOSED GENUINELY (not modulo-FA) — sorry 13 → 11 (2026-06-02)
+
+Opened the leaf on the **decomposition-verification read** (per discipline: verify the
+documented decomposition *holds* before writing glue, because the campaign's signature
+failure is plan-vs-realized divergence at the seam).  The read found the seam:
+
+* The deferred FA leaf `MathlibTODO_lipschitzFlowAEMeasurable` demanded **global-in-`t`**
+  HasDerivAt (`∀ z t : ℝ`) to prove a **global-in-`s`** conclusion.  The Vlasov flow has
+  derivative control only on `Ioo 0 T` (off-window = uncontrolled `Classical.choose`), so
+  the leaf's hypothesis was **unsuppliable** — the documented "compose with the FA leaf"
+  plan does NOT hold.
+* `picardCharFlow_aemeasurable`'s `∀ s` (global) conclusion was **over-strong**: its sole
+  consumer (#11 conjunct 7, L7806) applies it only at `clampToIcc T s ∈ Icc 0 T`.  The
+  global claim — the very thing that *looked* like it needed deferred FA — was an M3
+  over-strength artifact.
+
+**Resolution (genuine close, no deferred FA):** weaken the conclusion to `∀ s ∈ Icc 0 T`
+(all the consumer uses), then close the body via the *already-proven*
+`charFlow_measurable_via_gronwall` (genuine `Measurable` of the joint pair on `Icc`, from
+the boundary bundle through `Stage_1_9_flow_boundary_regularity`).  Added `h_int` + `hbdry`
+hyps (call site supplies `h_int_ρ_lim` + `h_boundary_ρlim`); consumer survives via
+`clampToIcc_mem`.  **`MathlibTODO_lipschitzFlowAEMeasurable` had no other consumer →
+removed as orphaned.**  Net: 13 → 11 (two sorries retired — one genuine close + one dead
+deferred placeholder that was never a real obligation).
+
+**Sweep-characterization revision (honest calibration):** the prior sweep report called
+this node "internal-glue-modulo-deferred-FA" and the existence side's single transitive
+sorry.  Verifying it (opening the leaf) showed that was *optimistic that deferred-FA was
+needed* and *pessimistic about closeability* — it closes genuinely.  The existence side
+now carries **no** transitive sorry through #11; it bottoms out only through `glue_step`
+(L8426) + `universal_existence` (L10218).  This is the read-the-seam-before-the-glue
+discipline producing a strictly better outcome than the plan promised — and the M3 pattern
+(over-strong statement reaches for heavy machinery; right-sized statement closes with
+proven tools) firing a *fourth* time.
+
+**Clamp-totality precision (confirmed):** the windowing has no off-by-one.
+`clampToIcc_mem {T} (hT : 0 ≤ T) (t : ℝ)` (L4358) requires only `0 ≤ T` and holds for
+*every* real `t`, so the consumer's `intro s` (arbitrary real `s`) → windowed lemma at
+`clampToIcc T s` with `clampToIcc_mem hT.le s` reconstructs #11's global `∀ s` conjunct-7
+over the *clamped* flow.  Conjunct-7 IS the consumer's need (a conclusion conjunct, not a
+hidden intermediate), so green on it certifies the reconstruction, not just that it
+typechecks.
+
+**State now: 11 sorries.** Internal/active: `glue_step`, `universal_existence`,
+`convolveContinuousAtOfNarrowMoment` (restate-to-purity decided).  Deferred OT: the rest.
+
+#### ⚠️ META-LESSON: the (c) sweep certifies STRUCTURE, not CONTENT (2026-06-02)
+
+The picardCharFlow finding is bigger than M3.  The (c) sweep — which reads docstrings +
+call-graph *shapes* — was **content-wrong about this node in BOTH directions at once**: it
+asserted a dependency that didn't exist (the FA leaf was unsuppliable, never actually
+invoked) AND missed that the node was genuinely closeable with proven tools.  Had the sweep
+been trusted, "the existence side is proved-modulo one deferred-FA node" would have been
+carried forward as a *true* statement — and it was false (the node was closeable; the
+"deferred FA" pointed at a placeholder with zero real consumers).  It was caught only
+because the docstring-derived certification was flagged "characterized-not-verified" and
+the leaf was opened *before* building on it.
+
+**Carried recalibration:** a (c) sweep certification is itself "characterized-not-verified"
+wherever it rests on a node's *documented plan* (docstring / comment) rather than its
+*realized proof*.  Structure-level green (types compose, call graph maps) does NOT certify
+content-level claims like "closure plan: compose with deferred X".  So the remaining
+internal nodes the sweep characterized as "continuation assembly, own sorries, sound base"
+— `glue_step` (L8426), `universal_existence` (L10218) — are uncertified at the content
+level.  **Each gets the same decomposition-verification read this node got** before the
+descent trusts it: open the leaf, check whether its sorry is what the docstring says, and
+expect (after this turn) at least one to surprise — either over-strong-and-cheaper (the
+favorable M3 outcome here) or a documented-plan-with-a-seam.  Do NOT inherit "sound base"
+on the sweep's word.
+
+**Promotion candidate (P-series / discipline framework):** "a proved-modulo-sorry sweep
+certifies structure not content; its plan-resting certifications need the decomposition-
+verification read before being trusted" — companion to P10 (build-permits-vs-audit-
+certifies) and P5 (verify the framework's own extrapolations).  Sighting #1 = this node.
+
+**Committed:** `<this commit>` (picardCharFlow genuine close + orphan removal; 13→11).

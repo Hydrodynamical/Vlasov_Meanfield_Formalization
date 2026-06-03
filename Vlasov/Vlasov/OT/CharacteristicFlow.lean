@@ -6829,69 +6829,44 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
 -- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`.  The
 -- `HasFiniteFirstMoment` predicate remains in `Basic.lean`.
 
-/-- **Mathlib-TODO (pure functional-analytic): AEMeasurability of an ODE
-flow in initial condition.**
+/-- **Project-internal: AEMeasurability of the Vlasov characteristic flow's
+joint map** `z ↦ (charX s z, charV s z)` on the window `Icc 0 T`.
 
-If `b : ℝ → α → α` is a time-dependent vector field that's Lipschitz in
-the spatial variable uniformly in time, and `Φ : ℝ → α → α` is a flow
-satisfying `HasDerivAt (fun s => Φ s z) (b t (Φ t z)) t` for each `z`
-and `t`, then `Φ s : α → α` is AEMeasurable against any measure `μ`.
-
-Standard ODE Picard regularity: continuity-in-initial-condition (Hartman,
-*Ordinary Differential Equations* Ch. V; Coddington-Levinson Ch. 2)
-implies Borel-measurability over the full phase space, which gives
-AEMeasurability against any measure.
-
-**Bucket-1 PR scope**: pure-functional-analytic; Villani / Hartman-style
-ODE regularity result, statable in pure Mathlib `Analysis.ODE` language
-once the relevant API stabilizes.  No project-specific instantiation
-in the statement.
-
-**Decomposed from `MathlibTODO_picardFlowAEMeasurable`** (Phase 1.5,
-2026-05-31).  The Vlasov-specific composition lives below as
-`picardCharFlow_aemeasurable`. -/
-private theorem MathlibTODO_lipschitzFlowAEMeasurable
-    {α : Type*} [NormedAddCommGroup α] [NormedSpace ℝ α]
-    [MeasurableSpace α] [BorelSpace α]
-    (b : ℝ → α → α) (L : NNReal) (_hL : ∀ t, LipschitzWith L (b t))
-    (Φ : ℝ → α → α)
-    (_hflow : ∀ z t, HasDerivAt (fun s => Φ s z) (b t (Φ t z)) t)
-    (μ : Measure α) :
-    ∀ s, AEMeasurable (Φ s) μ := by
-  sorry
-
-/-- **Project-internal composition (Phase 1.5 decomposition target,
-2026-05-31)**: AEMeasurability of the Vlasov characteristic flow's joint
-map `z ↦ (charX s z, charV s z)`, derived from
-`MathlibTODO_lipschitzFlowAEMeasurable` by packaging the Vlasov phase-space
-vector field `b(t, z) := (z.2, -convolveFunctionMeasure gradW (ρ t) z.1)`
-and the joint flow `Φ t z := (charX t z, charV t z)`.
-
-**Status**: body sorry'd as a Phase 2-4 close target.  The composition is
-mostly mechanical: extract the joint Lipschitz constant `max(1, L)` for
-`b` from `LipschitzWith L gradW`, package `Φ`'s HasDerivAt from
-`IsCharacteristicFlowOn`'s two HasDerivAt clauses, apply the pure-FA
-placeholder.
+**Closed genuinely (2026-06-02), NOT modulo deferred FA.** The earlier plan
+routed this through a global-in-`t` pure-FA placeholder
+(`MathlibTODO_lipschitzFlowAEMeasurable`), but that placeholder required
+`HasDerivAt` at *every* `t : ℝ`, which the Vlasov flow only satisfies on
+`Ioo 0 T` (off-window it is uncontrolled `Classical.choose` data).  The
+global-in-`s` conclusion was an over-strength artifact (M3): its sole
+consumer applies it only at `clampToIcc T s ∈ Icc 0 T`, so the
+window-restricted statement suffices — and on the window the joint flow's
+measurability follows from the *already-proven*
+`charFlow_measurable_via_gronwall` (genuine `Measurable`, via the boundary
+bundle through `Stage_1_9_flow_boundary_regularity`).  No deferred FA.
 
 **In-project consumer**: `vlasovWellPosedness_local_picard_fixedPointFlow`'s
-`h_aemeas_out`. -/
+AEMeasurable conjunct, applied at clamp times `clampToIcc T s ∈ Icc 0 T`. -/
 private lemma picardCharFlow_aemeasurable
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     {T : ℝ} (hT : 0 ≤ T)
     (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (hbdry : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0:ℝ) T,
+        HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charV s z)
+          (-(convolveFunctionMeasure gradW (ρ t) (charX t z))) (Set.Icc 0 T) t)
     (μ : Measure (PhaseSpace d)) :
-    ∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) μ := by
-  -- Decomposition target: compose MathlibTODO_lipschitzFlowAEMeasurable with the
-  -- Vlasov joint flow Φ t z := (charX t z, charV t z) on PhaseSpace d.
-  -- The Vlasov vector field b(t, z) := (z.2, -conv gradW (ρ t) z.1) is
-  -- Lipschitz with constant max(1, L), and Φ satisfies HasDerivAt for b
-  -- from IsCharacteristicFlowOn's two HasDerivAt clauses combined via
-  -- HasDerivAt.prodMk.  Body closes in Phase 2-4 substantive work.
-  sorry
+    ∀ s ∈ Set.Icc (0:ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) μ := by
+  intro s hs
+  obtain ⟨h_init, h_cont, h_deriv⟩ :=
+    Stage_1_9_flow_boundary_regularity gradW ρ charX charV T hT hflow hbdry
+  exact (charFlow_measurable_via_gronwall gradW L hL ρ h_int charX charV T hT
+    h_init h_cont h_deriv s hs).aemeasurable
 
 /-- **Piece D sorry-1 helper**: from a flow's exposed facts (`IsCharacteristicFlowOn`
 on `Ioo` + the boundary bundle on `Icc` — the `Phi_step_envelope` output shape)
@@ -7801,10 +7776,11 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
       VlasovMeasureCurve.extend_isProb ρ_lim (clampToIcc T s)
     exact (convolveFunctionMeasure_lipschitz_in_x gradW L hL
       (ρ_lim.extend (clampToIcc T s)) (h_int_ρ_lim (clampToIcc T s))).continuous
-  · -- (6) AEMeasurable witness, universal in s (raw flow at the clamp time).
+  · -- (6) AEMeasurable witness, universal in s (raw flow at the clamp time,
+    -- which lands in `Icc 0 T` — so the window-restricted helper applies).
     intro s
-    exact picardCharFlow_aemeasurable gradW L hL ρ_lim.extend charX charV hT.le
-      hflow_on_ρlim f₀ (clampToIcc T s)
+    exact picardCharFlow_aemeasurable gradW L hL ρ_lim.extend h_int_ρ_lim charX charV hT.le
+      hflow_on_ρlim h_boundary_ρlim f₀ (clampToIcc T s) (clampToIcc_mem hT.le s)
   · -- (7) Convolution integrability, universal in s (via clamp reduction).
     intro s x
     rw [h_rho_clamp s]
