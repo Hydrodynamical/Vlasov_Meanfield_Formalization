@@ -1938,6 +1938,16 @@ lemma w1_lscNarrow_of_summands
 along pairs of narrowly continuous probability-measure curves with uniform
 first-moment bound.**
 
+**⚑ STATUS UNCERTAIN 2026-06-03 — STRUCTURE UNCERTAIN, CLOSE UNBUILT; external-
+vs-in-project not resolved.**  The
+close needs BC→1-Lipschitz narrow-continuity under the moment bound (Mathlib's
+`lowerSemicontinuousOn_biSup` is the engine, but its summands need *unbounded*
+1-Lipschitz narrow continuity, while the hypotheses only deliver it for *bounded*
+φ).  This may be buildable in-project via a moment-controlled truncation, OR
+genuinely external — NOT confidently a Mathlib gap.  Least certain of the
+deferred set; resolve by checking whether a moment-truncation upgrades BC- to
+1-Lipschitz-narrow-continuity.
+
 If `f, g : ℝ → Measure α` are two measure curves on a Polish space `α`,
 both narrowly continuous (∫g dμ_t continuous in t for every bounded
 continuous g) and with uniform first-moment integrability on [0, T], then
@@ -2126,6 +2136,19 @@ theorem w1ContOn_lscNarrow_via_pureFA
 
 /-- **Mathlib-TODO (pure functional-analytic): W₁ is upper semicontinuous
 along Lagrangian-pushforward flows of Lipschitz vector fields.**
+
+**⚑ RECLASSIFIED 2026-06-03 — STRUCTURE VERIFIED IN-PROJECT, CLOSE UNBUILT (NOT
+EXTERNAL).**  A leaf-read of the consumer (`w1ContOn_uscNarrow_via_pureFA`)
+verified it passes the full Lagrangian-pushforward surface (`hpush_f/g`,
+`haem_f/g`, `hΦ_f/g`, `hf_mom/g`).  That STRUCTURE positions it to close from
+PROVEN project tools (the `h_cont_g`/Route-2 pattern) — a *plausible* close path:
+build a joint-flow coupling-integral `ContinuousOn` helper via
+`wasserstein1_lagrangian_pushforward_bound` + `integral_map` + Gronwall-growth
+DCT + a USC-from-tight-upper-bound step.  **But the close is NOT BUILT** — that
+path is a fresh characterization with an unbounded tail (could be ~200 or ~1200
+lines, like `h_cont_g`).  Status: *structure present, closeability plausible-not-
+established*.  The `MathlibTODO_` prefix is retained only to avoid consumer-rename
+churn — this is OWED IN-PROJECT WORK, not a Mathlib gap.
 
 If `f, g : ℝ → Measure α` are measure curves such that each is the
 pushforward `(Φ_? t)_# (f? 0)` of its initial datum under a flow `Φ_?`
