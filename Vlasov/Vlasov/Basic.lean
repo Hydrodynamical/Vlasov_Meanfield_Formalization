@@ -1701,101 +1701,6 @@ theorem MathlibTODO_convolveLipschitzEstimate
     ((L : ℝ) * (wasserstein1 ρ σ).toReal)
     (convolveLipschitz_inner_bound gradW L hL ρ σ x hW hρ_int hσ_int)
 
-/-- **Pure narrow→W₁ kernel (deferred OT)**: from narrow continuity of `μ` at
-`t₀` together with first-moment control, the W₁ distance to the basepoint `μ t₀`
-is continuous at `t₀`.
-
-This is the standard W₁-stability-under-narrow-convergence-with-moment-control
-result (Villani, *Optimal Transport*, Ch. 6): `μₜ → μ_{t₀}` narrowly with
-`∫‖y‖ dμₜ → ∫‖y‖ dμ_{t₀}` plus uniform integrability of `‖·‖` implies
-`W₁(μₜ, μ_{t₀}) → 0`.  Stated **purely** in measures / `wasserstein1` — no
-project convolution operator — so it is a genuine upstream-OT obligation
-(honest `MathlibTODO_` prefix), the same family as
-`MathlibTODO_cauchyW1_hasNarrowLimit` (which goes the other direction,
-Cauchy-in-W₁ → narrow limit).  Both are appropriate single-PR units for
-upstream Mathlib OT API once that ecosystem stabilizes.
-
-**In-project consumer**: `convolveContinuousAtOfNarrowMoment` below composes
-this with the proven `MathlibTODO_convolveLipschitzEstimate` to obtain
-convolution continuity; that in turn feeds `vlasovWellPosedness_glue_step`
-case (a)'s `h_cont_g`. -/
-theorem MathlibTODO_wassersteinContinuousAtOfNarrowMoment
-    {d : ℕ} [NeZero d]
-    (μ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (μ t)]
-    (t₀ : ℝ)
-    (_h_narrow : ∀ (g : PhysSpace d → ℝ), Continuous g →
-      Bornology.IsBounded (Set.range g) →
-      ContinuousAt (fun t => ∫ y, g y ∂(μ t)) t₀)
-    (_h_mom_cont : ContinuousAt (fun t => ∫ y, ‖y‖ ∂(μ t)) t₀)
-    (_h_mom_int : ∀ t, Integrable (fun y => ‖y‖) (μ t)) :
-    ContinuousAt (fun t => (wasserstein1 (μ t) (μ t₀)).toReal) t₀ := by
-  sorry
-
-/-- **Continuity of `t ↦ convolveFunctionMeasure gradW (μ t) x`** at a fixed
-evaluation point `x` — **proven by composition** (no longer a `MathlibTODO_`).
-
-The narrow→W₁ bridge is the deferred-OT kernel
-`MathlibTODO_wassersteinContinuousAtOfNarrowMoment`
-(`W₁(μ t, μ t₀) → 0` under narrow + moment control); composing it with the
-proven `MathlibTODO_convolveLipschitzEstimate`
-(`‖conv ρ x − conv σ x‖ ≤ L · W₁(ρ, σ).toReal`) and squeezing gives convolution
-continuity.  Because this corollary's conclusion mentions the *project* def
-`convolveFunctionMeasure`, it was never a clean upstream citation; the
-restate-to-purity (2026-06-02) moved the sole `sorry` to the pure
-`wasserstein1`-level kernel above, leaving this corollary sorry-free.
-
-**In-project consumer**: `vlasovWellPosedness_glue_step` case (a)'s `h_cont_g`
-— continuity of the derivative-function at the glue point T, which requires
-continuity of `t' ↦ conv gradW (spatialMarginal (f_next t')) x` at T for each
-fixed x. -/
-theorem convolveContinuousAtOfNarrowMoment
-    {d : ℕ} [NeZero d]
-    (gradW : PhysSpace d → PhysSpace d)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (μ : ℝ → Measure (PhysSpace d)) [∀ t, IsProbabilityMeasure (μ t)]
-    (t₀ : ℝ) (x : PhysSpace d)
-    (h_narrow : ∀ (g : PhysSpace d → ℝ), Continuous g →
-      Bornology.IsBounded (Set.range g) →
-      ContinuousAt (fun t => ∫ y, g y ∂(μ t)) t₀)
-    (h_mom_cont : ContinuousAt (fun t => ∫ y, ‖y‖ ∂(μ t)) t₀)
-    (h_mom_int : ∀ t, Integrable (fun y => ‖y‖) (μ t))
-    (h_int : ∀ t, Integrable (fun y => gradW (x - y)) (μ t)) :
-    ContinuousAt (fun t => convolveFunctionMeasure gradW (μ t) x) t₀ := by
-  -- W₁-continuity at t₀ from the pure narrow→W₁ kernel.
-  have h_w1 : ContinuousAt (fun t => (wasserstein1 (μ t) (μ t₀)).toReal) t₀ :=
-    MathlibTODO_wassersteinContinuousAtOfNarrowMoment μ t₀ h_narrow h_mom_cont h_mom_int
-  -- W₁(μ t₀, μ t₀) = 0, so the W₁-continuity tends to 0 at t₀.
-  have h_g0 : (wasserstein1 (μ t₀) (μ t₀)).toReal = 0 := by
-    rw [wasserstein1_self]; simp
-  have h_g_tendsto : Filter.Tendsto (fun t => (wasserstein1 (μ t) (μ t₀)).toReal)
-      (nhds t₀) (nhds 0) := by
-    have h := h_w1.tendsto
-    simp only [h_g0] at h
-    exact h
-  -- L · W₁(μ t, μ t₀).toReal → 0.
-  have h_bound_tendsto : Filter.Tendsto
-      (fun t => (L : ℝ) * (wasserstein1 (μ t) (μ t₀)).toReal) (nhds t₀) (nhds 0) := by
-    have hc : Filter.Tendsto (fun _ : ℝ => (L : ℝ)) (nhds t₀) (nhds (L : ℝ)) :=
-      tendsto_const_nhds
-    have h := hc.mul h_g_tendsto
-    simpa using h
-  -- Per-t Lipschitz bound from the proven convolution estimate.
-  have h_bound : ∀ t : ℝ, ‖convolveFunctionMeasure gradW (μ t) x
-      - convolveFunctionMeasure gradW (μ t₀) x‖
-      ≤ (L : ℝ) * (wasserstein1 (μ t) (μ t₀)).toReal := by
-    intro t
-    have hW : wasserstein1 (μ t) (μ t₀) ≠ ⊤ :=
-      (wasserstein1_lt_top_of_finite_moment (μ t) (μ t₀) (h_mom_int t) (h_mom_int t₀)).ne
-    exact MathlibTODO_convolveLipschitzEstimate gradW L hL (μ t) (μ t₀) x hW
-      (h_int t) (h_int t₀)
-  -- Squeeze ‖diff‖ → 0, then translate back to continuity at t₀ by adding the
-  -- basepoint value (`(f t − f t₀) + f t₀ = f t`, limit `0 + f t₀ = f t₀`).
-  have h_diff : Filter.Tendsto
-      (fun t => convolveFunctionMeasure gradW (μ t) x
-        - convolveFunctionMeasure gradW (μ t₀) x) (nhds t₀) (nhds 0) :=
-    squeeze_zero_norm h_bound h_bound_tendsto
-  simpa using h_diff.add_const (convolveFunctionMeasure gradW (μ t₀) x)
-
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
 
@@ -2043,10 +1948,7 @@ convergence (Villani, *Optimal Transport*, Theorem 5.10).  Pure
 functional-analytic; no Vlasov-specific instantiation.
 
 **Bucket-1 PR scope**: Villani-standard OT lemma.  Same family as
-`MathlibTODO_cauchyW1_hasNarrowLimit` and
-`MathlibTODO_wassersteinContinuousAtOfNarrowMoment` (the pure narrow→W₁
-kernel; the former `MathlibTODO_convolveContinuousAtOfNarrowMoment` is now
-proven-by-composition and renamed `convolveContinuousAtOfNarrowMoment`).
+`MathlibTODO_cauchyW1_hasNarrowLimit`.
 
 **Decomposed from `MathlibTODO_W1ContOn_lscNarrow`** (Phase 1.5, 2026-05-31).
 The Vlasov-specific composition lives below as `w1ContOn_lscNarrow_via_pureFA`. -/

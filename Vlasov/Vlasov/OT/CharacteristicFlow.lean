@@ -9320,13 +9320,13 @@ theorem vlasovWellPosedness_glue_step
             -- The two sides are the locked leaves.  Each discharges by push-to-f₀ +
             -- DCT; the integrand's force term carries
             -- `convolveFunctionMeasure gradW (spatialMarginal (f_next ·)) z.1`, whose
-            -- seam continuity comes from the now-PROVEN
-            -- `convolveContinuousAtOfNarrowMoment` (Basic.lean) fed by four
-            -- marginal-curve hypotheses.  The hard sub-piece — the unbounded-`‖y‖`
-            -- moment-continuity DCT — is isolated at discharge time (LEFT uses
-            -- `spatialMarginal (f_prev ·)`, RIGHT uses `g`'s), reading the exact
-            -- consumer-need before fixing its signature (B3), since `h_cont_f` —
-            -- bounded integrand — exposes no moment-continuity to copy.
+            -- seam continuity closes from PROVEN TOOLS via the pushforward
+            -- representation: `f_prev`/`g` are flow-pushforwards of `f₀`, so the
+            -- convolution rewrites by `integral_map` to a fixed-`f₀` integral, closed
+            -- by the inner kernels `flowConv_continuousWithinAt_{Iic,Ici}_seam`
+            -- (Piece-A-dominated DCT).  No deferred-OT — the abstract narrow→W₁ kernel
+            -- the plan assumed was orphaned by this route (M3).  LEFT uses
+            -- `spatialMarginal (f_prev ·)`, RIGHT the composed flow off `g`.
             have h_cont_g : ContinuousAt (fun t' =>
                 (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
                         @inner ℝ (PhysSpace d) _
