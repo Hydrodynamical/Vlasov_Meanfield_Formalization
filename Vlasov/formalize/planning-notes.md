@@ -3513,3 +3513,48 @@ W₁-sup-formula choice); #1, #8 clearest dissolve-candidates.
 arc):** (a) #3 orphan-removal (easy, 9→8); (b) 8 consumer-leaf-reads (delegate-able) → true remainder;
 (c) M1 helper-extraction (cosmetic, fold with any (b) dissolutions sharing the pushforward/Piece-A
 route).
+
+#### Leaf-reads of the 8 (delegated + audited, 2026-06-03) — true remainder ~3–4 external
+
+(a) DONE — #3 orphan removed, 9→8 (commit `905afb2`).  (b) DONE — leaf-read all 8 (delegate, audited
+to leaf on the two load-bearing claims).  The delegate's strict "drop-in existing tool" bar gave
+"0 dissolves"; but **`h_cont_g` never met that bar either** (Route 2 BUILT ~1200 lines + the flowConv
+kernels from proven tools).  Re-framed on the real campaign standard — genuinely-external-hard-OT vs
+closeable-in-project-from-proven-tools-with-work:
+
+* **GENUINELY EXTERNAL (real Mathlib PR), ~3–4:** #1 `bcEqual` (Polish density, STATIC measures, no
+  flow); #2 `cauchyW1` (Prokhorov completeness — construct limit from nothing; iterates are NOT
+  flow-pushforwards); #6 `w1RightDeriv` (W₁ Gronwall DIFFERENTIAL stability — pushforward collapses
+  the integral, NOT the W₁ differential inequality); #4 `bcNarrow` (smooth-CS→BC narrow density)
+  [leans external].
+* **IN-PROJECT-CLOSEABLE (h_cont_g pattern — pushforward/flow structure present, build the close),
+  ~3:** #5 `w1USC` — pushforward PRESENT (verified L12537–12543: `hpush_f/g haem_f/g hΦ_f/g
+  hf_mom/g`); close = build a joint-flow coupling-integral `ContinuousOn` helper via
+  `wasserstein1_lagrangian_pushforward_bound` + `integral_map` + growth-DCT + USC-from-tight-bound.
+  #7 ODE-Lipschitz — sorry-free twin `vlasov_trajectory_lipschitz_bound_lag` (L3080, verified NOT in
+  sorry-set) exists; reroute by THREADING a moment bound (the cascade pattern just done; call site
+  `vlasovSolutionViaPushforward_isVlasovSolution` L3549 lacks `M_ρ` — check if the spatial marginal
+  admits a derivable uniform moment on `[0,t+1]`).  #3 `w1LSC` — needs BC→1-Lipschitz narrow-continuity
+  under moment control (buildable via moment-truncation OR genuinely hard — least certain).
+* **COMPOSITE:** #8 `W1ContOn_On` = #3 LSC + #5 USC + assembly — free once #3/#5 land.
+
+**Answer to "how many of the 8 are real": ~3–4 genuinely external** (the upstream-Mathlib handoff).
+The other ~3–4 are in-project-closeable like `h_cont_g` (substantial proven-tools work, NOT free, NOT
+external).  User's "closer to 2–4 than 9" lands for the EXTERNAL count — via buildable-in-project, not
+free dissolution.  Closeability ranking of the in-project arcs: #7 likely easiest (twin + thread), then
+#5 (h_cont_g-shaped build), #3 least certain; each its own h_cont_g-scale arc.
+
+**THE LOAD-BEARING CONSEQUENCE (relocation, not reduction):** the reframe does NOT shrink the work —
+it RELOCATES ~3 placeholders (#3, #5, #7) from "external, someone else's PR" to "internal, owed
+in-project proof," currently wearing `MathlibTODO_` = the same mislabel-internal-as-external laundering
+caught twice before (`convolveContinuousAtOfNarrowMoment`, orphaned `lipschitzFlowAEMeasurable`).  So
+the project's own mathematics is **NOT complete** — ~3 substantial in-project proofs are still owed.
+The truer summit statement: existence side internally closed + axiom-certified **modulo ~4 external OT
+deferrals + ~3 in-project proofs (mislabeled) + 1 composite**, not "modulo 9 Mathlib PRs".  Honest-
+bookkeeping move BEFORE pursuing any: reclassify #3/#5/#7 out of the laundering prefix (docstring
+correction) so the count + certification stop reading more-complete than they are.  **CAVEAT on #3:**
+it is UNCERTAIN (buildable-via-moment-truncation OR genuinely-hard) — mark uncertain, not confidently
+in-project.  **CAVEAT on the in-project label itself:** "closeable from proven tools with work" is a
+FRESH characterization (close path read from structure, NOT built) — it has an unbounded tail (could
+be 200 or 1200 lines like `h_cont_g`).  Pursuing #7 is a *test* of the closeable-claim, not a known-
+easy close.
