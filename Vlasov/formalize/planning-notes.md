@@ -3337,3 +3337,44 @@ kernel** — modulo a bounded, inductive (not circular), `#13`-shaped moment-inv
 The existence side *closes* rather than bottoming-out-into-deferred-OT (better than the API-lock
 scoped).  **RIGHT still rides on whether `g` is a pushforward** (banked opening question); the
 moment-invariant arc is the last bounded internal stretch before it.
+
+#### `#13` moment-invariant cascade — MAP verified to leaf (2026-06-02, pre-wide-edit bank)
+
+Inventory opener: 11 (Basic 7, CharFlow {3009, 9361 hM_ρ, 9754 h_right, 10442}).  Both `#13`
+gate-reads done:
+
+* **B3 conjunct-form CONFIRMED flat.** `gronwall_envelope_exists` (L579) concludes `∃ m,
+  MonotoneOn m (Icc 0 T) ∧ (∀ t, M_f₀ ≤ m t) ∧ (gronwallBound … ≤ m t)`.  **`m*` is MonotoneOn**
+  ⇒ the flat window-constant is `m*(T)` (= `sup_{[0,T]} m*`, attained at T) — the sup-extraction
+  is trivial (evaluate at T), NOT a real step.  So expose/throughout = **flat constant `m*(T)`**
+  (the flattest consumer = glue_step's window-constant); no function-form `m*(t)` need leave #11's
+  layer.  M1/weakest-sufficient satisfied: one form, no project-at-each-boundary.
+* **Inductive moment-composition CLEAN, no cross-term.** `f_next` is piecewise `f_prev` (on
+  `[0,T]`) / `g(·−T)` (on `[T,T+T_0]`), so `∫‖y‖ ∂(spatialMarginal(f_next t))` is piecewise ⇒
+  `sup_{[0,T+T_0]} ≤ max(M_prev, M_g)`.  The glue introduces NO cross-term (moment of a piecewise
+  measure = piecewise moment).  `M_{n+1} := max(M_n, M_g)` closes cleanly.
+
+**3-node cascade (all flat `M = m*(T)`):**
+1. **`vlasovWellPosedness_local` (L8106, PROVEN — node-1 edits a proven body + 2 call sites):**
+   output currently exposes per-`t` `HasFiniteFirstMoment` (L8121) only.  ADD conjunct
+   `∃ M, 0 ≤ M ∧ ∀ t ∈ Icc 0 T, ∫‖y‖ ∂(spatialMarginal(f t)) ≤ M`, `M := m*(T)`.  Source: the
+   construction's Picard limit lives in `VlasovMeasureCurve d T m*` whose `hasMoment` field gives
+   `∫‖y‖ ∂(ρ t) ≤ m* t ≤ m*(T)` (monotone) — extract it.  (Read the body's envelope handle to the
+   leaf when sizing — the `hasMoment` field of the limit curve is the source.)
+2. **`glue_step` (L8657):** add flat hyp `hM_prev : ∃ M, 0 ≤ M ∧ ∀ t ∈ Icc 0 T,
+   ∫‖y‖ ∂(spatialMarginal(f_prev t)) ≤ M`; close the `hM_ρ` leaf (L9361) from it via
+   `clampToIcc_mem`; strengthen output conjunct (iii) to ALSO give the flat uniform bound on
+   `f_next` (`M_next = max(M_prev, M_g)`, `M_g` from node-1's strengthened local for `g`).
+3. **`universal_existence` (L10242):** carry the `M_n` flat-bound in the induction invariant
+   `h_ind` (L10300) — base from node-1 (local), step from node-2 (glue_step output); supply
+   `hM_prev := (the M_n bound)` at the glue_step call (L10329).
+
+**M1 helper-extraction FOLDED IN:** the 525-line inline `h_left` (+ 8× heartbeats) → a named
+one-side helper (parameterized over `Iic`/`Ici` + the measure) that ALSO serves RIGHT; thread the
+flat `M` through the helper ONCE.  Do extraction + moment-strengthening in the SAME pass (the
+moment quantity threads the helper, so extracting-first would touch it twice).
+
+**RIGHT opening question (still unverified):** is `g` (from `vlasovWellPosedness_local`) a
+pushforward with an `integral_map` representation like `f_prev`?  If yes, RIGHT mirrors LEFT (Route
+2 closes both, kernel orphaned).  If no, RIGHT may need Route 1 / different — "no-deferred-OT"
+headline would be LEFT-only.  Read `g`'s representation before assuming mirror.
