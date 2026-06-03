@@ -3154,3 +3154,54 @@ tokens are deferred-OT (`lipschitzFlowTrajectoryLipBound`, `W1ContOn_On`).
 **Next after commit:** glue_step L9112 (`h_cont_g`) as its own focused unit — open on the
 decomposition-verification read first (it's the last internal existence-side sorry; its
 docstring claims ~150–250 lines DCT — verify the close path to the leaf before sizing).
+
+#### `h_cont_g` marquee push — SEQUENCE (user, 2026-06-02): (0) gate → (2) restate → (1) API-lock → discharge
+
+User reframe (governs everything): closing `h_cont_g` **does not drop the sorry count and does
+not make the marquee sorry-free** — it *reclassifies* the existence side from "has an internal
+hole" to "has only honestly-external (Mathlib-OT) holes."  The milestone's whole value is being
+**clean and honest at the boundary**, so the restate-first is what makes "externally-only" *true*
+rather than "external-except-one-that's-secretly-internal."  Option 3 (full inline ~300-line
+monolith with the embedded unbounded-`‖y‖` moment-DCT) is OUT — maximal blast radius, no green
+intermediate.
+
+**Step 0 — gate (VERIFIED, atom-level not assumed):** does restating the placeholder shift what
+`h_cont_g` must *supply*? **No.** `convolveLipschitzEstimate` (Basic L1685, PROVEN) gives
+`‖conv ρ x − conv σ x‖ ≤ L·(wasserstein1 ρ σ).toReal`; applying at `ρ=μ t, σ=μ t₀` and squeezing
+against `(wasserstein1 (μ t)(μ t₀)).toReal → 0` closes the convolve corollary using *exactly* its
+current four hypotheses (`h_narrow, h_mom_cont, h_mom_int, h_int`).  Signature stable ⇒ `h_cont_g`
+surface undisturbed.
+
+**Step 2 — restate-to-purity (DONE, green; commit `<pending>`):**
+* NEW pure kernel `MathlibTODO_wassersteinContinuousAtOfNarrowMoment` (Basic L1722) — concludes
+  `ContinuousAt (fun t => (wasserstein1 (μ t)(μ t₀)).toReal) t₀`, hyps `h_narrow/h_mom_cont/
+  h_mom_int` all pure Mathlib (no `convolveFunctionMeasure`).  Honest deferred-OT; sibling of
+  `cauchyW1_hasNarrowLimit`.  This is where the sorry now lives.
+* `convolveContinuousAtOfNarrowMoment` (Basic L1751) — **renamed (dropped `MathlibTODO_`), PROVEN
+  by composition**: kernel `h_w1` → `wasserstein1_self` gives g(t₀)=0 → `Tendsto.mul` for `L·g→0`
+  → per-t `convolveLipschitzEstimate` bound → `squeeze_zero_norm` → `.add_const` + `simpa`.
+  (NB: `simp only [← tendsto_sub_nhds_zero_iff]` LOOPS — rewrites `𝓝 0` forever; use the
+  add_const reconstruction instead.)
+* Sorry count UNCHANGED (10→10, Basic 7→7) — pure reclassification.  Prose ref at old L2047
+  updated to the kernel name.  Build green (8251 jobs).
+
+**Step 1 — API-lock `h_cont_g`'s decomposition (NEXT, the wide edit; this IS the banked map):**
+Verified close path for `h_cont_g` = `ContinuousAt (fun t' => ∫ z, [⟪z.2,gradXφ z⟫ −
+⟪conv gradW (spatialMarginal(f_next t')) z.1, gradVφ z⟫] d(f_next t')) T`.  Decompose `G = A − B`:
+* **A** = `∫⟪v,∇ₓφ⟫`: fixed compact-support integrand → bounded → **plain narrow continuity**, a
+  *direct mirror of the already-closed `h_cont_f`* (push-to-`f₀` on each side via `h_prev_push`/
+  composed-pushforward, `continuousWithinAt_of_dominated`, `Iic ∪ Ici` union).
+* **B** = convolution term: push-to-`f₀` fixes the measure; pointwise-in-`s` continuity reduces to
+  `s ↦ (∇W ∗ ρ_s)(charX_prev s z)` continuous = **`convolveContinuousAtOfNarrowMoment`** (now
+  proven) composed with flow continuity; final DCT.
+* **Four hypotheses to PRODUCE for `f_next` at the seam** (feed the convolve lemma): `h_narrow`
+  (∀ bounded-cont g — generalizes `h_cont_f`'s φ-specific DCT), `h_mom_cont` (**unbounded `‖y‖`
+  ⇒ needs a flow-growth-dominated DCT against `f₀`, the genuine hard sub-piece — ISOLATE as its
+  own locked leaf and read it to the leaf before discharging; check whether it composes off the
+  moment-envelope/Piece-D machinery**), `h_mom_int`, `h_int`.
+* Plan: lock A / B / the four hypothesis-productions as signature-locked sorry'd sub-`have`s (or
+  a named helper, B2-#1 `glue_step_boundary_bundle` style), rewire `h_cont_g` to compose them →
+  glue_step goes **sorry-free-modulo-the-locked-pieces**, build green, then discharge easiest-first
+  (A-mirror near-mechanical; B-DCT + moment-hypothesis productions are the substance) green-between.
+  After it lands, the entire existence side bottoms out through deferred-OT only:
+  `wassersteinContinuousAtOfNarrowMoment`, `lipschitzFlowTrajectoryLipBound`, `W1ContOn_On`.
