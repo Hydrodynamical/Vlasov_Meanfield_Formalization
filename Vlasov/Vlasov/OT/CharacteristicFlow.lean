@@ -8119,6 +8119,9 @@ theorem vlasovWellPosedness_local
       (charX charV : ℝ → PhaseSpace d → PhysSpace d),
       f 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0:ℝ) T, HasFiniteFirstMoment (f t)) ∧
+      -- FLAT (window-constant) uniform first-moment bound on the spatial marginal.
+      (∃ M : ℝ, 0 ≤ M ∧
+        ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M) ∧
       IsLagrangianVlasovSolutionOn gradW f T ∧
       -- Explicit flow bundle: pushforward, AEMeasurable, and boundary derivatives.
       -- These use the SAME charX charV as the outer ∃ (not the hidden witnesses
@@ -8217,7 +8220,7 @@ theorem vlasovWellPosedness_local
     vlasovWellPosedness_local_picard_fixedPointFlow W gradW hgradW L hL
       f₀ hf₀_int hT hTL_PL hTL_con hB
   -- Bundle the f-shape result.
-  refine ⟨vlasovSolutionViaPushforward charX charV f₀, charX, charV, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨vlasovSolutionViaPushforward charX charV f₀, charX, charV, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (a) f 0 = f₀.  The flow's initial-condition clause (post-Friction-5
     -- extraction) gives (charX 0 z, charV 0 z) = z for every z, so the
     -- pushforward at t = 0 is `Measure.map id f₀ = f₀`.
@@ -8245,6 +8248,12 @@ theorem vlasovWellPosedness_local
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
       _h_aemeas _h_int_conv
       t ht
+  · -- (b′) FLAT uniform first-moment bound on the spatial marginal.
+    -- The picard fixed-point flow already exposes exactly this bound
+    -- (`_hM_ρ_bound`) for `M_ρ := _M_ρ` against
+    -- `spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ ·)`,
+    -- which is `spatialMarginal (f ·)` by definition of `f` here.
+    exact ⟨_M_ρ, _hM_ρ_nn, _hM_ρ_bound⟩
   · -- (c) IsLagrangianVlasovSolutionOn gradW f T.  Deferred to the
     -- _finalAssembly sub-helper: it derives the AEMeasurable witness
     -- (Stage 1.8 territory), the IsCharacteristicFlowSelfConsistent
@@ -8794,6 +8803,9 @@ theorem vlasovWellPosedness_glue_step
     (f_prev : ℝ → Measure (PhaseSpace d))
     (h_prev_init : f_prev 0 = f₀)
     (h_prev_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f_prev t))
+    -- FLAT (window-constant) uniform first-moment bound on f_prev's spatial marginal.
+    (hM_prev : ∃ M : ℝ, 0 ≤ M ∧
+        ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M)
     -- Explicit flow witnesses for f_prev (avoids witness-identity issues with IsLagrangianVlasovSolutionOn)
     (charX_prev charV_prev : ℝ → PhaseSpace d → PhysSpace d)
     (h_prev_vlasov : IsVlasovSolutionOn gradW f_prev T)
@@ -8818,6 +8830,9 @@ theorem vlasovWellPosedness_glue_step
       (∀ t ∈ Set.Icc (0 : ℝ) T, f_next t = f_prev t) ∧
       f_next 0 = f₀ ∧
       (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), HasFiniteFirstMoment (f_next t)) ∧
+      -- FLAT (window-constant) uniform first-moment bound on the spatial marginal.
+      (∃ M : ℝ, 0 ≤ M ∧
+        ∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), ∫ y, ‖y‖ ∂(spatialMarginal (f_next t)) ≤ M) ∧
       IsLagrangianVlasovSolutionOn gradW f_next (T + T_0) ∧
       (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0),
           f_next t = Measure.map (fun z : PhaseSpace d => (charX_next t z, charV_next t z)) (f_next 0)) ∧
@@ -8858,7 +8873,7 @@ theorem vlasovWellPosedness_glue_step
   -- Step 1: invoke vlasovWellPosedness_local on f_prev T to get g on [0, T_0]
   have h_prev_T_mom : HasFiniteFirstMoment (f_prev T) :=
     h_prev_mom T (Set.right_mem_Icc.mpr hT_pos.le)
-  obtain ⟨g, charX_g, charV_g, hg_init, hg_mom, hg_lag, hg_push_ex, hg_aemeas_ex,
+  obtain ⟨g, charX_g, charV_g, hg_init, hg_mom, hg_mom_unif, hg_lag, hg_push_ex, hg_aemeas_ex,
           hg_boundary, hg_init_cond⟩ :=
     vlasovWellPosedness_local W gradW hgradW L hL
       (f_prev T) h_prev_T_mom hT_0_pos hT_0_small_PL hT_0_small_con hT_0_small_B
@@ -8872,7 +8887,7 @@ theorem vlasovWellPosedness_glue_step
   let charV_next : ℝ → PhaseSpace d → PhysSpace d := fun t z =>
     if t ≤ T then charV_prev t z else charV_g (t - T) (charX_prev T z, charV_prev T z)
   have h_g_vlasov : IsVlasovSolutionOn gradW g T_0 := hg_lag.1
-  refine ⟨f_next, charX_next, charV_next, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨f_next, charX_next, charV_next, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Conjunct (i): agreement on [0, T]
     intro t ht
     simp only [f_next]
@@ -8894,6 +8909,20 @@ theorem vlasovWellPosedness_glue_step
       constructor
       · linarith
       · linarith [ht.2]
+  · -- Conjunct (iii′): FLAT uniform first-moment bound on the spatial marginal of f_next.
+    -- M_next := max M_prev M_g.  For t ≤ T, spatialMarginal (f_next t) = spatialMarginal (f_prev t)
+    -- (bounded by M_prev); for t > T, = spatialMarginal (g (t - T)) with t - T ∈ [0, T_0]
+    -- (bounded by M_g).  No cross-term.
+    obtain ⟨M_prev, hM_prev_nn, hM_prev_bd⟩ := hM_prev
+    obtain ⟨M_g, hM_g_nn, hM_g_bd⟩ := hg_mom_unif
+    refine ⟨max M_prev M_g, le_trans hM_prev_nn (le_max_left _ _), fun t ht => ?_⟩
+    simp only [f_next]
+    by_cases ht_le : t ≤ T
+    · simp only [ht_le, ↓reduceIte]
+      exact le_trans (hM_prev_bd t ⟨ht.1, ht_le⟩) (le_max_left _ _)
+    · simp only [ht_le, ↓reduceIte]
+      push_neg at ht_le
+      refine le_trans (hM_g_bd (t - T) ⟨by linarith, by linarith [ht.2]⟩) (le_max_right _ _)
   · -- Conjunct (iv): IsLagrangianVlasovSolutionOn gradW f_next (T + T_0)
     refine ⟨?_, charX_next, charV_next, ?_, ?_, ?_⟩
     · -- IsVlasovSolutionOn gradW f_next (T + T_0)
@@ -9349,16 +9378,16 @@ theorem vlasovWellPosedness_glue_step
                   haveI : IsProbabilityMeasure (f_prev (clampT t)) :=
                     (h_prev_mom (clampT t) (hclampT_mem t)).1
                   exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
-                -- moment data for ρc.  FOCUSED SORRY (moment a-priori bound): a *uniform*
-                -- first-moment bound `∫ y, ‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M_ρ` over
-                -- `t ∈ Icc 0 T`.  glue_step does not carry a uniform first-moment envelope
-                -- for `f_prev` — only per-`t` finite first moments (`h_prev_mom`).  The
-                -- envelope is the marquee's moment a-priori machinery (the `m*(t)` Gronwall
-                -- envelope at L580, gated on `B(T)<1`), not exposed by `f_prev`'s hypotheses
-                -- here.  Isolated to this one leaf; all downstream plumbing consumes it.
+                -- moment data for ρc.  CLOSED from the threaded flat uniform-moment
+                -- bound `hM_prev` on `f_prev`'s spatial marginal.  Since `ρc t =
+                -- spatialMarginal (f_prev (clampT t))` and `clampT t ∈ Icc 0 T`
+                -- (`hclampT_mem`), the same constant `M` bounds `ρc`'s moment.
                 obtain ⟨M_ρ, hM_ρ_nn, hM_ρ⟩ :
                     ∃ M_ρ, 0 ≤ M_ρ ∧ ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(ρc t) ≤ M_ρ := by
-                  sorry
+                  obtain ⟨M, hM_nn, hM⟩ := hM_prev
+                  refine ⟨M, hM_nn, fun t _ht => ?_⟩
+                  rw [hρc_def]
+                  exact hM (clampT t) (hclampT_mem t)
                 have h_y_int_ρc : ∀ t ∈ Set.Icc (0 : ℝ) T,
                     Integrable (fun y : PhysSpace d => ‖y‖) (ρc t) := by
                   intro t ht
@@ -10287,6 +10316,9 @@ theorem vlasovWellPosedness_forward
         (charX charV : ℝ → PhaseSpace d → PhysSpace d),
         f 0 = f₀ ∧
         (∀ t ∈ Set.Icc (0 : ℝ) (T_n n), HasFiniteFirstMoment (f t)) ∧
+        -- FLAT (window-constant) uniform first-moment bound on the spatial marginal.
+        (∃ M : ℝ, 0 ≤ M ∧
+          ∀ t ∈ Set.Icc (0 : ℝ) (T_n n), ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M) ∧
         IsVlasovSolutionOn gradW f (T_n n) ∧
         (∀ t ∈ Set.Icc (0 : ℝ) (T_n n),
             f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
@@ -10303,14 +10335,14 @@ theorem vlasovWellPosedness_forward
     | zero =>
       -- Base: n = 0, need solution on [0, 1·T_0] = [0, T_0].
       simp only [T_n, Nat.cast_zero, zero_add, Nat.cast_one, one_mul]
-      obtain ⟨f, charX, charV, hf_init, hf_mom, hf_lag, hf_push, hf_aemeas, hf_boundary, hf_ic⟩ :=
+      obtain ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag, hf_push, hf_aemeas, hf_boundary, hf_ic⟩ :=
         vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0_PL hTL_T0_con hTL_T0_B
-      exact ⟨f, charX, charV, hf_init, hf_mom, hf_lag.1, hf_push, hf_aemeas, hf_boundary, hf_ic⟩
+      exact ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag.1, hf_push, hf_aemeas, hf_boundary, hf_ic⟩
     | succ n ih =>
       -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
-      obtain ⟨f_n, charX_n, charV_n, hfn_init, hfn_mom, hfn_vlasov,
+      obtain ⟨f_n, charX_n, charV_n, hfn_init, hfn_mom, hfn_mom_unif, hfn_vlasov,
               hfn_push, hfn_aemeas, hfn_boundary, hfn_ic⟩ := ih
-      simp only [T_n] at hfn_mom hfn_vlasov hfn_push hfn_aemeas hfn_boundary
+      simp only [T_n] at hfn_mom hfn_mom_unif hfn_vlasov hfn_push hfn_aemeas hfn_boundary
       have hT_n_pos : (0 : ℝ) < ((n + 1 : ℕ) : ℝ) * T_0 :=
         mul_pos (by exact_mod_cast Nat.succ_pos n) hT0_pos
       -- Derive IsCharacteristicFlowOn from h_prev_boundary + hasDerivAt
@@ -10324,18 +10356,19 @@ theorem vlasovWellPosedness_forward
         · intro t ht z _
           exact ((hfn_boundary z t (Set.Ioo_subset_Icc_self ht)).2).hasDerivAt
             (Icc_mem_nhds ht.1 ht.2)
-      obtain ⟨f_next, charX_next, charV_next, _h_agree, h_init, h_mom, h_lag,
+      obtain ⟨f_next, charX_next, charV_next, _h_agree, h_init, h_mom, h_mom_unif, h_lag,
               h_push, h_aemeas, h_boundary, h_ic⟩ :=
         vlasovWellPosedness_glue_step W gradW hgradW L hL f₀ hf₀ hT_n_pos
-          f_n hfn_init hfn_mom
+          f_n hfn_init hfn_mom hfn_mom_unif
           charX_n charV_n hfn_vlasov hfn_flow
           hfn_push hfn_aemeas hfn_boundary hfn_ic
           hT0_pos hTL_T0_PL hTL_T0_con hTL_T0_B
       -- Need: T_n (n+1) = T_n n + T_0
       have h_T_eq : T_n (n + 1) = T_n n + T_0 := by
         simp only [T_n]; push_cast; ring
-      refine ⟨f_next, charX_next, charV_next, h_init, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨f_next, charX_next, charV_next, h_init, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · rw [h_T_eq]; exact h_mom
+      · rw [h_T_eq]; exact h_mom_unif
       · rw [h_T_eq]; exact h_lag.1
       · rw [h_T_eq]; exact h_push
       · rw [h_T_eq]; exact h_aemeas
@@ -10343,7 +10376,7 @@ theorem vlasovWellPosedness_forward
       · exact h_ic
   -- Step 4: Apply h_ind at n = N - 1 (since N ≥ 1).
   have hN_pred : N - 1 + 1 = N := Nat.succ_pred_eq_of_pos hN_pos
-  obtain ⟨f, charX_f, charV_f, hf_init, hf_mom, hf_vlasov,
+  obtain ⟨f, charX_f, charV_f, hf_init, hf_mom, _hf_mom_unif, hf_vlasov,
           hf_push, hf_aemeas, hf_boundary, hf_ic⟩ := h_ind (N - 1)
   simp only [T_n] at hf_mom hf_vlasov hf_push hf_aemeas hf_boundary
   rw [hN_pred] at hf_mom hf_vlasov hf_push hf_aemeas hf_boundary

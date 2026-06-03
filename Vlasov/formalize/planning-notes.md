@@ -3378,3 +3378,36 @@ moment quantity threads the helper, so extracting-first would touch it twice).
 pushforward with an `integral_map` representation like `f_prev`?  If yes, RIGHT mirrors LEFT (Route
 2 closes both, kernel orphaned).  If no, RIGHT may need Route 1 / different — "no-deferred-OT"
 headline would be LEFT-only.  Read `g`'s representation before assuming mirror.
+
+#### `#13` cascade EXECUTED + audited to leaf — `hM_ρ` CLOSED, 11 → 10 (2026-06-02)
+
+Delegated the 3-node cascade; **audited the full +52/−19 diff to the leaf** (P10, post the prior
+count-error).  Mechanical guards: build green 0 err; all-`sorry`-tokens 69→68 (no hidden inline);
+diff has zero `+…sorry`.  Semantic certification: **Node 1 witness is GENUINE** — the
+`picard_fixedPointFlow` sub-helper *already exposed* the flat envelope constant `_M_ρ : ℝ` + its
+moment bound `_hM_ρ_bound` (against `spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ ·)`
+= `spatialMarginal (f ·)` defeq); the envelope-extraction I'd budgeted as a possible API-lock leaf
+was already in the helper, no step needed.  **Node 2**: `hM_ρ` CLOSED for real from `hM_prev` via
+`clampToIcc`; output conjunct (iii′) = genuine `max M_prev M_g`, piecewise, no cross-term (composition
+confirmed clean as the leaf-read predicted).  **Node 3 MAP CORRECTION (P5/P1)**: the invariant lives
+in `vlasovWellPosedness_forward` (L10130), NOT `_universal_existence` (L10873) — the latter only
+consumes `_forward` and needs per-`t`, correctly untouched.  My map had the node-name wrong (line
+numbers were right, pointed at `_forward`); the delegate caught it, verified.  Flat `M : ℝ`
+throughout, all 3 nodes + consumers threaded, zero new sorries (both API-lock allowances unused).
+
+**State: 10 sorries.**  CharFlow {3009, 9783 h_right, 10475}; Basic 7.  **LEFT side of glue_step
+`h_cont_g` now closes entirely from proven tools — no deferred-OT.**  Existence side's last internal
+hole is `h_right` (L9783).
+
+**Remaining on the existence side:**
+1. **`h_right`** — gated on the unverified opening question: **is `g` a pushforward**?  If yes, RIGHT
+   mirrors LEFT (Route 2 closes both, kernel orphaned, no-deferred-OT headline holds).  If no, RIGHT
+   may need Route 1 / different.  Read `g`'s representation FIRST (don't assume mirror — items 5/6
+   precedent).  Note: `g` in glue_step IS `vlasovWellPosedness_local`'s output, which carries the
+   pushforward conjunct (`f t = Measure.map (charX,charV) (f 0)`) — promising for mirror, but the
+   RIGHT integrand uses the *composed* flow `charX_g(·−T) ∘ (charX_prev T, charV_prev T)`, so the
+   pushforward representation needs the composition handled — read to leaf.
+2. **M1 helper-extraction** (525-line inline `h_left` + 8× heartbeats → named one-side helper that
+   also serves RIGHT).  Now that the moment is threaded into glue_step (via `hM_prev`), extract
+   AFTER (extracts in final form, threads the helper once) — fold with RIGHT's close if RIGHT mirrors
+   (one helper, two instantiations).
