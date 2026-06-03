@@ -2982,9 +2982,121 @@ expect (after this turn) at least one to surprise — either over-strong-and-che
 favorable M3 outcome here) or a documented-plan-with-a-seam.  Do NOT inherit "sound base"
 on the sweep's word.
 
-**Promotion candidate (P-series / discipline framework):** "a proved-modulo-sorry sweep
-certifies structure not content; its plan-resting certifications need the decomposition-
-verification read before being trusted" — companion to P10 (build-permits-vs-audit-
-certifies) and P5 (verify the framework's own extrapolations).  Sighting #1 = this node.
+**Promotion candidate (P-series / discipline framework) — STATE THE BOUNDARY:** the
+lesson is NOT "sweeps are worthless" (this sweep's *structural* map was right and load-
+bearing — it correctly pinned picardCharFlow as THE node and that the rest bottom out only
+through the two continuation nodes).  The precise boundary: **a (c) sweep's STRUCTURAL
+claims (who consumes what, where sorries bottom out) are verified by the call-graph read
+and are trustworthy; its CONTENT claims (what a node's closure requires) are only as good
+as the docstring they're read from, hence characterized-not-verified.**  Call-graph-
+certifies-structure vs leaf-read-certifies-content.  Conflating the two would make you
+distrust the sound structural map.  This is the sweep-specific refinement of P10 (build-
+permits-vs-audit-certifies); promote with the boundary, the way M3 was promoted with its
+boundary (the boundary is the load-bearing half).  Sighting #1 = picardCharFlow.
 
-**Committed:** `<this commit>` (picardCharFlow genuine close + orphan removal; 13→11).
+**Committed:** `ab32da3` (picardCharFlow genuine close + orphan removal; 13→11).
+
+#### Decomposition-verification read: `universal_existence` (outer node) — 2026-06-02
+
+Read the OUTER continuation node first (it consumes `_forward` → `glue_step`; its spec is
+what `glue_step` gets verified against, so reading the inner first risks the wasted-
+verification trap).  Call graph: marquee (L10479) → `universal_existence` (L10218) →
+`_forward` (L9411, `Nat.rec` tower) → `glue_step` (L8426).  Findings:
+
+* **Seam #1 (t-domain / over-strength): ABSENT.** The marquee's conclusion (L10500–10515)
+  is `universal_existence`'s conclusion *verbatim*, and the marquee's proof is `exact
+  vlasovWellPosedness_universal_existence …` (L10528).  The forward-only
+  `∀ T_target > 0 → IsLagrangianVlasovSolutionOn gradW f T_target` single-`f` shape was
+  already M2-refactored (2026-05-30) to be minimal-for-marquee.  No over-strength layer;
+  **`glue_step`'s spec is stable, won't shrink** (unlike the picardCharFlow case).  The
+  docstring's step-4 "backward iteration (sorry)" is STALE (realized conclusion is
+  forward-only).
+* **Seam #2 (inter-window compounding): DISCHARGED, not hidden.** Compounding lives in
+  `_forward`'s `Nat.rec` tower, which is **sorry-free in its own body** — the per-window-
+  constant control is proven (via `L<1` + the `T_0` selection), not folded into
+  "continuation assembly."  `universal_existence` itself only colimits (`sol n := Stage-5
+  solution on [0,n+1]`) + agrees (via `vlasovWellPosedness_uniqueness`, which is PROVEN —
+  not in the sorry list).
+* **Actual content of `universal_existence`'s TWO own sorries — the recursive B2
+  boundary-regularity-at-`t=0` pattern** (NOT what the docstring strategy emphasizes; this
+  is the docstring-vs-realized seam):
+  - L10359: `refine ⟨?_, sorry⟩` — the `IsLagrangianVlasovSolutionOn` **boundary
+    `ContinuousOn`** conjunct (the AEMeasurable half `?_` IS proven via `h_aemeas_N`).
+  - L10390: `rw [← h_eq]; sorry` — narrow **right-continuity at `t = 0`**; the inline
+    comment (L10383–10389) says it needs "boundary ODE regularity at t = 0 beyond what
+    `IsCharacteristicFlowOn` exposes."
+  Both are the documented B2 sighting "Stage 6 narrow continuity at t=0" (commit `20500ee`
+  lineage).  **Favorable angle:** #11's now-closed boundary bundle `h_boundary_ρlim`
+  (HasDerivWithinAt on `Icc 0 T`, which INCLUDES `t=0`) already constructs the raw t=0
+  regularity — it wasn't fully available before #11 closed.  Closing both is a recursive B2
+  *enrichment* (additive, known pattern, NOT new math): thread the boundary bundle up
+  through `_forward`/`glue_step`/the `IsLagrangianVlasovSolutionOn` predicate.
+* **Orphan-check: none** (sorries are inline boundary gaps, not a call to a zero-consumer
+  placeholder — no picardCharFlow-style double-retire bonus here).
+
+**Sequencing consequence (re-validates "read outer first"):** the B2 enrichment is a
+*cross-cutting* surgery DESIGNED from `universal_existence`'s t=0 need, threaded DOWN — it
+will change what `glue_step` must expose (add a boundary conjunct).  So `glue_step`'s spec
+is about to gain a boundary-at-endpoint requirement.  Reading `glue_step` in isolation
+first would have verified it against the pre-enrichment spec.  **Next unit:** design the
+recursive B2 boundary-bundle threading top-down (universal_existence need → predicate →
+`_forward` → `glue_step`), per the B2 watch-list surgery shape (additive; retires multiple
+boundary sub-sorries in one swing).  NOT new mathematics; NOT a deferred-OT leaf.
+
+#### B2 boundary-thread MAP (verified end-to-end) — 2026-06-02
+
+Mapped the full thread before any wide edit (the `#13`-shaped cross-cutting surgery
+discipline).  **Self-correction worth recording (meta-lesson, 3rd sighting — on my OWN
+map):** mid-read I claimed "glue_step has exactly one sorry (L8850), so its boundary
+conjunct is already proven, so the close is localized to universal_existence."  That was a
+STRUCTURAL claim from an incomplete grep (`^\s*sorry` misses inline `refine ⟨?_, sorry⟩`).
+Reading to the leaf (L9092–9095) refuted it: glue_step's boundary `ContinuousOn` conjunct
+IS sorry'd inline at **L9095**.  Exactly the call-graph-certifies-structure /
+leaf-read-certifies-content boundary — and this time the wrong structural claim was *mine*,
+caught by the leaf-read before it propagated into the surgery scope.  Complete sorry-token
+inventory (inline+standalone) is mandatory before sizing a cross-cutting surgery.
+
+**The predicate `IsLagrangianVlasovSolutionOn` (L866)** already carries (since the
+2026-06-01 B2 enrichment) the conjunct `∀ z, ContinuousOn (fun s => (charX s z, charV s z))
+(Icc 0 T)` — interval-wide, closed window.  B3 shape DECIDED = `ContinuousOn` (weakest-
+sufficient; comment L877–884).  The cross-cutting groundwork (predicate has the conjunct;
+producers structured to supply it) is done; the remaining work is discharging the sorry'd
+instances.
+
+**The thread (cross-cutting glue_step + universal_existence; preservation-across-seams
+case — bounded):**
+1. **glue_step L9095** (boundary `ContinuousOn` for glued flow on `Icc 0 (T+T_0)`):
+   closes from glue_step's **PROVEN conjunct (vii)** (L9149 — the boundary `HasDerivWithinAt`
+   bundle on `Icc 0 (T+T_0)`, including the across-seam `t=T` `HasDerivWithinAt.union`
+   case).  `HasDerivWithinAt → ContinuousWithinAt → ContinuousOn` (prodMk).  ~15–25 lines,
+   or fewer if (vii)'s construction is hoisted into a shared `have` consumed by both (vii)
+   and L9095.  The hard across-seam continuity is ALREADY in (vii); L9095 is its weaker
+   projection.
+2. **universal_existence L10359** (boundary `ContinuousOn` on `Icc 0 T_target`): genuine
+   once #1 lands.  STOP discarding `sol N`'s 7th component (the `_` at L10321 — bind it
+   `h_boundary_N`), then `ContinuousOn.mono` from `Icc 0 (N+1)` to `Icc 0 T_target` (same
+   flow `charX_N/charV_N`, subset interval).  ~5 lines.
+3. **universal_existence L10390** (narrow right-continuity at `t=0`): DCT-at-0 from the
+   now-genuine boundary `ContinuousOn` at 0 (it includes the endpoint), mirroring the
+   interior `t₀>0` case (L10410+ pushforward `∫ g ∂f t = ∫ g(charX_N t z,…) ∂f₀` + DCT
+   with `g` bounded by `C`), anchored at 0 via `ContinuousWithinAt` from `h_boundary_N`.
+   ~30–50 lines.
+
+**Producer-capacity (B3 weakest-producer check — all pass):** glue_step supplies via its
+stronger proven (vii); `vlasovWellPosedness_local`/#11 supply `hg_boundary` (genuine
+post-#11 close); `_forward` is sorry-free and propagates.  Weakest = glue_step L9095, which
+can supply `ContinuousOn` from (vii).  No conjunct flip-down (unlike `#13`'s Stage-C
+near-miss).
+
+**Separate substantial sorry (NOT the B2 thread):** glue_step **L8850** — weak-PDE
+derivative-continuity at the glue seam (`h_cont_g`; `ContinuousAt` of the derivative-
+function at `T`), ~150–250 line DCT via `MathlibTODO_convolveLipschitzEstimate` (proven) +
+narrow continuity of `spatialMarginal(f_next)` at `T`.  Independent; the genuinely hard
+continuation obligation.
+
+**Execution order (next unit):** #1 (glue_step L9095, unblocks the propagation) → #2
+(univ_exist L10359, trivial once #1) → #3 (univ_exist L10390, DCT-at-0).  Build between.
+Then glue_step L8850 as its own focused unit.  Sorry trajectory if the thread lands:
+11 → 9 (glue_step boundary + the two univ_exist boundary/continuity; note glue_step keeps
+its L8850 warning, so its declaration warning persists until L8850 also closes — declaration
+count 11 → 10 when univ_exist's two close, glue_step stays warned for L8850).
