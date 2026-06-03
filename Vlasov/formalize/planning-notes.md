@@ -3447,3 +3447,38 @@ Basic 7.  How many collapse like `h_cont_g` did vs. genuinely-general (probably 
 + the W₁ right-derivative/stability estimate stay).  The deferred count is characterized-not-verified;
 the 5-M3 pattern (realized proofs carry more than their plans claim, toward LESS remaining work) says
 it's likely an over-count.
+
+#### ★ MARQUEE CLOSED modulo deferred-OT — `h_right` proven, `glue_step` sorry-free (2026-06-03)
+
+`h_right` closed (delegated, **audited to leaf**): RIGHT mirrored LEFT exactly as determined — added
+the `Ici` sibling kernel `flowConv_continuousWithinAt_Ici_seam` (generic window `[a,b]`, seam at `a`,
+`Icc_mem_nhdsGE`) and closed `h_right` via the composed flow `Zpos s z = charX_g(s−T)(charX_prev T z,
+charV_prev T z)`, composed-pushforward (à la `h_cont_f_right`), and the **composed Piece-A growth
+bound** `‖Zpos s z‖ ≤ C_comp·(‖z‖+1)` (`flow_distance_growth_bound_on` on `g` via `hg_mom_unif` ∘ on
+prev-at-`T` via `hM_prev`, both L11-clamped) — it composed cleanly, no sorry.  **The moment cascade
+was the enabler** (both bounds in scope only because of it).
+
+**P10 audit (most rigorous of the campaign):** build green 0 err; all-`sorry`-tokens 68→67 (832 lines
+added, count DOWN — no hidden inline); diff confined to TWO hunks (Ici kernel insert + h_right close;
+`h_left`/cascade/all else untouched); Ici kernel conclusion = genuine conv-`ContinuousWithinAt` (not
+vacuous); **compiler's own "declaration uses sorry" list excludes `glue_step`** → glue_step sorry-free.
+**Gold standard `#print axioms`:** `vlasovWellPosedness` AND `vlasovWellPosedness_uniqueness` depend on
+`[propext, sorryAx, Classical.choice, Quot.sound]` — ONLY the 3 standard Mathlib axioms + `sorryAx`
+(= the 9 deferred-OT placeholders, the project's only sorries).  No other axioms, no unexpected gaps.
+
+**STATE: 9 sorries, ALL deferred-OT `MathlibTODO_*`** (Basic 7: L1315/1428/1722/2053/2132/2243/2357;
+CharFlow 2: `lipschitzFlowTrajectoryLipBound` 3009, `wassersteinGronwallCoupling_W1ContOn_On` 11305).
+**The forward Vlasov well-posedness theorem (existence + Lagrangian-solution-on-every-window + finite
+moments + narrow continuity, Dobrushin `L<1`) is PROVED modulo the documented OT deferrals.  Uniqueness
+likewise.  The existence side has NO internal sorry — `glue_step` was the last.**
+
+**Remaining (no longer existence-critical):**
+1. **M1 helper-extraction** — `h_left` (525) + `h_right` (~680) inline in `glue_step` (+ 8× heartbeats).
+   Pure cleanup (no sorry change): extract the shared one-side close into a parameterized helper over
+   `{Iic,Ici}` + flow + measure + growth, two instantiations.  The subagent left both inline (correctly
+   declined to risk verified work); do as a focused refactor.
+2. **Deferred-OT consumer-leaf-reads (5-M3 recalibration)** — the 9 are characterized-not-verified as
+   genuinely-general.  Read each consumer for collapsing structure (pushforward / finite-moment witness
+   / specific flow) the way `h_cont_g` orphaned its kernel.  Likely-genuine (stay): `cauchyW1`-
+   completeness (Prokhorov), the W₁ right-derivative/stability estimate.  Likely-dissolve: candidates
+   among `convolveLipschitz`-family / the moment-narrow lemmas whose consumers carry pushforwards.
