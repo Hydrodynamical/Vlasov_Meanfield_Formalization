@@ -219,6 +219,136 @@ theorem wasserstein1_le_wasserstein1_coupling
   intro z
   exact (edist_dist z.1 z.2).symm
 
+/-! ## Foundation B — optimal coupling existence + hard Kantorovich–Rubinstein duality
+
+This section states the project's single external optimal-transport theorem,
+`foundationB_optimal_coupling_exists`, and derives the duality equality from it
+(combined with the easy direction above).  Everything is stated
+**cost-generically** over a continuous pseudometric cost `c`, so the deferred
+cutoff cost `c = min (dist ·) 1` (the W̄ refactor) instantiates the same
+statements verbatim.
+-/
+
+/-- Cost-generic coupling cost: the infimum over couplings `π` of `(μ, ν)` of
+`∫⁻ ofReal (c z.1 z.2) ∂π`.  At `c = dist` this is `wasserstein1_coupling`
+(`edist = ofReal ∘ dist`); see `wasserstein1_coupling_eq`. -/
+noncomputable def wassersteinCost_coupling
+    {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=
+  ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
+    ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π
+
+/-- At `c = dist`, the cost-generic coupling cost reduces to `wasserstein1_coupling`
+(since `edist x y = ofReal (dist x y)`). -/
+lemma wasserstein1_coupling_eq
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] (μ ν : Measure α) :
+    wasserstein1_coupling μ ν = wassersteinCost_coupling (fun x y => dist x y) μ ν := by
+  unfold wasserstein1_coupling wassersteinCost_coupling
+  refine iInf_congr fun π => iInf_congr fun _ => ?_
+  exact lintegral_congr fun z => edist_dist z.1 z.2
+
+/-- **Foundation B (single external): an optimal coupling exists, and its cost
+equals the dual-formula `wassersteinCost`.**
+
+For probability measures `μ, ν` with finite first moment on a Polish (here
+second-countable Borel pseudometric) space, and a continuous pseudometric cost
+`c`, there is a coupling `π` of `(μ, ν)` whose `∫⁻ ofReal(c)`-cost equals the
+dual-formula optimal-transport value `wassersteinCost c μ ν`.
+
+This single statement packages BOTH halves of the project's deferred
+optimal-transport surface:
+* **Attainment** — the coupling `π` witnessing the infimum (what `#5`/`#6`
+  consume to build the per-time optimal couplings).
+* **Hard Kantorovich–Rubinstein duality** — combined with the easy direction
+  `wasserstein1_le_wasserstein1_coupling` (already proved), it yields the full
+  equality `wassersteinCost c μ ν = wassersteinCost_coupling c μ ν`: the
+  attaining `π` gives `wassersteinCost_coupling ≤ wassersteinCost`
+  (`foundationB_coupling_le_dual`), the easy direction gives `≥`.
+
+Stated cost-generically over a continuous pseudometric `c` so the deferred
+cutoff cost `c = min (dist ·) 1` (the W̄ refactor) reuses it verbatim — the
+pseudometric hypotheses hold for both `dist` and `min (dist ·) 1`.
+
+**This is one of the two intended external sorries of the project** (the other
+is Foundation A, narrow ↔ W₁).  Its mathematical content is the Kantorovich
+duality theorem together with Prokhorov-tightness existence of optimal
+couplings — a standard but substantial OT result not yet in Mathlib. -/
+theorem foundationB_optimal_coupling_exists
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (c : α → α → ℝ)
+    (_hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (_hc_self : ∀ x, c x x = 0)
+    (_hc_symm : ∀ x y, c x y = c y x)
+    (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (_hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (_hν_fm : Integrable (fun y => dist y x₀) ν) :
+    ∃ π : Measure (α × α), IsCoupling π μ ν ∧
+      ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π = wassersteinCost c μ ν := by
+  sorry
+
+/-- Hard direction of Kantorovich–Rubinstein duality, generic in `c`: the
+coupling-formula is at most the dual-formula.  Immediate from the attaining
+coupling of Foundation B. -/
+theorem foundationB_coupling_le_dual
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (c : α → α → ℝ)
+    (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν) :
+    wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν := by
+  obtain ⟨π, hπ, hcost⟩ := foundationB_optimal_coupling_exists c hc_nonneg hc_self hc_symm
+    hc_triangle hc_cont μ ν x₀ hμ_fm hν_fm
+  rw [← hcost]
+  unfold wassersteinCost_coupling
+  exact iInf_le_of_le π (iInf_le _ hπ)
+
+/-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Sorry-free
+corollary of Foundation B (attainment) + the easy direction. -/
+theorem wasserstein1_eq_coupling
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν) :
+    wasserstein1 μ ν = wasserstein1_coupling μ ν := by
+  refine le_antisymm (wasserstein1_le_wasserstein1_coupling μ ν x₀ hμ_fm hν_fm) ?_
+  rw [wasserstein1_coupling_eq]
+  exact foundationB_coupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
+    (fun x => dist_self x) (fun x y => dist_comm x y) (fun x y z => dist_triangle x y z)
+    (continuous_fst.dist continuous_snd) μ ν x₀ hμ_fm hν_fm
+
+/-- Attainment at `c = dist`: an optimal coupling `π` with
+`∫⁻ edist z.1 z.2 ∂π = wasserstein1 μ ν`.  Sorry-free corollary of Foundation B;
+this is the form `#5`/`#6` consume to build the per-time optimal couplings. -/
+theorem wasserstein1_optimal_coupling_exists
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (x₀ : α)
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν) :
+    ∃ π : Measure (α × α), IsCoupling π μ ν ∧
+      ∫⁻ z, edist z.1 z.2 ∂π = wasserstein1 μ ν := by
+  obtain ⟨π, hπ, hcost⟩ := foundationB_optimal_coupling_exists (fun x y => dist x y)
+    (fun _ _ => dist_nonneg) (fun x => dist_self x) (fun x y => dist_comm x y)
+    (fun x y z => dist_triangle x y z) (continuous_fst.dist continuous_snd) μ ν x₀ hμ_fm hν_fm
+  refine ⟨π, hπ, ?_⟩
+  rw [show (fun z : α × α => edist z.1 z.2) = (fun z => ENNReal.ofReal (dist z.1 z.2)) from
+        funext fun z => edist_dist z.1 z.2]
+  exact hcost
+
 /-! ## Pushforward of couplings
 
 The lemmas below are the "reusable pieces" needed for the dobrushin chain
