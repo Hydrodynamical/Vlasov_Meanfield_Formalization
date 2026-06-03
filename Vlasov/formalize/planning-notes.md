@@ -3230,3 +3230,62 @@ integrable vs f₀) IN glue_step's hypothesis surface, or does discharging the m
 a new hypothesis threaded into glue_step?  If the latter, that ripple is the thing to surface
 before sizing the discharge.  RIGHT (`h_right`, `Ici T`) is the composed-pushforward analogue
 (mirror `h_cont_f_right`, L8972–9095), symmetric.
+
+#### LEFT leaf-read → ROUTE 2 (proven-tools close, NO deferred-OT) — user-confirmed 2026-06-02
+
+**M3 #4 at architecture level — promotion-grade structural fact.** Every time the plan said
+"`h_cont_g` needs the deferred convolveContinuousAtOfNarrowMoment," the leaf-read found a proven
+route (same as picardCharFlow's deferred-FA-that-wasn't).  *Root cause, not luck*: the deferred-OT
+placeholders are GENERAL OT statements (narrow + moment ⇒ continuity over ALL bounded-cont test
+fns); the ACTUAL consumers carry more structure that collapses the general lemma to a proven DCT.
+Here `f_prev` is a **pushforward** (`h_prev_push`), so `conv(spatialMarginal(f_prev s))(x)` rewrites
+by `integral_map` to `∫ z', gradW(x − charX_prev s z') ∂f₀` — fixed-`f₀` integral, moving integrand
+= plain nested DCT, NOT the general narrow-continuity the kernel solves.  Route 1 isn't cheaper:
+invoking the kernel ALSO requires producing its four marginal hyps (incl. `h_narrow` over all
+bounded `g` + the Piece-A moment-DCT) — same work, and *then* leaves a deferred hole.
+
+**RECALIBRATION (default flip):** a deferred-OT placeholder is **suspect-until-consumer-leaf-read** —
+a hypothesis-that-it's-needed, tested by reading its consumer for collapsing structure (pushforward,
+specific flow, finite-moment witness), NOT a settled external obligation.  The "9 deferred-OT"
+endpoint is itself characterized-not-verified; some fraction may dissolve.  Probably-genuinely-general
+(won't dissolve): `cauchyW1`-completeness, the W₁ right-derivative/stability estimate.  **Next move
+after `h_cont_g`: consumer-leaf-read the OTHER deferred placeholders** (`lipschitzFlowTrajectoryLipBound`
+3009, `W1ContOn_On` 9822, Basic 7) — how many collapse the way `h_cont_g` just did?
+
+**Process datum (file, don't dwell):** restate-first (step 2) was decided BEFORE the leaf-read
+(step 1) that obviated the kernel.  Not a fault — right call on the info available; restate-then-
+orphan ≻ leave-mislabeled-then-orphan, and Route 2 was unknowable pre-leaf-read.  Lesson: *the
+leaf-read that sizes a close can also obviate its dependencies* — when a placeholder restatement and
+a consumer-close are both pending, read the consumer first when feasible (it may moot the restate).
+
+**Orphan consequence:** Route 2 orphans `convolveContinuousAtOfNarrowMoment` + the restated
+`MathlibTODO_wassersteinContinuousAtOfNarrowMoment` (sole consumer was `h_cont_g`) → follow-up
+orphan-retirement (picardCharFlow/lipschitzFlowAEMeasurable pattern).
+
+**Route 2 close path (VERIFIED to leaf; build API-lock green-between):** for `h_left` (Iic T) —
+(1) eventually-equal push-to-`f₀` on `Icc 0 T` (mirror `h_cont_f_left` h_eq_L, L8921), `integral_map`;
+(2) outer `continuousWithinAt_of_dominated`, dominator = **constant** (gradXφ/gradVφ compact support;
+construction threads `M_ρ` for the conv bound `‖conv(ρ)(x)‖ ≤ ‖gradW 0‖ + L‖x‖ + L·M_ρ`);
+(3) pointwise-continuity obligation = inner conv-continuity `s ↦ ∫ z', gradW(charX_prev s z −
+charX_prev s z') ∂f₀` continuous at T, via inner DCT: **convergence** = `h_prev_boundary
+.1.continuousWithinAt` (CONFIRMED in scope, L8709), **dominator** = Piece A `flow_distance_growth_bound_on`
+(`‖charX_prev s z'‖ ≤ C_T(‖z'‖+1)`, integrable vs `f₀`).  Piece A's universal `[∀ t, IsProb (ρ t)]`
+via **L11 clamp** (`clampToIcc`, infra present, L4356).  RIGHT = composed-pushforward analogue, read
+separately (different measure `g`, possibly different flow construction — don't assume mirror).
+
+**P5 build-risks to expect (banked, not blockers):** (a) **L11-clamp instance synthesis through
+`let`/`Classical.choose` flow** — same shape as the `@Phi_supW1_contraction` fight (sorry-1); bypass
+with `@` + explicit instance if it bites.  (b) **nested-DCT joint measurability** — the inner
+integral as a function of `(s, z)` for the outer DCT's AEStronglyMeasurable obligation.
+
+**BUILD pass 1 DONE (green; commit `<pending>`):** `flowConv_continuousWithinAt_Iic_seam` (CharFlow,
+before glue_step) — the Route-2 **inner kernel**, FULLY PROVEN from proven tools (no deferred-OT, no
+new sorry).  Body: `integral_map` pushforward rewrite (`conv(μ s)(x) = ∫ z', gradW(x−charX s z') ∂f₀`,
+via `show` to unfold the `convolveFunctionMeasure` def + `exact integral_map` — NB `rw [def]` doesn't
+unfold and `rw [integral_map]` can't infer the higher-order `g`; use `exact`) → `continuousWithinAt_of_dominated`
+(constant-free dominator `‖gradW 0‖ + L·C_T(‖z‖+1) + L·C_T(‖z'‖+1)`, integrable via `.const_mul`;
+pointwise bound by `nlinarith`; convergence via `(h_charX_cont _).mono_of_mem_nhdsWithin`).  Takes
+the growth bound `C_T` + flow continuity + pushforward as hyps (B3-suppliable from glue_step's
+`h_prev_*` + Piece A).  Project 11 (unchanged); CharFlow {3009, 9223 h_left, 9230 h_right, 9918}.
+**Next pass:** wire into `h_left` — L11-clamp to produce Piece A's `C_T` + outer DCT (constant
+dominator) consuming this helper.  Then RIGHT (read separately).

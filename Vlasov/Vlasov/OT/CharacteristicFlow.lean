@@ -8654,6 +8654,102 @@ private lemma glue_step_boundary_bundle {d : ℕ} [NeZero d]
         exact h_cV
 
 
+/-- **Route 2 inner kernel for `glue_step` `h_cont_g`** (LEFT / `Iic T`): continuity
+at the seam `T` of `s ↦ (∇W ∗ μ_s)(charX s z)`, where the window measure curve `μ` is
+the flow-pushforward of `f₀`.
+
+Proven from PROVEN tools only (no deferred OT).  The pushforward rewrite
+`(∇W ∗ μ_s)(x) = ∫ z', gradW (x − charX s z') ∂f₀` (`integral_map`) turns the
+moving-measure convolution into a fixed-`f₀` integral with moving integrand, closed by
+dominated convergence: convergence from the flow's seam continuity `h_charX_cont`,
+domination from the Gronwall growth bound `hC_T` (Piece A) against `f₀`'s finite first
+moment.  This is the structural reason `h_cont_g` does NOT need the general narrow→W₁
+kernel — its consumer carries a pushforward representation. -/
+lemma flowConv_continuousWithinAt_Iic_seam
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (charX : ℝ → PhaseSpace d → PhysSpace d)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 < T)
+    (μ : ℝ → Measure (PhysSpace d))
+    (h_push : ∀ s ∈ Set.Icc (0 : ℝ) T,
+        μ s = Measure.map (fun z : PhaseSpace d => charX s z) f₀)
+    (h_aemeas : ∀ s ∈ Set.Icc (0 : ℝ) T,
+        AEMeasurable (fun z : PhaseSpace d => charX s z) f₀)
+    (h_charX_cont : ∀ z : PhaseSpace d,
+        ContinuousWithinAt (fun s => charX s z) (Set.Icc (0 : ℝ) T) T)
+    (C_T : ℝ) (hC_T_nn : 0 ≤ C_T)
+    (hC_T : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z : PhaseSpace d, ‖charX s z‖ ≤ C_T * (‖z‖ + 1))
+    (z : PhaseSpace d) :
+    ContinuousWithinAt (fun s => convolveFunctionMeasure gradW (μ s) (charX s z))
+      (Set.Iic T) T := by
+  have h_nhd_L : Set.Icc (0 : ℝ) T ∈ nhdsWithin T (Set.Iic T) := Icc_mem_nhdsLE hT
+  have hgradW_cont : Continuous gradW := hL.continuous
+  have hL_nn : (0 : ℝ) ≤ (L : ℝ) := L.coe_nonneg
+  -- Pushforward rewrite of the convolution, eventually in s (on the window).
+  have h_eq : (fun s => convolveFunctionMeasure gradW (μ s) (charX s z))
+      =ᶠ[nhdsWithin T (Set.Iic T)]
+      (fun s => ∫ z', gradW (charX s z - charX s z') ∂f₀) := by
+    apply Filter.Eventually.mono h_nhd_L
+    intro s hs
+    show ∫ y, gradW (charX s z - y) ∂(μ s)
+        = ∫ z', gradW (charX s z - charX s z') ∂f₀
+    rw [h_push s hs]
+    exact integral_map (h_aemeas s hs)
+      (hgradW_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+  -- The rewritten f₀-integral is continuous at T by dominated convergence.
+  have h_cont_rhs : ContinuousWithinAt
+      (fun s => ∫ z', gradW (charX s z - charX s z') ∂f₀) (Set.Iic T) T := by
+    apply continuousWithinAt_of_dominated
+      (bound := fun z' => ‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1))
+        + (L : ℝ) * (C_T * (‖z'‖ + 1)))
+    · -- AEStronglyMeasurable in z', eventually in s
+      apply Filter.Eventually.mono h_nhd_L
+      intro s hs
+      exact (hgradW_cont.measurable.comp_aemeasurable
+        (aemeasurable_const.sub (h_aemeas s hs))).aestronglyMeasurable
+    · -- pointwise dominator bound, eventually in s
+      apply Filter.Eventually.mono h_nhd_L
+      intro s hs
+      apply Filter.Eventually.of_forall
+      intro z'
+      have h1 : ‖gradW (charX s z - charX s z')‖
+          ≤ ‖gradW 0‖ + (L : ℝ) * ‖charX s z - charX s z'‖ := by
+        have hd := hL.dist_le_mul (charX s z - charX s z') 0
+        simp only [dist_eq_norm, sub_zero] at hd
+        have htri : ‖gradW (charX s z - charX s z')‖
+            ≤ ‖gradW 0‖ + ‖gradW (charX s z - charX s z') - gradW 0‖ := by
+          have := norm_add_le (gradW (charX s z - charX s z') - gradW 0) (gradW 0)
+          simp only [sub_add_cancel] at this; linarith
+        linarith
+      have h2 : ‖charX s z - charX s z'‖ ≤ ‖charX s z‖ + ‖charX s z'‖ := norm_sub_le _ _
+      have h3 : ‖charX s z‖ ≤ C_T * (‖z‖ + 1) := hC_T s hs z
+      have h4 : ‖charX s z'‖ ≤ C_T * (‖z'‖ + 1) := hC_T s hs z'
+      nlinarith [mul_le_mul_of_nonneg_left (h2.trans (add_le_add h3 h4)) hL_nn]
+    · -- integrability of the dominator
+      apply Integrable.add (integrable_const _)
+      exact ((hf₀_int.add (integrable_const (1 : ℝ))).const_mul C_T).const_mul (L : ℝ)
+    · -- pointwise continuity in s, a.e. z'
+      apply Filter.Eventually.of_forall
+      intro z'
+      have hcz : ContinuousWithinAt (fun s => charX s z) (Set.Iic T) T :=
+        (h_charX_cont z).mono_of_mem_nhdsWithin h_nhd_L
+      have hcz' : ContinuousWithinAt (fun s => charX s z') (Set.Iic T) T :=
+        (h_charX_cont z').mono_of_mem_nhdsWithin h_nhd_L
+      exact hgradW_cont.continuousAt.comp_continuousWithinAt (hcz.sub hcz')
+  -- Bridge value at T and conclude.
+  have h_val_T : convolveFunctionMeasure gradW (μ T) (charX T z)
+      = ∫ z', gradW (charX T z - charX T z') ∂f₀ := by
+    have hT_mem : T ∈ Set.Icc (0 : ℝ) T := ⟨hT.le, le_refl T⟩
+    show ∫ y, gradW (charX T z - y) ∂(μ T)
+        = ∫ z', gradW (charX T z - charX T z') ∂f₀
+    rw [h_push T hT_mem]
+    exact integral_map (h_aemeas T hT_mem)
+      (hgradW_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+  exact h_cont_rhs.congr_of_eventuallyEq h_eq h_val_T
+
 /-- **Stage 5 sub-helper**: one-window glue step.
 
 Given a solution `f_prev : ℝ → Measure (PhaseSpace d)` on `[0, T]`
