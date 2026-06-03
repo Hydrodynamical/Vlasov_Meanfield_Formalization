@@ -10363,7 +10363,8 @@ theorem vlasovWellPosedness_universal_existence
       simp only [ht_nn, ↓reduceIte]
       exact h_agree ⌈t⌉₊ N (Nat.ceil_mono ht.2) t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
     -- Extract components from h_sol_lag N
-    obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, _⟩ := h_sol_lag N
+    obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, h_boundary_N⟩ :=
+      h_sol_lag N
     -- Compute f 0 = sol N 0
     have h_f0_solN : f 0 = sol N 0 :=
       h_agree_fN 0 ⟨le_refl 0, hT_target_pos.le⟩
@@ -10400,11 +10401,14 @@ theorem vlasovWellPosedness_universal_existence
       rw [h_agree_fN t ht, h_f0_solN]
       exact h_push_N t ⟨ht.1, le_trans ht.2 (by linarith)⟩
     · -- AEMeasurable ∧ boundary ContinuousOn on Icc 0 T_target.
-      -- universal_existence is #14 (sorry'd); B2 cont conjunct sorry'd here.
-      refine ⟨?_, sorry⟩
-      intro s hs
-      rw [h_f0_solN]
-      exact h_aemeas_N s ⟨hs.1, le_trans hs.2 (by linarith)⟩
+      refine ⟨?_, ?_⟩
+      · intro s hs
+        rw [h_f0_solN]
+        exact h_aemeas_N s ⟨hs.1, le_trans hs.2 (by linarith)⟩
+      · -- Boundary ContinuousOn: `sol N`'s boundary conjunct (now genuine post-B2-#1),
+        -- same flow `charX_N/charV_N`, restricted from `Icc 0 (N+1)` to `Icc 0 T_target`.
+        intro z
+        exact (h_boundary_N z).mono (Set.Icc_subset_Icc le_rfl (by linarith))
   -- Conjunct 4: narrow continuity on Ici 0
   · -- Strategy: ContinuousOn (Ici 0) = ∀ t₀ ≥ 0, ContinuousWithinAt at t₀.
     -- For t₀ > 0: use flow continuity from HasDerivAt (interior) + integral_map + DCT.
@@ -10425,14 +10429,57 @@ theorem vlasovWellPosedness_universal_existence
     intro t₀ ht₀
     have ht₀_nn := Set.mem_Ici.mp ht₀
     rcases ht₀_nn.eq_or_lt with h_eq | ht₀_pos
-    · -- h_eq : 0 = t₀, so t₀ = 0.  Right-continuity at t = 0 sub-sub-sorry.
-      -- The right-continuity of t ↦ ∫ g ∂(f t) at t = 0 requires that
-      -- the characteristic flow (charX t z, charV t z) → z as t → 0⁺,
-      -- which in turn needs boundary ODE regularity at t = 0 beyond what
-      -- IsCharacteristicFlowOn exposes (only HasDerivAt on Ioo 0 T is given).
-      -- This is a genuine sub-sub-sorry; the boundary regularity fix aligns
-      -- with the Friction-5 / B-series watch-list pattern.
-      rw [← h_eq]; sorry
+    · -- t₀ = 0: right-continuity via DCT.  The endpoint analog of the interior
+      -- case: pointwise continuity of `t ↦ (charX_N t z, charV_N t z)` at 0 is
+      -- supplied by `sol N`'s boundary `ContinuousOn` conjunct (now genuine
+      -- post-B2-#1), replacing the interior case's two-sided `HasDerivAt`
+      -- (unavailable at the left endpoint).
+      rw [← h_eq]
+      set N : ℕ := 1 with hN_def
+      have hN_cast_pos : (0 : ℝ) < (N : ℝ) := by norm_num [hN_def]
+      have h_agree_fN : ∀ t ∈ Set.Icc (0 : ℝ) (N : ℝ), f t = sol N t := by
+        intro t ht
+        have ht_nn := ht.1
+        show (if 0 ≤ t then sol ⌈t⌉₊ t else f₀) = sol N t
+        simp only [ht_nn, ↓reduceIte]
+        exact h_agree ⌈t⌉₊ N ((Nat.ceil_mono ht.2).trans_eq (Nat.ceil_natCast N))
+          t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
+      obtain ⟨_h_pde, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, h_boundary_N⟩ :=
+        h_sol_lag N
+      have h_integral_eq : ∀ t ∈ Set.Icc 0 (N : ℝ),
+          ∫ z, g z ∂(f t) = ∫ z, g (charX_N t z, charV_N t z) ∂f₀ := by
+        intro t ht_Icc
+        rw [h_agree_fN t ht_Icc]
+        have ht_ext : t ∈ Set.Icc (0 : ℝ) ((N : ℝ) + 1) :=
+          ⟨ht_Icc.1, le_trans ht_Icc.2 (le_add_of_nonneg_right one_pos.le)⟩
+        rw [h_push_N t ht_ext, ← h_sol_init N]
+        exact integral_map (h_aemeas_N t ht_ext) hg_cont.measurable.aestronglyMeasurable
+      have hIcc_mem : Set.Icc 0 (N : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ici 0) :=
+        Icc_mem_nhdsGE hN_cast_pos
+      have h_cont_charX : ContinuousWithinAt
+          (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) (Set.Icc 0 (N : ℝ)) 0 := by
+        apply continuousWithinAt_of_dominated (μ := f₀) (bound := fun _ => C)
+        · apply Filter.Eventually.mono self_mem_nhdsWithin
+          intro t ht_mem
+          exact (hg_cont.measurable.comp_aemeasurable
+            (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
+              (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
+        · apply Filter.Eventually.mono self_mem_nhdsWithin; intro t _
+          exact Filter.Eventually.of_forall fun z => hgC _
+        · exact integrable_const C
+        · apply Filter.Eventually.of_forall; intro z
+          apply hg_cont.continuousAt.comp_continuousWithinAt
+          exact ((h_boundary_N z).continuousWithinAt
+            ⟨le_refl 0, by push_cast; linarith⟩).mono
+            (Set.Icc_subset_Icc le_rfl (by push_cast; linarith))
+      have h_cont_Icc : ContinuousWithinAt
+          (fun t => ∫ z, g z ∂(f t)) (Set.Icc 0 (N : ℝ)) 0 :=
+        h_cont_charX.congr_of_eventuallyEq
+          (Filter.Eventually.mono self_mem_nhdsWithin (fun t ht => by
+            show ∫ z, g z ∂f t = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
+            exact h_integral_eq t ht))
+          (h_integral_eq 0 ⟨le_refl 0, hN_cast_pos.le⟩)
+      exact h_cont_Icc.mono_of_mem_nhdsWithin hIcc_mem
     · -- t₀ > 0: t₀ ∈ Ioi 0.  Use the interior flow continuity.
       -- Choose N so that t₀ is in the interior of [0, N].
       set N := ⌈t₀⌉₊ + 1 with hN_def

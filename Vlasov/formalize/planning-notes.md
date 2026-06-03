@@ -3125,3 +3125,32 @@ estimates, not this flow-ODE bundle; (2) circularity clean (`h_prev_boundary` is
 `ContinuousOn.mono`).  Read to the leaf before trusting the ~5-line estimate (standing
 expectation: continuation layer carries more than its flat size); confirm `sol N` genuinely
 supplies the boundary conjunct now that #1 made glue_step's real.  Build between #2 and #3.
+
+#### ✅ B2 #2 + #3 DONE — universal_existence now SORRY-FREE; declarations 11 → 10 (2026-06-02)
+
+Both read to the leaf before sizing, built between.
+
+* **#2 (univ_exist L10404, boundary `ContinuousOn`)**: read confirmed the map's ~5 lines.
+  `sol N`'s boundary conjunct is now genuine (glue_step's closed via #1; its PDE leaf is a
+  *sibling* conjunct).  Un-discard the obtain's 7th component (`_` → `h_boundary_N`), close
+  goal-2 by `intro z; exact (h_boundary_N z).mono (Set.Icc_subset_Icc le_rfl (by linarith))`
+  — same flow witnesses `charX_N/charV_N`, `Icc 0 (N+1) ⊇ Icc 0 T_target`, no defeq risk.
+  Build green; one token gone.
+* **#3 (univ_exist L10439, narrow right-continuity at `t=0`)**: the substantive one (~45
+  lines), DCT-at-endpoint mirroring the interior `t₀>0` case (`continuousWithinAt_of_dominated`
+  + pushforward `integral_map` + `congr`).  Read-to-leaf check (the user's): the interior
+  gets its DCT pointwise-continuity from `h_flow_N.2.1.continuousAt` — the *two-sided*
+  HasDerivAt on `Ioo`, which the **left endpoint lacks**; the now-genuine boundary
+  `ContinuousOn` conjunct `h_boundary_N` fills exactly that gap
+  (`.continuousWithinAt` at 0).  N := 1; nbhd via `Icc_mem_nhdsGE`.  Built **green first-try**.
+
+**Result: `universal_existence` is sorry-free.**  CharFlow code tokens {3009, 9112, 9797} =
+3; total 10 (Basic 7).  **Declaration count 11 → 10** (univ_exist's warning cleared; glue_step
+keeps its PDE-leaf warning).  The existence side now bottoms out through a SINGLE remaining
+internal sorry: **glue_step L9112 `h_cont_g`** (weak-PDE derivative-continuity at the glue
+seam, ~150–250 line DCT via `MathlibTODO_convolveLipschitzEstimate`).  Other two CharFlow
+tokens are deferred-OT (`lipschitzFlowTrajectoryLipBound`, `W1ContOn_On`).
+
+**Next after commit:** glue_step L9112 (`h_cont_g`) as its own focused unit — open on the
+decomposition-verification read first (it's the last internal existence-side sorry; its
+docstring claims ~150–250 lines DCT — verify the close path to the leaf before sizing).
