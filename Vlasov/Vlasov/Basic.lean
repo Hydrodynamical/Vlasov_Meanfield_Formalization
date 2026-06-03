@@ -2385,6 +2385,54 @@ lemma wassersteinGronwallCoupling_gronwall_le
     hcont hderiv hinit (fun _ _ => by linarith) t ht
   rwa [sub_zero, gronwallBound_ε0] at key
 
+/-- **Scalar mild-form Gronwall** (integrated-Dobrushin collapse, `M→0` core,
+2026-06-03): a continuous nonnegative `Q` satisfying the *integral* inequality
+`Q t ≤ q0 + K · ∫₀ᵗ Q` on `[0, T]` obeys `Q t ≤ q0 · exp (K t)`.
+
+This is the mild-form companion to `wassersteinGronwallCoupling_gronwall_le`
+(which takes the Dini/right-derivative form).  The integrated coupling-Gronwall
+bound produces `Q(t) = ∫‖Φ_f t · − Φ_g t ·‖ dπ₀` in the *integral* form (via
+per-trajectory FTC + Tonelli on a nonnegative integrand), sidestepping the
+reverse-Fatou difference-quotient interchange.  Proof: apply Mathlib's
+`norm_le_gronwallBound_of_norm_deriv_right_le` to the C¹ primitive
+`G t = q0 + K · ∫₀ᵗ Q` (with `G' t = K · Q t ≤ K · G t` since `Q ≤ G`), then
+`Q ≤ G`. -/
+lemma gronwall_mild_le (Q : ℝ → ℝ) (q0 K T : ℝ) (hK : 0 ≤ K) (hq0 : 0 ≤ q0)
+    (hQcont : Continuous Q) (hQnn : ∀ t, 0 ≤ Q t)
+    (hmild : ∀ t ∈ Set.Icc 0 T, Q t ≤ q0 + K * ∫ s in (0:ℝ)..t, Q s) :
+    ∀ t ∈ Set.Icc 0 T, Q t ≤ q0 * Real.exp (K * t) := by
+  set G : ℝ → ℝ := fun t => q0 + K * ∫ s in (0:ℝ)..t, Q s with hGdef
+  have hG_deriv : ∀ t, HasDerivAt G (K * Q t) t := by
+    intro t
+    have hftc : HasDerivAt (fun u => ∫ s in (0:ℝ)..u, Q s) (Q t) t :=
+      intervalIntegral.integral_hasDerivAt_right
+        (hQcont.intervalIntegrable 0 t)
+        (hQcont.stronglyMeasurableAtFilter _ _) hQcont.continuousAt
+    exact (hftc.const_mul K).const_add q0
+  have hG_cont : Continuous G :=
+    continuous_iff_continuousAt.mpr fun t => (hG_deriv t).continuousAt
+  have hG_nonneg : ∀ t ∈ Set.Icc 0 T, 0 ≤ G t := by
+    intro t ht
+    have hint : 0 ≤ ∫ s in (0:ℝ)..t, Q s :=
+      intervalIntegral.integral_nonneg ht.1 (fun s _ => hQnn s)
+    show 0 ≤ q0 + K * ∫ s in (0:ℝ)..t, Q s
+    positivity
+  have hG0 : G 0 = q0 := by simp [hGdef]
+  intro t ht
+  have hgb := norm_le_gronwallBound_of_norm_deriv_right_le
+    (f := G) (a := 0) (b := T) hG_cont.continuousOn
+    (fun s _ => (hG_deriv s).hasDerivWithinAt)
+    (show ‖G 0‖ ≤ q0 by rw [hG0, Real.norm_eq_abs, abs_of_nonneg hq0])
+    (fun s hs => by
+      have hsI : s ∈ Set.Icc 0 T := ⟨hs.1, hs.2.le⟩
+      rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hK (hQnn s)),
+          Real.norm_eq_abs, abs_of_nonneg (hG_nonneg s hsI), add_zero]
+      have hQG : Q s ≤ G s := hmild s hsI
+      nlinarith [hQnn s, hG_nonneg s hsI])
+    t ht
+  rw [sub_zero, gronwallBound_ε0, Real.norm_eq_abs, abs_of_nonneg (hG_nonneg t ht)] at hgb
+  exact le_trans (hmild t ht) hgb
+
 -- `wassersteinGronwallCoupling_real_bound` (formerly here) **relocated to
 -- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
 -- 2026-05-31).  Calls the now-CharFlow-resident W1ContOn and item 6,
