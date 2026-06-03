@@ -3411,3 +3411,39 @@ hole is `h_right` (L9783).
    also serves RIGHT).  Now that the moment is threaded into glue_step (via `hM_prev`), extract
    AFTER (extracts in final form, threads the helper once) — fold with RIGHT's close if RIGHT mirrors
    (one helper, two instantiations).
+
+#### `h_right` mirror question RESOLVED (read to leaf, 2026-06-02): RIGHT MIRRORS LEFT
+
+On the RIGHT (s ≥ T) `f_next s = g(s−T)`; `h_cont_f_right` (the PROVEN value-functional analog,
+L8972–9095) already establishes this as a **composed pushforward to `f₀`**:
+`spatialMarginal(g(s−T)) = map (fun z' => charX_g(s−T)(charX_prev T z', charV_prev T z')) f₀`.  So the
+convolution DOES collapse via `integral_map` to `∫ gradW(x − Z_s z') ∂f₀` with the composed position
+flow `Z_s z' := charX_g(s−T)(charX_prev T z', charV_prev T z')`.  **RIGHT mirrors LEFT structurally**
+(same `integral_map` + Piece-A-DCT + boundary-convergence), with `Z_s` (composition) in place of
+`charX_prev s`.  **The moment cascade is what enables it**: the composed-flow growth bound needs Piece
+A on BOTH pieces — `g` (via `hg_mom_unif`, now exposed by strengthened `local`, bound in glue_step's
+`obtain` ~L8873) and prev-at-`T` (via `hM_prev`, the new glue_step hyp).  Both in scope only because
+of the cascade.  Favorable case ⇒ headline holds (RIGHT mirrors, kernel orphaned, no-deferred-OT).
+
+**Execution plan (folded extraction, big arc — next focused pass / delegate like LEFT):**
+1. Inner kernel `flowConv_…_seam`: add an `Ici` sibling OR generalize over the set `{Iic, Ici}` +
+   the flow.  For RIGHT instantiate `charX := Z_s` (composed), `μ := spatialMarginal(g(·−T))`.
+2. Extract the 525-line inline `h_left` into a **parameterized one-side helper** (over set + flow +
+   measure + growth-bound `C` + pushforward + seam-continuity), concluding the `ContinuousWithinAt`
+   on the given set.  Instantiate LEFT (`charX_prev`, `f_prev`, `hM_prev`→`C_prev`) — replacing the
+   inline close — and RIGHT (`Z_s`, `g`, composed growth).  Removes the 8× heartbeat debt.
+3. RIGHT's composed-flow inputs: pushforward (composed, from `h_prev_push` + `hg_push_ex` +
+   `Measure.map_map`), seam continuity (`Z_s → Z_T` at `T⁺`: `charX_g(s−T)` at `0` = id via
+   `hg_init_cond`, composed with `charX_prev T` fixed — `h_cont_f_right`'s chain-rule machinery
+   `ContinuousWithinAt.comp_of_eq` already does this), growth (composed Piece A).
+4. **Verify DURING the build (don't assume):** the composed Piece-A growth bound
+   `‖Z_s z'‖ ≤ C_g·(C_prev·(‖z'‖+1)+1)` composes cleanly from the two threaded moment bounds — Piece
+   A on `g` over `[0,T_0]` ∘ growth-at-`T` on prev over `[0,T]`.  Likely clean (composition of two
+   linear-growth bounds), but read to leaf before sizing.
+
+After `h_right`: **consumer-leaf-read the remaining deferred-OT placeholders** (5-M3 recalibration —
+suspect-until-consumer-leaf-read): `lipschitzFlowTrajectoryLipBound` (3009), `W1ContOn_On` (10475),
+Basic 7.  How many collapse like `h_cont_g` did vs. genuinely-general (probably `cauchyW1`-completeness
++ the W₁ right-derivative/stability estimate stay).  The deferred count is characterized-not-verified;
+the 5-M3 pattern (realized proofs carry more than their plans claim, toward LESS remaining work) says
+it's likely an over-count.
