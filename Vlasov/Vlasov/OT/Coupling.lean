@@ -116,6 +116,7 @@ theorem wasserstein1_le_wasserstein1_coupling
     (hμ_fm : Integrable (fun y => dist y x₀) μ)
     (hν_fm : Integrable (fun y => dist y x₀) ν) :
     wasserstein1 μ ν ≤ wasserstein1_coupling μ ν := by
+  rw [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   refine le_iInf fun π => le_iInf fun hπ => ?_
   -- Goal: ENNReal.ofReal (∫φ dμ - ∫φ dν) ≤ ∫⁻ z, edist z.1 z.2 ∂π

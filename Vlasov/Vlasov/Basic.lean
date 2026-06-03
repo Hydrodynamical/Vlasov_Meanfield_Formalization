@@ -876,7 +876,7 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
 -- or via `MeasureTheory.Measure.HasFiniteWasserstein`, but the API is still
 -- developing.  We introduce a local placeholder `wasserstein1`.
 
-/-- Wasserstein-1 distance between two measures on a (pseudo)metric space,
+/- Wasserstein-1 distance between two measures on a (pseudo)metric space,
 defined via the Kantorovich–Rubinstein dual formula
 
   W₁(μ, ν) = sup { ∫ f dμ − ∫ f dν | f : 1-Lipschitz, f : α → ℝ }.
@@ -891,10 +891,48 @@ difference.
 
 -- TODO(mathlib): replace with Mathlib's `MeasureTheory.Measure.wasserstein`
 -- once the API is stable. -/
+/-- **Cost-parameterized Wasserstein-1 functional.**  KR-dual sup over functions
+whose oscillation is controlled by a cost `c`.  Using the explicit oscillation
+bound `|f x − f y| ≤ c x y` (rather than `LipschitzWith 1 f` w.r.t. an ambient
+metric) decouples the definition from the `PseudoMetricSpace` instance, so a
+cost like `min (dist x y) 1` (the truncated-metric "W̄" cost) instantiates with
+no new instance.  `wasserstein1` is the `c = dist` case. -/
+noncomputable def wassersteinCost {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=
+  ⨆ (f : α → ℝ) (_ : ∀ x y, |f x - f y| ≤ c x y),
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
+
+/-- The oscillation test class `∀ x y, |f x − f y| ≤ dist x y` coincides with
+`LipschitzWith 1 f` for real-valued `f` on a pseudometric space.  Bridge between
+`wassersteinCost dist` (the cost-parameterized form) and the `LipschitzWith`-
+phrased property lemmas. -/
+lemma lipschitzWith_one_iff_oscillation {α : Type*} [PseudoMetricSpace α]
+    (f : α → ℝ) : LipschitzWith 1 f ↔ ∀ x y, |f x - f y| ≤ dist x y := by
+  constructor
+  · intro hf x y
+    have := hf.dist_le_mul x y
+    rwa [Real.dist_eq, NNReal.coe_one, one_mul] at this
+  · intro h
+    refine LipschitzWith.of_dist_le_mul fun x y => ?_
+    rw [Real.dist_eq, NNReal.coe_one, one_mul]
+    exact h x y
+
+/-- The Kantorovich–Rubinstein dual Wasserstein-1 distance: the `c = dist` case
+of `wassersteinCost`. -/
 noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) : ENNReal :=
-  ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f),
-    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
+  wassersteinCost (fun x y => dist x y) μ ν
+
+/-- `wasserstein1` equals the original `LipschitzWith 1`-phrased sup.  The
+property/API lemmas below `rw` through this so their bodies are unchanged from
+the original definition (the only structural-touch sites; consumers reference
+`wasserstein1` only through these property lemmas). -/
+lemma wasserstein1_eq_iSup_lipschitz {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) :
+    wasserstein1 μ ν = ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f),
+      ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) := by
+  unfold wasserstein1 wassersteinCost
+  simp only [lipschitzWith_one_iff_oscillation]
 
 /-- For probability measures μ, ν on a normed space `E` with finite first moments
 (i.e. `Integrable (fun y => ‖y‖) μ` and same for ν), the Wasserstein-1 distance
@@ -915,6 +953,7 @@ lemma wasserstein1_lt_top_of_finite_moment
   set M : ℝ := ∫ y, ‖y‖ ∂μ + ∫ y, ‖y‖ ∂ν with hM_def
   suffices h : wasserstein1 μ ν ≤ ENNReal.ofReal M from
     h.trans_lt ENNReal.ofReal_lt_top
+  rw [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   apply ENNReal.ofReal_le_ofReal
   -- Pointwise: |φ y - φ 0| ≤ ‖y‖ (1-Lipschitz)
@@ -1001,7 +1040,7 @@ distance on time-indexed measure curves (see `supW1On` in
 /-- Self-distance is zero: `wasserstein1 μ μ = 0`. -/
 lemma wasserstein1_self {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ : Measure α) : wasserstein1 μ μ = 0 := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   apply le_antisymm _ (zero_le _)
   refine iSup_le fun _ => iSup_le fun _ => ?_
   simp
@@ -1012,7 +1051,7 @@ lemma wasserstein1_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
   -- Use the bijection `f ↦ -f` on 1-Lipschitz functions: it sends the integral
   -- diff `∫f dμ − ∫f dν` to its negation `∫f dν − ∫f dμ`, and ENNReal.ofReal
   -- of both expressions agree after rearrangement.
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   apply le_antisymm
   · refine iSup_le fun f => iSup_le fun hf => ?_
     refine le_iSup_of_le (-f) (le_iSup_of_le hf.neg (le_of_eq ?_))
@@ -1027,7 +1066,7 @@ lemma wasserstein1_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
 lemma wasserstein1_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν τ : Measure α) :
     wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun f => iSup_le fun hf => ?_
   have hsplit : ∫ x, f x ∂μ - ∫ x, f x ∂τ =
       (∫ x, f x ∂μ - ∫ x, f x ∂ν) + (∫ x, f x ∂ν - ∫ x, f x ∂τ) := by ring
@@ -1059,6 +1098,7 @@ lemma wasserstein1_le_moments_sum
     wasserstein1 μ ν ≤ ENNReal.ofReal (∫ y, ‖y‖ ∂μ + ∫ y, ‖y‖ ∂ν) := by
   -- Same shape of proof as `wasserstein1_lt_top_of_finite_moment`, but
   -- producing the bound `ofReal M` itself instead of the consequent `< ⊤`.
+  rw [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   apply ENNReal.ofReal_le_ofReal
   have hψ_bound : ∀ y, |φ y - φ 0| ≤ ‖y‖ := fun y => by
@@ -1166,7 +1206,7 @@ lemma wasserstein1_le_of_lipschitz_map
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
     wasserstein1 (Measure.map T μ) (Measure.map T ν) ≤
       (L : ENNReal) * wasserstein1 μ ν := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun g => iSup_le fun hg => ?_
   -- Rewrite both integrals via integral_map.
   rw [integral_map hT_meas.aemeasurable hg.continuous.measurable.aestronglyMeasurable,
@@ -1268,7 +1308,7 @@ lemma wasserstein1_dual_lower_bound
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) (f : α → ℝ) (hf : LipschitzWith 1 f) :
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wasserstein1 μ ν := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
 
 /-- **Mathlib-TODO (pure measure theory + functional analysis):
@@ -1530,10 +1570,9 @@ lemma convolveLipschitz_KR_le
     (ρ σ : Measure α) (φ : α → ℝ) (hφ : LipschitzWith 1 φ)
     (hW : wasserstein1 ρ σ ≠ ⊤) :
     ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ ≤ (wasserstein1 ρ σ).toReal := by
-  -- By definition, ENNReal.ofReal (∫φdρ − ∫φdσ) ≤ wasserstein1 ρ σ.
-  have h_sup : ENNReal.ofReal (∫ y, φ y ∂ρ - ∫ y, φ y ∂σ) ≤ wasserstein1 ρ σ := by
-    refine le_iSup₂ (α := ENNReal) (f := fun f _ =>
-      ENNReal.ofReal (∫ x, f x ∂ρ - ∫ x, f x ∂σ)) φ hφ
+  -- The KR-dual lower bound (property-only): ENNReal.ofReal (∫φdρ − ∫φdσ) ≤ W₁.
+  have h_sup : ENNReal.ofReal (∫ y, φ y ∂ρ - ∫ y, φ y ∂σ) ≤ wasserstein1 ρ σ :=
+    wasserstein1_dual_lower_bound ρ σ φ hφ
   -- Convert to .toReal preserving the inequality.
   by_cases h_pos : 0 ≤ ∫ y, φ y ∂ρ - ∫ y, φ y ∂σ
   · -- positive case: ENNReal.ofReal x .toReal = x
@@ -1931,7 +1970,7 @@ lemma w1_lscNarrow_of_summands
           (fun t => ENNReal.ofReal (∫ z, φ z ∂(f t) - ∫ z, φ z ∂(g t)))
           (Set.Icc 0 T)) :
     LowerSemicontinuousOn (fun t => wasserstein1 (f t) (g t)) (Set.Icc 0 T) := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   exact lowerSemicontinuousOn_biSup (fun φ hφ => h_summands φ hφ)
 
 /-- **Mathlib-TODO (pure functional-analytic): W₁ is lower semicontinuous

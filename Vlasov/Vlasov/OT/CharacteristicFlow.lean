@@ -4987,7 +4987,8 @@ theorem wasserstein1_Phi_le_integral_diff {d : ℕ} [NeZero d]
     (h_diff_int : Integrable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀) :
     wasserstein1 (Phi charX f₀ s) (Phi charX f₀ t) ≤
       ENNReal.ofReal (∫ z, ‖charX s z - charX t z‖ ∂f₀) := by
-  unfold wasserstein1 Phi
+  simp only [wasserstein1_eq_iSup_lipschitz]
+  unfold Phi
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   apply ENNReal.ofReal_le_ofReal
   -- ============================================================
@@ -6119,7 +6120,7 @@ theorem wasserstein1_pushforward_pair_le_integral_norm_diff {d : ℕ} [NeZero d]
     (h_diff_int : Integrable (fun z : PhaseSpace d => ‖f z - g z‖) f₀) :
     wasserstein1 (Measure.map f f₀) (Measure.map g f₀) ≤
       ENNReal.ofReal (∫ z, ‖f z - g z‖ ∂f₀) := by
-  unfold wasserstein1
+  simp only [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   apply ENNReal.ofReal_le_ofReal
   have hφ_cont : Continuous φ := hφ.continuous
