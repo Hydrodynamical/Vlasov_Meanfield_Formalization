@@ -3205,3 +3205,28 @@ Verified close path for `h_cont_g` = `ContinuousAt (fun t' => ∫ z, [⟪z.2,gra
   (A-mirror near-mechanical; B-DCT + moment-hypothesis productions are the substance) green-between.
   After it lands, the entire existence side bottoms out through deferred-OT only:
   `wassersteinContinuousAtOfNarrowMoment`, `lipschitzFlowTrajectoryLipBound`, `W1ContOn_On`.
+
+**Step 1 — API-lock LANDED (green; commit `<pending>`):** `h_cont_g`'s single sorry replaced by
+the *proven* `h_cont_f` union structure — `simp only [add_zero]` then two locked leaves
+`h_left : ContinuousWithinAt … (Set.Iic T) T` (L9122) + `h_right : … (Set.Ici T) T` (L9129),
+glued by `h_left.union h_right` + `Set.Iic_union_Ici` + `.continuousAt Filter.univ_mem` (real, L9135).
+CharFlow code tokens now {3009, **9127 h_left, 9134 h_right**, 9822}; project 10 → 11 (P4-accepted
+API-lock increase; declaration count steady — glue_step keeps its one warning).  Granularity choice
+(B3/P5): locked at the union boundary, NOT at A/B/four-hyps, because `h_cont_f` (bounded integrand)
+exposes no moment-continuity signature to copy — fixing the moment-cont leaf's signature now would
+be guessing against an unread consumer-need.  **`lake` cwd caveat (this session): persistent cwd is
+the OUTER root; bare `lake build` fails on the ambiguous outer lakefile — must `cd …/Vlasov/Vlasov`
+first.**
+
+**Discharge plan (next, green-between):** start LEFT (`h_left`, `Iic T`) — open on the
+decomposition-verification read first.  Mirror `h_cont_f_left` (L8916–8968): push f_next→f₀ on
+`Icc 0 T` via `h_prev_push`/`h_prev_aemeas` + `integral_map`; `continuousWithinAt_of_dominated`
+with a compact-support bound on `∇φ`.  The force term's seam continuity = flow-continuity (boundary
+bundle) composed with `convolveContinuousAtOfNarrowMoment` on the marginal curve
+`s ↦ spatialMarginal (f_prev s)` — and THIS is where the four marginal-curve hypotheses get
+produced, incl. the unbounded-`‖y‖` moment-continuity.  **At the leaf read, check the scope
+question the API-lock deferred:** is a per-z flow-growth dominator (`‖charX_prev s z‖ ≤ C·(‖z‖+1)`,
+integrable vs f₀) IN glue_step's hypothesis surface, or does discharging the moment-cont leaf need
+a new hypothesis threaded into glue_step?  If the latter, that ripple is the thing to surface
+before sizing the discharge.  RIGHT (`h_right`, `Ici T`) is the composed-pushforward analogue
+(mirror `h_cont_f_right`, L8972–9095), symmetric.

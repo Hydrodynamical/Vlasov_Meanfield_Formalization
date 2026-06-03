@@ -9098,18 +9098,43 @@ theorem vlasovWellPosedness_glue_step
               have h_union := h_cont_f_left.union h_cont_f_right
               rw [Set.Iic_union_Ici] at h_union
               exact h_union.continuousAt Filter.univ_mem
-            -- Step 3: ContinuousAt of derivative function at T.
-            -- Sub-sorry (focused leaf): the integrand involves the convolution
-            -- `convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1` which
-            -- depends on t' via narrow continuity of `t' ↦ spatialMarginal(f_next t')`.
-            -- ~150-250 lines via DCT + W₁-Lipschitz-of-convolution from
-            -- `MathlibTODO_convolveLipschitzEstimate`.  Discharged in focused follow-up.
+            -- Step 3: ContinuousAt of the derivative functional at the seam T.
+            -- **API-LOCK (marquee push step 1, 2026-06-02)**: mirror `h_cont_f`'s
+            -- *proven* one-sided-union structure (Iic/Ici + `Set.Iic_union_Ici`).
+            -- The two sides are the locked leaves.  Each discharges by push-to-f₀ +
+            -- DCT; the integrand's force term carries
+            -- `convolveFunctionMeasure gradW (spatialMarginal (f_next ·)) z.1`, whose
+            -- seam continuity comes from the now-PROVEN
+            -- `convolveContinuousAtOfNarrowMoment` (Basic.lean) fed by four
+            -- marginal-curve hypotheses.  The hard sub-piece — the unbounded-`‖y‖`
+            -- moment-continuity DCT — is isolated at discharge time (LEFT uses
+            -- `spatialMarginal (f_prev ·)`, RIGHT uses `g`'s), reading the exact
+            -- consumer-need before fixing its signature (B3), since `h_cont_f` —
+            -- bounded integrand — exposes no moment-continuity to copy.
             have h_cont_g : ContinuousAt (fun t' =>
                 (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
                         @inner ℝ (PhysSpace d) _
                           (convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1)
                           (gradVφ z)) ∂(f_next t')) + 0) T := by
-              sorry
+              simp only [add_zero]
+              -- LEFT side (s ≤ T): f_next = f_prev = pushforward of f₀; force term
+              -- uses `spatialMarginal (f_prev ·)`.  Discharge: push-to-f₀ + DCT.
+              have h_left : ContinuousWithinAt
+                  (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                          @inner ℝ (PhysSpace d) _
+                            (convolveFunctionMeasure gradW (spatialMarginal (f_next s)) z.1)
+                            (gradVφ z)) ∂(f_next s)) (Set.Iic T) T := by
+                sorry
+              -- RIGHT side (s ≥ T): f_next = g (·−T) = composed pushforward; symmetric.
+              have h_right : ContinuousWithinAt
+                  (fun s => ∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                          @inner ℝ (PhysSpace d) _
+                            (convolveFunctionMeasure gradW (spatialMarginal (f_next s)) z.1)
+                            (gradVφ z)) ∂(f_next s)) (Set.Ici T) T := by
+                sorry
+              have h_union := h_left.union h_right
+              rw [Set.Iic_union_Ici] at h_union
+              exact h_union.continuousAt Filter.univ_mem
             -- Step 4: Apply the localized helper.
             rw [h_t_eq]
             exact hasDerivAt_of_hasDerivAt_of_ne_in_nhds h_diff_ne h_cont_f h_cont_g
