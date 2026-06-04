@@ -1160,44 +1160,85 @@ lemma wasserstein1_le_moments_sum
           integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
   linarith
 
-/-- **General-L contraction under Lipschitz pushforward (project-local).**
+/-- **Cost-generic non-expansion under Lipschitz pushforward** (O2 generalization,
+front-loaded for the W̄ migration, 2026-06-04).
 
-If `T : α → β` is `L`-Lipschitz and measurable, then
-`W₁(T_# μ, T_# ν) ≤ L · W₁(μ, ν)` for probability measures `μ, ν` on `α`.
+If `T : α → β` is `L`-Lipschitz **with respect to the costs**
+(`c_β (T x) (T y) ≤ L · c_α x y`) and `c_β` is dominated by the metric on `β`
+(`c_β x y ≤ dist x y`, which makes every `c_β`-oscillation test function
+1-Lipschitz, hence continuous and measurable — what `integral_map` needs), then
+pushforward by `T` is `L`-non-expansive in `wassersteinCost`:
+`wassersteinCost c_β (T_# μ) (T_# ν) ≤ L · wassersteinCost c_α μ ν`.
 
-This is the non-expansive property of W₁ under Lipschitz maps, the L=1 case
-of which is W₁ projection-contraction (a 1-Lipschitz map's pushforward
-doesn't increase W₁).  Proof is direct on the KR-dual definition without any
-Mathlib-OT-coupling dependency:
+`wasserstein1_le_of_lipschitz_map` (`c = dist`, below) and the W̄ analog
+(`c = fun x y => min (dist x y) 1`, see the sanity `example` below) are
+instances.  This is the single substantive piece of the O2 cost-parameterization
+that O2-minimal deferred to the W̄ step; landing it validates the W̄-additivity
+claim (the property lemmas instantiate at `min(dist,1)`). -/
+lemma wassersteinCost_le_of_lipschitz_map
+    {α β : Type*}
+    [MeasurableSpace α]
+    [MeasurableSpace β] [PseudoMetricSpace β] [OpensMeasurableSpace β]
+    (c_α : α → α → ℝ) (c_β : β → β → ℝ)
+    (hc_β_le : ∀ x y, c_β x y ≤ dist x y)
+    (T : α → β) (L : NNReal)
+    (hT_cost : ∀ x y, c_β (T x) (T y) ≤ (L : ℝ) * c_α x y)
+    (hT_meas : Measurable T)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
+    wassersteinCost c_β (Measure.map T μ) (Measure.map T ν) ≤
+      (L : ENNReal) * wassersteinCost c_α μ ν := by
+  unfold wassersteinCost
+  refine iSup_le fun g => iSup_le fun hg => ?_
+  -- `c_β`-oscillation + `c_β ≤ dist` ⇒ `g` is 1-Lipschitz ⇒ continuous ⇒ measurable.
+  have hg_lip : LipschitzWith 1 g := by
+    refine LipschitzWith.of_dist_le_mul fun x y => ?_
+    rw [Real.dist_eq, NNReal.coe_one, one_mul]
+    exact le_trans (hg x y) (hc_β_le x y)
+  have hg_meas : Measurable g := hg_lip.continuous.measurable
+  rw [integral_map hT_meas.aemeasurable hg_meas.aestronglyMeasurable,
+      integral_map hT_meas.aemeasurable hg_meas.aestronglyMeasurable]
+  -- `|g(Tx) - g(Ty)| ≤ c_β(Tx,Ty) ≤ L·c_α x y`.
+  have h_gT_osc : ∀ x y : α, |g (T x) - g (T y)| ≤ (L : ℝ) * c_α x y :=
+    fun x y => le_trans (hg (T x) (T y)) (hT_cost x y)
+  by_cases hL : L = 0
+  · -- L = 0: `g ∘ T` is constant (oscillation ≤ 0), so the integral difference is 0.
+    have hα_nonempty : Nonempty α := by
+      by_contra h
+      rw [not_nonempty_iff] at h
+      have : μ Set.univ = 0 := by
+        rw [Set.eq_empty_of_isEmpty (Set.univ : Set α)]; exact measure_empty
+      rw [measure_univ] at this; exact one_ne_zero this
+    obtain ⟨x₀⟩ := hα_nonempty
+    have h_gT_const : ∀ x : α, g (T x) = g (T x₀) := by
+      intro x
+      have h0 : |g (T x) - g (T x₀)| ≤ 0 := by
+        have := h_gT_osc x x₀; rw [hL, NNReal.coe_zero, zero_mul] at this; exact this
+      have : g (T x) - g (T x₀) = 0 := abs_eq_zero.mp (le_antisymm h0 (abs_nonneg _))
+      linarith
+    rw [funext h_gT_const]
+    simp [integral_const, measureReal_def, measure_univ, sub_self, ENNReal.ofReal_zero]
+  · -- L > 0: `h := (g ∘ T)/L` has `c_α`-oscillation; rescale.
+    have hL_pos : (0 : ℝ) < (L : ℝ) := NNReal.coe_pos.mpr (pos_iff_ne_zero.mpr hL)
+    have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
+    set h : α → ℝ := fun x => g (T x) / (L : ℝ) with h_def
+    have h_osc : ∀ x y, |h x - h y| ≤ c_α x y := by
+      intro x y
+      have h_eq : |h x - h y| = |g (T x) - g (T y)| / (L : ℝ) := by
+        simp only [h_def, ← sub_div, abs_div, abs_of_pos hL_pos]
+      rw [h_eq, div_le_iff₀ hL_pos]
+      calc |g (T x) - g (T y)| ≤ (L : ℝ) * c_α x y := h_gT_osc x y
+        _ = c_α x y * (L : ℝ) := mul_comm _ _
+    have h_int_factor : ∀ (κ : Measure α), ∫ x, g (T x) ∂κ = (L : ℝ) * ∫ x, h x ∂κ := by
+      intro κ; simp_rw [h_def]; rw [integral_div, mul_div_cancel₀ _ hL_ne]
+    have h_diff_factor : ∫ x, g (T x) ∂μ - ∫ x, g (T x) ∂ν =
+        (L : ℝ) * (∫ x, h x ∂μ - ∫ x, h x ∂ν) := by
+      rw [h_int_factor μ, h_int_factor ν]; ring
+    rw [h_diff_factor, ENNReal.ofReal_mul (NNReal.coe_nonneg L), ENNReal.ofReal_coe_nnreal]
+    refine mul_le_mul_of_nonneg_left ?_ (zero_le _)
+    exact le_iSup_of_le h (le_iSup_of_le h_osc le_rfl)
 
-1. Unfold `wasserstein1` and take `iSup_le` on the target's sup over
-   1-Lipschitz `g : β → ℝ`.
-2. Apply `integral_map` to rewrite `∫ g d(T_# μ) = ∫ (g ∘ T) dμ`.
-3. The composition `g ∘ T` is `L`-Lipschitz (`1 * L = L`).
-4. Case-split on `L`:
-   * If `L = 0`, then `T` is constant (any α nonempty, since μ is probability),
-     so `g ∘ T` is constant and the integral difference is `0`.
-   * If `L > 0`, scale by `1/L`: `h := (g ∘ T) / L` is 1-Lipschitz, and the
-     integral difference factors as `L * (∫ h dμ - ∫ h dν)`.  Apply
-     `le_iSup` at `h, h_lip` to bound by `L · W₁(μ, ν)`.
-
-**Stage 2b usage** (per the user 2026-05-31 brief): item 6's `_h_diff_bound`
-requires `‖b_f t x - b_g t x‖ ≤ (max 1 L) · W₁(f t, g t)`.  The chain
-composes `convolveDiff_norm_le` (L-Lipschitz via gradW) with this lemma
-applied at `L = 1` for the spatial-marginal projection `(x, v) ↦ x`.  The
-general-L version is the cleanest Mathlib-upstream candidate: same proof,
-reusable for any Lipschitz pushforward (e.g. characteristic-flow
-contraction).
-
-**No `MathlibTODO_` prefix**: this is project-local content, fully proved
-on the project's `wasserstein1` definition.  When `wasserstein1` is
-eventually replaced by Mathlib's stable W₁ API, this lemma migrates as a
-single bridge proof.
-
-**Bucket-1 Mathlib-upstream candidate** (forward-look): when Mathlib's W₁
-matures sufficiently to express this on its definition, this lemma is a
-clean PR target — pure functional-analytic, dual-formula direct, no
-project-specific content. -/
+/-- **W₁ non-expansion under Lipschitz pushforward** — the `c = dist` instance of
+`wassersteinCost_le_of_lipschitz_map`. -/
 lemma wasserstein1_le_of_lipschitz_map
     {α β : Type*}
     [MeasurableSpace α] [PseudoMetricSpace α]
@@ -1205,78 +1246,30 @@ lemma wasserstein1_le_of_lipschitz_map
     (T : α → β) (L : NNReal) (hT : LipschitzWith L T) (hT_meas : Measurable T)
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
     wasserstein1 (Measure.map T μ) (Measure.map T ν) ≤
-      (L : ENNReal) * wasserstein1 μ ν := by
-  simp only [wasserstein1_eq_iSup_lipschitz]
-  refine iSup_le fun g => iSup_le fun hg => ?_
-  -- Rewrite both integrals via integral_map.
-  rw [integral_map hT_meas.aemeasurable hg.continuous.measurable.aestronglyMeasurable,
-      integral_map hT_meas.aemeasurable hg.continuous.measurable.aestronglyMeasurable]
-  -- g ∘ T is L-Lipschitz (LipschitzWith.comp gives `1 * L = L`).
-  have h_compLip : LipschitzWith L (fun x => g (T x)) := by
-    have := hg.comp hT
-    simpa using this
-  -- Case on L.
-  by_cases hL : L = 0
-  · -- L = 0: T is constant, so g ∘ T is constant.  μ is a probability
-    -- measure, so α is nonempty (univ ≠ ∅).
-    have hα_nonempty : Nonempty α := by
-      by_contra h
-      rw [not_nonempty_iff] at h
-      have h_univ_eq : (Set.univ : Set α) = ∅ := Set.eq_empty_of_isEmpty _
-      have : μ Set.univ = 0 := by rw [h_univ_eq]; exact measure_empty
-      rw [measure_univ] at this
-      exact one_ne_zero this
-    obtain ⟨x₀⟩ := hα_nonempty
-    -- (g ∘ T) is constant because g is 1-Lipschitz, so it preserves
-    -- pseudo-distance-0.  `dist_eq_zero` is valid in ℝ (MetricSpace).
-    have h_gT_const : ∀ x : α, g (T x) = g (T x₀) := by
-      intro x
-      have hd_T : dist (T x) (T x₀) ≤ 0 := by
-        have := hT.dist_le_mul x x₀
-        rw [hL, NNReal.coe_zero, zero_mul] at this
-        exact this
-      have hd_g : dist (g (T x)) (g (T x₀)) ≤ 0 := by
-        calc dist (g (T x)) (g (T x₀))
-            ≤ (1 : NNReal) * dist (T x) (T x₀) := hg.dist_le_mul (T x) (T x₀)
-          _ = dist (T x) (T x₀) := by simp
-          _ ≤ 0 := hd_T
-      exact dist_eq_zero.mp (le_antisymm hd_g dist_nonneg)
-    have h_gT_constfun : (fun x => g (T x)) = (fun _ => g (T x₀)) := funext h_gT_const
-    rw [h_gT_constfun]
-    simp [integral_const, measureReal_def, measure_univ, sub_self, ENNReal.ofReal_zero]
-  · -- L > 0: scale g ∘ T by 1/L.
-    have hL_pos : (0 : ℝ) < (L : ℝ) := by
-      rw [NNReal.coe_pos]
-      exact pos_iff_ne_zero.mpr hL
-    have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
-    -- h := (g ∘ T) / L is 1-Lipschitz.
-    set h : α → ℝ := fun x => g (T x) / (L : ℝ) with h_def
-    have h_lip : LipschitzWith 1 h := by
-      refine LipschitzWith.of_dist_le_mul fun x y => ?_
-      have hLx : dist (g (T x)) (g (T y)) ≤ (L : ℝ) * dist x y :=
-        h_compLip.dist_le_mul x y
-      have h_dist_h : dist (h x) (h y) = dist (g (T x)) (g (T y)) / (L : ℝ) := by
-        simp only [h_def, Real.dist_eq, ← sub_div, abs_div, abs_of_pos hL_pos]
-      rw [h_dist_h, NNReal.coe_one, one_mul, div_le_iff₀ hL_pos, mul_comm]
-      exact hLx
-    -- Algebraic identity: ∫ (g∘T) dμ = L · ∫ h dμ (and same for ν).
-    have h_int_factor : ∀ (κ : Measure α), ∫ x, g (T x) ∂κ = (L : ℝ) * ∫ x, h x ∂κ := by
-      intro κ
-      simp_rw [h_def]
-      rw [integral_div, mul_div_cancel₀ _ hL_ne]
-    -- Factor: ∫ (g∘T) dμ - ∫ (g∘T) dν = L · (∫ h dμ - ∫ h dν).
-    have h_diff_factor : ∫ x, g (T x) ∂μ - ∫ x, g (T x) ∂ν =
-        (L : ℝ) * (∫ x, h x ∂μ - ∫ x, h x ∂ν) := by
-      rw [h_int_factor μ, h_int_factor ν]; ring
-    rw [h_diff_factor]
-    -- ofReal (L · d) = ofReal L · ofReal d = (L : ENNReal) · ofReal d (when L ≥ 0).
-    rw [ENNReal.ofReal_mul (NNReal.coe_nonneg L), ENNReal.ofReal_coe_nnreal]
-    -- Goal: (L : ENNReal) · ofReal (∫ h dμ - ∫ h dν) ≤ (L : ENNReal) · ⨆ f _, ofReal …
-    -- Use ENNReal.mul_le_mul_left for the inner inequality.
-    refine mul_le_mul_of_nonneg_left ?_ (zero_le _)
-    -- Goal: ofReal (∫ h dμ - ∫ h dν) ≤ ⨆ f _, ofReal (∫ f dμ - ∫ f dν)
-    -- Use le_iSup at (h, h_lip).
-    exact le_iSup_of_le h (le_iSup_of_le h_lip le_rfl)
+      (L : ENNReal) * wasserstein1 μ ν :=
+  wassersteinCost_le_of_lipschitz_map (fun x y => dist x y) (fun x y => dist x y)
+    (fun _ _ => le_refl _) T L (fun x y => hT.dist_le_mul x y) hT_meas μ ν
+
+/-- **W̄-additivity sanity check** (the instantiation O2-minimal could not run —
+there was no `c`-generic lemma to instantiate).  The truncated cost
+`min(dist, 1)` satisfies both hypotheses of `wassersteinCost_le_of_lipschitz_map`
+(`min(dist,1) ≤ dist`; and for 1-Lipschitz `T`,
+`min(dist(Tx,Ty),1) ≤ min(dist x y, 1)`), so the property lemma drops in at
+`c := fun x y => min (dist x y) 1`.  This validates that the W̄ migration is the
+additive instantiation the plan claims. -/
+example {α β : Type*}
+    [MeasurableSpace α] [PseudoMetricSpace α]
+    [MeasurableSpace β] [PseudoMetricSpace β] [OpensMeasurableSpace β]
+    (T : α → β) (hT : LipschitzWith 1 T) (hT_meas : Measurable T)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
+    wassersteinCost (fun x y => min (dist x y) 1) (Measure.map T μ) (Measure.map T ν) ≤
+      (1 : ENNReal) * wassersteinCost (fun x y => min (dist x y) 1) μ ν :=
+  wassersteinCost_le_of_lipschitz_map _ _ (fun x y => min_le_left _ _) T 1
+    (fun x y => by
+      rw [NNReal.coe_one, one_mul]
+      refine min_le_min ?_ (le_refl 1)
+      have := hT.dist_le_mul x y; rwa [NNReal.coe_one, one_mul] at this)
+    hT_meas μ ν
 
 /-- **KR-dual lower bound for `wasserstein1`** (the fourth property of the
 W₁-property API, banked as a property lemma for forward-looking
