@@ -394,6 +394,81 @@ theorem flow_difference_mild_bound
           rw [heq]
   linarith [ha_le, hnorm_le]
 
+/-- **Integrate a per-trajectory mild bound over the base measure (Tonelli step).**
+Given a base probability measure `π` on `Ω` and a family `w : ℝ → Ω → α`, if each
+trajectory satisfies the mild bound `‖w t ω‖ ≤ ‖w 0 ω‖ + ∫₀ᵗ (L‖w s ω‖ + ε s) ds`,
+then the integrated quantity `Q t := ∫ ‖w t ω‖ ∂π` satisfies
+`Q t ≤ Q 0 + ∫₀ᵗ (L · Q s + ε s) ds`. The `∫₀ᵗ L‖w s ω‖` term swaps via Tonelli. -/
+theorem integral_mild_bound
+    {Ω α : Type*} [MeasurableSpace Ω] [NormedAddCommGroup α]
+    [MeasurableSpace α] [BorelSpace α]
+    (π : Measure Ω) [IsProbabilityMeasure π]
+    (w : ℝ → Ω → α) (L : ℝ) (hL : 0 ≤ L) (ε : ℝ → ℝ) (T : ℝ) (hT : 0 ≤ T)
+    -- joint-measurability inputs (Carathéodory: continuous-in-time + measurable-in-ω)
+    (hw_cont : ∀ ω, Continuous (fun s => w s ω))
+    (hw_meas : ∀ s, Measurable (w s))
+    -- domination: ‖w s ω‖ ≤ dom ω uniformly on [0,T], dom integrable
+    (dom : Ω → ℝ) (hdom_int : Integrable dom π)
+    (hdom : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ ω, ‖w s ω‖ ≤ dom ω)
+    (hε_int : IntervalIntegrable ε MeasureTheory.volume 0 T)
+    (hε_nn : ∀ s ∈ Set.Icc (0:ℝ) T, 0 ≤ ε s)
+    -- the per-trajectory mild bound (e.g. from flow_difference_mild_bound)
+    (hper : ∀ ω, ∀ t ∈ Set.Icc (0:ℝ) T,
+      ‖w t ω‖ ≤ ‖w 0 ω‖ + ∫ s in (0:ℝ)..t, (L * ‖w s ω‖ + ε s)) :
+    ∀ t ∈ Set.Icc (0:ℝ) T,
+      (∫ ω, ‖w t ω‖ ∂π) ≤ (∫ ω, ‖w 0 ω‖ ∂π) +
+        ∫ s in (0:ℝ)..t, (L * (∫ ω, ‖w s ω‖ ∂π) + ε s) := by
+  -- joint measurability of `(s, ω) ↦ w s ω` and of its norm
+  have hjoint : Measurable (Function.uncurry w) :=
+    measurable_uncurry_of_continuous_of_measurable hw_cont hw_meas
+  have hjoint_norm : Measurable (fun p : ℝ × Ω => ‖w p.1 p.2‖) := hjoint.norm
+  -- abbreviation Q s := ∫ ω, ‖w s ω‖ ∂π
+  set Q : ℝ → ℝ := fun s => ∫ ω, ‖w s ω‖ ∂π with hQ
+  intro t ht
+  have h0t : (0:ℝ) ≤ t := ht.1
+  have htT : t ≤ T := ht.2
+  have hIcc_sub : Set.Icc (0:ℝ) t ⊆ Set.Icc 0 T := Set.Icc_subset_Icc_right htT
+  -- `w 0 ·` and `w t ·` are integrable over π (dominated by `dom`)
+  have h0_mem : (0:ℝ) ∈ Set.Icc (0:ℝ) T := ⟨le_refl 0, hT⟩
+  have ht_mem : t ∈ Set.Icc (0:ℝ) T := ht
+  have hint0 : Integrable (fun ω => ‖w 0 ω‖) π := by
+    refine hdom_int.mono' ((hw_meas 0).norm.aestronglyMeasurable) ?_
+    filter_upwards with ω
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact hdom 0 h0_mem ω
+  have hintt : Integrable (fun ω => ‖w t ω‖) π := by
+    refine hdom_int.mono' ((hw_meas t).norm.aestronglyMeasurable) ?_
+    filter_upwards with ω
+    rw [Real.norm_of_nonneg (norm_nonneg _)]
+    exact hdom t ht_mem ω
+  -- the inner integrand `g s ω := L * ‖w s ω‖ + ε s`
+  set g : ℝ → Ω → ℝ := fun s ω => L * ‖w s ω‖ + ε s with hg
+  -- product measure for the Tonelli swap
+  -- `volume.restrict (Set.uIoc 0 t)` is a finite measure (`uIoc 0 t = Ioc 0 t`)
+  have huIoc : Set.uIoc (0:ℝ) t = Set.Ioc 0 t := Set.uIoc_of_le h0t
+  have hvol_lt : MeasureTheory.volume (Set.uIoc (0:ℝ) t) < ⊤ := by
+    rw [huIoc, Real.volume_Ioc]; exact ENNReal.ofReal_lt_top
+  haveI hfin_restrict : IsFiniteMeasure (MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)) := by
+    refine ⟨?_⟩
+    rw [Measure.restrict_apply_univ]; exact hvol_lt
+  -- `ε` is integrable over `volume.restrict (uIoc 0 t)`
+  have hε_int_t : IntervalIntegrable ε MeasureTheory.volume 0 t :=
+    hε_int.mono_set (by
+      rw [Set.uIcc_of_le h0t, Set.uIcc_of_le hT]; exact Set.Icc_subset_Icc_right htT)
+  have hε_intOn : Integrable ε (MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)) :=
+    hε_int_t.def'
+  -- AEStronglyMeasurability of `uncurry g` over the product measure
+  have hg_aesm : AEStronglyMeasurable (Function.uncurry g)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) := by
+    have h1 : AEStronglyMeasurable (fun p : ℝ × Ω => L * ‖w p.1 p.2‖)
+        ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) :=
+      (measurable_const.mul hjoint_norm).aestronglyMeasurable
+    have h2 : AEStronglyMeasurable (fun p : ℝ × Ω => ε p.1)
+        ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) :=
+      hε_intOn.aestronglyMeasurable.comp_fst
+    exact h1.add h2
+  sorry
+
 /-- **`IsCharacteristicFlowOn`-flavored variant of `flow_distance_growth_bound`**.
 
 Same Gronwall growth bound, but for a flow specified by **boundary regularity
