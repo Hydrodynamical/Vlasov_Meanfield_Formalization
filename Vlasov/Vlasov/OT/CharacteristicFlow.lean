@@ -467,7 +467,74 @@ theorem integral_mild_bound
         ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) :=
       hε_intOn.aestronglyMeasurable.comp_fst
     exact h1.add h2
-  sorry
+  -- product integrability of `uncurry g`, via the dominator `L·dom(ω) + ε(s)`
+  have hdom_prod : Integrable (fun p : ℝ × Ω => L * dom p.2 + ε p.1)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) :=
+    ((hdom_int.const_mul L).comp_snd
+        (MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t))).add (hε_intOn.comp_fst π)
+  have hae_fst : ∀ᵐ p : ℝ × Ω
+      ∂((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π), p.1 ∈ Set.uIoc (0:ℝ) t :=
+    (MeasureTheory.Measure.quasiMeasurePreserving_fst).tendsto_ae.eventually
+      (MeasureTheory.ae_restrict_mem measurableSet_uIoc)
+  have hg_int : Integrable (Function.uncurry g)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)).prod π) := by
+    refine hdom_prod.mono' hg_aesm ?_
+    filter_upwards [hae_fst] with p hp
+    have hp_icc : p.1 ∈ Set.Icc (0:ℝ) T := by
+      rw [huIoc] at hp; exact ⟨le_of_lt hp.1, hp.2.trans htT⟩
+    have hwle : ‖w p.1 p.2‖ ≤ dom p.2 := hdom p.1 hp_icc p.2
+    have hεnn : 0 ≤ ε p.1 := hε_nn p.1 hp_icc
+    have hg_nn : 0 ≤ L * ‖w p.1 p.2‖ + ε p.1 :=
+      add_nonneg (mul_nonneg hL (norm_nonneg _)) hεnn
+    show ‖L * ‖w p.1 p.2‖ + ε p.1‖ ≤ L * dom p.2 + ε p.1
+    rw [Real.norm_of_nonneg hg_nn]
+    nlinarith [mul_le_mul_of_nonneg_left hwle hL]
+  -- inner intervalIntegral = integral against the restricted measure
+  have hconv : ∀ ω, (∫ s in (0:ℝ)..t, g s ω)
+      = ∫ s, g s ω ∂(MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)) := by
+    intro ω
+    rw [intervalIntegral.integral_of_le h0t, ← huIoc]
+  -- marginal integrability `ω ↦ ∫ s, g s ω`
+  have hmarg : Integrable
+      (fun ω => ∫ s, g s ω ∂(MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t))) π :=
+    hg_int.integral_prod_right
+  have hinner_int : Integrable (fun ω => ∫ s in (0:ℝ)..t, g s ω) π := by
+    simpa only [hconv] using hmarg
+  -- per-`s` identity  ∫ ω, g s ω ∂π = L · (∫ ω, ‖w s ω‖ ∂π) + ε s
+  have hg_int_s : ∀ s ∈ Set.Icc (0:ℝ) T, Integrable (fun ω => ‖w s ω‖) π := by
+    intro s hs
+    refine hdom_int.mono' ((hw_meas s).norm.aestronglyMeasurable) ?_
+    filter_upwards with ω
+    rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hdom s hs ω
+  have hQg : ∀ s ∈ Set.Icc (0:ℝ) T,
+      (∫ ω, g s ω ∂π) = L * (∫ ω, ‖w s ω‖ ∂π) + ε s := by
+    intro s hs
+    simp only [hg]
+    rw [integral_add ((hg_int_s s hs).const_mul L) (integrable_const _), integral_const_mul]
+    congr 1
+    simp [integral_const, measureReal_def, measure_univ]
+  -- the double integral, via Tonelli
+  have hdouble : (∫ ω, (∫ s in (0:ℝ)..t, g s ω) ∂π)
+      = ∫ s in (0:ℝ)..t, (L * (∫ ω, ‖w s ω‖ ∂π) + ε s) := by
+    calc (∫ ω, (∫ s in (0:ℝ)..t, g s ω) ∂π)
+        = ∫ ω, (∫ s, g s ω ∂(MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t))) ∂π := by
+          simp only [hconv]
+      _ = ∫ s, (∫ ω, g s ω ∂π) ∂(MeasureTheory.volume.restrict (Set.uIoc (0:ℝ) t)) :=
+          (MeasureTheory.integral_integral_swap hg_int).symm
+      _ = ∫ s in (0:ℝ)..t, (∫ ω, g s ω ∂π) := by
+          rw [huIoc, ← intervalIntegral.integral_of_le h0t]
+      _ = ∫ s in (0:ℝ)..t, (L * (∫ ω, ‖w s ω‖ ∂π) + ε s) := by
+          refine intervalIntegral.integral_congr (fun s hs => ?_)
+          rw [Set.uIcc_of_le h0t] at hs
+          exact hQg s ⟨hs.1, hs.2.trans htT⟩
+  -- assemble
+  calc (∫ ω, ‖w t ω‖ ∂π)
+      ≤ ∫ ω, (‖w 0 ω‖ + ∫ s in (0:ℝ)..t, g s ω) ∂π :=
+        integral_mono hintt (hint0.add hinner_int) (fun ω => hper ω t ht)
+    _ = (∫ ω, ‖w 0 ω‖ ∂π) + ∫ ω, (∫ s in (0:ℝ)..t, g s ω) ∂π :=
+        integral_add hint0 hinner_int
+    _ = (∫ ω, ‖w 0 ω‖ ∂π) + ∫ s in (0:ℝ)..t, (L * (∫ ω, ‖w s ω‖ ∂π) + ε s) := by
+        rw [hdouble]
 
 /-- **`IsCharacteristicFlowOn`-flavored variant of `flow_distance_growth_bound`**.
 
