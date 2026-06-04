@@ -1358,6 +1358,59 @@ example {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
   ⟨wassersteinCost_self _ μ, wassersteinCost_comm _ μ ν,
    wassersteinCost_triangle _ μ ν τ, wassersteinCost_dual_lower_bound _ μ ν f hf⟩
 
+/-! ### `wassersteinBar` — the truncated (cutoff) Wasserstein-1 distance W̄
+
+The W̄ migration target (Dobrushin 1979 §5): `W̄ := wassersteinCost (min(dist, 1))`.
+The bounded cost makes the dual test class *bounded* 1-Lipschitz, so W̄ metrizes
+narrow convergence directly and is always finite (no moment hypotheses).  The
+property layer instantiates verbatim from the cost-generic lemmas (gate-1
+validated): `min(dist, 1)` is a continuous pseudometric dominated by `dist`, so
+every hypothesis is met. -/
+
+/-- The **truncated Wasserstein-1 distance** `W̄` (Dobrushin 1979 §5): the
+`c = min(dist, 1)` instance of `wassersteinCost`. -/
+noncomputable def wassersteinBar {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) : ENNReal :=
+  wassersteinCost (fun x y => min (dist x y) 1) μ ν
+
+lemma wassersteinBar_self {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ : Measure α) : wassersteinBar μ μ = 0 :=
+  wassersteinCost_self _ μ
+
+lemma wassersteinBar_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) : wassersteinBar μ ν = wassersteinBar ν μ :=
+  wassersteinCost_comm _ μ ν
+
+lemma wassersteinBar_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν τ : Measure α) :
+    wassersteinBar μ τ ≤ wassersteinBar μ ν + wassersteinBar ν τ :=
+  wassersteinCost_triangle _ μ ν τ
+
+lemma wassersteinBar_dual_lower_bound {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) (f : α → ℝ) (hf : ∀ x y, |f x - f y| ≤ min (dist x y) 1) :
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wassersteinBar μ ν :=
+  wassersteinCost_dual_lower_bound _ μ ν f hf
+
+/-- W̄ non-expansion under 1-Lipschitz pushforward: `W̄(T_# μ, T_# ν) ≤ W̄(μ, ν)`.
+The cost-Lipschitz hypothesis is `min(dist(Tx,Ty),1) ≤ min(dist x y, 1)` (from
+`dist(Tx,Ty) ≤ dist x y`). -/
+lemma wassersteinBar_le_of_lipschitz_map {α β : Type*}
+    [MeasurableSpace α] [PseudoMetricSpace α]
+    [MeasurableSpace β] [PseudoMetricSpace β] [OpensMeasurableSpace β]
+    (T : α → β) (hT : LipschitzWith 1 T) (hT_meas : Measurable T)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
+    wassersteinBar (Measure.map T μ) (Measure.map T ν) ≤ wassersteinBar μ ν := by
+  unfold wassersteinBar
+  have h := wassersteinCost_le_of_lipschitz_map
+    (fun x y => min (dist x y) 1) (fun x y => min (dist x y) 1)
+    (fun x y => min_le_left _ _) T 1
+    (fun x y => by
+      rw [NNReal.coe_one, one_mul]
+      refine min_le_min ?_ (le_refl 1)
+      have := hT.dist_le_mul x y; rwa [NNReal.coe_one, one_mul] at this)
+    hT_meas μ ν
+  rwa [ENNReal.coe_one, one_mul] at h
+
 /-- **Mathlib-TODO (pure measure theory + functional analysis):
 bounded-continuous integral equality from 1-Lipschitz integral equality
 on first-moment-integrable probability measures over Polish normed
