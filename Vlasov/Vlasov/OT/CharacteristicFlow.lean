@@ -536,6 +536,166 @@ theorem integral_mild_bound
     _ = (∫ ω, ‖w 0 ω‖ ∂π) + ∫ s in (0:ℝ)..t, (L * (∫ ω, ‖w s ω‖ ∂π) + ε s) := by
         rw [hdouble]
 
+/-- **Integrated coupling-Gronwall bound** (the `M→0` collapse core, base-measure
+generic, 2026-06-04).
+
+Given a base probability measure `π` on `Ω` and two parameter-families of
+trajectories `X_f, X_g : ℝ → Ω → α` solving ODEs with `L`-Lipschitz vector fields
+`b_f, b_g` on `[0, T]`, with a cross-field bound `‖b_f s y - b_g s y‖ ≤ ε s` whose
+amplitude `ε s` is **self-referentially** controlled by the integrated trajectory
+distance `Q s := ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π` (i.e. `ε s ≤ L · Q s`), the
+integrated distance obeys the closed Gronwall bound
+`Q t ≤ Q 0 · exp (2 L t)` on `[0, T]`.
+
+**Composition** (the collapse pipeline):
+* per-`ω`, `flow_difference_mild_bound` gives the mild integral inequality
+  `‖X_f t ω - X_g t ω‖ ≤ ‖X_f 0 ω - X_g 0 ω‖ + ∫₀ᵗ (L‖X_f s ω - X_g s ω‖ + ε s)`;
+* `integral_mild_bound` integrates this over `π` (Tonelli on a nonnegative
+  integrand), yielding `Q t ≤ Q 0 + ∫₀ᵗ (L·Q s + ε s)`;
+* the self-reference `ε s ≤ L·Q s` collapses the integrand to `2 L · Q s`;
+* `gronwall_mild_le` (scalar mild Gronwall) closes to `Q 0 · exp (2 L t)`.
+
+**Clamp bridge** (L11): `integral_mild_bound` and the DCT continuity of `Q`
+require *global*-in-`s` continuity, but the flow regularity is only on the
+window `[0, T]`.  We work with the clamped flow `s ↦ X_f (clamp s) ω` (globally
+continuous, agreeing with `X_f` on `[0, T]`), apply the window machinery to it,
+and transfer back on `[0, T]` where `clamp = id` via integrand congruence.
+
+**Base-measure genericity**: `π` is abstract, so this serves both the
+uniqueness call site (`π = f 0`, `Q 0 = 0`, Foundation-B-free) and the
+mean-field call site (`π` an optimal coupling, `Q 0 = W₁(f 0, g 0)`). -/
+theorem integrated_coupling_gronwall_bound
+    {Ω α : Type*} [MeasurableSpace Ω]
+    [NormedAddCommGroup α] [NormedSpace ℝ α] [CompleteSpace α]
+    [MeasurableSpace α] [BorelSpace α] [MeasurableSub₂ α]
+    (π : Measure Ω) [IsProbabilityMeasure π]
+    (X_f X_g : ℝ → Ω → α) (b_f b_g : ℝ → α → α) (L : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (hL_f : ∀ t, LipschitzWith L (b_f t))
+    -- per-`ω` flow regularity (matches `flow_difference_mild_bound`)
+    (hcont_f : ∀ ω, ContinuousOn (fun s => X_f s ω) (Set.Icc 0 T))
+    (hcont_g : ∀ ω, ContinuousOn (fun s => X_g s ω) (Set.Icc 0 T))
+    (hderiv_f : ∀ ω, ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt (fun s => X_f s ω) (b_f s (X_f s ω)) (Set.Ioi s) s)
+    (hderiv_g : ∀ ω, ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt (fun s => X_g s ω) (b_g s (X_g s ω)) (Set.Ioi s) s)
+    (hint : ∀ ω, IntervalIntegrable
+      (fun s => b_f s (X_f s ω) - b_g s (X_g s ω)) MeasureTheory.volume 0 T)
+    -- measurability + domination for the Tonelli / DCT
+    (hmeas_f : ∀ s, Measurable (X_f s)) (hmeas_g : ∀ s, Measurable (X_g s))
+    (dom : Ω → ℝ) (hdom_int : Integrable dom π)
+    (hdom : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω)
+    -- the cross-field bound `ε` and its self-reference to `Q`
+    (ε : ℝ → ℝ) (hε_int : IntervalIntegrable ε MeasureTheory.volume 0 T)
+    (hε_nn : ∀ s ∈ Set.Icc (0:ℝ) T, 0 ≤ ε s)
+    (h_diff : ∀ ω, ∀ s ∈ Set.Icc (0:ℝ) T,
+      ‖b_f s (X_g s ω) - b_g s (X_g s ω)‖ ≤ ε s)
+    (h_self : ∀ s ∈ Set.Icc (0:ℝ) T,
+      ε s ≤ (L:ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π) :
+    ∀ t ∈ Set.Icc (0:ℝ) T,
+      (∫ ω, ‖X_f t ω - X_g t ω‖ ∂π) ≤
+        (∫ ω, ‖X_f 0 ω - X_g 0 ω‖ ∂π) * Real.exp (2 * (L:ℝ) * t) := by
+  -- clamp into `[0, T]` (opaque; used only through its three properties)
+  obtain ⟨clamp, hclamp_cont, hclamp_mem, hclamp_id⟩ :
+      ∃ clamp : ℝ → ℝ, Continuous clamp ∧ (∀ s, clamp s ∈ Set.Icc (0:ℝ) T) ∧
+        (∀ s ∈ Set.Icc (0:ℝ) T, clamp s = s) := by
+    refine ⟨fun s => max 0 (min s T), ?_, ?_, ?_⟩
+    · exact continuous_const.max (continuous_id.min continuous_const)
+    · intro s; exact ⟨le_max_left _ _, max_le hT (min_le_right _ _)⟩
+    · intro s hs; show max 0 (min s T) = s
+      rw [min_eq_left hs.2, max_eq_right hs.1]
+  -- the clamped difference flow `W s ω = X_f (clamp s) ω - X_g (clamp s) ω`
+  set W : ℝ → Ω → α := fun s ω => X_f (clamp s) ω - X_g (clamp s) ω with hW_def
+  have hW_cont : ∀ ω, Continuous (fun s => W s ω) := by
+    intro ω; simp only [hW_def]
+    exact ((hcont_f ω).sub (hcont_g ω)).comp_continuous hclamp_cont hclamp_mem
+  have hW_meas : ∀ s, Measurable (W s) := by
+    intro s; simp only [hW_def]
+    exact (hmeas_f (clamp s)).sub (hmeas_g (clamp s))
+  have hW_dom : ∀ s, ∀ ω, ‖W s ω‖ ≤ dom ω := by
+    intro s ω; simp only [hW_def]; exact hdom (clamp s) (hclamp_mem s) ω
+  -- on `[0, T]`, `W` agrees with the unclamped difference, so the integrals agree
+  have hQW_eq : ∀ s ∈ Set.Icc (0:ℝ) T,
+      (∫ ω, ‖W s ω‖ ∂π) = ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π := by
+    intro s hs
+    apply integral_congr_ae
+    filter_upwards with ω
+    simp only [hW_def, hclamp_id s hs]
+  -- per-`ω` mild bound (unclamped) via `flow_difference_mild_bound`
+  have hper_w : ∀ ω, ∀ t ∈ Set.Icc (0:ℝ) T,
+      ‖X_f t ω - X_g t ω‖ ≤ ‖X_f 0 ω - X_g 0 ω‖ +
+        ∫ s in (0:ℝ)..t, ((L:ℝ) * ‖X_f s ω - X_g s ω‖ + ε s) := fun ω =>
+    flow_difference_mild_bound b_f b_g L hL_f (fun s => X_f s ω) (fun s => X_g s ω) T
+      (hcont_f ω) (hcont_g ω) (hderiv_f ω) (hderiv_g ω) (hint ω) ε hε_int (h_diff ω)
+  -- transfer the mild bound to the clamped flow `W` (needed by `integral_mild_bound`)
+  have hper_W : ∀ ω, ∀ t ∈ Set.Icc (0:ℝ) T,
+      ‖W t ω‖ ≤ ‖W 0 ω‖ + ∫ s in (0:ℝ)..t, ((L:ℝ) * ‖W s ω‖ + ε s) := by
+    intro ω t ht
+    have h0t : (0:ℝ) ≤ t := ht.1
+    have hWt : W t ω = X_f t ω - X_g t ω := by simp only [hW_def, hclamp_id t ht]
+    have hW0 : W 0 ω = X_f 0 ω - X_g 0 ω := by
+      simp only [hW_def, hclamp_id 0 ⟨le_refl 0, hT⟩]
+    have hintegrand : (∫ s in (0:ℝ)..t, ((L:ℝ) * ‖W s ω‖ + ε s))
+        = ∫ s in (0:ℝ)..t, ((L:ℝ) * ‖X_f s ω - X_g s ω‖ + ε s) := by
+      refine intervalIntegral.integral_congr (fun s hs => ?_)
+      rw [Set.uIcc_of_le h0t] at hs
+      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨hs.1, hs.2.trans ht.2⟩
+      simp only [hW_def, hclamp_id s hsT]
+    rw [hWt, hW0, hintegrand]; exact hper_w ω t ht
+  -- integrate over `π` (Tonelli): `Q t ≤ Q 0 + ∫₀ᵗ (L·Q s + ε s)`
+  have hQW := integral_mild_bound π W (L:ℝ) (NNReal.coe_nonneg L) ε T hT
+    hW_cont hW_meas dom hdom_int (fun s _ ω => hW_dom s ω) hε_int hε_nn hper_W
+  -- `Q` is globally continuous via DCT (clamped flow globally dominated)
+  have hQW_cont : Continuous (fun s => ∫ ω, ‖W s ω‖ ∂π) := by
+    refine continuous_of_dominated
+      (fun s => (hW_meas s).norm.aestronglyMeasurable)
+      (fun s => Filter.Eventually.of_forall (fun ω => ?_)) hdom_int
+      (Filter.Eventually.of_forall (fun ω => (hW_cont ω).norm))
+    rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hW_dom s ω
+  -- collapse the integrand to `2 L · Q s` using the self-reference
+  have hmild_W : ∀ t ∈ Set.Icc (0:ℝ) T,
+      (∫ ω, ‖W t ω‖ ∂π) ≤ (∫ ω, ‖W 0 ω‖ ∂π)
+        + (2 * (L:ℝ)) * ∫ s in (0:ℝ)..t, (∫ ω, ‖W s ω‖ ∂π) := by
+    intro t ht
+    have h0t : (0:ℝ) ≤ t := ht.1
+    have hstep := hQW t ht
+    have hII_lhs : IntervalIntegrable
+        (fun s => (L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) + ε s) MeasureTheory.volume 0 t :=
+      ((hQW_cont.intervalIntegrable 0 t).const_mul (L:ℝ)).add
+        (hε_int.mono_set (by
+          rw [Set.uIcc_of_le h0t, Set.uIcc_of_le hT]
+          exact Set.Icc_subset_Icc_right ht.2))
+    have hII_rhs : IntervalIntegrable
+        (fun s => (2 * (L:ℝ)) * (∫ ω, ‖W s ω‖ ∂π)) MeasureTheory.volume 0 t :=
+      (hQW_cont.intervalIntegrable 0 t).const_mul (2 * (L:ℝ))
+    have hmono : (∫ s in (0:ℝ)..t, ((L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) + ε s))
+        ≤ ∫ s in (0:ℝ)..t, (2 * (L:ℝ)) * (∫ ω, ‖W s ω‖ ∂π) := by
+      refine intervalIntegral.integral_mono_on h0t hII_lhs hII_rhs (fun s hs => ?_)
+      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨hs.1, hs.2.trans ht.2⟩
+      have hεle : ε s ≤ (L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) := by
+        calc ε s ≤ (L:ℝ) * (∫ ω, ‖X_f s ω - X_g s ω‖ ∂π) := h_self s hsT
+          _ = (L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) := by rw [hQW_eq s hsT]
+      have hring : (2 * (L:ℝ)) * (∫ ω, ‖W s ω‖ ∂π)
+          = (L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) + (L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) := by ring
+      rw [hring]; linarith [hεle]
+    calc (∫ ω, ‖W t ω‖ ∂π)
+        ≤ (∫ ω, ‖W 0 ω‖ ∂π)
+          + ∫ s in (0:ℝ)..t, ((L:ℝ) * (∫ ω, ‖W s ω‖ ∂π) + ε s) := hstep
+      _ ≤ (∫ ω, ‖W 0 ω‖ ∂π)
+          + ∫ s in (0:ℝ)..t, (2 * (L:ℝ)) * (∫ ω, ‖W s ω‖ ∂π) := by linarith [hmono]
+      _ = (∫ ω, ‖W 0 ω‖ ∂π)
+          + (2 * (L:ℝ)) * ∫ s in (0:ℝ)..t, (∫ ω, ‖W s ω‖ ∂π) := by
+            rw [intervalIntegral.integral_const_mul]
+  -- scalar mild Gronwall on `Q`
+  have hgron := gronwall_mild_le (fun s => ∫ ω, ‖W s ω‖ ∂π)
+    (∫ ω, ‖W 0 ω‖ ∂π) (2 * (L:ℝ)) T
+    (by have := NNReal.coe_nonneg L; linarith)
+    (integral_nonneg (fun ω => norm_nonneg _))
+    hQW_cont (fun s => integral_nonneg (fun ω => norm_nonneg _)) hmild_W
+  -- transfer back to the unclamped difference on `[0, T]`
+  intro t ht
+  rw [← hQW_eq t ht, ← hQW_eq 0 ⟨le_refl 0, hT⟩]
+  exact hgron t ht
+
 /-- **`IsCharacteristicFlowOn`-flavored variant of `flow_distance_growth_bound`**.
 
 Same Gronwall growth bound, but for a flow specified by **boundary regularity
