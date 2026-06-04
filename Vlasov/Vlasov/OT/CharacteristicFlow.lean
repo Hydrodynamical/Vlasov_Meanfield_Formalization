@@ -312,6 +312,88 @@ theorem flow_difference_growth_bound
   have hg := norm_le_gronwallBound_of_norm_deriv_right_le hcont hderiv h_init hbound t ht
   simpa using hg
 
+/-- **Per-trajectory mild (integral-form) difference bound** (integrated-Dobrushin
+collapse, 2026-06-03).  Mild-form companion to `flow_difference_growth_bound`:
+the raw integral inequality
+`‖γ_f t − γ_g t‖ ≤ ‖γ_f 0 − γ_g 0‖ + ∫₀ᵗ (L‖γ_f s − γ_g s‖ + ε s) ds`,
+keeping the forcing `ε s` *inside* the integral.  After integrating this over
+the base measure, the self-reference `ε s = L·W₁(f s,g s) ≤ L·Q(s)` is resolved
+by `gronwall_mild_le` — avoiding the constant-`ε` smallness that
+`flow_difference_growth_bound`'s closed form would force (and the blocked
+windowing that smallness needs). -/
+theorem flow_difference_mild_bound
+    {α : Type*} [NormedAddCommGroup α] [NormedSpace ℝ α] [CompleteSpace α]
+    (b_f b_g : ℝ → α → α) (L : NNReal) (hL_f : ∀ t, LipschitzWith L (b_f t))
+    (γ_f γ_g : ℝ → α) (T : ℝ)
+    (hcont_f : ContinuousOn γ_f (Set.Icc 0 T))
+    (hcont_g : ContinuousOn γ_g (Set.Icc 0 T))
+    (hderiv_f : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt γ_f (b_f s (γ_f s)) (Set.Ioi s) s)
+    (hderiv_g : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt γ_g (b_g s (γ_g s)) (Set.Ioi s) s)
+    (hint : IntervalIntegrable (fun s => b_f s (γ_f s) - b_g s (γ_g s))
+      MeasureTheory.volume 0 T)
+    (ε : ℝ → ℝ) (hε_int : IntervalIntegrable ε MeasureTheory.volume 0 T)
+    (h_diff : ∀ s ∈ Set.Icc (0:ℝ) T, ‖b_f s (γ_g s) - b_g s (γ_g s)‖ ≤ ε s) :
+    ∀ t ∈ Set.Icc (0:ℝ) T,
+      ‖γ_f t - γ_g t‖ ≤ ‖γ_f 0 - γ_g 0‖ +
+        ∫ s in (0:ℝ)..t, ((L : ℝ) * ‖γ_f s - γ_g s‖ + ε s) := by
+  intro t ht
+  have h0t : (0:ℝ) ≤ t := ht.1
+  have htT : t ≤ T := ht.2
+  have hIcc_sub : Set.Icc (0:ℝ) t ⊆ Set.Icc 0 T := Set.Icc_subset_Icc_right htT
+  have hcont_diff : ContinuousOn (fun s => γ_f s - γ_g s) (Set.Icc 0 t) :=
+    (hcont_f.mono hIcc_sub).sub (hcont_g.mono hIcc_sub)
+  have hderiv_diff : ∀ s ∈ Set.Ioo (0:ℝ) t,
+      HasDerivWithinAt (fun s => γ_f s - γ_g s)
+        (b_f s (γ_f s) - b_g s (γ_g s)) (Set.Ioi s) s := by
+    intro s hs
+    have hs' : s ∈ Set.Ioo (0:ℝ) T := ⟨hs.1, hs.2.trans_le htT⟩
+    exact (hderiv_f s hs').sub (hderiv_g s hs')
+  have hint_t : IntervalIntegrable (fun s => b_f s (γ_f s) - b_g s (γ_g s))
+      MeasureTheory.volume 0 t :=
+    hint.mono_set (by
+      rw [Set.uIcc_of_le h0t, Set.uIcc_of_le (h0t.trans htT)]; exact hIcc_sub)
+  have hftc := intervalIntegral.integral_eq_sub_of_hasDeriv_right_of_le h0t hcont_diff
+    hderiv_diff hint_t
+  have hsplit : ∀ s ∈ Set.Icc (0:ℝ) t,
+      ‖b_f s (γ_f s) - b_g s (γ_g s)‖ ≤ (L:ℝ) * ‖γ_f s - γ_g s‖ + ε s := by
+    intro s hs
+    have hsT : s ∈ Set.Icc (0:ℝ) T := hIcc_sub hs
+    have h_lip : ‖b_f s (γ_f s) - b_f s (γ_g s)‖ ≤ (L:ℝ) * ‖γ_f s - γ_g s‖ := by
+      have := (hL_f s).dist_le_mul (γ_f s) (γ_g s)
+      rwa [dist_eq_norm, dist_eq_norm] at this
+    calc ‖b_f s (γ_f s) - b_g s (γ_g s)‖
+        = ‖(b_f s (γ_f s) - b_f s (γ_g s)) + (b_f s (γ_g s) - b_g s (γ_g s))‖ := by
+          congr 1; abel
+      _ ≤ ‖b_f s (γ_f s) - b_f s (γ_g s)‖ + ‖b_f s (γ_g s) - b_g s (γ_g s)‖ :=
+          norm_add_le _ _
+      _ ≤ (L:ℝ) * ‖γ_f s - γ_g s‖ + ε s := add_le_add h_lip (h_diff s hsT)
+  have hci : IntervalIntegrable (fun s => (L:ℝ) * ‖γ_f s - γ_g s‖ + ε s)
+      MeasureTheory.volume 0 t := by
+    refine IntervalIntegrable.add (IntervalIntegrable.const_mul ?_ (L:ℝ))
+      (hε_int.mono_set (by
+        rw [Set.uIcc_of_le h0t, Set.uIcc_of_le (h0t.trans htT)]; exact hIcc_sub))
+    refine ContinuousOn.intervalIntegrable ?_
+    rw [Set.uIcc_of_le h0t]; exact hcont_diff.norm
+  have hnorm_le : ‖∫ s in (0:ℝ)..t, (b_f s (γ_f s) - b_g s (γ_g s))‖ ≤
+      ∫ s in (0:ℝ)..t, ((L:ℝ) * ‖γ_f s - γ_g s‖ + ε s) := by
+    calc ‖∫ s in (0:ℝ)..t, (b_f s (γ_f s) - b_g s (γ_g s))‖
+        ≤ ∫ s in (0:ℝ)..t, ‖b_f s (γ_f s) - b_g s (γ_g s)‖ :=
+          intervalIntegral.norm_integral_le_integral_norm h0t
+      _ ≤ ∫ s in (0:ℝ)..t, ((L:ℝ) * ‖γ_f s - γ_g s‖ + ε s) :=
+          intervalIntegral.integral_mono_on h0t hint_t.norm hci hsplit
+  have ha_le : ‖γ_f t - γ_g t‖ ≤ ‖γ_f 0 - γ_g 0‖ +
+      ‖∫ s in (0:ℝ)..t, (b_f s (γ_f s) - b_g s (γ_g s))‖ := by
+    have heq : (γ_f t - γ_g t) - (γ_f 0 - γ_g 0) =
+        ∫ s in (0:ℝ)..t, (b_f s (γ_f s) - b_g s (γ_g s)) := hftc.symm
+    calc ‖γ_f t - γ_g t‖
+        = ‖(γ_f 0 - γ_g 0) + ((γ_f t - γ_g t) - (γ_f 0 - γ_g 0))‖ := by congr 1; abel
+      _ ≤ ‖γ_f 0 - γ_g 0‖ + ‖(γ_f t - γ_g t) - (γ_f 0 - γ_g 0)‖ := norm_add_le _ _
+      _ = ‖γ_f 0 - γ_g 0‖ + ‖∫ s in (0:ℝ)..t, (b_f s (γ_f s) - b_g s (γ_g s))‖ := by
+          rw [heq]
+  linarith [ha_le, hnorm_le]
+
 /-- **`IsCharacteristicFlowOn`-flavored variant of `flow_distance_growth_bound`**.
 
 Same Gronwall growth bound, but for a flow specified by **boundary regularity
