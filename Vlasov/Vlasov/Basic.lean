@@ -1037,36 +1037,54 @@ Together they make `wasserstein1` usable as the codomain of a sup-W₁ pseudo-
 distance on time-indexed measure curves (see `supW1On` in
 `Vlasov/OT/CharacteristicFlow.lean`). -/
 
-/-- Self-distance is zero: `wasserstein1 μ μ = 0`. -/
-lemma wasserstein1_self {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
-    (μ : Measure α) : wasserstein1 μ μ = 0 := by
-  simp only [wasserstein1_eq_iSup_lipschitz]
+/-- `wassersteinCost c μ μ = 0` (cost-generic; no hypothesis on `c`).  Self-distance
+is zero; `wasserstein1_self` is the `c = dist` corollary. -/
+lemma wassersteinCost_self {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ : Measure α) : wassersteinCost c μ μ = 0 := by
+  unfold wassersteinCost
   apply le_antisymm _ (zero_le _)
   refine iSup_le fun _ => iSup_le fun _ => ?_
   simp
 
-/-- Symmetry: `wasserstein1 μ ν = wasserstein1 ν μ`. -/
-lemma wasserstein1_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
-    (μ ν : Measure α) : wasserstein1 μ ν = wasserstein1 ν μ := by
-  -- Use the bijection `f ↦ -f` on 1-Lipschitz functions: it sends the integral
-  -- diff `∫f dμ − ∫f dν` to its negation `∫f dν − ∫f dμ`, and ENNReal.ofReal
-  -- of both expressions agree after rearrangement.
-  simp only [wasserstein1_eq_iSup_lipschitz]
+lemma wasserstein1_self {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ : Measure α) : wasserstein1 μ μ = 0 :=
+  wassersteinCost_self (fun x y => dist x y) μ
+
+/-- Symmetry: `wassersteinCost c μ ν = wassersteinCost c ν μ`.  The oscillation
+test class `|f x − f y| ≤ c x y` is closed under `f ↦ −f`, so **no symmetry
+assumption on `c`** is needed. -/
+lemma wassersteinCost_comm {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ ν : Measure α) :
+    wassersteinCost c μ ν = wassersteinCost c ν μ := by
+  unfold wassersteinCost
+  have hneg : ∀ (f : α → ℝ), (∀ x y, |f x - f y| ≤ c x y) →
+      ∀ x y, |(-f) x - (-f) y| ≤ c x y := by
+    intro f hf x y
+    simp only [Pi.neg_apply]
+    rw [show -f x - -f y = -(f x - f y) by ring, abs_neg]
+    exact hf x y
   apply le_antisymm
   · refine iSup_le fun f => iSup_le fun hf => ?_
-    refine le_iSup_of_le (-f) (le_iSup_of_le hf.neg (le_of_eq ?_))
+    refine le_iSup_of_le (-f) (le_iSup_of_le (hneg f hf) (le_of_eq ?_))
     simp only [Pi.neg_apply, integral_neg]
     congr 1; ring
   · refine iSup_le fun f => iSup_le fun hf => ?_
-    refine le_iSup_of_le (-f) (le_iSup_of_le hf.neg (le_of_eq ?_))
+    refine le_iSup_of_le (-f) (le_iSup_of_le (hneg f hf) (le_of_eq ?_))
     simp only [Pi.neg_apply, integral_neg]
     congr 1; ring
 
-/-- Triangle inequality: `wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ`. -/
-lemma wasserstein1_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
-    (μ ν τ : Measure α) :
-    wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ := by
-  simp only [wasserstein1_eq_iSup_lipschitz]
+lemma wasserstein1_comm {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν : Measure α) : wasserstein1 μ ν = wasserstein1 ν μ :=
+  wassersteinCost_comm (fun x y => dist x y) μ ν
+
+/-- Triangle inequality: `wassersteinCost c μ τ ≤ wassersteinCost c μ ν +
+wassersteinCost c ν τ`.  **No triangle assumption on `c`** — the inequality is
+the test-function integral decomposition (the same `f` is valid for all three
+costs `wassersteinCost c · ·`). -/
+lemma wassersteinCost_triangle {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ ν τ : Measure α) :
+    wassersteinCost c μ τ ≤ wassersteinCost c μ ν + wassersteinCost c ν τ := by
+  unfold wassersteinCost
   refine iSup_le fun f => iSup_le fun hf => ?_
   have hsplit : ∫ x, f x ∂μ - ∫ x, f x ∂τ =
       (∫ x, f x ∂μ - ∫ x, f x ∂ν) + (∫ x, f x ∂ν - ∫ x, f x ∂τ) := by ring
@@ -1075,13 +1093,18 @@ lemma wasserstein1_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace
       ≤ ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
           + ENNReal.ofReal (∫ x, f x ∂ν - ∫ x, f x ∂τ) :=
         ENNReal.ofReal_add_le
-    _ ≤ (⨆ (g : α → ℝ) (_ : LipschitzWith 1 g),
+    _ ≤ (⨆ (g : α → ℝ) (_ : ∀ x y, |g x - g y| ≤ c x y),
             ENNReal.ofReal (∫ x, g x ∂μ - ∫ x, g x ∂ν))
-        + (⨆ (g : α → ℝ) (_ : LipschitzWith 1 g),
+        + (⨆ (g : α → ℝ) (_ : ∀ x y, |g x - g y| ≤ c x y),
             ENNReal.ofReal (∫ x, g x ∂ν - ∫ x, g x ∂τ)) := by
         gcongr
         · exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
         · exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+
+lemma wasserstein1_triangle {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν τ : Measure α) :
+    wasserstein1 μ τ ≤ wasserstein1 μ ν + wasserstein1 ν τ :=
+  wassersteinCost_triangle (fun x y => dist x y) μ ν τ
 
 /-- Quantitative finite-moment bound for `wasserstein1`: the W₁ distance is
 bounded by the sum of the two measures' first moments.
@@ -1296,13 +1319,44 @@ formulations).
 
 **Application** (sketch): chained with `f → -f` 1-Lipschitz, gives the
 "W₁=0 → ∫f dμ = ∫f dν for 1-Lipschitz f" reduction at the entry to
-the separation lemma. -/
+the separation lemma.
+
+**Cost-generic** (W̄-additivity): stated below for `wassersteinCost c` with `f`
+of `c`-oscillation, no hypothesis on `c`; `wasserstein1_dual_lower_bound` is the
+`c = dist` corollary. -/
+lemma wassersteinCost_dual_lower_bound
+    {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (μ ν : Measure α) (f : α → ℝ) (hf : ∀ x y, |f x - f y| ≤ c x y) :
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wassersteinCost c μ ν := by
+  unfold wassersteinCost
+  exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+
 lemma wasserstein1_dual_lower_bound
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) (f : α → ℝ) (hf : LipschitzWith 1 f) :
-    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wasserstein1 μ ν := by
-  simp only [wasserstein1_eq_iSup_lipschitz]
-  exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wasserstein1 μ ν :=
+  wassersteinCost_dual_lower_bound (fun x y => dist x y) μ ν f
+    ((lipschitzWith_one_iff_oscillation f).mp hf)
+
+/-- **W̄-additivity across the remaining property layer** (gate-1 completion,
+2026-06-04).  The cost-generic `_self`/`_comm`/`_triangle`/`_dual_lower_bound`
+carry no hypothesis on `c`, so each instantiates at the truncated cost
+`min(dist, 1)` unconditionally — in particular `_triangle` needs **no** triangle
+inequality on `c` (the inequality is the test-function decomposition).  Together
+with `wassersteinCost_le_of_lipschitz_map`'s sanity check, this validates
+W̄-additivity for the full property layer. -/
+example {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    (μ ν τ : Measure α) (f : α → ℝ) (hf : ∀ x y, |f x - f y| ≤ min (dist x y) 1) :
+    wassersteinCost (fun x y => min (dist x y) 1) μ μ = 0 ∧
+    wassersteinCost (fun x y => min (dist x y) 1) μ ν =
+      wassersteinCost (fun x y => min (dist x y) 1) ν μ ∧
+    wassersteinCost (fun x y => min (dist x y) 1) μ τ ≤
+      wassersteinCost (fun x y => min (dist x y) 1) μ ν +
+        wassersteinCost (fun x y => min (dist x y) 1) ν τ ∧
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤
+      wassersteinCost (fun x y => min (dist x y) 1) μ ν :=
+  ⟨wassersteinCost_self _ μ, wassersteinCost_comm _ μ ν,
+   wassersteinCost_triangle _ μ ν τ, wassersteinCost_dual_lower_bound _ μ ν f hf⟩
 
 /-- **Mathlib-TODO (pure measure theory + functional analysis):
 bounded-continuous integral equality from 1-Lipschitz integral equality
