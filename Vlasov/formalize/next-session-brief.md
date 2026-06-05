@@ -30,9 +30,24 @@ Traced #1/#2/#3/#4/#7 as distinct axioms against the marquee theorems
 * `vlasovWellPosedness` reaches `{#1, #2, #7}` — **not** #3/#4, **not** B.
 * `dobrushin` reaches `sorryAx` = **Foundation B only** (proven earlier too).
 * `meanFieldLimit` is **axiom-clean** `[propext, Classical.choice, Quot.sound]`
-  — depends on NO sorry. **FLAG (P10):** confirm its statement is the intended
-  mean-field limit and not weaker/conditional than expected — axiom-clean ≠
-  means-what-you-think. Investigate before trusting it as the mean-field deliverable.
+  — depends on NO sorry. **RESOLVED (statement read, 2026-06-05):** it is
+  **CONDITIONAL — case (a)**. It takes the Dobrushin stability estimate as a
+  *hypothesis* `hDobrushin : ∀ N, DobrushinStabilityEstimate (μ^N) f C` and never
+  discharges it; its proof is the one-line Grönwall composition
+  `sup_{[0,T]} W₁(μ^N_t, f_t) ≤ e^{CT}·W₁(μ^N_0, f_0) → 0`. That is *why* it is
+  axiom-clean while `dobrushin` is not — it assumes the estimate `dobrushin`
+  works to *prove*, so it never touches the optimal coupling. **The
+  axiom-cleanness is a naming artifact, NOT a B-free deliverable.** The
+  *unconditional* mean-field limit is `meanFieldLimit ∘ dobrushin`, which routes
+  through Foundation B. So the mean-field external is still B.
+  **Secondary gap (real remaining content):** discharging `hDobrushin` is not a
+  direct application of `dobrushin` — `dobrushin` requires *both* arguments to be
+  `IsLagrangianVlasovSolution`, but the empirical curve `μ^N` is atomic (its flow
+  is the Newton dynamics, not the Lagrangian-witness shape). The integrated core
+  applies to any coupling-of-measures so it is dischargeable in principle, but
+  the wiring `dobrushin`-as-stated → empirical curve is a genuine gap, not a
+  one-liner. Do NOT re-open `meanFieldLimit` as a "B-free win" — it's a
+  conditional composition theorem (the standard propagation-of-chaos shape).
 
 **The integrated core dissolved the A-side W₁-continuity surface too.** #3/#4
 (LSC-of-the-dual-sup, BC-density-for-narrow-continuity) were the narrow-machinery
@@ -77,5 +92,7 @@ The W̄ migration as a *forward* program (restate stability, extend to L ≥ 1)
 remains a separate future project.
 
 Sequence: deletion pass (6→4) → #7 (reroute) → #2 (after conclusion-shape read)
-→ #1. Foundation B stays the external. Investigate the `meanFieldLimit`
-axiom-clean flag.
+→ #1. Foundation B stays the external. (`meanFieldLimit` flag RESOLVED above —
+conditional, not a B-free win; do not re-open. The real remaining mean-field
+content is wiring `hDobrushin`'s discharge for the empirical curve, which the
+current `dobrushin` signature doesn't directly cover.)
