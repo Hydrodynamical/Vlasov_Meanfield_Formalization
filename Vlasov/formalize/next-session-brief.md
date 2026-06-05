@@ -1,67 +1,81 @@
-# Next-session brief (as of 2026-06-05, HEAD = `72999aa`)
+# Next-session brief (as of 2026-06-05, HEAD = `5b6ff4a`)
 
-Durable hand-off so the next session opens warm. Build green; 6 sorries.
+Durable hand-off. Build green; 6 sorries (Basic 4, Coupling 1, CharFlow 1).
 
 ## Current state — marquee on the integrated coupling core
 
-Both halves of the marquee now route through the single
+Both halves of the marquee route through the single
 `dobrushin_integrated_flow_bound_On` core (base-generic, axiom-clean):
 
 * **uniqueness** — `dobrushin_uniqueness_On` at `proj = id`, `π₀ = f 0`
-  (commit `118729d`); axiom-clean (no `sorryAx`).
+  (commit `118729d`); axiom-clean.
 * **mean-field** — `dobrushin_meanfield_On` at `proj = fst/snd`, `π₀` = optimal
-  coupling (Foundation B); `dobrushin_package_exists` re-pointed through it with
-  `C = 2·(max 1 L)`, windowing each `t ≥ 0` at `T = t+1` via `.toOn`
-  (commit `72999aa`). Retired #5/#6 (8 → 6) and deleted the ~15-declaration
-  dead chain (`MathlibTODO_wassersteinGronwallCoupling` and below).
+  coupling (Foundation B); `dobrushin_package_exists` re-pointed through it
+  (commit `72999aa`). Retired #5/#6 (8 → 6), deleted the ~15-decl dead chain.
 
-**Axiom decomposition (verified to the leaf, axiom-naming technique):**
-`dobrushin` depends on `[propext, Classical.choice, Quot.sound,
-foundationB_optimal_coupling_exists]` with **no `sorryAx`** — its sole
-sorry-dependency is Foundation B, zero A-side / existence leakage.
-`vlasovWellPosedness` carries `sorryAx` (existence side) but **not** Foundation B.
+## REACHABILITY RE-TYPING (named-axiom trace, verified 2026-06-05)
 
-## Remaining surface (6 sorries), cleanly typed
+Traced #1/#2/#3/#4/#7 as distinct axioms against the marquee theorems
+(`#print axioms`). **Proven** live/orphaned split:
 
-| sorry | file | type |
-|---|---|---|
-| Foundation B (`foundationB_optimal_coupling_exists`) | OT/Coupling.lean | the **one genuine OT external** — sole mean-field dependency; maybe shrinkable to ε-optimal (Dobrushin 6.8) |
-| #1 `bcEqualFromLipschitzEqual_polish_firstMoment` | Basic.lean | A-side (W̄ dissolution: subalgebra separation) |
-| #2 `cauchyW1_hasNarrowLimit` | Basic.lean | existence-side (Prokhorov) |
-| #3 `w1LowerSemicontinuous…` | Basic.lean | A-side (W̄: native-bounded-sup-LSC) |
-| #4 `bcNarrowFromSmoothCompactNarrow` | Basic.lean | A-side (W̄: Portmanteau citation) |
-| #7 `lipschitzFlowTrajectoryLipBound` | OT/CharacteristicFlow.lean | isolated in-project close (L=0 reroute), W̄-independent |
+| sorry | name | reached by | verdict |
+|---|---|---|---|
+| #1 | `MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` | `vlasovWellPosedness` | **LIVE** (existence-side separation, CharFlow 8284) |
+| #2 | `MathlibTODO_cauchyW1_hasNarrowLimit` | `vlasovWellPosedness` | **LIVE** (Picard existence) |
+| #7 | `MathlibTODO_lipschitzFlowTrajectoryLipBound` | `vlasovWellPosedness` | **LIVE** (existence L=0) |
+| #3 | `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves` | *no marquee* | **ORPHANED** |
+| #4 | `MathlibTODO_bcNarrowFromSmoothCompactNarrow` | *no marquee* | **ORPHANED** |
+| B | `foundationB_optimal_coupling_exists` | `dobrushin` (sole dep) | **LIVE** (genuine external) |
 
-## Standing small task — confirmed-dead helper cleanup (DEFERRED)
+* `vlasovWellPosedness` reaches `{#1, #2, #7}` — **not** #3/#4, **not** B.
+* `dobrushin` reaches `sorryAx` = **Foundation B only** (proven earlier too).
+* `meanFieldLimit` is **axiom-clean** `[propext, Classical.choice, Quot.sound]`
+  — depends on NO sorry. **FLAG (P10):** confirm its statement is the intended
+  mean-field limit and not weaker/conditional than expected — axiom-clean ≠
+  means-what-you-think. Investigate before trusting it as the mean-field deliverable.
 
-After the mean-field re-point, these five Basic.lean helpers are
-**confirmed callerless** (verified 2026-06-05: only comment/docstring
-references; `W1ContOn_integralContAt` is called solely by the also-dead
-`w1ContOn_lscNarrow_via_pureFA`):
+**The integrated core dissolved the A-side W₁-continuity surface too.** #3/#4
+(LSC-of-the-dual-sup, BC-density-for-narrow-continuity) were the narrow-machinery
+the core obviated — it works on `∫‖Φ_f − Φ_g‖dπ` and never forms
+`t ↦ W₁(f t, g t).toReal`. They are now **vestigial/orphaned**, like #5/#6.
+The planned A-side W̄ *harvest* is largely **moot** — deletion is cheaper than
+dissolution.
 
-* `W1ContOn_lt_top`
-* `W1ContOn_toRealContOn`
-* `W1ContOn_integralContAt`
-* `w1ContOn_lscNarrow_via_pureFA`  *(this one references #3/#4)*
-* `dobrushin_C_choice`
+## Next move — deletion pass (6 → 4), the cheap collapse
 
-**Disposition: confirmed-dead, delete in a focused revertable commit.** They sit
-**adjacent to the retained #3/#4 placeholders** in Basic.lean — delete carefully
-(verify docstring-start/end boundaries; do NOT touch #3 ≈ L2104 / #4 ≈ L2183).
-Not mystery dead code — intentionally retained to keep the 8→6 milestone commit
-off the delicate #3/#4 region.
+The orphaned cluster (all mutually dead, nothing live reaches them):
 
-## Next constructive arc (when opening fresh)
+* #3, #4 (orphaned sorries)
+* the dead helpers: `w1ContOn_lscNarrow_via_pureFA` (calls #3/#4 + the others),
+  `W1ContOn_integralContAt`, `W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
+  `dobrushin_C_choice`
 
-**A-side W̄ dissolution** — now *reachable* because the consumers route through
-the integrated core. #3/#4 take the bounded-cost dissolution (native-bounded-
-sup-LSC / Portmanteau), then #1 via subalgebra, then #2/#7 existence-side.
-W̄-durable; the consumer-need reads are done (all dissolve via cheap directions,
-no hard metrization bridge).
+Delete together in one revertable commit → **6 → 4**. The cluster sits roughly
+Basic.lean L1455 (#1, **LIVE — keep**) far above, and L2102–2374 (the #3/#4 +
+helpers block). **Delete carefully**: verify nothing LIVE is interspersed in
+2102–2374 (read decl boundaries; #1 at 1455 and #2 at 1568 are far above and
+LIVE — do not touch). Build-verify (compiler catches a mis-cut).
 
-**First-read discipline (do before building):** re-confirm each A-side
-placeholder's W̄ dissolution actually *reaches* its consumer now that the
-consumers migrated to the integrated core — the reachability changed, so the
-dissolution mechanism's reach must be re-verified, not assumed.
+## Remaining genuinely-live surface (after the deletion pass → 4)
 
-`#7` is takeable anytime as a self-contained shorter task.
+* **#7** `lipschitzFlowTrajectoryLipBound` (CharFlow) — L=0 reroute to the
+  sorry-free `_isLagrangianVlasovSolutionOn` producer, then delete #7 + callerless
+  wrappers. **Most characterized; reroute-and-delete, not a hard proof. Cleanest.**
+* **#2** `cauchyW1_hasNarrowLimit` (Basic) — tightness (Markov) → Prokhorov narrow
+  limit (Mathlib has Prokhorov). Caveat: its exact conclusion (narrow-limit vs
+  W₁-convergence) decides clean-close vs drags-a-bridge — read it first.
+* **#1** `bcEqualFromLipschitzEqual…` (Basic) — existence-side separation
+  (`wasserstein1_eq_zero_iff_measure_eq` → CharFlow 8284). A-side-flavored but
+  LIVE; subalgebra-separation / BC-density close.
+* **Foundation B** (Coupling) — the **one genuine OT external**; sole dep of the
+  mean-field marquee. Not an attack target; optionally shrinkable to ε-optimal
+  (Dobrushin 6.8).
+
+**Next constructive arc is the existence-side closes (#7, #2, #1)** — all
+in-project, W̄-independent — NOT the A-side W̄ dissolution (evaporated for #3/#4).
+The W̄ migration as a *forward* program (restate stability, extend to L ≥ 1)
+remains a separate future project.
+
+Sequence: deletion pass (6→4) → #7 (reroute) → #2 (after conclusion-shape read)
+→ #1. Foundation B stays the external. Investigate the `meanFieldLimit`
+axiom-clean flag.
