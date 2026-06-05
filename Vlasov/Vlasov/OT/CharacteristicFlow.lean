@@ -5857,6 +5857,197 @@ theorem charFlow_measurable_via_gronwall
     rwa [dist_comm] at h_chain
   exact h_cont_z.measurable
 
+/-- **Step 0b — the flow's Lipschitz-in-`z` bound (open-interval form).**
+
+Extracted from `charFlow_measurable_via_gronwall_Ioo`'s internal
+`h_dist_bound`.  Given the open-interval flow ODE, the characteristic flow
+`z ↦ (charX t z, charV t z)` is Lipschitz in the initial datum `z` with
+constant `exp((max 1 L) · (t − 0))`, uniformly for `t ∈ [0, T]`.
+
+Same hypotheses as `charFlow_measurable_via_gronwall_Ioo`; the conclusion
+is the Grönwall distance bound used by both that lemma (to derive
+continuity-in-`z` hence measurability) and the moment-free dominator in
+`dobrushin_uniqueness_On`. -/
+theorem charFlow_lipschitzInZ_via_gronwall_Ioo
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 ≤ T)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ioo : ∀ z, ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (vlasovVectorField gradW ρ t (charX t z, charV t z))
+        (Set.Ici t) t) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+        dist ((charX t z₁, charV t z₁) : PhaseSpace d) (charX t z₂, charV t z₂) ≤
+        dist z₁ z₂ * Real.exp (((max 1 L : NNReal) : ℝ) * (t - 0)) := by
+  intro t ht
+  -- Vector field is max(1, L)-Lipschitz uniformly in s.
+  set K : NNReal := max 1 L with hK_def
+  have h_vf_lip : ∀ s, LipschitzWith K (vlasovVectorField gradW ρ s) := fun s =>
+    vlasovVectorField_lipschitzWith gradW L hL ρ h_int s
+  intro z₁ z₂
+  -- Abbreviations for the two per-z trajectories.
+  set F : ℝ → PhaseSpace d := fun s => (charX s z₁, charV s z₁) with hF_def
+  set G : ℝ → PhaseSpace d := fun s => (charX s z₂, charV s z₂) with hG_def
+  -- Split on whether t = 0 or 0 < t.
+  rcases eq_or_lt_of_le ht.1 with h_t0 | h_pos
+  · -- t = 0: both trajectories evaluate to their initial conditions.
+    subst h_t0
+    simp only [hF_def, hG_def, h_init z₁, h_init z₂, sub_self, mul_zero,
+      Real.exp_zero, mul_one, le_refl]
+  · -- 0 < t: take the s₀ → 0⁺ limit of Grönwall bounds on [s₀, t].
+    -- Per-s₀ Grönwall bound on the window [s₀, t] ⊆ [0, T].
+    have h_perS0 : ∀ s₀ ∈ Set.Ioo (0 : ℝ) t,
+        dist (F t) (G t) ≤ dist (F s₀) (G s₀) * Real.exp ((K : ℝ) * (t - s₀)) := by
+      intro s₀ hs₀
+      -- Window inclusions.
+      have hsub_Ico : Set.Ico s₀ t ⊆ Set.Ioo (0 : ℝ) T := fun s hs =>
+        ⟨lt_of_lt_of_le hs₀.1 hs.1, lt_of_lt_of_le hs.2 ht.2⟩
+      have hsub_Icc : Set.Icc s₀ t ⊆ Set.Icc (0 : ℝ) T :=
+        Set.Icc_subset_Icc hs₀.1.le ht.2
+      have h := dist_le_of_trajectories_ODE
+        (v := fun s => vlasovVectorField gradW ρ s)
+        (f := F) (g := G)
+        (K := K) (a := s₀) (b := t)
+        (δ := dist (F s₀) (G s₀))
+        h_vf_lip
+        ((h_cont_Icc z₁).mono hsub_Icc)
+        (fun s hs => h_deriv_Ioo z₁ s (hsub_Ico hs))
+        ((h_cont_Icc z₂).mono hsub_Icc)
+        (fun s hs => h_deriv_Ioo z₂ s (hsub_Ico hs))
+        (le_refl _) t ⟨hs₀.2.le, le_refl t⟩
+      exact h
+    -- The filter 𝓝[Ioo 0 t] 0 is NeBot since 0 < t.
+    have : (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)).NeBot :=
+      left_nhdsWithin_Ioo_neBot h_pos
+    -- Tendsto F to z₁ along 𝓝[Ioo 0 t] 0.
+    have hIoo_sub_Icc : Set.Ioo (0 : ℝ) t ⊆ Set.Icc (0 : ℝ) T := fun s hs =>
+      ⟨hs.1.le, le_trans hs.2.le ht.2⟩
+    have hF0 : F 0 = z₁ := h_init z₁
+    have hG0 : G 0 = z₂ := h_init z₂
+    have h_tendsto_F : Filter.Tendsto F (nhdsWithin (0 : ℝ) (Set.Ioo 0 t))
+        (nhds z₁) := by
+      have hcw : ContinuousWithinAt F (Set.Icc (0 : ℝ) T) 0 :=
+        (h_cont_Icc z₁) 0 ⟨le_refl 0, hT⟩
+      have : Filter.Tendsto F (nhdsWithin (0 : ℝ) (Set.Icc 0 T)) (nhds (F 0)) :=
+        hcw
+      rw [hF0] at this
+      exact this.mono_left (nhdsWithin_mono 0 hIoo_sub_Icc)
+    have h_tendsto_G : Filter.Tendsto G (nhdsWithin (0 : ℝ) (Set.Ioo 0 t))
+        (nhds z₂) := by
+      have hcw : ContinuousWithinAt G (Set.Icc (0 : ℝ) T) 0 :=
+        (h_cont_Icc z₂) 0 ⟨le_refl 0, hT⟩
+      have : Filter.Tendsto G (nhdsWithin (0 : ℝ) (Set.Icc 0 T)) (nhds (G 0)) :=
+        hcw
+      rw [hG0] at this
+      exact this.mono_left (nhdsWithin_mono 0 hIoo_sub_Icc)
+    -- Tendsto of dist (F s₀) (G s₀) to dist z₁ z₂.
+    have h_tendsto_dist :
+        Filter.Tendsto (fun s₀ => dist (F s₀) (G s₀))
+          (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)) (nhds (dist z₁ z₂)) :=
+      h_tendsto_F.dist h_tendsto_G
+    -- Tendsto of exp(K*(t-s₀)) to exp(K*(t-0)).
+    have h_tendsto_exp :
+        Filter.Tendsto (fun s₀ => Real.exp ((K : ℝ) * (t - s₀)))
+          (nhdsWithin (0 : ℝ) (Set.Ioo 0 t))
+          (nhds (Real.exp ((K : ℝ) * (t - 0)))) := by
+      have hcont : Continuous (fun s₀ : ℝ => Real.exp ((K : ℝ) * (t - s₀))) := by
+        fun_prop
+      exact (hcont.tendsto 0).mono_left nhdsWithin_le_nhds
+    -- Product of the two limits.
+    have h_lim :
+        Filter.Tendsto (fun s₀ => dist (F s₀) (G s₀) * Real.exp ((K : ℝ) * (t - s₀)))
+          (nhdsWithin (0 : ℝ) (Set.Ioo 0 t))
+          (nhds (dist z₁ z₂ * Real.exp ((K : ℝ) * (t - 0)))) :=
+      h_tendsto_dist.mul h_tendsto_exp
+    -- The per-s₀ bound holds eventually along the filter.
+    have h_event :
+        ∀ᶠ s₀ in nhdsWithin (0 : ℝ) (Set.Ioo 0 t),
+          dist (F t) (G t) ≤ dist (F s₀) (G s₀) * Real.exp ((K : ℝ) * (t - s₀)) :=
+      eventually_nhdsWithin_of_forall h_perS0
+    -- Pass to the limit.
+    exact ge_of_tendsto h_lim h_event
+
+/-- **Open-interval variant of `charFlow_measurable_via_gronwall`.**
+
+Identical to `charFlow_measurable_via_gronwall` except the derivative
+hypothesis is on the OPEN interval `Set.Ioo 0 T` instead of the
+half-open `Set.Ico 0 T`.  This matches the regularity that an
+`IsCharacteristicFlowOn ... (Set.Ioo 0 T)` predicate directly produces
+(the ODE holds on the open interval, with the endpoints handled by
+continuity).
+
+The proof reuses the per-window Grönwall distance bound, but obtains the
+`t = 0` endpoint distance bound by taking a one-sided limit
+`s₀ → 0⁺` of the Grönwall bounds on `[s₀, t]` (each of which only needs
+the derivative on `Set.Ico s₀ t ⊆ Set.Ioo 0 T`), rather than applying
+Grönwall directly on `[0, t]`. -/
+theorem charFlow_measurable_via_gronwall_Ioo
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 ≤ T)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv_Ioo : ∀ z, ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (vlasovVectorField gradW ρ t (charX t z, charV t z))
+        (Set.Ici t) t) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+        Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+  intro t ht
+  -- ============================================================
+  -- Vector field is max(1, L)-Lipschitz uniformly in t.
+  -- ============================================================
+  set K : NNReal := max 1 L with hK_def
+  have h_vf_lip : ∀ s, LipschitzWith K (vlasovVectorField gradW ρ s) := fun s =>
+    vlasovVectorField_lipschitzWith gradW L hL ρ h_int s
+  -- ============================================================
+  -- Gronwall on flow difference: dist-bound on Icc 0 T (step 0b, extracted
+  -- to `charFlow_lipschitzInZ_via_gronwall_Ioo`).
+  -- ============================================================
+  have h_dist_bound : ∀ z₁ z₂ : PhaseSpace d,
+      dist ((charX t z₁, charV t z₁) : PhaseSpace d) (charX t z₂, charV t z₂) ≤
+      dist z₁ z₂ * Real.exp ((K : ℝ) * (t - 0)) :=
+    charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT
+      h_init h_cont_Icc h_deriv_Ioo t ht
+  -- ============================================================
+  -- Convert dist-bound to continuity in z via Metric.continuous_iff.
+  -- ============================================================
+  have h_cont_z : Continuous (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+    rw [Metric.continuous_iff]
+    intro z₀ ε hε
+    -- Lipschitz constant exp(K * t); pick δ := ε / exp(K * t).
+    have h_exp_pos : 0 < Real.exp ((K : ℝ) * (t - 0)) := Real.exp_pos _
+    refine ⟨ε / Real.exp ((K : ℝ) * (t - 0)), div_pos hε h_exp_pos, ?_⟩
+    intro z hz
+    -- dist (f z₀) (f z) ≤ exp(K*t) * dist z₀ z < exp(K*t) * (ε / exp(K*t)) = ε.
+    have h_bd := h_dist_bound z₀ z
+    -- Note: dist_bound gives `dist (f z₀) (f z)`, but `Metric.continuous_iff`
+    -- gives `dist z z₀ < δ → dist (f z) (f z₀) < ε`.  Symmetric: use dist_comm.
+    rw [dist_comm] at hz
+    have h_chain : dist ((charX t z₀, charV t z₀) : PhaseSpace d) (charX t z, charV t z)
+                  < ε := by
+      calc dist ((charX t z₀, charV t z₀) : PhaseSpace d) (charX t z, charV t z)
+          ≤ dist z₀ z * Real.exp ((K : ℝ) * (t - 0)) := h_bd
+        _ < (ε / Real.exp ((K : ℝ) * (t - 0))) * Real.exp ((K : ℝ) * (t - 0)) :=
+            mul_lt_mul_of_pos_right hz h_exp_pos
+        _ = ε := div_mul_cancel₀ ε (ne_of_gt h_exp_pos)
+    rwa [dist_comm] at h_chain
+  exact h_cont_z.measurable
+
 /-- **Stage 4 helper (sorry'd): boundary regularity of a Stage 1.9 flow.**
 
 Given a flow `(charX, charV)` produced by
@@ -12068,15 +12259,22 @@ Lipschitz under the integral (two `integral_map` steps) — it never forms
   `convolveDiff_norm_le` force-estimate callerless *on this branch* (the
   latter still has a separate consumer at the Dobrushin mean-field site).
 
-**Remaining isolated `sorry`s in the body** (flow-regularity facts the abstract
-`IsLagrangianVlasovSolutionOn` predicate does not expose, strictly more local
-than #8): (a) the flow's right-derivative at the left endpoint `s = 0`
-(`hderivIco_f`/`hderivIco_g`; the interior `Ioo 0 T` is the witness ODE — only
-`s = 0` is missing — feeding both `charFlow_measurable_via_gronwall` and
-`flow_distance_growth_bound_on`); (b) the uniform-in-`s` first-moment envelope
-`Mf`/`Mg` (the simultaneous-Gronwall moment bound, not derivable from pointwise
-finiteness); (c) the per-`ω` interval-integrability `hint` of the field
-difference (the narrow-continuity content). -/
+**Body is now `sorry`-free** (moment-free dominator close, 2026-06-04).  The
+previously-isolated flow-regularity gaps were all retired by re-routing the
+measurability and the dominator through the *open-interval* helpers
+(`charFlow_measurable_via_gronwall_Ioo` /
+`charFlow_lipschitzInZ_via_gronwall_Ioo`), which consume only the witness ODE
+on `Ioo 0 T`:
+* the `s = 0` right-derivatives (`hderivIco_f`/`hderivIco_g`) are no longer
+  needed — the `Ioo`-only flow ODE (`hderiv_Ioo_f`/`hderiv_Ioo_g`) suffices;
+* the uniform-in-`s` first-moment envelope (`Mf`/`Mg`) and
+  `flow_distance_growth_bound_on` are replaced by a moment-free dominator
+  `dom ω = 2 e^{KT} ‖ω‖ + (K_f + K_g)` built from the flow's Lipschitz-in-`z`
+  bound + compactness of the origin trajectory on `[0, T]`; it uses ONLY
+  `f 0`'s initial first moment;
+* the per-`ω` interval-integrability (`hint`) is closed by global continuity in
+  `s` of each clamped field (velocity slot continuous; force slot a
+  pushforward integral, continuous via moment-free DCT). -/
 private theorem dobrushin_uniqueness_On
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -12229,65 +12427,77 @@ private theorem dobrushin_uniqueness_On
       rw [hclampT_id s hs]
     funext z; simp only [hb_g_def, vlasovVectorField, hmeas]
   -- =========================================================================
-  -- **Boundary right-derivative (the single irreducible gap)**.  The Lagrangian
-  -- witness carries the flow ODE only on the OPEN window `Ioo 0 T` plus closed-
-  -- window continuity (B2 conjunct); the right-derivative at the LEFT endpoint
-  -- `s = 0` is not exposed.  We need `HasDerivWithinAt` on `Ici s` for every
-  -- `s ∈ Ico 0 T` to feed `charFlow_measurable_via_gronwall` (full measurability
-  -- of the flow in z) and `flow_distance_growth_bound_on` (the dominator).  On
-  -- the open interior `Ioo 0 T` it is the witness ODE (HasDerivAt ⇒
-  -- HasDerivWithinAt); only `s = 0` is genuinely missing.
+  -- **Open-window flow ODE in z (HasDerivWithinAt on `Ici s`, `s ∈ Ioo 0 T`)**.
+  -- The Lagrangian witness carries `HasDerivAt` on the OPEN window `Ioo 0 T`;
+  -- the open-interval measurability/Lipschitz-in-z lemmas
+  -- (`charFlow_measurable_via_gronwall_Ioo` / `charFlow_lipschitzInZ_via_gronwall_Ioo`)
+  -- take exactly this form (no `s = 0` right-derivative needed — the moment-free
+  -- route replaces both the universal-`s` moment envelope and the `flow_distance_
+  -- growth_bound_on` dominator).  We assemble the pair derivative from the
+  -- position/velocity witness ODEs and convert `HasDerivAt ⇒ HasDerivWithinAt`.
+  -- The vector field is stated in the clamped `SM∘(f∘clampT)` form the helpers
+  -- consume; on `Ioo 0 T` this coincides with `vlasovVectorField gradW (SM∘f)`.
   -- =========================================================================
-  have hderivIco_f : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+  have hderiv_Ioo_f : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivWithinAt (fun s' => (charX_f s' z, charV_f s' z))
-        (vlasovVectorField gradW (fun s => spatialMarginal (f s)) s
+        (vlasovVectorField gradW (fun s => spatialMarginal (f (clampT s))) s
           (charX_f s z, charV_f s z)) (Set.Ici s) s := by
-    sorry
-  have hderivIco_g : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+    intro z s hs
+    have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1.le, hs.2.le⟩
+    have hat : HasDerivAt (fun s' => (charX_f s' z, charV_f s' z))
+        (vlasovVectorField gradW (fun s => spatialMarginal (f s)) s
+          (charX_f s z, charV_f s z)) s := by
+      show HasDerivAt (fun s' => (charX_f s' z, charV_f s' z))
+        ((charX_f s z, charV_f s z).2,
+         -(convolveFunctionMeasure gradW (spatialMarginal (f s))
+            (charX_f s z, charV_f s z).1)) s
+      exact (hflow_f_x s hs z (Set.mem_univ z)).prodMk (hflow_f_v s hs z (Set.mem_univ z))
+    -- Rewrite the vector field into the clamped `SM∘(f∘clampT)` form.
+    have hmeas : spatialMarginal (f (clampT s)) = spatialMarginal (f s) := by
+      rw [hclampT_id s hsIcc]
+    have hvf_eq : vlasovVectorField gradW (fun s => spatialMarginal (f (clampT s))) s
+          (charX_f s z, charV_f s z)
+        = vlasovVectorField gradW (fun s => spatialMarginal (f s)) s
+          (charX_f s z, charV_f s z) := by
+      simp only [vlasovVectorField, hmeas]
+    rw [hvf_eq]; exact hat.hasDerivWithinAt
+  have hderiv_Ioo_g : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivWithinAt (fun s' => (charX_g s' z, charV_g s' z))
-        (vlasovVectorField gradW (fun s => spatialMarginal (g s)) s
+        (vlasovVectorField gradW (fun s => spatialMarginal (g (clampT s))) s
           (charX_g s z, charV_g s z)) (Set.Ici s) s := by
-    sorry
-  -- ContinuousOn / HasDerivWithinAt in the `vlasovVectorField gradW (SM∘f)`
-  -- shape expected by the growth/measurability helpers; the `Ioo`-restriction
-  -- of `hderivIco` is the witness ODE, packaged for reuse.
-  -- Universal probability instance for the clamped marginals (needed by the
-  -- helpers which demand `[∀ t, IsProbabilityMeasure (ρ t)]`).
-  -- --- Full measurability of the (clamped) flows in z, via Gronwall. ---
+    intro z s hs
+    have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1.le, hs.2.le⟩
+    have hat : HasDerivAt (fun s' => (charX_g s' z, charV_g s' z))
+        (vlasovVectorField gradW (fun s => spatialMarginal (g s)) s
+          (charX_g s z, charV_g s z)) s := by
+      show HasDerivAt (fun s' => (charX_g s' z, charV_g s' z))
+        ((charX_g s z, charV_g s z).2,
+         -(convolveFunctionMeasure gradW (spatialMarginal (g s))
+            (charX_g s z, charV_g s z).1)) s
+      exact (hflow_g_x s hs z (Set.mem_univ z)).prodMk (hflow_g_v s hs z (Set.mem_univ z))
+    have hmeas : spatialMarginal (g (clampT s)) = spatialMarginal (g s) := by
+      rw [hclampT_id s hsIcc]
+    have hvf_eq : vlasovVectorField gradW (fun s => spatialMarginal (g (clampT s))) s
+          (charX_g s z, charV_g s z)
+        = vlasovVectorField gradW (fun s => spatialMarginal (g s)) s
+          (charX_g s z, charV_g s z) := by
+      simp only [vlasovVectorField, hmeas]
+    rw [hvf_eq]; exact hat.hasDerivWithinAt
+  -- --- Full measurability of the (clamped) flows in z, via the Ioo Gronwall. ---
   have hinit_f' : ∀ z : PhaseSpace d, (charX_f 0 z, charV_f 0 z) = z := by
     intro z; obtain ⟨hx, hv⟩ := hinit_f z (Set.mem_univ z); rw [hx, hv]
   have hinit_g' : ∀ z : PhaseSpace d, (charX_g 0 z, charV_g 0 z) = z := by
     intro z; obtain ⟨hx, hv⟩ := hinit_g z (Set.mem_univ z); rw [hx, hv]
   have hmeas_charf : ∀ s ∈ Set.Icc (0 : ℝ) T,
       Measurable (fun z : PhaseSpace d => (charX_f s z, charV_f s z)) :=
-    charFlow_measurable_via_gronwall gradW L hL
+    charFlow_measurable_via_gronwall_Ioo gradW L hL
       (fun s => spatialMarginal (f (clampT s))) hfc_int charX_f charV_f T hT.le
-      hinit_f'
-      (fun z => by
-        have := hcontIcc_f z
-        -- coincide: on [0,T] the marginals agree, but ContinuousOn doesn't see
-        -- the ρ; it only sees the flow, which is the same.
-        exact this)
-      (fun z s hs => by
-        have hd := hderivIco_f z s hs
-        have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, hs.2.le⟩
-        rw [← hb_f_id s hsIcc] at hd
-        have : vlasovVectorField gradW (fun s => spatialMarginal (f (clampT s))) s
-            (charX_f s z, charV_f s z) = b_f s (charX_f s z, charV_f s z) := rfl
-        rw [this]; exact hd)
+      hinit_f' hcontIcc_f hderiv_Ioo_f
   have hmeas_charg : ∀ s ∈ Set.Icc (0 : ℝ) T,
       Measurable (fun z : PhaseSpace d => (charX_g s z, charV_g s z)) :=
-    charFlow_measurable_via_gronwall gradW L hL
+    charFlow_measurable_via_gronwall_Ioo gradW L hL
       (fun s => spatialMarginal (g (clampT s))) hgc_int charX_g charV_g T hT.le
-      hinit_g'
-      (fun z => hcontIcc_g z)
-      (fun z s hs => by
-        have hd := hderivIco_g z s hs
-        have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, hs.2.le⟩
-        rw [← hb_g_id s hsIcc] at hd
-        have : vlasovVectorField gradW (fun s => spatialMarginal (g (clampT s))) s
-            (charX_g s z, charV_g s z) = b_g s (charX_g s z, charV_g s z) := rfl
-        rw [this]; exact hd)
+      hinit_g' hcontIcc_g hderiv_Ioo_g
   -- Universal-in-`s` measurability of the clamped flows (clampT s ∈ [0,T]).
   have hmeas_f : ∀ s, Measurable (X_f s) := by
     intro s; simpa only [hX_f_def] using hmeas_charf (clampT s) (hclampT_mem s)
@@ -12375,63 +12585,89 @@ private theorem dobrushin_uniqueness_On
       hxg
     rw [hb_g_id s hsIcc, hxg]; exact hwithin'
   -- =========================================================================
-  -- Dominator: `‖X_f s ω − X_g s ω‖ ≤ (C_f + C_g)·(‖ω‖ + 1)` on [0,T], with the
-  -- per-`z` growth bounds from `flow_distance_growth_bound_on`.
+  -- **Moment-free dominator** (2026-06-04): `‖X_f s ω − X_g s ω‖ ≤ dom ω` with
+  -- `dom ω := 2·e^{KT}·‖ω‖ + (K_f + K_g)`.  Built from the flow's
+  -- Lipschitz-in-`z` bound (`charFlow_lipschitzInZ_via_gronwall_Ioo`) plus the
+  -- origin trajectory bound (compactness of the continuous flow on `[0, T]`).
+  -- This uses ONLY `f 0`'s initial first moment — no uniform-in-`s` moment
+  -- envelope (`Mf`/`Mg`) and no `flow_distance_growth_bound_on`.
   -- =========================================================================
-  -- Spatial-marginal first-moment integrability (generic over μ): provable from
-  -- the phase-space finite moment.
-  have h_sm_y_int : ∀ (μ : ℝ → Measure (PhaseSpace d))
-      (_ : ∀ t ∈ Set.Icc (0:ℝ) T, HasFiniteFirstMoment (μ t)),
-      ∀ s ∈ Set.Icc (0:ℝ) T,
-        Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (μ s)) := by
-    intro μ hμ_mom s hs
-    haveI : IsProbabilityMeasure (μ s) := (hμ_mom s hs).1
-    unfold spatialMarginal
-    rw [integrable_map_measure
-      (continuous_norm.measurable.aestronglyMeasurable) measurable_fst.aemeasurable]
-    refine Integrable.mono' (hμ_mom s hs).2
-      ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
-      (Filter.Eventually.of_forall fun z => ?_)
-    show ‖‖z.1‖‖ ≤ ‖z‖
-    rw [norm_norm]; exact norm_fst_le z
-  have hf_y_int_cl : ∀ s ∈ Set.Icc (0:ℝ) T,
-      Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f (clampT s))) :=
-    fun s _ => h_sm_y_int f hf_mom (clampT s) (hclampT_mem s)
-  have hg_y_int_cl : ∀ s ∈ Set.Icc (0:ℝ) T,
-      Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (g (clampT s))) :=
-    fun s _ => h_sm_y_int g hg_mom (clampT s) (hclampT_mem s)
-  -- Uniform moment bounds (window envelope).  The Lagrangian witness exposes
-  -- only POINTWISE finite first moments; a uniform-in-`s` bound over the
-  -- continuum `[0, T]` is the standard simultaneous-Gronwall moment envelope
-  -- (cf. `phi_moment_envelope_le`), not derivable from pointwise finiteness
-  -- alone.  Isolated here (the flow-growth dominator's analytic input).
-  obtain ⟨Mf, hMf_nn, hMf⟩ : ∃ Mf, 0 ≤ Mf ∧
-      ∀ s ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f (clampT s))) ≤ Mf := by
-    sorry
-  obtain ⟨Mg, hMg_nn, hMg⟩ : ∃ Mg, 0 ≤ Mg ∧
-      ∀ s ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (g (clampT s))) ≤ Mg := by
-    sorry
-  obtain ⟨Cf, hCf_nn, hCf⟩ := flow_distance_growth_bound_on gradW L hL
-    (fun s => spatialMarginal (f (clampT s))) charX_f charV_f T hT.le
-    hinit_f' hcontIcc_f
-    (fun z s hs => by
-      have hd := hderivIco_f z s hs
-      have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, hs.2.le⟩
-      rw [← hb_f_id s hsIcc] at hd; exact hd)
-    Mf hMf_nn hMf hf_y_int_cl hfc_int
-  obtain ⟨Cg, hCg_nn, hCg⟩ := flow_distance_growth_bound_on gradW L hL
-    (fun s => spatialMarginal (g (clampT s))) charX_g charV_g T hT.le
-    hinit_g' hcontIcc_g
-    (fun z s hs => by
-      have hd := hderivIco_g z s hs
-      have hsIcc : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, hs.2.le⟩
-      rw [← hb_g_id s hsIcc] at hd; exact hd)
-    Mg hMg_nn hMg hg_y_int_cl hgc_int
-  set dom : PhaseSpace d → ℝ := fun ω => (Cf + Cg) * (‖ω‖ + 1) with hdom_def
+  set K : NNReal := max 1 L with hK_def
+  have hK_nn : (0 : ℝ) ≤ ((K : NNReal) : ℝ) := K.coe_nonneg
+  set EKT : ℝ := Real.exp (((K : NNReal) : ℝ) * T) with hEKT_def
+  have hEKT_pos : 0 < EKT := Real.exp_pos _
+  -- The flow's Lipschitz-in-z bound (step 0b), instantiated for f and g.
+  have hlip_f : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist ((charX_f s z₁, charV_f s z₁) : PhaseSpace d) (charX_f s z₂, charV_f s z₂) ≤
+      dist z₁ z₂ * Real.exp (((K : NNReal) : ℝ) * (s - 0)) :=
+    charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL
+      (fun s => spatialMarginal (f (clampT s))) hfc_int charX_f charV_f T hT.le
+      hinit_f' hcontIcc_f hderiv_Ioo_f
+  have hlip_g : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist ((charX_g s z₁, charV_g s z₁) : PhaseSpace d) (charX_g s z₂, charV_g s z₂) ≤
+      dist z₁ z₂ * Real.exp (((K : NNReal) : ℝ) * (s - 0)) :=
+    charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL
+      (fun s => spatialMarginal (g (clampT s))) hgc_int charX_g charV_g T hT.le
+      hinit_g' hcontIcc_g hderiv_Ioo_g
+  -- Origin trajectory bound: the continuous flow `s ↦ Φ_f s 0` is bounded on the
+  -- compact `[0, T]`.  K_f := sup norm; nonneg since it dominates the value at 0.
+  have horig : ∀ (charX charV : ℝ → PhaseSpace d → PhysSpace d),
+      ContinuousOn (fun s => (charX s 0, charV s 0)) (Set.Icc (0 : ℝ) T) →
+      ∃ Kc : ℝ, 0 ≤ Kc ∧ ∀ s ∈ Set.Icc (0 : ℝ) T,
+        ‖(charX s 0, charV s 0)‖ ≤ Kc := by
+    intro charX charV hcont
+    have hbdd : BddAbove ((fun s => ‖(charX s 0, charV s 0)‖) '' Set.Icc (0 : ℝ) T) :=
+      IsCompact.bddAbove_image isCompact_Icc hcont.norm
+    obtain ⟨Kc, hKc⟩ := hbdd
+    refine ⟨max Kc 0, le_max_right _ _, fun s hs => ?_⟩
+    exact le_trans (hKc (Set.mem_image_of_mem _ hs)) (le_max_left _ _)
+  obtain ⟨K_f, hK_f_nn, hK_f⟩ := horig charX_f charV_f (hcontIcc_f 0)
+  obtain ⟨K_g, hK_g_nn, hK_g⟩ := horig charX_g charV_g (hcontIcc_g 0)
+  -- Pointwise flow-norm bound: ‖Φ_μ s ω‖ ≤ e^{KT}·‖ω‖ + K_μ (triangle + Lip + origin).
+  have hflownorm : ∀ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (Kc : ℝ),
+      (∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+        dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂) ≤
+        dist z₁ z₂ * Real.exp (((K : NNReal) : ℝ) * (s - 0))) →
+      (∀ s ∈ Set.Icc (0 : ℝ) T, ‖(charX s 0, charV s 0)‖ ≤ Kc) →
+      ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω : PhaseSpace d,
+        ‖(charX s ω, charV s ω)‖ ≤ EKT * ‖ω‖ + Kc := by
+    intro charX charV Kc hlip hKc s hs ω
+    -- ‖Φ s ω‖ ≤ ‖Φ s ω − Φ s 0‖ + ‖Φ s 0‖ = dist (Φ s ω) (Φ s 0) + ‖Φ s 0‖.
+    have htri : ‖(charX s ω, charV s ω)‖ ≤
+        dist ((charX s ω, charV s ω) : PhaseSpace d) (charX s 0, charV s 0)
+          + ‖(charX s 0, charV s 0)‖ := by
+      rw [dist_eq_norm]
+      calc ‖(charX s ω, charV s ω)‖
+          = ‖((charX s ω, charV s ω) - (charX s 0, charV s 0))
+              + ((charX s 0, charV s 0) : PhaseSpace d)‖ := by
+            rw [sub_add_cancel]
+        _ ≤ ‖((charX s ω, charV s ω) : PhaseSpace d) - (charX s 0, charV s 0)‖
+              + ‖(charX s 0, charV s 0)‖ := norm_add_le _ _
+    have hdist_le : dist ((charX s ω, charV s ω) : PhaseSpace d) (charX s 0, charV s 0)
+        ≤ EKT * ‖ω‖ := by
+      refine le_trans (hlip s hs ω 0) ?_
+      rw [dist_zero_right]
+      have hsT : (((K : NNReal) : ℝ)) * (s - 0) ≤ (((K : NNReal) : ℝ)) * T := by
+        rw [sub_zero]; exact mul_le_mul_of_nonneg_left hs.2 hK_nn
+      have hexp_le : Real.exp (((K : NNReal) : ℝ) * (s - 0)) ≤ EKT :=
+        Real.exp_le_exp.mpr hsT
+      calc ‖ω‖ * Real.exp (((K : NNReal) : ℝ) * (s - 0))
+          ≤ ‖ω‖ * EKT := mul_le_mul_of_nonneg_left hexp_le (norm_nonneg _)
+        _ = EKT * ‖ω‖ := by ring
+    calc ‖(charX s ω, charV s ω)‖
+        ≤ dist ((charX s ω, charV s ω) : PhaseSpace d) (charX s 0, charV s 0)
+            + ‖(charX s 0, charV s 0)‖ := htri
+      _ ≤ EKT * ‖ω‖ + Kc := by
+          gcongr
+          exact hKc s hs
+  have hfnorm := hflownorm charX_f charV_f K_f hlip_f hK_f
+  have hgnorm := hflownorm charX_g charV_g K_g hlip_g hK_g
+  set dom : PhaseSpace d → ℝ := fun ω => 2 * EKT * ‖ω‖ + (K_f + K_g) with hdom_def
   have hdom_int : Integrable dom (f 0) := by
     simp only [hdom_def]
-    have hmom : Integrable (fun ω : PhaseSpace d => ‖ω‖) (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
-    exact (hmom.add (integrable_const 1)).const_mul (Cf + Cg)
+    have hmom : Integrable (fun ω : PhaseSpace d => ‖ω‖) (f 0) :=
+      (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
+    exact (hmom.const_mul (2 * EKT)).add (integrable_const _)
   have hdom : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω := by
     intro s hs ω
     have hclamp_eq : clampT s = s := hclampT_id s hs
@@ -12442,9 +12678,9 @@ private theorem dobrushin_uniqueness_On
     rw [hXf, hXg]
     calc ‖(charX_f s ω, charV_f s ω) - (charX_g s ω, charV_g s ω)‖
         ≤ ‖(charX_f s ω, charV_f s ω)‖ + ‖(charX_g s ω, charV_g s ω)‖ := norm_sub_le _ _
-      _ ≤ Cf * (‖ω‖ + 1) + Cg * (‖ω‖ + 1) := by
-          have hf_bd := hCf s hs ω
-          have hg_bd := hCg s hs ω
+      _ ≤ (EKT * ‖ω‖ + K_f) + (EKT * ‖ω‖ + K_g) := by
+          have hf_bd := hfnorm s hs ω
+          have hg_bd := hgnorm s hs ω
           gcongr
       _ = dom ω := by simp only [hdom_def]; ring
   -- =========================================================================
@@ -12495,20 +12731,9 @@ private theorem dobrushin_uniqueness_On
   have h_self : ∀ s ∈ Set.Icc (0:ℝ) T,
       ε s ≤ ((max 1 L : NNReal) : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂(f 0) := by
     intro s _; exact le_refl _
-  -- per-ω interval-integrability of the field difference.
-  have hint : ∀ ω, IntervalIntegrable
-      (fun s => b_f s (X_f s ω) - b_g s (X_g s ω)) MeasureTheory.volume 0 T := by
-    sorry
-  -- =========================================================================
-  -- h_diff: the pushforward-convolution identity.  For ω and s ∈ [0,T]:
-  --   ‖b_f s (X_g s ω) − b_g s (X_g s ω)‖
-  --     = ‖(∇W∗SM(f_s) − ∇W∗SM(g_s))((X_g s ω).1)‖
-  --     = ‖∫ ω', [gradW(x − charX_f s ω') − gradW(x − charX_g s ω')] ∂μ₀‖
-  --     ≤ ∫ ω', L·‖charX_f s ω' − charX_g s ω'‖ ∂μ₀
-  --     ≤ L·∫ ω', ‖X_f s ω' − X_g s ω'‖ ∂μ₀ = (per le_max) ≤ ε s.
-  -- =========================================================================
   -- Pushforward-convolution identity: for `x` and `s ∈ [0,T]` (`μ : f | g`),
   --   `convolveFunctionMeasure gradW (SM(μ s)) x = ∫ ω', gradW (x − charX_μ s ω') ∂μ₀`.
+  -- (Moved ahead of `hint` so the field-continuity DCT can rewrite the force slot.)
   have h_conv_push : ∀ (charX : ℝ → PhaseSpace d → PhysSpace d)
       (charV : ℝ → PhaseSpace d → PhysSpace d) (μ : ℝ → Measure (PhaseSpace d)),
       (∀ t ∈ Set.Icc (0:ℝ) T,
@@ -12536,6 +12761,138 @@ private theorem dobrushin_uniqueness_On
         (Measure.map (fun z => (charX s z, charV s z)) (f 0)) :=
       ((hL.continuous.comp (continuous_const.sub continuous_fst))).aestronglyMeasurable
     rw [integral_map haem_s hmeas_inner]
+  -- per-ω interval-integrability of the field difference.  Closed (moment-free)
+  -- by global continuity in `s` of each clamped field `s ↦ b_μ s (X_μ s ω)`:
+  -- the velocity slot is the continuous clamped trajectory; the force slot is a
+  -- pushforward integral `∫ ω', gradW (charX_μ (clampT s) ω − charX_μ (clampT s) ω') ∂μ₀`
+  -- (via `h_conv_push` at `clampT s ∈ [0,T]`), globally continuous via DCT with
+  -- the moment-free dominator `‖gradW 0‖ + L·(‖Φ_μ(clampT s) ω‖ + e^{KT}‖ω'‖ + K_μ)`.
+  -- A continuous function is `ContinuousOn (Icc 0 T)`, hence `IntervalIntegrable`.
+  have hfield_cont : ∀ (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+      (μ : ℝ → Measure (PhaseSpace d)) (Kc : ℝ) (b : ℝ → PhaseSpace d → PhaseSpace d)
+      (X : ℝ → PhaseSpace d → PhaseSpace d),
+      (b = fun s => vlasovVectorField gradW (fun s => spatialMarginal (μ (clampT s))) s) →
+      (X = fun s ω => (charX (clampT s) ω, charV (clampT s) ω)) →
+      (∀ z, Continuous (fun s => (charX (clampT s) z, charV (clampT s) z))) →
+      (∀ t ∈ Set.Icc (0:ℝ) T,
+        μ t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) →
+      (∀ s ∈ Set.Icc (0:ℝ) T,
+        AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0)) →
+      (∀ t ∈ Set.Icc (0:ℝ) T, ∀ (x_pt : PhysSpace d),
+        Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (μ t))) →
+      (∀ s ∈ Set.Icc (0 : ℝ) T, ‖(charX s 0, charV s 0)‖ ≤ Kc) →
+      (∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+        dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂) ≤
+        dist z₁ z₂ * Real.exp (((K : NNReal) : ℝ) * (s - 0))) →
+      ∀ ω, Continuous (fun s => b s (X s ω)) := by
+    intro charX charV μ Kc b X hb hX hflowcont hpush haem hint_sm hKc hlip ω
+    -- Φ-norm bound (step 3): ‖Φ_μ (clampT s) z‖ ≤ e^{KT}·‖z‖ + Kc, all s.
+    have hΦnorm : ∀ s : ℝ, ∀ z : PhaseSpace d,
+        ‖(charX (clampT s) z, charV (clampT s) z)‖ ≤ EKT * ‖z‖ + Kc := by
+      intro s z
+      exact hflownorm charX charV Kc hlip hKc (clampT s) (hclampT_mem s) z
+    subst hb hX
+    -- The clamped trajectory `s ↦ X s ω`'s position slot = charX (clampT s) ω.
+    set xS : ℝ → PhysSpace d := fun s => charX (clampT s) ω with hxS_def
+    have hxS_cont : Continuous xS := (continuous_fst.comp (hflowcont ω))
+    -- Force slot rewritten via pushforward (holds for ALL s since clampT s ∈ [0,T]).
+    have hforce_eq : ∀ s : ℝ,
+        convolveFunctionMeasure gradW (spatialMarginal (μ (clampT s))) (xS s)
+          = ∫ ω', gradW (xS s - charX (clampT s) ω') ∂(f 0) := by
+      intro s
+      exact h_conv_push charX charV μ hpush haem (clampT s) (hclampT_mem s) (xS s)
+    -- Global continuity of the pushforward force integral via DCT.
+    have hforce_cont : Continuous
+        (fun s => ∫ ω', gradW (xS s - charX (clampT s) ω') ∂(f 0)) := by
+      -- Dominator: ‖gradW (xS s - charX (clampT s) ω')‖ ≤ bound ω' (uniform in s).
+      set bnd : PhaseSpace d → ℝ := fun ω' =>
+        ‖gradW 0‖ + (L : ℝ) * ((EKT * ‖ω‖ + Kc) + (EKT * ‖ω'‖ + Kc)) with hbnd_def
+      have hbnd_int : Integrable bnd (f 0) := by
+        simp only [hbnd_def]
+        have hmom : Integrable (fun ω' : PhaseSpace d => ‖ω'‖) (f 0) :=
+          (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
+        have hL_EKT : Integrable (fun ω' : PhaseSpace d => (L : ℝ) * (EKT * ‖ω'‖)) (f 0) := by
+          have : Integrable (fun ω' : PhaseSpace d => EKT * ‖ω'‖) (f 0) :=
+            hmom.const_mul EKT
+          exact this.const_mul (L : ℝ)
+        -- rearrange: const + L·(EKT‖ω‖+Kc) + L·Kc  +  L·EKT‖ω'‖.
+        have heq : (fun ω' : PhaseSpace d =>
+            ‖gradW 0‖ + (L : ℝ) * ((EKT * ‖ω‖ + Kc) + (EKT * ‖ω'‖ + Kc))) =
+            fun ω' => (‖gradW 0‖ + (L : ℝ) * ((EKT * ‖ω‖ + Kc) + Kc))
+              + (L : ℝ) * (EKT * ‖ω'‖) := by
+          funext ω'; ring
+        rw [heq]; exact (integrable_const _).add hL_EKT
+      refine continuous_of_dominated
+        (fun s => ?_) (fun s => Filter.Eventually.of_forall (fun ω' => ?_)) hbnd_int
+        (Filter.Eventually.of_forall (fun ω' => ?_))
+      · -- AEStronglyMeasurable of the integrand at fixed s (over f 0): the inner
+        -- `ω' ↦ charX (clampT s) ω'` is AEMeasurable (fst of the AEMeasurable flow);
+        -- compose with the continuous `w ↦ gradW (xS s − w)`.
+        have haem_charX : AEMeasurable (fun ω' : PhaseSpace d => charX (clampT s) ω') (f 0) :=
+          (measurable_fst.comp_aemeasurable (haem (clampT s) (hclampT_mem s)))
+        exact ((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp_aemeasurable
+          haem_charX).aestronglyMeasurable
+      · -- Pointwise dominator bound.
+        have hd := hL.dist_le_mul (xS s - charX (clampT s) ω') 0
+        simp only [dist_eq_norm, sub_zero] at hd
+        have h_tri : ‖gradW (xS s - charX (clampT s) ω')‖ ≤
+            ‖gradW 0‖ + ‖gradW (xS s - charX (clampT s) ω') - gradW 0‖ := by
+          have := norm_add_le (gradW (xS s - charX (clampT s) ω') - gradW 0) (gradW 0)
+          simp only [sub_add_cancel] at this; linarith
+        have hsub_le : ‖xS s - charX (clampT s) ω'‖ ≤ ‖xS s‖ + ‖charX (clampT s) ω'‖ :=
+          norm_sub_le _ _
+        have hxS_le : ‖xS s‖ ≤ EKT * ‖ω‖ + Kc := by
+          simp only [hxS_def]
+          exact le_trans
+            (norm_fst_le ((charX (clampT s) ω, charV (clampT s) ω) : PhaseSpace d))
+            (hΦnorm s ω)
+        have hcharX_le : ‖charX (clampT s) ω'‖ ≤ EKT * ‖ω'‖ + Kc :=
+          le_trans
+            (norm_fst_le ((charX (clampT s) ω', charV (clampT s) ω') : PhaseSpace d))
+            (hΦnorm s ω')
+        have h_mul := mul_le_mul_of_nonneg_left
+          (le_trans hsub_le (add_le_add hxS_le hcharX_le)) L.coe_nonneg
+        simp only [hbnd_def]; linarith
+      · -- Continuity in s of the integrand at fixed ω'.
+        exact hL.continuous.comp (hxS_cont.sub
+          (continuous_fst.comp (hflowcont ω')))
+    -- Assemble: b s (X s ω) = ((X s ω).2, -force).  Both slots continuous.
+    have hvel_cont : Continuous (fun s => (charX (clampT s) ω, charV (clampT s) ω).2) :=
+      continuous_snd.comp (hflowcont ω)
+    have hbody : (fun s => vlasovVectorField gradW
+          (fun s => spatialMarginal (μ (clampT s))) s
+          ((charX (clampT s) ω, charV (clampT s) ω)))
+        = fun s => ((charX (clampT s) ω, charV (clampT s) ω).2,
+            -(∫ ω', gradW (xS s - charX (clampT s) ω') ∂(f 0))) := by
+      funext s
+      simp only [vlasovVectorField]
+      refine Prod.ext rfl ?_
+      show -(convolveFunctionMeasure gradW (spatialMarginal (μ (clampT s)))
+          (charX (clampT s) ω, charV (clampT s) ω).1)
+        = -(∫ ω', gradW (xS s - charX (clampT s) ω') ∂(f 0))
+      rw [hforce_eq s]
+    rw [hbody]
+    exact hvel_cont.prodMk hforce_cont.neg
+  have hint : ∀ ω, IntervalIntegrable
+      (fun s => b_f s (X_f s ω) - b_g s (X_g s ω)) MeasureTheory.volume 0 T := by
+    intro ω
+    have hcf : Continuous (fun s => b_f s (X_f s ω)) :=
+      hfield_cont charX_f charV_f f K_f b_f X_f hb_f_def hX_f_def
+        (fun z => (hcontIcc_f z).comp_continuous hclampT_cont (fun s => hclampT_mem s))
+        hpush_f haem_f h_int_f hK_f hlip_f ω
+    have hcg : Continuous (fun s => b_g s (X_g s ω)) :=
+      hfield_cont charX_g charV_g g K_g b_g X_g hb_g_def hX_g_def
+        (fun z => (hcontIcc_g z).comp_continuous hclampT_cont (fun s => hclampT_mem s))
+        hpush_g haem_g h_int_g hK_g hlip_g ω
+    exact ((hcf.sub hcg).continuousOn).intervalIntegrable_of_Icc hT.le
+  -- =========================================================================
+  -- h_diff: the pushforward-convolution identity.  For ω and s ∈ [0,T]:
+  --   ‖b_f s (X_g s ω) − b_g s (X_g s ω)‖
+  --     = ‖(∇W∗SM(f_s) − ∇W∗SM(g_s))((X_g s ω).1)‖
+  --     = ‖∫ ω', [gradW(x − charX_f s ω') − gradW(x − charX_g s ω')] ∂μ₀‖
+  --     ≤ ∫ ω', L·‖charX_f s ω' − charX_g s ω'‖ ∂μ₀
+  --     ≤ L·∫ ω', ‖X_f s ω' − X_g s ω'‖ ∂μ₀ = (per le_max) ≤ ε s.
+  -- =========================================================================
   -- Companion integrability transfer (same two-step map structure).
   have h_int_push : ∀ (charX : ℝ → PhaseSpace d → PhysSpace d)
       (charV : ℝ → PhaseSpace d → PhysSpace d) (μ : ℝ → Measure (PhaseSpace d)),
