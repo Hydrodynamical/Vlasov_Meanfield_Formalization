@@ -45,7 +45,8 @@ direction + pushforward chain instead.
 
 namespace Vlasov
 
-open MeasureTheory ENNReal
+open MeasureTheory ProbabilityTheory ENNReal
+open scoped ProbabilityTheory
 
 /-! ## Couplings -/
 
@@ -286,9 +287,83 @@ theorem wassersteinCost_coupling_comm
           exact congrArg ENNReal.ofReal (hc_symm z.2 z.1)
   exact le_antisymm (key μ ν) (key ν μ)
 
+/-- **[General OT — reusable / Mathlib-upstreamable] Gluing of couplings.**  Given a
+coupling `π₁` of `(μ, ρ)` and a coupling `π₂` of `(ρ, ν)`, disintegrating `π₂` over
+its `ρ`-marginal (`condKernel`) and re-binding along `π₁`'s `ρ`-marginal yields a
+coupling `π₃` of `(μ, ν)` whose cost is at most the sum of the two costs (ground-cost
+triangle `c x z ≤ c x y + c y z`).  The load-bearing facts are the two marginals
+(`map fst π₃ = μ` via `fst_compProd`; `map snd π₃ = ν` via `snd_compProd` + the
+`bind`/`map`/`comap` law). -/
+theorem exists_coupling_glue
+    {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
+    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    [IsProbabilityMeasure ρ]
+    (π₁ : Measure (α × α)) (h₁ : IsCoupling π₁ μ ρ)
+    (π₂ : Measure (α × α)) (h₂ : IsCoupling π₂ ρ ν) :
+    ∃ π₃ : Measure (α × α), IsCoupling π₃ μ ν ∧
+      ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₃
+        ≤ (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁)
+          + (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) := by
+  haveI : Nonempty α := nonempty_of_isProbabilityMeasure μ
+  haveI hπ₁ : IsProbabilityMeasure π₁ := by
+    constructor
+    have h : π₁ Set.univ = μ Set.univ := by
+      rw [← h₁.1, Measure.map_apply measurable_fst MeasurableSet.univ, Set.preimage_univ]
+    rw [h, measure_univ]
+  haveI hπ₂ : IsProbabilityMeasure π₂ := by
+    constructor
+    have h : π₂ Set.univ = ρ Set.univ := by
+      rw [← h₂.1, Measure.map_apply measurable_fst MeasurableSet.univ, Set.preimage_univ]
+    rw [h, measure_univ]
+  set κ₂ : Kernel α α := π₂.condKernel with hκ₂
+  haveI : IsMarkovKernel κ₂ := by rw [hκ₂]; infer_instance
+  set κ₂' : Kernel (α × α) α := κ₂.comap Prod.snd measurable_snd with hκ₂'
+  set glued : Measure ((α × α) × α) := π₁ ⊗ₘ κ₂' with hglued
+  set proj : (α × α) × α → α × α := fun w => (w.1.1, w.2) with hproj
+  have hproj_meas : Measurable proj :=
+    (measurable_fst.comp measurable_fst).prodMk measurable_snd
+  refine ⟨glued.map proj, ⟨?_, ?_⟩, ?_⟩
+  · -- fst marginal = μ
+    rw [Measure.map_map measurable_fst hproj_meas]
+    have hcomp : (Prod.fst ∘ proj) = (Prod.fst ∘ Prod.fst : (α × α) × α → α) := rfl
+    rw [hcomp, ← Measure.map_map measurable_fst measurable_fst,
+      show Measure.map Prod.fst glued = π₁ from Measure.fst_compProd π₁ κ₂']
+    exact h₁.1
+  · -- snd marginal = ν
+    rw [Measure.map_map measurable_snd hproj_meas]
+    have hcomp : (Prod.snd ∘ proj) = (Prod.snd : (α × α) × α → α) := rfl
+    rw [hcomp, show Measure.map Prod.snd glued = κ₂' ∘ₘ π₁ from Measure.snd_compProd π₁ κ₂']
+    have hLHS : κ₂' ∘ₘ π₁ = Measure.bind π₁ (fun p => κ₂ p.2) :=
+      Measure.bind_congr_right
+        (Filter.Eventually.of_forall fun p => Kernel.comap_apply κ₂ measurable_snd p)
+    have hbindmap : κ₂ ∘ₘ (Measure.map Prod.snd π₁) = Measure.bind π₁ (fun p => κ₂ p.2) := by
+      rw [show Measure.map Prod.snd π₁ = Measure.bind π₁ (fun p => Measure.dirac p.2) from
+            (Measure.bind_dirac_eq_map π₁ measurable_snd).symm,
+        show (κ₂ ∘ₘ Measure.bind π₁ (fun p => Measure.dirac p.2))
+            = Measure.bind (Measure.bind π₁ (fun p => Measure.dirac p.2)) κ₂ from rfl,
+        Measure.bind_bind
+          (by fun_prop : Measurable (fun p : α × α => Measure.dirac p.2)).aemeasurable
+          κ₂.aemeasurable]
+      exact Measure.bind_congr_right
+        (Filter.Eventually.of_forall fun p => Measure.dirac_bind κ₂.measurable p.2)
+    have hdisint : π₂.fst ⊗ₘ κ₂ = π₂ := by
+      rw [hκ₂]; exact Measure.disintegrate π₂ π₂.condKernel
+    have hRHS : ν = Measure.bind π₁ (fun p => κ₂ p.2) := by
+      calc ν = π₂.snd := h₂.2.symm
+        _ = (π₂.fst ⊗ₘ κ₂).snd := by rw [hdisint]
+        _ = κ₂ ∘ₘ π₂.fst := Measure.snd_compProd π₂.fst κ₂
+        _ = κ₂ ∘ₘ ρ := by rw [show π₂.fst = ρ from h₂.1]
+        _ = κ₂ ∘ₘ (Measure.map Prod.snd π₁) := by rw [show ρ = Measure.map Prod.snd π₁ from h₁.2.symm]
+        _ = Measure.bind π₁ (fun p => κ₂ p.2) := hbindmap
+    rw [hLHS, hRHS]
+  · sorry
+
 /-- **[General OT — reusable / Mathlib-upstreamable] Triangle inequality for the
-coupling cost.**  Gluing of couplings through a common middle measure (needs
-disintegration, hence `StandardBorelSpace`). -/
+coupling cost.**  Gluing of couplings through a common middle measure
+(`exists_coupling_glue`), then the `iInf` arithmetic. -/
 theorem wassersteinCost_coupling_triangle
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
     (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
