@@ -13493,5 +13493,87 @@ theorem dobrushin
   rw [wasserstein1_eq_coupling (f 0) (g 0) 0 hfm0 hgm0]
   exact hC_bound t ht
 
+/-- **Coupling-metric Dobrushin stability estimate** — the `wasserstein1_coupling`
+(primal) analogue of `DobrushinStabilityEstimate` (Basic).  LHS is the genuine
+dual `W₁` metric; the RHS base is the primal coupling-inf metric
+`wasserstein1_coupling`.  This is the form the **B-free** core
+(`dobrushin_package_exists`) produces. -/
+def DobrushinStabilityEstimateCoupling {d : ℕ} [NeZero d]
+    (f g : ℝ → Measure (PhaseSpace d)) (C : ℝ) : Prop :=
+  ∀ t : ℝ, 0 ≤ t →
+    wasserstein1 (f t) (g t) ≤
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1_coupling (f 0) (g 0)
+
+/-- **Mean-field limit — B-free coupling form** (2026-06-05).
+
+The `meanFieldLimit` (Basic) analogue that consumes the **coupling-metric**
+stability estimate (`DobrushinStabilityEstimateCoupling`, produced B-free by
+`dobrushin_package_exists`) and **coupling-metric** initial convergence
+(`wasserstein1_coupling (μ_0^N) f₀ → 0`).  The conclusion is unchanged:
+convergence of the empirical curves to the Vlasov solution in the genuine dual
+`W₁` metric.  Axiom-clean (`#print axioms`): **B-free**.
+
+**Why coupling-`hInit` — the initial-convergence type the B-free limit requires.**
+The B-free estimate puts `wasserstein1_coupling` on the RHS base, so the squeeze
+needs `wasserstein1_coupling (μ_0^N) f₀ → 0`.  Standard dual-`W₁` initial
+convergence does NOT supply this B-free: `wasserstein1 ≤ wasserstein1_coupling`
+(`wasserstein1_le_wasserstein1_coupling`), so dual-small does not bound the
+coupling — the easy direction runs the wrong way for a *hypothesis*; converting
+dual→coupling is the hard direction (= Foundation B, `wasserstein1_eq_coupling`).
+The two are mathematically equal (KR duality) and coupling-convergence is the
+*natural* form for empirical measures (one exhibits couplings to bound the cost
+from above), so this is a nominal — not a real — strengthening.  The all-dual
+`meanFieldLimit` (Basic) remains the standard-hypothesis form, routing through
+the all-dual `dobrushin` (the single Foundation-B bridge). -/
+theorem meanFieldLimit_coupling
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    (f : ℝ → Measure (PhaseSpace d))
+    (hf_sol : IsLagrangianVlasovSolution gradW f)
+    (hf_init : f 0 = f₀)
+    (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
+    (hSol : ∀ (N : ℕ), IsNewtonSolution N gradW (X N) (V N))
+    -- initial empirical measures converge to f₀ in the COUPLING metric
+    (hInit : Filter.Tendsto
+      (fun N : ℕ => wasserstein1_coupling (empiricalMeasure N (X N 0) (V N 0)) f₀)
+      Filter.atTop (nhds 0))
+    (C : ℝ) (hC : 0 < C)
+    (hDobrushin : ∀ (N : ℕ), DobrushinStabilityEstimateCoupling
+      (empiricalMeasureCurve N (X N) (V N)) f C)
+    (T : ℝ) (hT : 0 < T) :
+    Filter.Tendsto
+      (fun N : ℕ => ⨆ t ∈ Set.Icc 0 T,
+        wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t))
+      Filter.atTop (nhds 0) := by
+  have hsup_bound : ∀ N : ℕ,
+      ⨆ t ∈ Set.Icc 0 T, wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t) ≤
+        ENNReal.ofReal (Real.exp (C * T)) *
+          wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
+    intro N
+    apply iSup_le; intro t
+    apply iSup_le; intro ht
+    calc wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)
+        ≤ ENNReal.ofReal (Real.exp (C * t)) *
+            wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) :=
+          hDobrushin N t ht.1
+      _ ≤ ENNReal.ofReal (Real.exp (C * T)) *
+            wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
+          apply mul_le_mul_of_nonneg_right _ (zero_le _)
+          apply ENNReal.ofReal_le_ofReal
+          exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left ht.2 (le_of_lt hC))
+  have hUpper : Filter.Tendsto
+      (fun N : ℕ => ENNReal.ofReal (Real.exp (C * T)) *
+        wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0))
+      Filter.atTop (nhds 0) := by
+    have h := ENNReal.Tendsto.const_mul (a := ENNReal.ofReal (Real.exp (C * T)))
+      hInit (Or.inr ENNReal.ofReal_ne_top)
+    simpa [empiricalMeasureCurve, hf_init, mul_zero] using h
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hUpper
+    (fun _ => zero_le _) hsup_bound
+
 end Vlasov
 
