@@ -1,106 +1,126 @@
-# Next-session brief (as of 2026-06-05, HEAD = `ca12381`)
+# Next-session brief (as of 2026-06-05, HEAD = `d46feb3`)
 
-Durable hand-off. Build green; **3 sorries** (Basic 2, Coupling 1, CharFlow 0).
+Durable hand-off. Build green; **2 sorries** (Basic 1, Coupling 1, CharFlow 0).
 
-## Where this lands — the milestone-of-milestones
+## Where this lands — the surface is `{#2, B}`, and it maps onto the two goals
 
-The deferred surface went 13 → 8 → 6 → 4 → 3 across these sessions, and the **3**
-is qualitatively different from the 13: it is not "13 gaps shrunk to 3 gaps," it
-is the surface **resolved into one genuine external + two in-project closes**:
+The deferred surface went 13 → 8 → 6 → 4 → 3 → **2**. The two remaining
+sorries are not a to-do list; they are the two *user goals*, and those two
+goals collapse to **one program** (see next section):
 
-* **Foundation B** (`foundationB_optimal_coupling_exists`, Coupling 291) — the one
-  OT attainment theorem Mathlib lacks; sole sorry-dependency of the mean-field
-  marquee `dobrushin`. A genuine external, not an attack target.
-* **#1** (`MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment`, Basic 1465) —
-  existence-side separation. In-project.
-* **#2** (`MathlibTODO_cauchyW1_hasNarrowLimit`, Basic 1590) — Picard existence /
-  Prokhorov narrow limit. In-project.
+* **#2** (`MathlibTODO_cauchyW1_hasNarrowLimit`, Basic 1625) — Picard /
+  Prokhorov narrow limit. In-project *under W̄*; needs Foundation A under
+  plain W₁ (see below).
+* **Foundation B** (`foundationB_optimal_coupling_exists`, Coupling 276) —
+  the one OT attainment theorem Mathlib lacks; sole sorry-dependency of the
+  mean-field marquee `dobrushin`. A genuine external, not an attack target.
 
-The marquee — existence **and** uniqueness **and** mean-field — runs on the single
-`dobrushin_integrated_flow_bound_On` core (force-estimate-free). Every W₁-specific
-external (#3/#4/#5/#6/#7/#8) either dissolved under the integrated-core migration
-(orphaned) or retired by construction. The deferred surface is now **minimal and
-correctly typed**.
+The marquee — existence **and** uniqueness **and** mean-field — runs on the
+single `dobrushin_integrated_flow_bound_On` core (force-estimate-free).
 
-## Marquee axiom footprints (certified `#print axioms`, 2026-06-05)
+## The strategic finding (this session): the two goals are ONE program (W̄)
 
-* `vlasovWellPosedness` (existence) → `[propext, sorryAx, Classical.choice,
-  Quot.sound]`; the `sorryAx` traces to **{#1, #2} only** — not #7 (orphaned and
-  deleted), not B. Certified: the L=0 Lagrangian path now runs through the
-  sorry-free producer `…isLagrangianVlasovSolutionOn` (4366), itself
-  `[propext, Classical.choice, Quot.sound]` (no sorryAx ⟹ Foundation-B-free), so
-  the producer-switch **replaced** the #7 path rather than supplementing it.
-* `dobrushin` (mean-field stability) → sorryAx = **Foundation B only**.
-* `meanFieldLimit` → axiom-clean `[propext, Classical.choice, Quot.sound]`. See
-  Standing items — conditional / naming-artifact per a prior read; keep visible.
+User goals, stated this session: (1) make everything hinge only on external
+Foundation B, everything else sorry-free; (2) after that, remove the `L < 1`
+restriction. **These are not sequential — they are the same W̄ move.**
+
+* **#2's conclusion-shape read is DONE (verified, not labelled).** #2
+  *concludes W₁-convergence*, not just narrow-limit existence: Basic 1588,
+  `Tendsto (fun n => wasserstein1 (ν n) μ) atTop (𝓝 0)`. Its sole consumer
+  `picard_iterate_bundlesAs_VlasovMeasureCurve` (CharFlow 6969) **re-exports
+  that exact W₁-tendsto** as its own conclusion (CharFlow 6948/7003) and uses
+  it to pin the Picard fixed point — **not weakenable** (the curve space and
+  the contraction live in W₁). So under plain W₁, closing #2 sorry-free
+  *requires the narrow ⟹ W₁ upgrade = Foundation A*, a **second** external.
+  That contradicts goal (1). ⟹ **There is no "only B under plain W₁"
+  milestone worth chasing.**
+* **W̄ dissolves exactly that dependency.** Under the cutoff cost
+  `c = min(dist,1)` the dual test class is *bounded* 1-Lipschitz, so W̄
+  metrizes narrow convergence directly (Mathlib Lévy–Prokhorov / Portmanteau).
+  A becomes Mathlib-or-near-Mathlib; #2 reduces to Prokhorov tightness
+  (in-project) + moment-LSC. **A dissolves; #2 goes in-project.** (goal 1)
+* **"Remove L<1" forces W̄ regardless.** The `L<1` restriction is the
+  construction artifact — the `(T+1)²` *additive* smallness offset (M3
+  artifact-vs-genuine; "additive offsets are structurally fatal" watch-list).
+  Only the cutoff cost / moving-boundary program removes it. (goal 2)
+
+So **doing goal 2 (W̄) delivers goal 1** — W̄ is the mechanism that makes
+"only B" true *and* lifts `L<1`. The plan is already on disk:
+`~/.claude/plans/clear-picture-now-the-starry-sparrow.md`.
+
+## Next move — the W̄ program, Phase 1 = O2 cost-parameterization
+
+Per the plan, the load-bearing prerequisite is the **O2 cost-parameterization**
+(everything after rides on it landing green with zero consumer churn):
+
+* Replace the concrete `wasserstein1` def with a cost-parameterized core
+  `wassersteinCost (c)` over the oscillation test predicate; `wasserstein1 :=
+  wassersteinCost dist`. Add the bridge `|f x − f y| ≤ dist x y ↔
+  LipschitzWith 1 f`.
+* Re-prove the 6 cost-generic property lemmas over `wassersteinCost c`. The
+  bulk is **`wassersteinCost_le_of_lipschitz_map` (~50–80 lines)** — a genuine
+  re-proof (rewrites Lipschitz-composition as cost-composition), NOT a
+  one-liner. O2 total ~100–150 lines.
+* Consumer churn near-zero **by property-only discipline** (the new def is only
+  *propositionally* equal to the old; the only structural-touch sites are the
+  6 API lemmas + 2 cost-coupled bridges).
+
+Then: add `foundationA_*` (cost-generic) → A dissolves under W̄ → close #2
+in-project. Add the W̄ def → moment lemmas unconditional → `L<1` lifts. Foundation
+B stays the sole genuine external.
+
+**Caveats to verify at W̄-time (do not pre-assume — plan flags both):**
+1. The cutoff must reach B's *hard core* (optimal-coupling **attainment** under
+   `min(dist,1)`: bounded-and-LSC ✓ + tightness ✓), not merely B's
+   integrability side-conditions.
+2. The `L<1` lift is the *artifact* `(T+1)²` offset, **not** the *genuine*
+   contraction `B(T)<1` (M3 — the latter is carried; "all L" means
+   local-in-time per L à la Dobrushin, not unconditional global).
 
 ## DONE log
 
-* **6 → 4** (commit `a83fc35`): deleted orphaned #3/#4 + the 5 dead helpers
-  (`w1ContOn_lscNarrow_via_pureFA`, `W1ContOn_integralContAt`, `W1ContOn_lt_top`,
-  `W1ContOn_toRealContOn`, `dobrushin_C_choice`). The integrated core dissolved the
-  A-side W₁-continuity surface; #3/#4 were its orphaned narrow-machinery.
-  **The dead-helper cleanup is COMPLETE — not a pending task** (verified by grep,
-  all five gone).
-* **4 → 3** (commit `ca12381`): orphaned + deleted #7 via the marquee L=0
-  producer-switch. Re-pointed the `∀T …On` conjunct through the sorry-free
-  `…isLagrangianVlasovSolutionOn` (4366); the `M_ρ` hypothesis discharged by the
-  affine `(1+|s|)‖z‖` bound → `(1+T)·M_{f₀}` (machine-verified by the green build,
-  not just predicted). Cascade-deleted the 364-line orphaned chain (#7,
-  `vlasovTrajectoryLipschitzBound`, `…isVlasovSolution`, `…isLagrangianVlasovSolution`).
-  Ordering held: leaf-check `M_ρ` → rewire (green) → certify axioms-clean →
-  delete last (replace→verify→delete, the #5/#6/#8 shape).
+* **6 → 4** (`a83fc35`): deleted orphaned #3/#4 + 5 dead helpers.
+* **4 → 3** (`ca12381`): orphaned + deleted #7 via the marquee L=0
+  producer-switch (`M_ρ` discharged by the affine `(1+T)·M_{f₀}` bound).
+* **3 → 2** (`d46feb3`, this session): closed **#1**
+  `bcEqualFromLipschitzEqual` by reducing to `μ = ν` —
+  `thickenedIndicator δ F` is bounded **Lipschitz** (Mathlib
+  `lipschitzWith_thickenedIndicator`), so the 1-Lipschitz hypothesis applies
+  after scaling by `(K+1)⁻¹`; its integral → `μ F` as `δ→0`; limit-uniqueness
+  + `ext_of_generate_finite` over the closed-set π-system gives measure
+  equality. **Metric-agnostic (no `wasserstein1`) ⟹ W̄-survivor.** First-moment
+  hypotheses turned out vestigial for this route (signature unchanged ⟹
+  consumers untouched). Built clean first try (P1/P6 — atom-level reading
+  loaded the whole route before drafting).
+  Side effect: **`wasserstein1_eq_zero_iff_measure_eq` now fully sorry-free**
+  (its only sorry'd dependency was #1) — the uniqueness path's separation step
+  no longer routes through a placeholder.
 
-## Next move — #2, then #1 (both in-project, W̄-independent)
+## Marquee axiom footprints
 
-* **#2** `cauchyW1_hasNarrowLimit` (Basic 1590) — **NEXT. GATED on the
-  conclusion-shape read** (same shape as the #7 RECLASSIFIED gate just navigated;
-  P5 — the "Prokhorov, in-project, easy" label is a prior characterization the
-  leaf-read verifies, not a formality). The read:
-  - What does `cauchyW1_hasNarrowLimit` actually *conclude* — narrow-limit
-    existence, or W₁-convergence-to-the-limit?
-  - What does its caller (the Picard existence path) actually *need* from it?
-  - If narrow-limit-existence suffices for the caller → tightness (Markov) →
-    Prokhorov narrow limit (Mathlib has Prokhorov), in-project, **clean close**.
-  - If the caller needs W₁-convergence → it **drags the hard narrow ⟹ W₁
-    bridge**. NB this is *existence-side*, a **different consumer** than the
-    marquee stability path — re-confirm the hard direction isn't needed *here*.
-  The gate decides clean-Prokhorov vs bridge **before** committing to a path.
-* **#1** `bcEqualFromLipschitzEqual…` (Basic 1465) — existence-side separation via
-  `wasserstein1_eq_zero_iff_measure_eq`. Subalgebra-separation / BC-density close;
-  A-side-flavored but LIVE and in-project.
-* **Foundation B** (Coupling 291) — the sole genuine external; not an attack
-  target (optionally shrinkable to ε-optimal, Dobrushin 6.8).
+* `vlasovWellPosedness` (existence) → sorryAx now traces to **{#2} only**.
+  Monotone removal of #1 from the prior `{#1, #2}` certification (at
+  `ca12381`); closing a fully-proved lemma can only *remove* a footprint
+  entry. Re-run `#print axioms` for a fresh certification if precision needed.
+* `dobrushin` (mean-field stability) → sorryAx = **Foundation B only** (unchanged;
+  never depended on #1).
+* `meanFieldLimit` → axiom-clean `[propext, Classical.choice, Quot.sound]` — but
+  a **naming artifact** (see Standing items), not a B-free deliverable.
 
-Sequence: ~~6→4~~ **DONE** (`a83fc35`) → ~~#7 orphan (4→3)~~ **DONE** (`ca12381`)
-→ #2 (gated on conclusion-shape read) → #1. Foundation B stays the external.
+## Standing items (off the critical path — do not let evaporate)
 
-## Standing items (off the #2/#1 critical path — do not let evaporate)
-
-* **`meanFieldLimit` — RESOLVED: naming-artifact, *with its consequence*.** A prior
-  read (2026-06-05) concluded it is **CONDITIONAL**: it takes the Dobrushin
-  stability estimate as a *hypothesis* (`hDobrushin : ∀ N,
-  DobrushinStabilityEstimate (μ^N) f C`) and never discharges it (a one-line
-  Grönwall composition), so its axiom-cleanness `[propext, Classical.choice,
-  Quot.sound]` is a **naming artifact, NOT a B-free deliverable**.
-  **Consequence (bank this — it is the load-bearing part):** the project does
-  **NOT** currently have an unconditional, axiom-clean mean-field-limit theorem as
-  a deliverable. The genuine mean-field deliverable is **`dobrushin` (proven modulo
-  Foundation B)** plus the N→∞ convergence; `meanFieldLimit`'s cleanness is
-  packaging. Do **not** let "`meanFieldLimit` is axiom-clean (resolved)" read as
-  "the mean-field limit is axiom-clean" — the resolution was precisely that the
-  clean `meanFieldLimit` *isn't* the full limit. **No re-read needed** unless
-  someone wants to upgrade `meanFieldLimit` to the unconditional statement — which
-  routes through B. (Wiring detail if upgraded: discharging `hDobrushin` for the
-  *atomic* empirical curve `μ^N` is not a direct `dobrushin` application —
-  `dobrushin` wants both args `IsLagrangianVlasovSolution`, `μ^N`'s flow is Newton
-  dynamics — so the integrated core, which applies to any coupling-of-measures, is
-  the route, but the wiring is a genuine gap.)
-
-## The W̄ forward program (separate future project)
-
-The W̄ (truncated-metric) migration as a *forward* program — restate the stability
-estimate over `c = min(dist, 1)`, extend the marquee to `L ≥ 1` — is NOT on the
-current critical path. The A-side W̄ *harvest* evaporated (the integrated core
-orphaned #3/#4 rather than needing dissolution). W̄ remains a clean future pivot,
-additive at the def layer (`wassersteinBar := wassersteinCost (fun x y => min (dist x y) 1)`).
+* **`meanFieldLimit` — RESOLVED: naming-artifact, *with its consequence*.** A
+  prior read (2026-06-05) concluded it is **CONDITIONAL**: it takes the
+  Dobrushin stability estimate as a *hypothesis* (`hDobrushin`) and never
+  discharges it (a one-line Grönwall composition), so its axiom-cleanness is a
+  **naming artifact, NOT a B-free deliverable**.
+  **Consequence (the load-bearing part):** the project does **NOT** currently
+  have an unconditional, axiom-clean mean-field-limit theorem. The genuine
+  mean-field deliverable is **`dobrushin` (proven modulo Foundation B)** plus the
+  N→∞ convergence; `meanFieldLimit`'s cleanness is packaging. Do **not** let
+  "`meanFieldLimit` is axiom-clean (resolved)" read as "the mean-field limit is
+  axiom-clean." **No re-read needed** unless upgrading `meanFieldLimit` to the
+  unconditional statement — which routes through B (wiring: discharging
+  `hDobrushin` for the atomic empirical curve `μ^N` is not a direct `dobrushin`
+  application — `μ^N`'s flow is Newton dynamics — so the integrated core is the
+  route, but the wiring is a genuine gap).
