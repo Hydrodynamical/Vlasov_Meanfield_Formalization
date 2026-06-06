@@ -261,10 +261,30 @@ For a symmetric cost, `wassersteinCost_coupling c μ ν = wassersteinCost_coupli
 (push a coupling forward under `Prod.swap`). -/
 theorem wassersteinCost_coupling_comm
     {α : Type*} [MeasurableSpace α]
-    (c : α → α → ℝ) (_hc_symm : ∀ x y, c x y = c y x)
+    (c : α → α → ℝ) (hc_symm : ∀ x y, c x y = c y x)
+    (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) :
     wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ := by
-  sorry
+  -- One direction; the swap of a coupling of (a,b) is a coupling of (b,a) with equal cost.
+  have key : ∀ (a b : Measure α),
+      wassersteinCost_coupling c a b ≤ wassersteinCost_coupling c b a := by
+    intro a b
+    unfold wassersteinCost_coupling
+    refine le_iInf fun π => le_iInf fun hπ => ?_
+    -- π : IsCoupling π b a; `map swap π` couples (a, b).
+    have hswap : IsCoupling (Measure.map Prod.swap π) a b := by
+      refine ⟨?_, ?_⟩
+      · rw [Measure.map_map measurable_fst measurable_swap]; exact hπ.2
+      · rw [Measure.map_map measurable_snd measurable_swap]; exact hπ.1
+    refine iInf_le_of_le (Measure.map Prod.swap π) (iInf_le_of_le hswap (le_of_eq ?_))
+    calc ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂(Measure.map Prod.swap π)
+        = ∫⁻ z, ENNReal.ofReal (c (Prod.swap z).1 (Prod.swap z).2) ∂π :=
+          lintegral_map (ENNReal.measurable_ofReal.comp hc_meas) measurable_swap
+      _ = ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π := by
+          refine lintegral_congr fun z => ?_
+          simp only [Prod.fst_swap, Prod.snd_swap]
+          exact congrArg ENNReal.ofReal (hc_symm z.2 z.1)
+  exact le_antisymm (key μ ν) (key ν μ)
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Triangle inequality for the
 coupling cost.**  Gluing of couplings through a common middle measure (needs
@@ -408,7 +428,7 @@ theorem foundationB_coupling_le_dual
   have hμμ' : wassersteinCost_coupling c μ (Measure.map T μ) ≤ q :=
     (wassersteinCost_coupling_map_le c hc_cont μ T hT).trans hTcost
   have hν'ν : wassersteinCost_coupling c (Measure.map S ν) ν ≤ q := by
-    rw [wassersteinCost_coupling_comm c hc_symm (Measure.map S ν) ν]
+    rw [wassersteinCost_coupling_comm c hc_symm hc_cont.measurable (Measure.map S ν) ν]
     exact (wassersteinCost_coupling_map_le c hc_cont ν S hS).trans hScost
   -- the middle: finite KR duality, then dual stability, then bound the two costs by q
   have hmid : wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
