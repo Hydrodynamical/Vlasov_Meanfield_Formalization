@@ -404,13 +404,51 @@ coupling cost.**  Gluing of couplings through a common middle measure
 (`exists_coupling_glue`), then the `iInf` arithmetic. -/
 theorem wassersteinCost_coupling_triangle
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
-    (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     [IsProbabilityMeasure ρ] :
     wassersteinCost_coupling c μ ν
       ≤ wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν := by
-  sorry
+  -- ε→0; the ⊤-case is the clean early-out (le_of_forall_pos_le_add supplies RHS < ⊤).
+  refine ENNReal.le_of_forall_pos_le_add fun ε hε hAB => ?_
+  have hAfin : wassersteinCost_coupling c μ ρ < ⊤ := (ENNReal.add_lt_top.mp hAB).1
+  have hBfin : wassersteinCost_coupling c ρ ν < ⊤ := (ENNReal.add_lt_top.mp hAB).2
+  have hδ : (0 : ℝ≥0∞) < (ε : ℝ≥0∞) / 2 :=
+    ENNReal.div_pos (ENNReal.coe_pos.mpr hε).ne' (by norm_num)
+  -- ε-optimal couplings (free from the iInf — no attainment needed).
+  obtain ⟨π₁, h₁, hc₁⟩ : ∃ π₁, IsCoupling π₁ μ ρ ∧
+      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁) < wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2 := by
+    have hlt : wassersteinCost_coupling c μ ρ < wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2 :=
+      ENNReal.lt_add_right hAfin.ne hδ.ne'
+    unfold wassersteinCost_coupling at hlt
+    rw [iInf_lt_iff] at hlt
+    obtain ⟨π, hπ⟩ := hlt
+    rw [iInf_lt_iff] at hπ
+    obtain ⟨h, hcost⟩ := hπ
+    exact ⟨π, h, hcost⟩
+  obtain ⟨π₂, h₂, hc₂⟩ : ∃ π₂, IsCoupling π₂ ρ ν ∧
+      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) < wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2 := by
+    have hlt : wassersteinCost_coupling c ρ ν < wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2 :=
+      ENNReal.lt_add_right hBfin.ne hδ.ne'
+    unfold wassersteinCost_coupling at hlt
+    rw [iInf_lt_iff] at hlt
+    obtain ⟨π, hπ⟩ := hlt
+    rw [iInf_lt_iff] at hπ
+    obtain ⟨h, hcost⟩ := hπ
+    exact ⟨π, h, hcost⟩
+  obtain ⟨π₃, h₃, hcost⟩ :=
+    exists_coupling_glue c hc_nonneg hc_triangle hc_meas μ ν ρ π₁ h₁ π₂ h₂
+  calc wassersteinCost_coupling c μ ν
+      ≤ ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₃ :=
+        iInf_le_of_le π₃ (iInf_le_of_le h₃ le_rfl)
+    _ ≤ (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁)
+          + (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) := hcost
+    _ ≤ (wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2)
+          + (wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2) := add_le_add hc₁.le hc₂.le
+    _ = wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) := by
+        rw [add_add_add_comm, ENNReal.add_halves]
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Graph-coupling bound.**  The
 coupling cost between `μ` and a pushforward `Measure.map T μ` is at most the
@@ -662,8 +700,9 @@ theorem foundationB_coupling_le_dual
   haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
   set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
   -- triangle through the two approximants
-  have htri1 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle μ ν (Measure.map T μ)
-  have htri2 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle
+  have htri1 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle hc_cont.measurable
+    μ ν (Measure.map T μ)
+  have htri2 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle hc_cont.measurable
     (Measure.map T μ) ν (Measure.map S ν)
   -- the two outer transport terms are ≤ q
   have hμμ' : wassersteinCost_coupling c μ (Measure.map T μ) ≤ q :=
