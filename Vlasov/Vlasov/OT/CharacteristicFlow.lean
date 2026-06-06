@@ -12469,19 +12469,25 @@ private theorem dobrushin_uniqueness_On
   rw [hpush_f t ht, hpush_g']
   exact Measure.map_congr hflow_ae
 
-/-- **Mean-field Dobrushin stability on the window `[0, T]`** (2026-06-05).
+/-- **Mean-field Dobrushin stability on the window `[0, T]`**, in the *primal
+coupling* metric (2026-06-05; **B-free**).
 
-Consumes the shared `dobrushin_integrated_flow_bound_On` core at the **optimal**
-coupling `π₀` of `(f 0, g 0)` with `proj_f = fst`, `proj_g = snd`.  Then:
-* the LHS `∫ ‖Φ_f t ω.1 − Φ_g t ω.2‖ dπ₀` dominates `W₁(f t, g t)` by the easy
-  direction of Kantorovich–Rubinstein (`wasserstein1_pushforward_le_iInf` at the
-  pushforward coupling), and
-* the RHS base `∫ ‖ω.1 − ω.2‖ dπ₀` equals `W₁(f 0, g 0)` because `π₀` is optimal
-  (`wasserstein1_optimal_coupling_exists`, Foundation B).
+Concludes `W₁(f t, g t) ≤ exp(2·(max 1 L)·t) · wasserstein1_coupling (f 0, g 0)`
+— the dual `W₁` on the LHS, the *coupling-inf* metric on the RHS (= Dobrushin's
+metric ρ̄).  Proved **without Foundation B**: for *every* coupling `π` of
+`(f 0, g 0)` the shared `dobrushin_integrated_flow_bound_On` core (coupling-
+generic in `(π, proj_f, proj_g)`) gives
+  `W₁(f t, g t) ≤ ∫⁻ edist d(pushforward π) ≤ exp(…) · ∫⁻ edist z.1 z.2 ∂π`,
+the first step by the easy direction of Kantorovich–Rubinstein
+(`wasserstein1_pushforward_le_iInf`).  Taking `le_iInf` over couplings (the
+constant `exp(…) ∈ (0,∞)` pulled through via `ENNReal.div_le_iff_le_mul`) yields
+the coupling-metric RHS — **no optimal coupling / attainment needed** (cf.
+Dobrushin 1979, eq. 6.8, ε-optimal couplings).  The all-dual form is recovered
+downstream (`dobrushin`) via the single labelled `wasserstein1_eq_coupling`
+duality bridge — the project's lone Foundation-B use.
 
 Force-estimate-free: never forms a force estimate, never touches the
-`W₁`-continuity / right-derivative route — it retires the `#5`/`#6` placeholders
-on the mean-field branch. -/
+`W₁`-continuity / right-derivative route. -/
 private theorem dobrushin_meanfield_On
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -12495,56 +12501,14 @@ private theorem dobrushin_meanfield_On
     ∀ t ∈ Set.Icc (0 : ℝ) T,
       wasserstein1 (f t) (g t)
         ≤ ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
-            * wasserstein1 (f 0) (g 0) := by
+            * wasserstein1_coupling (f 0) (g 0) := by
   haveI hf0_prob : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
   haveI hg0_prob : IsProbabilityMeasure (g 0) := (hg_mom 0 ⟨le_refl 0, hT.le⟩).1
-  have hf0_fm : Integrable (fun y => dist y (0 : PhaseSpace d)) (f 0) := by
-    simpa only [dist_zero_right] using (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
-  have hg0_fm : Integrable (fun y => dist y (0 : PhaseSpace d)) (g 0) := by
-    simpa only [dist_zero_right] using (hg_mom 0 ⟨le_refl 0, hT.le⟩).2
-  -- Optimal coupling π₀ of (f 0, g 0) (Foundation B).
-  obtain ⟨π₀, hπ₀, hcost⟩ := wasserstein1_optimal_coupling_exists (f 0) (g 0) 0 hf0_fm hg0_fm
-  haveI hπ₀_prob : IsProbabilityMeasure π₀ := by
-    constructor
-    have hmap : (Measure.map Prod.fst π₀) Set.univ = (1 : ENNReal) := by
-      rw [hπ₀.1, measure_univ]
-    rwa [Measure.map_apply measurable_fst MeasurableSet.univ, Set.preimage_univ] at hmap
-  have hmarg_f : f 0 = Measure.map Prod.fst π₀ := hπ₀.1.symm
-  have hmarg_g : g 0 = Measure.map Prod.snd π₀ := hπ₀.2.symm
   obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f, hcontIcc_f⟩ := hf
   obtain ⟨_, charX_g, charV_g, hflow_g, hpush_g, haem_g, hcontIcc_g⟩ := hg
   obtain ⟨hinit_f, hflow_f_x, hflow_f_v⟩ := hflow_f
   obtain ⟨hinit_g, hflow_g_x, hflow_g_v⟩ := hflow_g
-  obtain ⟨hmeas_charf, hmeas_charg, hmain⟩ :=
-    dobrushin_integrated_flow_bound_On gradW L hL f g T hT
-      π₀ Prod.fst Prod.snd measurable_fst measurable_snd
-      charX_f charV_f charX_g charV_g
-      hinit_f hflow_f_x hflow_f_v hpush_f haem_f hcontIcc_f
-      hinit_g hflow_g_x hflow_g_v hpush_g haem_g hcontIcc_g
-      hf_mom hg_mom hmarg_f hmarg_g
-  -- RHS base integrability, and `ofReal (∫ ‖ω.1 − ω.2‖ dπ₀) = W₁(f 0, g 0)`.
-  have hmom_fst : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.1‖) π₀ := by
-    have hm : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map Prod.fst π₀) := by
-      rw [← hmarg_f]; exact (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
-    exact (integrable_map_measure continuous_norm.aestronglyMeasurable
-      measurable_fst.aemeasurable).mp hm
-  have hmom_snd : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.2‖) π₀ := by
-    have hm : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map Prod.snd π₀) := by
-      rw [← hmarg_g]; exact (hg_mom 0 ⟨le_refl 0, hT.le⟩).2
-    exact (integrable_map_measure continuous_norm.aestronglyMeasurable
-      measurable_snd.aemeasurable).mp hm
-  have hrhs_int : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.1 - ω.2‖) π₀ :=
-    Integrable.mono' (hmom_fst.add hmom_snd)
-      ((measurable_fst.sub measurable_snd).norm.aestronglyMeasurable)
-      (Filter.Eventually.of_forall fun ω => by
-        rw [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le _ _)
-  have hbase_eq : ENNReal.ofReal (∫ ω, ‖ω.1 - ω.2‖ ∂π₀) = wasserstein1 (f 0) (g 0) := by
-    rw [ofReal_integral_eq_lintegral_ofReal hrhs_int
-      (Filter.Eventually.of_forall fun ω => norm_nonneg _), ← hcost]
-    refine lintegral_congr fun z => ?_
-    rw [edist_dist, dist_eq_norm]
   intro t ht
-  obtain ⟨hint_t, hbound⟩ := hmain t ht
   haveI hft_prob : IsProbabilityMeasure (f t) := (hf_mom t ht).1
   haveI hgt_prob : IsProbabilityMeasure (g t) := (hg_mom t ht).1
   have hft : Measure.map (fun z => (charX_f t z, charV_f t z)) (f 0) = f t :=
@@ -12555,43 +12519,98 @@ private theorem dobrushin_meanfield_On
     simpa only [dist_zero_right] using (hf_mom t ht).2
   have hgt_fm : Integrable (fun y => dist y (0 : PhaseSpace d)) (g t) := by
     simpa only [dist_zero_right] using (hg_mom t ht).2
-  -- Easy direction (KR) via the pushforward coupling.
-  have h_push := wasserstein1_pushforward_le_iInf
-    (fun z => (charX_f t z, charV_f t z)) (fun z => (charX_g t z, charV_g t z))
-    (hmeas_charf t ht) (hmeas_charg t ht) (f 0) (g 0) 0
-    (by rw [hft]; infer_instance) (by rw [hgt]; infer_instance)
-    (by rw [hft]; exact hft_fm) (by rw [hgt]; exact hgt_fm)
-  rw [hft, hgt] at h_push
-  have h_iInf_le :
-      (⨅ (π : Measure (PhaseSpace d × PhaseSpace d)) (_ : IsCoupling π (f 0) (g 0)),
-        ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π)
-        ≤ ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π₀ :=
-    iInf_le_of_le π₀ (iInf_le _ hπ₀)
-  have hWt_lint : wasserstein1 (f t) (g t)
-      ≤ ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π₀ :=
-    le_trans h_push h_iInf_le
-  have hlint_eq :
-      (∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π₀)
-        = ENNReal.ofReal (∫ ω, ‖((charX_f t ω.1, charV_f t ω.1) : PhaseSpace d)
-            - (charX_g t ω.2, charV_g t ω.2)‖ ∂π₀) := by
-    rw [ofReal_integral_eq_lintegral_ofReal hint_t
-      (Filter.Eventually.of_forall fun ω => norm_nonneg _)]
-    refine lintegral_congr fun z => ?_
-    rw [edist_dist, dist_eq_norm]
-  rw [hlint_eq] at hWt_lint
-  refine le_trans hWt_lint ?_
-  calc ENNReal.ofReal (∫ ω, ‖((charX_f t ω.1, charV_f t ω.1) : PhaseSpace d)
-            - (charX_g t ω.2, charV_g t ω.2)‖ ∂π₀)
-      ≤ ENNReal.ofReal ((∫ ω, ‖ω.1 - ω.2‖ ∂π₀)
-          * Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) :=
-        ENNReal.ofReal_le_ofReal hbound
-    _ = ENNReal.ofReal (∫ ω, ‖ω.1 - ω.2‖ ∂π₀)
-          * ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) :=
-        ENNReal.ofReal_mul (integral_nonneg fun _ => norm_nonneg _)
-    _ = wasserstein1 (f 0) (g 0)
-          * ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) := by rw [hbase_eq]
-    _ = ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
-          * wasserstein1 (f 0) (g 0) := mul_comm _ _
+  have hc_ne0 :
+      ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) ≠ 0 :=
+    (ENNReal.ofReal_pos.mpr (Real.exp_pos _)).ne'
+  have hc_neTop :
+      ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) ≠ ⊤ :=
+    ENNReal.ofReal_ne_top
+  have h_per : ∀ (π : Measure (PhaseSpace d × PhaseSpace d)),
+      IsCoupling π (f 0) (g 0) →
+      wasserstein1 (f t) (g t)
+        ≤ ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
+            * ∫⁻ z, edist z.1 z.2 ∂π := by
+    intro π hπ
+    haveI hπ_prob : IsProbabilityMeasure π := by
+      constructor
+      have hmap : (Measure.map Prod.fst π) Set.univ = (1 : ENNReal) := by
+        rw [hπ.1, measure_univ]
+      rwa [Measure.map_apply measurable_fst MeasurableSet.univ, Set.preimage_univ] at hmap
+    have hmarg_f : f 0 = Measure.map Prod.fst π := hπ.1.symm
+    have hmarg_g : g 0 = Measure.map Prod.snd π := hπ.2.symm
+    obtain ⟨hmeas_charf, hmeas_charg, hmain⟩ :=
+      dobrushin_integrated_flow_bound_On gradW L hL f g T hT
+        π Prod.fst Prod.snd measurable_fst measurable_snd
+        charX_f charV_f charX_g charV_g
+        hinit_f hflow_f_x hflow_f_v hpush_f haem_f hcontIcc_f
+        hinit_g hflow_g_x hflow_g_v hpush_g haem_g hcontIcc_g
+        hf_mom hg_mom hmarg_f hmarg_g
+    obtain ⟨hint_t, hbound⟩ := hmain t ht
+    have hmom_fst : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.1‖) π := by
+      have hm : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map Prod.fst π) := by
+        rw [← hmarg_f]; exact (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
+      exact (integrable_map_measure continuous_norm.aestronglyMeasurable
+        measurable_fst.aemeasurable).mp hm
+    have hmom_snd : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.2‖) π := by
+      have hm : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map Prod.snd π) := by
+        rw [← hmarg_g]; exact (hg_mom 0 ⟨le_refl 0, hT.le⟩).2
+      exact (integrable_map_measure continuous_norm.aestronglyMeasurable
+        measurable_snd.aemeasurable).mp hm
+    have hbase_int : Integrable (fun ω : PhaseSpace d × PhaseSpace d => ‖ω.1 - ω.2‖) π :=
+      Integrable.mono' (hmom_fst.add hmom_snd)
+        ((measurable_fst.sub measurable_snd).norm.aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun ω => by
+          rw [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le _ _)
+    have h_push := wasserstein1_pushforward_le_iInf
+      (fun z => (charX_f t z, charV_f t z)) (fun z => (charX_g t z, charV_g t z))
+      (hmeas_charf t ht) (hmeas_charg t ht) (f 0) (g 0) 0
+      (by rw [hft]; infer_instance) (by rw [hgt]; infer_instance)
+      (by rw [hft]; exact hft_fm) (by rw [hgt]; exact hgt_fm)
+    rw [hft, hgt] at h_push
+    have h_iInf_le :
+        (⨅ (π' : Measure (PhaseSpace d × PhaseSpace d)) (_ : IsCoupling π' (f 0) (g 0)),
+          ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π')
+          ≤ ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π :=
+      iInf_le_of_le π (iInf_le _ hπ)
+    have hWt_lint : wasserstein1 (f t) (g t)
+        ≤ ∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π :=
+      le_trans h_push h_iInf_le
+    have hlint_eq :
+        (∫⁻ z, edist (charX_f t z.1, charV_f t z.1) (charX_g t z.2, charV_g t z.2) ∂π)
+          = ENNReal.ofReal (∫ ω, ‖((charX_f t ω.1, charV_f t ω.1) : PhaseSpace d)
+              - (charX_g t ω.2, charV_g t ω.2)‖ ∂π) := by
+      rw [ofReal_integral_eq_lintegral_ofReal hint_t
+        (Filter.Eventually.of_forall fun ω => norm_nonneg _)]
+      refine lintegral_congr fun z => ?_
+      rw [edist_dist, dist_eq_norm]
+    rw [hlint_eq] at hWt_lint
+    refine le_trans hWt_lint ?_
+    calc ENNReal.ofReal (∫ ω, ‖((charX_f t ω.1, charV_f t ω.1) : PhaseSpace d)
+              - (charX_g t ω.2, charV_g t ω.2)‖ ∂π)
+        ≤ ENNReal.ofReal ((∫ ω, ‖ω.1 - ω.2‖ ∂π)
+            * Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) :=
+          ENNReal.ofReal_le_ofReal hbound
+      _ = ENNReal.ofReal (∫ ω, ‖ω.1 - ω.2‖ ∂π)
+            * ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) :=
+          ENNReal.ofReal_mul (integral_nonneg fun _ => norm_nonneg _)
+      _ = ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
+            * ENNReal.ofReal (∫ ω, ‖ω.1 - ω.2‖ ∂π) := mul_comm _ _
+      _ = ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
+            * ∫⁻ z, edist z.1 z.2 ∂π := by
+          rw [ofReal_integral_eq_lintegral_ofReal hbase_int
+            (Filter.Eventually.of_forall fun ω => norm_nonneg _)]
+          refine congrArg
+            (fun w => ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) * w) ?_
+          refine lintegral_congr fun z => ?_
+          rw [edist_dist, dist_eq_norm]
+  -- Take the iInf over couplings of (f 0, g 0).
+  rw [show wasserstein1_coupling (f 0) (g 0)
+        = ⨅ (π : Measure (PhaseSpace d × PhaseSpace d)) (_ : IsCoupling π (f 0) (g 0)),
+            ∫⁻ z, edist z.1 z.2 ∂π from rfl, mul_comm,
+    ← ENNReal.div_le_iff_le_mul (Or.inl hc_ne0) (Or.inl hc_neTop)]
+  refine le_iInf fun π => le_iInf fun hπ => ?_
+  rw [ENNReal.div_le_iff_le_mul (Or.inl hc_ne0) (Or.inl hc_neTop), mul_comm]
+  exact h_per π hπ
 
 /-- **Stage 8: uniqueness on the local window**.
 
@@ -13405,7 +13424,7 @@ lemma dobrushin_package_exists
     ∃ C : ℝ, 0 < C ∧
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
-          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
+          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1_coupling (f 0) (g 0) := by
   -- Re-routed (2026-06-05) through the integrated-coupling core via
   -- `dobrushin_meanfield_On`: pick C = 2·(max 1 L) and window each `t ≥ 0` at
   -- `T = t + 1` (uniform in `t`, including `t = 0`) via `.toOn`.  This bypasses
@@ -13458,10 +13477,21 @@ theorem dobrushin
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
-  -- close via dobrushin_package_exists, which now routes through
-  -- `dobrushin_meanfield_On` (the integrated-coupling core at the optimal
-  -- coupling), bypassing the retired W₁-continuity / right-derivative chain.
-  exact dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
+  -- close via dobrushin_package_exists (B-free coupling core), then convert the
+  -- primal-coupling RHS `wasserstein1_coupling (f 0) (g 0)` to the dual RHS
+  -- `wasserstein1 (f 0) (g 0)` via the KR duality bridge `wasserstein1_eq_coupling`
+  -- (the sole Foundation-B use in this corollary).
+  obtain ⟨C, hC_pos, hC_bound⟩ :=
+    dobrushin_package_exists W gradW hgradW L hL f g hf hg hf_prob hg_prob
+  refine ⟨C, hC_pos, fun t ht => ?_⟩
+  haveI : IsProbabilityMeasure (f 0) := (hf_prob 0).1
+  haveI : IsProbabilityMeasure (g 0) := (hg_prob 0).1
+  have hfm0 : Integrable (fun y => dist y (0 : PhaseSpace d)) (f 0) := by
+    simpa only [dist_zero_right] using (hf_prob 0).2
+  have hgm0 : Integrable (fun y => dist y (0 : PhaseSpace d)) (g 0) := by
+    simpa only [dist_zero_right] using (hg_prob 0).2
+  rw [wasserstein1_eq_coupling (f 0) (g 0) 0 hfm0 hgm0]
+  exact hC_bound t ht
 
 end Vlasov
 
