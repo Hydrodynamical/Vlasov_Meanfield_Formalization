@@ -1597,6 +1597,137 @@ lemma wasserstein1_eq_zero_iff_measure_eq
     subst h_eq
     exact wasserstein1_self μ
 
+/-- **Static narrow lower-semicontinuity of `wasserstein1`** (Villani, Thm 6.9,
+in KR-dual form).  If `νs n → ν` narrowly (tested against bounded continuous
+functions) and `μ, ν` have finite first moments, then
+`W₁(μ, ν) ≤ liminf_n W₁(μ, νs n)`.
+
+This is the *static* optimal-transport fact — pure lower semicontinuity of the
+metric under weak convergence, with no flow/superposition — and is the
+load-bearing piece for closing `MathlibTODO_cauchyW1_hasNarrowLimit`
+**in-project** (Prokhorov supplies the narrow limit; this upgrades a W₁-Cauchy
+sequence to W₁-convergence, no Foundation A needed).  Distinct from the *dynamic*
+narrow continuity along a Vlasov flow (`MathlibTODO_W1ContOn_lscNarrow`), which
+genuinely needs DiPerna–Lions superposition; the static LSC does not.
+
+**Proof.**  For each 1-Lipschitz `φ` truncate to `φ_k = clamp(φ, -k, k)` (bounded
+and 1-Lipschitz).  Narrow convergence gives `∫ φ_k d(νs n) → ∫ φ_k dν`, and the
+dual lower bound gives `ofReal(∫φ_k dμ − ∫φ_k d(νs n)) ≤ W₁(μ, νs n)`; passing to
+the liminf in `n` yields `ofReal(∫φ_k dμ − ∫φ_k dν) ≤ liminf_n W₁(μ, νs n)`.  Then
+`k → ∞` by dominated convergence (`|φ_k| ≤ |φ 0| + ‖·‖`, integrable since μ, ν
+have finite first moment) recovers `ofReal(∫φ dμ − ∫φ dν) ≤ liminf_n W₁`.  Taking
+the `⨆` over `φ` closes it.  The narrow hypothesis is taken in
+bounded-continuous-test form (what `ProbabilityMeasure.tendsto_iff_forall_integral_tendsto`
+exposes), so the `MathlibTODO_cauchyW1_hasNarrowLimit` caller feeds it directly
+from Prokhorov. -/
+lemma wasserstein1_le_liminf_of_narrow
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
+    (μ : Measure E) [IsProbabilityMeasure μ] (hμ_int : Integrable (fun y => ‖y‖) μ)
+    (νs : ℕ → Measure E) [∀ n, IsProbabilityMeasure (νs n)]
+    (ν : Measure E) [IsProbabilityMeasure ν] (hν_int : Integrable (fun y => ‖y‖) ν)
+    (h_narrow : ∀ g : BoundedContinuousFunction E ℝ,
+      Filter.Tendsto (fun n => ∫ x, g x ∂(νs n)) Filter.atTop (nhds (∫ x, g x ∂ν))) :
+    wasserstein1 μ ν ≤ Filter.liminf (fun n => wasserstein1 μ (νs n)) Filter.atTop := by
+  rw [wasserstein1_eq_iSup_lipschitz]
+  refine iSup_le fun f => iSup_le fun hf => ?_
+  -- `f` is integrable wrt μ and ν via the dominator `|f x| ≤ |f 0| + ‖x‖`.
+  have hf_dom : ∀ x : E, |f x| ≤ |f 0| + ‖x‖ := by
+    intro x
+    have hd : |f x - f 0| ≤ ‖x‖ := by
+      have := hf.dist_le_mul x 0
+      rwa [Real.dist_eq, NNReal.coe_one, one_mul, dist_zero_right] at this
+    have h2 := abs_sub_le (f x) (f 0) 0
+    simp only [sub_zero] at h2
+    linarith
+  have hf_cont : Continuous f := hf.continuous
+  have hf_int_μ : Integrable f μ :=
+    ((integrable_const |f 0|).add hμ_int).mono' hf_cont.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => by simpa [Real.norm_eq_abs] using hf_dom x)
+  have hf_int_ν : Integrable f ν :=
+    ((integrable_const |f 0|).add hν_int).mono' hf_cont.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => by simpa [Real.norm_eq_abs] using hf_dom x)
+  -- Truncations `f_k = clamp(f, -k, k)`.
+  set fR : ℕ → E → ℝ := fun k x => max (-(k : ℝ)) (min (f x) (k : ℝ)) with hfR_def
+  have hfR_lip : ∀ k : ℕ, LipschitzWith 1 (fR k) := by
+    intro k
+    have hmin : LipschitzWith 1 (fun x => min (f x) (k : ℝ)) := by
+      have h := hf.min (LipschitzWith.const (k : ℝ))
+      rwa [max_eq_left (zero_le _)] at h
+    have h := (LipschitzWith.const (-(k : ℝ))).max hmin
+    rwa [max_eq_right (zero_le _)] at h
+  have hfR_cont : ∀ k, Continuous (fR k) := fun k => (hfR_lip k).continuous
+  have hfR_bdd : ∀ (k : ℕ) (x : E), |fR k x| ≤ (k : ℝ) := by
+    intro k x
+    have hk : (0 : ℝ) ≤ k := Nat.cast_nonneg k
+    rw [abs_le]
+    exact ⟨le_max_left _ _, max_le (by linarith) (min_le_right _ _)⟩
+  -- Clamp is a contraction toward `[-k, k]`: `|f_k x| ≤ |f x|`.
+  have habs_clamp : ∀ (a kk : ℝ), 0 ≤ kk → |max (-kk) (min a kk)| ≤ |a| := by
+    intro a kk hkk
+    rw [abs_le]
+    refine ⟨le_trans (le_min (neg_abs_le a) (by linarith [abs_nonneg a])) (le_max_right _ _),
+      max_le (by linarith [abs_nonneg a]) ((min_le_left a kk).trans (le_abs_self a))⟩
+  have h_dom : ∀ (k : ℕ) (x : E), ‖fR k x‖ ≤ |f 0| + ‖x‖ := by
+    intro k x
+    rw [Real.norm_eq_abs]
+    exact (habs_clamp (f x) (k : ℝ) (Nat.cast_nonneg k)).trans (hf_dom x)
+  -- Each truncation as a bounded continuous function (for the narrow hypothesis).
+  set gR : ℕ → BoundedContinuousFunction E ℝ := fun k =>
+    BoundedContinuousFunction.mkOfBound ⟨fR k, hfR_cont k⟩ (2 * (k : ℝ))
+      (fun x y => by
+        have hx := hfR_bdd k x; have hy := hfR_bdd k y
+        rw [abs_le] at hx hy
+        simp only [ContinuousMap.coe_mk, Real.dist_eq]
+        rw [abs_le]; constructor <;> linarith) with hgR_def
+  -- Per-truncation bound: `ofReal(∫f_k dμ − ∫f_k dν) ≤ liminf_n W₁(μ, νs n)`.
+  have h_per_k : ∀ k : ℕ,
+      ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂ν) ≤
+        Filter.liminf (fun n => wasserstein1 μ (νs n)) Filter.atTop := by
+    intro k
+    have h_tend : Filter.Tendsto (fun n => ∫ x, fR k x ∂(νs n)) Filter.atTop
+        (nhds (∫ x, fR k x ∂ν)) := by
+      have h := h_narrow (gR k)
+      simp only [hgR_def, BoundedContinuousFunction.mkOfBound_coe, ContinuousMap.coe_mk] at h
+      exact h
+    have h_tend2 : Filter.Tendsto
+        (fun n => ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂(νs n)))
+        Filter.atTop (nhds (ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂ν))) :=
+      (ENNReal.continuous_ofReal.tendsto _).comp (tendsto_const_nhds.sub h_tend)
+    have h_le : ∀ n, ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂(νs n)) ≤
+        wasserstein1 μ (νs n) := fun n =>
+      wasserstein1_dual_lower_bound μ (νs n) (fR k) (hfR_lip k)
+    calc ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂ν)
+        = Filter.liminf
+            (fun n => ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂(νs n))) Filter.atTop :=
+          h_tend2.liminf_eq.symm
+      _ ≤ Filter.liminf (fun n => wasserstein1 μ (νs n)) Filter.atTop :=
+          Filter.liminf_le_liminf (Filter.Eventually.of_forall h_le)
+  -- `k → ∞`: dominated convergence on μ and ν.
+  have h_ptwise : ∀ x : E, Filter.Tendsto (fun k => fR k x) Filter.atTop (nhds (f x)) := by
+    intro x
+    have h_ev : ∀ᶠ k in Filter.atTop, fR k x = f x := by
+      filter_upwards [Filter.eventually_ge_atTop ⌈|f x|⌉₊] with k hk
+      have hk' : |f x| ≤ (k : ℝ) := (Nat.le_ceil |f x|).trans (by exact_mod_cast hk)
+      simp only [hfR_def]
+      rw [min_eq_left ((le_abs_self (f x)).trans hk'),
+          max_eq_right (le_trans (neg_le_neg hk') (neg_abs_le (f x)))]
+    exact tendsto_const_nhds.congr' (h_ev.mono fun k hk => hk.symm)
+  have h_dct_μ : Filter.Tendsto (fun k => ∫ x, fR k x ∂μ) Filter.atTop (nhds (∫ x, f x ∂μ)) :=
+    tendsto_integral_of_dominated_convergence (fun x => |f 0| + ‖x‖)
+      (fun k => (hfR_cont k).aestronglyMeasurable) ((integrable_const |f 0|).add hμ_int)
+      (fun k => Filter.Eventually.of_forall fun x => h_dom k x)
+      (Filter.Eventually.of_forall h_ptwise)
+  have h_dct_ν : Filter.Tendsto (fun k => ∫ x, fR k x ∂ν) Filter.atTop (nhds (∫ x, f x ∂ν)) :=
+    tendsto_integral_of_dominated_convergence (fun x => |f 0| + ‖x‖)
+      (fun k => (hfR_cont k).aestronglyMeasurable) ((integrable_const |f 0|).add hν_int)
+      (fun k => Filter.Eventually.of_forall fun x => h_dom k x)
+      (Filter.Eventually.of_forall h_ptwise)
+  have h_dct : Filter.Tendsto
+      (fun k => ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂ν))
+      Filter.atTop (nhds (ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν))) :=
+    (ENNReal.continuous_ofReal.tendsto _).comp (h_dct_μ.sub h_dct_ν)
+  exact le_of_tendsto' h_dct h_per_k
+
 /-- **Mathlib-TODO: completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.**
 
 A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit
