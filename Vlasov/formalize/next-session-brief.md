@@ -49,37 +49,32 @@ inert metric-conversion bridge.
 
 ## Follow-ups (honestly gated — do NOT bank the optimistic version unread)
 
-### (1) `meanFieldLimit` coupling variant — the interesting one (GATED on an hInit read)
+### (1) `meanFieldLimit` coupling variant — RESOLVED (`55c6296`)
 
-`meanFieldLimit` (Basic:2599) is currently all-dual on BOTH the estimate
-(`DobrushinStabilityEstimate`, Basic:2573) and `hInit`
-(`wasserstein1 (μ^N_0) f₀ → 0`), so it routes through the all-dual `dobrushin`
-(B-dependent corollary). A coupling variant would route through the **B-free
-coupling core** — making the mean-field *limit itself* B-free.
+The read landed exactly as the asymmetry predicted. Added
+`DobrushinStabilityEstimateCoupling` + `meanFieldLimit_coupling` (in CharFlow,
+where both Basic's mean-field machinery and `wasserstein1_coupling` are visible —
+**Basic does not import Coupling**, so the variant cannot live in Basic).
+Probe-verified **B-free**: `[propext, Classical.choice, Quot.sound]`.
 
-**The gate (read this before banking "the mean-field limit is B-free"):** does
-the B-free `meanFieldLimit` keep the *standard* initial-convergence hypothesis,
-or a *strengthened* one?
-* Coupling-convergence of initial data (`wasserstein1_coupling (μ^N_0) f₀ → 0`)
-  is **stronger** than dual-W₁/narrow initial convergence (since `W₁_dual ≤
-  W₁_coupling`). It is "natural for empirical measures" (they couple to the
-  limit naturally) but is genuinely a stronger hypothesis than the literature's
-  narrow/W₁ initial convergence.
-* **The read**: does the easy direction (`wasserstein1 ≤ wasserstein1_coupling`,
-  B-free) squeeze the *initial* convergence too — i.e. can narrow/W₁-`hInit`
-  give `wasserstein1_coupling (μ^N_0) f₀ → 0` B-free? If YES → the mean-field
-  limit is B-free with **standard hypotheses** (strong result). If NO → the
-  B-free limit carries a **stronger coupling-`hInit`**, and the *standard*-
-  hypothesis limit still routes through the all-dual `dobrushin` (B). That is
-  the **same Option-1 trade (zero-axiom via hypothesis-strengthening) surfacing
-  at the limit level** — the LHS-vs-hypothesis subtlety that has governed every
-  metric-switch this campaign.
-* Note the asymmetry that makes the squeeze plausibly-one-directional: the easy
-  direction squeezes a *conclusion* LHS down (W₁_dual ≤ W₁_coupling) for free,
-  but a *hypothesis* needs the convergence to hold in the stronger (coupling)
-  metric — the wrong direction for the easy squeeze. So expect the read to land
-  on "stronger coupling-`hInit` needed" unless the empirical-measure structure
-  provides coupling-convergence directly. Read it; don't assume.
+**Answer — the initial-convergence type a B-free mean-field limit requires:**
+**coupling-metric initial convergence** `wasserstein1_coupling (μ^N_0) f₀ → 0`.
+* The easy direction `wasserstein1 ≤ wasserstein1_coupling` does NOT supply it
+  from dual-W₁ `hInit`: dual-small does not bound the coupling (wrong direction
+  for a *hypothesis*); dual→coupling is the hard direction = Foundation B.
+* Coupling-`hInit` is **mathematically equal** to dual-W₁ convergence (KR
+  duality) and is the **natural form for empirical measures** (exhibit couplings
+  to bound the cost from above — easier than controlling the dual sup). So it is
+  a **nominal, not real, strengthening** — the Option-1 hypothesis-vs-axiom trade
+  surfacing at the limit level, at nominal cost.
+* The conclusion stays **dual-W₁** convergence (the genuine metric). The all-dual
+  `meanFieldLimit` (Basic) remains the standard-`hInit` form, routing through the
+  all-dual `dobrushin` (the single B bridge).
+
+**Net:** the mean-field *limit* is B-free with coupling-`hInit`. What remains for
+an *unconditional* mean-field limit is NOT a metric question — it is discharging
+the stability estimate for empirical μ^N ("μ^N is a weak Vlasov solution"; μ^N's
+flow is Newton dynamics, not a direct `dobrushin` application). See horizon item 2.
 
 ### (2) GC `wasserstein1_optimal_coupling_exists` — confirmed safe (grep-verified this session)
 
@@ -131,11 +126,19 @@ length, removed by chaining (§6). The bounded cost metrizes weak convergence
 * **Option 3 LANDED** (`ab33346`): B-free coupling core
   (`dobrushin_meanfield_On`, `dobrushin_package_exists`); `dobrushin`
   all-dual via the one `wasserstein1_eq_coupling` bridge. Probe-verified (P10).
+* **Mean-field limit B-free (coupling form)** (`55c6296`): added
+  `DobrushinStabilityEstimateCoupling` + `meanFieldLimit_coupling`; probe-verified
+  `[propext, Classical.choice, Quot.sound]`. Settled follow-up (1): the B-free
+  limit requires coupling-metric `hInit` (nominal strengthening; KR-equal to
+  dual-W₁, natural for empirical measures). Conclusion stays dual-W₁.
 * **O2 cost-parameterization** (`61a3745`/`09fbeca`/`83dabff`): DONE.
 
 ## Standing note — `meanFieldLimit` vs `dobrushin`
 
-`meanFieldLimit` is axiom-clean **but conditional** (takes the estimate as a
-hypothesis). Making the mean-field *limit* unconditional-and-B-free is exactly
-follow-up (1), gated on the `hInit` read. Do not state "the mean-field limit is
-B-free" as settled until that read lands.
+Two forms now coexist: the all-dual `meanFieldLimit` (Basic, conditional,
+standard dual-W₁ `hInit`, routes through the all-dual `dobrushin` = the single B
+bridge) and the B-free `meanFieldLimit_coupling` (CharFlow, conditional,
+coupling-`hInit`). Both are conditional on the Dobrushin estimate. The genuine
+open work for an **unconditional** mean-field limit is discharging that estimate
+for empirical μ^N (horizon item 2: "μ^N is a weak Vlasov solution"; μ^N's flow is
+Newton dynamics) — a metric-independent gap, not a Foundation-B question.
