@@ -355,23 +355,136 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
       ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
   sorry
 
+/-- **[General OT — reusable / Mathlib-upstreamable] Single-map dual bound.**  The
+dual cost between a pushforward `Measure.map T μ` and `μ` is at most the integrated
+transport cost of `T`.  Direct dual-side analogue of `wassersteinCost_coupling_map_le`:
+for any `c`-admissible test `f` (oscillation `≤ c`, hence continuous), the change of
+variables `∫ f d(T_# μ) = ∫ f∘T dμ` plus `|f(Tx) − f x| ≤ c x (Tx)` gives the bound;
+the finite `c`-moment `hμ_cm` controls test-function integrability. -/
+theorem wassersteinCost_dual_singleMap_le
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x)
+    (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ : Measure α) [IsProbabilityMeasure μ] (x₀ : α)
+    (hμ_cm : Integrable (fun y => c y x₀) μ)
+    (T : α → α) (hT : Measurable T) :
+    wassersteinCost c (Measure.map T μ) μ ≤ ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := by
+  unfold wassersteinCost
+  refine iSup_le fun f => iSup_le fun hf => ?_
+  by_cases hItop : (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ) = ⊤
+  · rw [hItop]; exact le_top
+  -- f is continuous: oscillation `≤ c`, `c` continuous, `c a a = 0`.
+  have hf_cont : Continuous f := by
+    rw [Metric.continuous_iff]
+    intro a ε hε
+    have hca : Continuous (fun x => c x a) :=
+      hc_cont.comp (continuous_id.prodMk continuous_const)
+    have hca0 : Filter.Tendsto (fun x => c x a) (nhds a) (nhds 0) := by
+      have h := hca.tendsto a
+      rwa [hc_self a] at h
+    obtain ⟨δ, hδ0, hδ⟩ := Metric.tendsto_nhds_nhds.1 hca0 ε hε
+    refine ⟨δ, hδ0, fun x hx => ?_⟩
+    have hcxa : dist (c x a) 0 < ε := hδ hx
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg (hc_nonneg x a)] at hcxa
+    calc dist (f x) (f a) = |f x - f a| := Real.dist_eq _ _
+      _ ≤ c x a := hf x a
+      _ < ε := hcxa
+  have hf_meas : Measurable f := hf_cont.measurable
+  -- `f` is `μ`-integrable: `|f x| ≤ |f x₀| + c x x₀`, with `c · x₀` integrable.
+  have hf_int_mu : Integrable f μ := by
+    have hbound : ∀ x, |f x| ≤ |f x₀| + c x x₀ := fun x => by
+      calc |f x|
+          = |(f x - f x₀) + f x₀| := by ring_nf
+        _ ≤ |f x - f x₀| + |f x₀| := abs_add_le _ _
+        _ ≤ c x x₀ + |f x₀| := by have := hf x x₀; linarith
+        _ = |f x₀| + c x x₀ := by ring
+    refine ((integrable_const |f x₀|).add hμ_cm).mono hf_cont.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => ?_)
+    simp only [Real.norm_eq_abs, Pi.add_apply,
+      abs_of_nonneg (add_nonneg (abs_nonneg (f x₀)) (hc_nonneg x x₀))]
+    exact hbound x
+  -- `c · (T ·)` is integrable (the `I < ⊤` case).
+  have hcT_meas : Measurable (fun x => c x (T x)) :=
+    hc_cont.measurable.comp (measurable_id.prodMk hT)
+  have hcT_int : Integrable (fun x => c x (T x)) μ := by
+    refine ⟨hcT_meas.aestronglyMeasurable, ?_⟩
+    rw [hasFiniteIntegral_iff_enorm]
+    have henorm : ∀ x, ‖c x (T x)‖ₑ = ENNReal.ofReal (c x (T x)) := fun x => by
+      rw [Real.enorm_eq_ofReal_abs, abs_of_nonneg (hc_nonneg x (T x))]
+    simp_rw [henorm]
+    exact lt_top_iff_ne_top.mpr hItop
+  -- `f ∘ T` is `μ`-integrable: `|f (T x)| ≤ |f x| + c x (T x)`.
+  have hfT_int : Integrable (fun x => f (T x)) μ := by
+    have hbound2 : ∀ x, |f (T x)| ≤ |f x| + c x (T x) := fun x => by
+      have h1 := hf (T x) x
+      rw [hc_symm (T x) x] at h1
+      calc |f (T x)|
+          = |(f (T x) - f x) + f x| := by ring_nf
+        _ ≤ |f (T x) - f x| + |f x| := abs_add_le _ _
+        _ ≤ c x (T x) + |f x| := by linarith
+        _ = |f x| + c x (T x) := by ring
+    refine (hf_int_mu.abs.add hcT_int).mono (hf_meas.comp hT).aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => ?_)
+    simp only [Real.norm_eq_abs, Pi.add_apply,
+      abs_of_nonneg (add_nonneg (abs_nonneg (f x)) (hc_nonneg x (T x)))]
+    exact hbound2 x
+  -- change of variables + integrand bound.
+  have hcov : (∫ x, f x ∂(Measure.map T μ)) = ∫ x, f (T x) ∂μ :=
+    integral_map hT.aemeasurable hf_cont.aestronglyMeasurable
+  rw [hcov, ← integral_sub hfT_int hf_int_mu]
+  have hmono : (∫ x, (f (T x) - f x) ∂μ) ≤ ∫ x, c x (T x) ∂μ := by
+    refine integral_mono_ae (hfT_int.sub hf_int_mu) hcT_int
+      (Filter.Eventually.of_forall fun x => ?_)
+    have h1 := hf (T x) x
+    rw [hc_symm (T x) x] at h1
+    calc f (T x) - f x ≤ |f (T x) - f x| := le_abs_self _
+      _ ≤ c x (T x) := h1
+  refine (ENNReal.ofReal_le_ofReal hmono).trans (le_of_eq ?_)
+  exact ofReal_integral_eq_lintegral_ofReal hcT_int
+    (Filter.Eventually.of_forall fun x => hc_nonneg x (T x))
+
 /-- **[General OT — reusable / Mathlib-upstreamable] Dual-side stability under
 pushforward.**  A `c`-admissible test function changes value by at most the
 transport cost, so the dual sup over `(T_# μ, S_# ν)` exceeds that over `(μ, ν)`
-by at most the two transport costs. -/
+by at most the two transport costs.  Dual triangle (`wassersteinCost_triangle`)
+through `μ` then `ν`, with each single-map leg bounded by
+`wassersteinCost_dual_singleMap_le`. -/
 theorem wassersteinCost_dual_le_add_map
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    (c : α → α → ℝ) (_hc_symm : ∀ x y, c x y = c y x)
-    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    [SecondCountableTopology α]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x)
+    (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S)
+    (T S : α → α) (hT : Measurable T) (hS : Measurable S)
     (x₀ : α)
-    (_hμ_cm : Integrable (fun y => c y x₀) μ) (_hν_cm : Integrable (fun y => c y x₀) ν) :
+    (hμ_cm : Integrable (fun y => c y x₀) μ) (hν_cm : Integrable (fun y => c y x₀) ν) :
     wassersteinCost c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c μ ν
         + (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
         + (∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν) := by
-  sorry
+  have htri1 := wassersteinCost_triangle c (Measure.map T μ) μ (Measure.map S ν)
+  have htri2 := wassersteinCost_triangle c μ ν (Measure.map S ν)
+  have hT_bound : wassersteinCost c (Measure.map T μ) μ
+      ≤ ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ :=
+    wassersteinCost_dual_singleMap_le c hc_nonneg hc_self hc_symm hc_cont μ x₀ hμ_cm T hT
+  have hS_bound : wassersteinCost c ν (Measure.map S ν)
+      ≤ ∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν := by
+    rw [wassersteinCost_comm c ν (Measure.map S ν)]
+    exact wassersteinCost_dual_singleMap_le c hc_nonneg hc_self hc_symm hc_cont ν x₀ hν_cm S hS
+  calc wassersteinCost c (Measure.map T μ) (Measure.map S ν)
+      ≤ wassersteinCost c (Measure.map T μ) μ + wassersteinCost c μ (Measure.map S ν) := htri1
+    _ ≤ wassersteinCost c (Measure.map T μ) μ
+          + (wassersteinCost c μ ν + wassersteinCost c ν (Measure.map S ν)) :=
+        add_le_add le_rfl htri2
+    _ ≤ (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
+          + (wassersteinCost c μ ν + (∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν)) :=
+        add_le_add hT_bound (add_le_add le_rfl hS_bound)
+    _ = wassersteinCost c μ ν
+          + (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
+          + (∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν) := by abel
 
 /-- **Foundation B (the project's single external sorry): the hard direction of
 Kantorovich–Rubinstein duality** — the primal coupling-formula is at most the
@@ -450,7 +563,8 @@ theorem foundationB_coupling_le_dual
       ≤ wassersteinCost c μ ν + q + q :=
     (wassersteinCost_coupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
         μ ν T S hT hS hTfin hSfin).trans
-      ((wassersteinCost_dual_le_add_map c hc_symm hc_cont μ ν T S hT hS x₀ hμ_cm hν_cm).trans
+      ((wassersteinCost_dual_le_add_map c hc_nonneg hc_self hc_symm hc_cont μ ν T S hT hS
+          x₀ hμ_cm hν_cm).trans
         (add_le_add (add_le_add le_rfl hTcost) hScost))
   -- 4q = ofReal ε = ↑ε
   have hq4 : q + q + q + q = (ε : ℝ≥0∞) := by
