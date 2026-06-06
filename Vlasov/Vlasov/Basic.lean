@@ -1462,7 +1462,64 @@ theorem MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment
                Integrable f μ → Integrable f ν →
                ∫ x, f x ∂μ = ∫ x, f x ∂ν) :
     ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν := by
-  sorry
+  -- It suffices to prove `μ = ν`; then equality of all BC integrals is immediate.
+  suffices hμν : μ = ν by intro f; rw [hμν]
+  -- Step A: upgrade the 1-Lipschitz hypothesis to arbitrary `K`-Lipschitz integrable
+  -- functions, by scaling into the 1-Lipschitz class (`c⁻¹ • g` with `c = K + 1`).
+  have h_lip_eq : ∀ (g : α → ℝ) (K : NNReal), LipschitzWith K g →
+      Integrable g μ → Integrable g ν → ∫ x, g x ∂μ = ∫ x, g x ∂ν := by
+    intro g K hg hgμ hgν
+    set c : ℝ := (K : ℝ) + 1 with hc
+    have hc_pos : (0 : ℝ) < c := by rw [hc]; positivity
+    have hcK : (K : ℝ) ≤ c := by rw [hc]; linarith
+    have hcK1 : c⁻¹ * (K : ℝ) ≤ 1 := by
+      have h := mul_le_mul_of_nonneg_left hcK (le_of_lt (inv_pos.mpr hc_pos))
+      rwa [inv_mul_cancel₀ hc_pos.ne'] at h
+    have h1 : LipschitzWith 1 (fun x => c⁻¹ * g x) := by
+      apply LipschitzWith.of_dist_le_mul
+      intro x y
+      simp only [NNReal.coe_one, one_mul]
+      have key : dist (c⁻¹ * g x) (c⁻¹ * g y) = c⁻¹ * dist (g x) (g y) := by
+        rw [Real.dist_eq, Real.dist_eq, ← mul_sub, abs_mul, abs_of_pos (inv_pos.mpr hc_pos)]
+      calc dist (c⁻¹ * g x) (c⁻¹ * g y)
+          = c⁻¹ * dist (g x) (g y) := key
+        _ ≤ c⁻¹ * ((K : ℝ) * dist x y) :=
+            mul_le_mul_of_nonneg_left (hg.dist_le_mul x y) (le_of_lt (inv_pos.mpr hc_pos))
+        _ = (c⁻¹ * (K : ℝ)) * dist x y := by ring
+        _ ≤ 1 * dist x y := mul_le_mul_of_nonneg_right hcK1 dist_nonneg
+        _ = dist x y := one_mul _
+    have h_scaled : ∫ x, c⁻¹ * g x ∂μ = ∫ x, c⁻¹ * g x ∂ν :=
+      _h_1lip (fun x => c⁻¹ * g x) h1 (hgμ.const_mul c⁻¹) (hgν.const_mul c⁻¹)
+    rw [integral_const_mul, integral_const_mul] at h_scaled
+    exact mul_left_cancel₀ (inv_ne_zero hc_pos.ne') h_scaled
+  -- Step B: closed sets receive equal measure, via thickened-indicator integrals.
+  have key : ∀ F : Set α, IsClosed F → μ F = ν F := by
+    intro F hF
+    have δs_pos : ∀ n : ℕ, (0 : ℝ) < 1 / ((n : ℝ) + 1) := fun n => by positivity
+    have δs_lim : Filter.Tendsto (fun n : ℕ => 1 / ((n : ℝ) + 1)) Filter.atTop (nhds 0) :=
+      tendsto_one_div_add_atTop_nhds_zero_nat
+    have hμ_lim := tendsto_lintegral_thickenedIndicator_of_isClosed μ hF δs_pos δs_lim
+    have hν_lim := tendsto_lintegral_thickenedIndicator_of_isClosed ν hF δs_pos δs_lim
+    have hlint_eq : ∀ n : ℕ,
+        (∫⁻ ω, (thickenedIndicator (δs_pos n) F ω : ENNReal) ∂μ)
+          = ∫⁻ ω, (thickenedIndicator (δs_pos n) F ω : ENNReal) ∂ν := by
+      intro n
+      rw [lintegral_coe_eq_integral (fun ω => thickenedIndicator (δs_pos n) F ω)
+            (integrable_thickenedIndicator (μ := μ) F (δs_pos n)),
+          lintegral_coe_eq_integral (fun ω => thickenedIndicator (δs_pos n) F ω)
+            (integrable_thickenedIndicator (μ := ν) F (δs_pos n))]
+      congr 1
+      exact h_lip_eq _ _
+        ((NNReal.isometry_coe.lipschitz).comp (lipschitzWith_thickenedIndicator (δs_pos n) F))
+        (integrable_thickenedIndicator (μ := μ) F (δs_pos n))
+        (integrable_thickenedIndicator (μ := ν) F (δs_pos n))
+    simp_rw [hlint_eq] at hμ_lim
+    exact tendsto_nhds_unique hμ_lim hν_lim
+  -- Closed sets form a π-system generating the Borel σ-algebra.
+  apply ext_of_generate_finite _ ?_ isPiSystem_isClosed
+  · exact fun F hF => key F hF
+  · exact key Set.univ isClosed_univ
+  · rw [BorelSpace.measurable_eq (α := α), borel_eq_generateFrom_isClosed]
 
 /-- **Separation lemma for `wasserstein1`** (Stage 2b part 4, 2026-05-31).
 
