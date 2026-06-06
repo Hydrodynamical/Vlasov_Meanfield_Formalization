@@ -334,7 +334,7 @@ theorem exists_finiteRange_map_cost_le
     [SecondCountableTopology α]
     (c : α → α → ℝ) (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ : Measure α) [IsProbabilityMeasure μ] (x₀ : α)
-    (_hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (_hμ_cm : Integrable (fun y => c y x₀) μ)
     (ε : ℝ) (_hε : 0 < ε) :
     ∃ T : α → α, Measurable T ∧ (Set.range T).Finite ∧
       ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ ≤ ENNReal.ofReal ε := by
@@ -364,7 +364,9 @@ theorem wassersteinCost_dual_le_add_map
     (c : α → α → ℝ) (_hc_symm : ∀ x y, c x y = c y x)
     (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S) :
+    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S)
+    (x₀ : α)
+    (_hμ_cm : Integrable (fun y => c y x₀) μ) (_hν_cm : Integrable (fun y => c y x₀) ν) :
     wassersteinCost c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c μ ν
         + (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
@@ -420,16 +422,16 @@ theorem foundationB_coupling_le_dual
     (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
-    (hμ_fm : Integrable (fun y => dist y x₀) μ)
-    (hν_fm : Integrable (fun y => dist y x₀) ν) :
+    (hμ_cm : Integrable (fun y => c y x₀) μ)
+    (hν_cm : Integrable (fun y => c y x₀) ν) :
     wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν := by
   -- ε→0; for each ε pick finite-range approximants T, S with transport cost ≤ ε/4.
   refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
   have hε4 : (0 : ℝ) < (ε : ℝ) / 4 := by positivity
   obtain ⟨T, hT, hTfin, hTcost⟩ :=
-    exists_finiteRange_map_cost_le c hc_cont μ x₀ hμ_fm ((ε : ℝ) / 4) hε4
+    exists_finiteRange_map_cost_le c hc_cont μ x₀ hμ_cm ((ε : ℝ) / 4) hε4
   obtain ⟨S, hS, hSfin, hScost⟩ :=
-    exists_finiteRange_map_cost_le c hc_cont ν x₀ hν_fm ((ε : ℝ) / 4) hε4
+    exists_finiteRange_map_cost_le c hc_cont ν x₀ hν_cm ((ε : ℝ) / 4) hε4
   haveI : IsProbabilityMeasure (Measure.map T μ) := Measure.isProbabilityMeasure_map hT.aemeasurable
   haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
   set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
@@ -448,11 +450,12 @@ theorem foundationB_coupling_le_dual
       ≤ wassersteinCost c μ ν + q + q :=
     (wassersteinCost_coupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
         μ ν T S hT hS hTfin hSfin).trans
-      ((wassersteinCost_dual_le_add_map c hc_symm hc_cont μ ν T S hT hS).trans
+      ((wassersteinCost_dual_le_add_map c hc_symm hc_cont μ ν T S hT hS x₀ hμ_cm hν_cm).trans
         (add_le_add (add_le_add le_rfl hTcost) hScost))
   -- 4q = ofReal ε = ↑ε
   have hq4 : q + q + q + q = (ε : ℝ≥0∞) := by
-    have h4 : q + q + q + q = ENNReal.ofReal ((ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4) := by
+    have h4 : q + q + q + q
+        = ENNReal.ofReal ((ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4) := by
       rw [hq, ← ENNReal.ofReal_add (by positivity) (by positivity),
         ← ENNReal.ofReal_add (by positivity) (by positivity),
         ← ENNReal.ofReal_add (by positivity) (by positivity)]
