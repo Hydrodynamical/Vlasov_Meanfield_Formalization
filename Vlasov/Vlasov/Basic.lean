@@ -1775,7 +1775,175 @@ theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
       -- to ℝ when matching `VlasovMeasureCurve.hW1Cont`'s `.toReal` interface.
       Filter.Tendsto (fun n => wasserstein1 (ν n) μ)
         Filter.atTop (nhds 0) := by
-  sorry
+  classical
+  -- `M ≥ 0` from `0 ≤ ∫ ‖y‖ ∂(ν 0) ≤ M`.
+  have hM_nonneg : (0 : ℝ) ≤ M :=
+    le_trans (integral_nonneg fun _ => norm_nonneg _) (hMom 0)
+  -- Package each `ν n` as a `ProbabilityMeasure`.
+  set P : ℕ → ProbabilityMeasure (PhysSpace d) := fun n => ⟨ν n, inferInstance⟩ with hP_def
+  have hP_coe : ∀ n, ((P n : ProbabilityMeasure (PhysSpace d)) : Measure (PhysSpace d)) = ν n :=
+    fun n => rfl
+  set S : Set (ProbabilityMeasure (PhysSpace d)) := Set.range P with hS_def
+  -- === Step 1: tightness of `S` (as a set of measures). ===
+  have h_tight :
+      MeasureTheory.IsTightMeasureSet
+        {((Q : ProbabilityMeasure (PhysSpace d)) : Measure (PhysSpace d)) | Q ∈ S} := by
+    rw [MeasureTheory.isTightMeasureSet_iff_exists_isCompact_measure_compl_le]
+    intro ε hε
+    -- Trivial case: ε = ∞.
+    rcases eq_or_ne ε ⊤ with hε_top | hε_top
+    · exact ⟨Metric.closedBall (0 : PhysSpace d) 1, isCompact_closedBall _ _,
+        fun μ _ => by simp [hε_top]⟩
+    -- Choose radius `R` with `M / R ≤ ε.toReal` and `R ≥ 1`.
+    have hεR : (0 : ℝ) < ε.toReal := ENNReal.toReal_pos hε.ne' hε_top
+    set R : ℝ := max 1 (M / ε.toReal) with hR_def
+    have hR_pos : (0 : ℝ) < R := lt_of_lt_of_le one_pos (le_max_left _ _)
+    have hR_ge : M / R ≤ ε.toReal := by
+      rcases le_or_gt M 0 with hM0 | hM0
+      · exact le_trans (div_nonpos_of_nonpos_of_nonneg hM0 hR_pos.le) hεR.le
+      · have hRge : M / ε.toReal ≤ R := le_max_right _ _
+        rw [div_le_iff₀ hR_pos]
+        calc M = (M / ε.toReal) * ε.toReal := by field_simp
+          _ ≤ R * ε.toReal := by gcongr
+          _ = ε.toReal * R := by ring
+    refine ⟨Metric.closedBall (0 : PhysSpace d) R, isCompact_closedBall _ _, ?_⟩
+    rintro μ ⟨Q, ⟨n, rfl⟩, rfl⟩
+    -- Now `μ = ν n`.
+    rw [hP_coe n]
+    -- Markov inequality at threshold `R`.
+    have h_markov : R * (ν n).real {x | R ≤ ‖x‖} ≤ ∫ y, ‖y‖ ∂(ν n) :=
+      MeasureTheory.mul_meas_ge_le_integral_of_nonneg
+        (Filter.Eventually.of_forall fun _ => norm_nonneg _) (h_yint n) R
+    have h_real_le : (ν n).real {x | R ≤ ‖x‖} ≤ M / R := by
+      rw [le_div_iff₀ hR_pos]
+      calc (ν n).real {x | R ≤ ‖x‖} * R = R * (ν n).real {x | R ≤ ‖x‖} := by ring
+        _ ≤ ∫ y, ‖y‖ ∂(ν n) := h_markov
+        _ ≤ M := hMom n
+    -- The complement of the closed ball is contained in `{R ≤ ‖x‖}`.
+    have h_subset : (Metric.closedBall (0 : PhysSpace d) R)ᶜ ⊆ {x | R ≤ ‖x‖} := by
+      intro x hx
+      simp only [Metric.mem_closedBall, dist_zero_right, Set.mem_compl_iff, not_le] at hx
+      exact le_of_lt hx
+    -- Convert the ENNReal goal `(ν n) Kᶜ ≤ ε` via the real measure.
+    rw [← MeasureTheory.ofReal_measureReal (measure_ne_top (ν n) _),
+        ← ENNReal.ofReal_toReal hε_top]
+    refine ENNReal.ofReal_le_ofReal ?_
+    calc (ν n).real (Metric.closedBall (0 : PhysSpace d) R)ᶜ
+        ≤ (ν n).real {x | R ≤ ‖x‖} :=
+          MeasureTheory.measureReal_mono h_subset (measure_ne_top (ν n) _)
+      _ ≤ M / R := h_real_le
+      _ ≤ ε.toReal := hR_ge
+  -- === Step 2: Prokhorov → convergent subsequence. ===
+  have h_compact : IsCompact (closure S) :=
+    isCompact_closure_of_isTightMeasureSet h_tight
+  obtain ⟨Plim, _hPlim_mem, φ, hφ_mono, hφ_tendsto⟩ :=
+    h_compact.tendsto_subseq (x := P) (fun n => subset_closure (Set.mem_range_self n))
+  -- The limit measure.
+  set μ : Measure (PhysSpace d) := (Plim : Measure (PhysSpace d)) with hμ_def
+  haveI : IsProbabilityMeasure μ := Plim.2
+  -- === Step 3: narrow convergence in test-integral form. ===
+  have h_narrow : ∀ g : BoundedContinuousFunction (PhysSpace d) ℝ,
+      Filter.Tendsto (fun k => ∫ x, g x ∂(ν (φ k))) Filter.atTop
+        (nhds (∫ x, g x ∂μ)) := by
+    intro g
+    have h := (MeasureTheory.ProbabilityMeasure.tendsto_iff_forall_integral_tendsto.1
+      hφ_tendsto) g
+    -- `(P ∘ φ) k` coerces to `ν (φ k)`, and `Plim` coerces to `μ`.
+    simpa only [Function.comp_apply, hP_coe, hμ_def] using h
+  -- === Step 4: moment bound + integrability of the limit. ===
+  -- Truncations `bR k x = min ‖x‖ k`, as bounded continuous functions.
+  set bR : ℕ → PhysSpace d → ℝ := fun k x => min ‖x‖ (k : ℝ) with hbR_def
+  have hbR_nonneg : ∀ (k : ℕ) (x : PhysSpace d), 0 ≤ bR k x :=
+    fun k x => le_min (norm_nonneg x) (Nat.cast_nonneg k)
+  have hbR_cont : ∀ k, Continuous (bR k) := fun k => continuous_norm.min continuous_const
+  have hbR_bdd : ∀ (k : ℕ) (x : PhysSpace d), |bR k x| ≤ (k : ℝ) := by
+    intro k x
+    rw [abs_of_nonneg (hbR_nonneg k x)]
+    exact min_le_right _ _
+  set gR : ℕ → BoundedContinuousFunction (PhysSpace d) ℝ := fun k =>
+    BoundedContinuousFunction.mkOfBound ⟨bR k, hbR_cont k⟩ (2 * (k : ℝ))
+      (fun x y => by
+        have hx := hbR_bdd k x; have hy := hbR_bdd k y
+        rw [abs_le] at hx hy
+        simp only [ContinuousMap.coe_mk, Real.dist_eq]
+        rw [abs_le]; constructor <;> linarith) with hgR_def
+  -- Each `bR k` is integrable wrt any finite measure (it's a bounded continuous function).
+  have hbR_int : ∀ (k : ℕ) (ρ : Measure (PhysSpace d)) [IsFiniteMeasure ρ],
+      Integrable (bR k) ρ := by
+    intro k ρ _
+    have h := (gR k).integrable ρ
+    simpa only [hgR_def, BoundedContinuousFunction.mkOfBound_coe, ContinuousMap.coe_mk] using h
+  have hbR_int_μ : ∀ k, Integrable (bR k) μ := fun k => hbR_int k μ
+  -- `∫ bR k dμ ≤ M`, via narrow convergence from the subsequence.
+  have h_bR_μ_le : ∀ k, ∫ x, bR k x ∂μ ≤ M := by
+    intro k
+    have h_tend : Filter.Tendsto (fun j => ∫ x, bR k x ∂(ν (φ j))) Filter.atTop
+        (nhds (∫ x, bR k x ∂μ)) := by
+      have h := h_narrow (gR k)
+      simpa only [hgR_def, BoundedContinuousFunction.mkOfBound_coe, ContinuousMap.coe_mk] using h
+    refine le_of_tendsto' h_tend (fun j => ?_)
+    calc ∫ x, bR k x ∂(ν (φ j)) ≤ ∫ x, ‖x‖ ∂(ν (φ j)) :=
+          integral_mono (hbR_int k (ν (φ j))) (h_yint (φ j)) (fun x => min_le_left _ _)
+      _ ≤ M := hMom (φ j)
+  -- Lift to the lintegral: `∫⁻ ofReal ‖x‖ dμ ≤ ofReal M`.
+  have h_lint_le : ∫⁻ x, ENNReal.ofReal ‖x‖ ∂μ ≤ ENNReal.ofReal M := by
+    -- Monotone convergence of `ofReal (bR k x) ↑ ofReal ‖x‖`.
+    have h_mc : Filter.Tendsto (fun k => ∫⁻ x, ENNReal.ofReal (bR k x) ∂μ)
+        Filter.atTop (nhds (∫⁻ x, ENNReal.ofReal ‖x‖ ∂μ)) := by
+      refine MeasureTheory.lintegral_tendsto_of_tendsto_of_monotone
+        (fun k => ((hbR_cont k).measurable.ennreal_ofReal).aemeasurable)
+        (Filter.Eventually.of_forall fun x => ?_)
+        (Filter.Eventually.of_forall fun x => ?_)
+      · intro i j hij
+        refine ENNReal.ofReal_le_ofReal ?_
+        simp only [hbR_def]
+        exact min_le_min le_rfl (by exact_mod_cast hij)
+      · -- `bR k x = min ‖x‖ k → ‖x‖`.
+        have h_ev : ∀ᶠ k in Filter.atTop, ENNReal.ofReal (bR k x) = ENNReal.ofReal ‖x‖ := by
+          filter_upwards [Filter.eventually_ge_atTop ⌈‖x‖⌉₊] with k hk
+          have hk' : ‖x‖ ≤ (k : ℝ) := (Nat.le_ceil ‖x‖).trans (by exact_mod_cast hk)
+          simp only [hbR_def, min_eq_left hk']
+        exact tendsto_const_nhds.congr' (h_ev.mono fun k hk => hk.symm)
+    -- Each lintegral bound `∫⁻ ofReal (bR k) ≤ ofReal M`.
+    have h_each : ∀ k, ∫⁻ x, ENNReal.ofReal (bR k x) ∂μ ≤ ENNReal.ofReal M := by
+      intro k
+      rw [← MeasureTheory.ofReal_integral_eq_lintegral_ofReal (hbR_int_μ k)
+        (Filter.Eventually.of_forall (hbR_nonneg k))]
+      exact ENNReal.ofReal_le_ofReal (h_bR_μ_le k)
+    exact le_of_tendsto' h_mc h_each
+  -- Integrability of `‖·‖` wrt `μ`.
+  have hμ_int : Integrable (fun y : PhysSpace d => ‖y‖) μ := by
+    refine ⟨continuous_norm.aestronglyMeasurable, ?_⟩
+    rw [MeasureTheory.hasFiniteIntegral_iff_ofReal
+      (Filter.Eventually.of_forall fun _ => norm_nonneg _)]
+    exact lt_of_le_of_lt h_lint_le ENNReal.ofReal_lt_top
+  -- Moment bound `∫ ‖y‖ dμ ≤ M`.
+  have hμ_mom : ∫ y, ‖y‖ ∂μ ≤ M := by
+    rw [MeasureTheory.integral_eq_lintegral_of_nonneg_ae
+      (Filter.Eventually.of_forall fun _ => norm_nonneg _)
+      continuous_norm.aestronglyMeasurable]
+    exact ENNReal.toReal_le_of_le_ofReal hM_nonneg h_lint_le
+  -- === Step 5: W₁ convergence (the bridge). ===
+  refine ⟨μ, inferInstance, hμ_int, hμ_mom, ?_⟩
+  rw [ENNReal.tendsto_nhds_zero]
+  intro ε hε
+  obtain ⟨N, hN⟩ := hCauchy ε hε
+  filter_upwards [Filter.eventually_ge_atTop N] with n hn
+  -- Apply the static narrow-LSC bridge with `μ := ν n`, `ν := μ`, subseq `ν ∘ φ`.
+  have h_lsc :
+      wasserstein1 (ν n) μ ≤
+        Filter.liminf (fun k => wasserstein1 (ν n) (ν (φ k))) Filter.atTop :=
+    wasserstein1_le_liminf_of_narrow (ν n) (h_yint n) (fun k => ν (φ k)) μ hμ_int h_narrow
+  refine le_trans h_lsc ?_
+  -- Bound the liminf by `ε`: eventually `φ k ≥ N`, so `W₁(ν n, ν (φ k)) ≤ ε`.
+  have h_ev_le : ∀ᶠ k in Filter.atTop, wasserstein1 (ν n) (ν (φ k)) ≤ ε := by
+    filter_upwards [Filter.eventually_ge_atTop N] with k hk
+    have hφk : N ≤ φ k := le_trans hk (hφ_mono.id_le k)
+    exact le_of_lt (hN n (φ k) hn hφk)
+  calc Filter.liminf (fun k => wasserstein1 (ν n) (ν (φ k))) Filter.atTop
+      ≤ Filter.liminf (fun _ : ℕ => ε) Filter.atTop :=
+        Filter.liminf_le_liminf h_ev_le
+    _ = ε := Filter.liminf_const ε
 
 /-! Decomposed by sorry-decomposer.
     See `formalize/plans/dobrushin.json`. -/
