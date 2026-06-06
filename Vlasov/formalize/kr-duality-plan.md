@@ -68,43 +68,64 @@ using finite first moment to control the tail.  Phrase the transfer with
   coupling-side triangle inequality (gluing couplings through a common middle);
   the limiting glue.
 
-## Skeleton (helpers to API-lock — sorry-decomposer, then close each)
+## Skeleton — LAID (commit `6bcb4cd`); actual decl names
 
-1. **`kr_duality_finite_support`** — the finite-support core: `coupling-inf ≤
-   dual-sup` for finitely-supported `μ', ν'`.  Finite LP duality; Birkhoff gives
-   the coupling polytope's vertices are permutation-like, the dual potential is
-   built finite-dimensionally.  THE hard core; size first at implementation.
-2. **`exists_finite_support_coupling_approx`** — ∀ ε>0, ∃ finitely-supported `μ'`
-   and an explicit coupling `γ` of `(μ, μ')` with `∫⁻ c dγ ≤ ε`.  Construction:
-   partition a large compact into small-diameter cells
-   (`exists_measurable_partition_diam_le`), push `μ` to cell representatives; the
-   tail outside the compact is controlled by finite first moment (Markov).
-3. **`wassersteinCost_coupling_triangle`** — coupling-side triangle:
-   `coupling-inf(μ,ν) ≤ coupling-inf(μ,μ') + coupling-inf(μ',ν') +
-   coupling-inf(ν',ν)`, by gluing couplings through common middles (disintegration
-   / `Measure.prod` + the marginal-matching middle).
-4. **`wassersteinCost_le_dual_approx_stable`** — dual-side stability:
-   `dual-sup(μ',ν') ≤ dual-sup(μ,ν) + (cost γ_μ) + (cost γ_ν)`.  For a c-admissible
-   `f`, `∫f dμ' − ∫f dμ = ∫(f(x')−f(x)) dγ_μ ≤ ∫ c dγ_μ` (f is c-Lipschitz), so the
-   approximation error is bounded by the coupling costs from helper 2.
-5. **Assembly** in `foundationB_coupling_le_dual`: pick ε; get `μ',ν'` + couplings
-   (h2); `coupling-inf(μ,ν) ≤ coupling-inf(μ',ν') + 2ε` (h3 + h2);
-   `coupling-inf(μ',ν') ≤ dual-sup(μ',ν')` (h1, finite); `dual-sup(μ',ν') ≤
-   dual-sup(μ,ν) + 2ε` (h4); chain, then `ε → 0` (`ENNReal.le_of_forall_pos_le_add`).
+Six general-OT helpers in `Coupling.lean`, sorried + marked
+`[General OT — reusable / Mathlib-upstreamable]`:
+- `wassersteinCost_coupling_comm` — symmetry (clean).
+- `wassersteinCost_coupling_triangle` — gluing through a common middle; needs
+  `[StandardBorelSpace α]` (disintegration).  **SUBSTANTIVE.**
+- `wassersteinCost_coupling_map_le` — graph-coupling bound
+  `W_c(μ, map T μ) ≤ ∫⁻ ofReal(c x (T x)) dμ`.
+- `exists_finiteRange_map_cost_le` — ∀ε>0, ∃ finite-range `T` with
+  `∫⁻ ofReal(c x (T x)) dμ ≤ ofReal ε` (partition by diameter + finite-moment tail).
+- `wassersteinCost_coupling_le_dual_of_finiteRange` — finite KR duality core
+  (clean: Birkhoff present).
+- `wassersteinCost_dual_le_add_map` — dual stability under pushforward.
 
-Exact signatures + the finite-duality sub-route to be fixed with build feedback at
-implementation.  Watch the ENNReal `⨅`/`⨆` plumbing and the ε→0 in ENNReal.
+Parent `foundationB_coupling_le_dual` documents the ε→0 assembly (`comm` +
+`triangle`×2 + `map_le` + `le_dual_of_finiteRange` + `dual_le_add_map`, costs
+`≤ ε/4`, close with `ENNReal.le_of_forall_pos_le_add`).  Body still `sorry`.
 
-## Cadence / discipline
+## Difficulty re-ranking (correcting the earlier "finite core is substantive")
 
-- Implementation session opens against this doc (P6 brief-driven execution).
-- Lay the skeleton with `sorry-decomposer` (parent assembled + building, helpers
-  sorried — P4 API-lock); then close each helper with `sorry-prover` / manual over
-  subsequent sessions; certify B-freeness / axiom footprint myself (P10).
-- Property-only where possible; the helpers genuinely `unfold` the coupling/dual
-  defs (they ARE the duality), which is expected for this lemma.
-- On the last helper closing: `#print axioms vlasovWellPosedness` AND `dobrushin`
-  both `[propext, Classical.choice, Quot.sound]`; project sorry count **0** =
-  zero external axioms at L<1 (the Phase B checkpoint).
-- Build cwd: `cd …/Vlasov/Vlasov && lake build …`. Local Mathlib at
-  `Vlasov/.lake/packages/mathlib/Mathlib/`.
+The friction in discrete-approx+limit builds lives in the **measure-theoretic
+plumbing**, NOT the finite-dimensional convexity core.  Real ranking:
+- **HARDEST**: `wassersteinCost_coupling_triangle` (coupling-gluing via
+  disintegration) ≈ the **ε→0 assembly** (the limit — ENNReal plumbing +
+  bookkeeping).  These are the substantive arcs.
+- then `exists_finiteRange_map_cost_le` (approximation + tail).
+- then `wassersteinCost_dual_le_add_map`.
+- **CLEANEST**: `wassersteinCost_coupling_le_dual_of_finiteRange` (Birkhoff is in
+  Mathlib) ≈ `wassersteinCost_coupling_comm`.
+
+**Triangle scaffolding read (banked this session)**: Mathlib HAS disintegration +
+composition — `Probability/Kernel/Disintegration/` (`condKernel`,
+`eq_condKernel_of_measure_eq_compProd`, `…/StandardBorel.lean`) and
+`Probability/Kernel/Composition/MeasureCompProd.lean`
+(`compProd : Measure α → Kernel α β → Measure (α × β)`).  The coupling-GLUING
+lemma itself is NOT packaged but is assemblable from these — so the triangle is a
+**moderate build on Mathlib scaffolding**, not a from-scratch disintegration.
+Still the largest helper.
+
+## Cadence / discipline (assembly-wiring session — carry-forward)
+
+1. **WIRE THE PARENT FIRST — that is the real API-lock.**  Before closing ANY
+   helper, wire `foundationB_coupling_le_dual`'s body to call the six sorried
+   helpers and get it **green modulo the six**.  The current state is *designed,
+   not locked*: a prose assembly can hide a gap (a missing 7th fact, an `osc ≤ c`
+   threading issue, ε-bookkeeping) that only surfaces when you write the actual
+   `calc`.  Wiring proves the decomposition is sound before effort sinks into
+   helpers.  Requires threading `[StandardBorelSpace α]` (for the triangle)
+   through `foundationB_coupling_le_dual` + `wasserstein1_eq_coupling`; consumers
+   instantiate at the Polish `PhaseSpace d` so it resolves — confirm the CharFlow
+   chain (incl. `dobrushin`) stays green.
+2. **CLOSE CLEAN-FIRST** to bank progress: `comm`, `le_dual_of_finiteRange`
+   (Birkhoff), `dual_le_add_map`; then `map_le`, `exists_finiteRange_…`.  Then the
+   real arcs: `triangle` (gluing via Mathlib disintegration) and the ε→0 assembly
+   (folded into the wiring).
+3. Certify (P10): on the last helper, `#print axioms vlasovWellPosedness` AND
+   `dobrushin` both `[propext, Classical.choice, Quot.sound]`; project sorry count
+   **0** = zero external axioms at L<1 (Phase B checkpoint).
+4. Build cwd: `cd …/Vlasov/Vlasov && lake build …`. Local Mathlib at
+   `Vlasov/.lake/packages/mathlib/Mathlib/`.
