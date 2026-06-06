@@ -1,6 +1,6 @@
-# Next-session brief (as of 2026-06-05, HEAD = `5b6ff4a`)
+# Next-session brief (as of 2026-06-05, HEAD = `a83fc35`)
 
-Durable hand-off. Build green; 6 sorries (Basic 4, Coupling 1, CharFlow 1).
+Durable hand-off. Build green; 4 sorries (Basic 2, Coupling 1, CharFlow 1).
 
 ## Current state — marquee on the integrated coupling core
 
@@ -56,26 +56,62 @@ the core obviated — it works on `∫‖Φ_f − Φ_g‖dπ` and never forms
 The planned A-side W̄ *harvest* is largely **moot** — deletion is cheaper than
 dissolution.
 
-## Next move — deletion pass (6 → 4), the cheap collapse
+## DONE — deletion pass (6 → 4), commit `a83fc35`
 
-The orphaned cluster (all mutually dead, nothing live reaches them):
-
-* #3, #4 (orphaned sorries)
-* the dead helpers: `w1ContOn_lscNarrow_via_pureFA` (calls #3/#4 + the others),
-  `W1ContOn_integralContAt`, `W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
-  `dobrushin_C_choice`
-
-Delete together in one revertable commit → **6 → 4**. The cluster sits roughly
-Basic.lean L1455 (#1, **LIVE — keep**) far above, and L2102–2374 (the #3/#4 +
-helpers block). **Delete carefully**: verify nothing LIVE is interspersed in
-2102–2374 (read decl boundaries; #1 at 1455 and #2 at 1568 are far above and
-LIVE — do not touch). Build-verify (compiler catches a mis-cut).
+Deleted the orphaned cluster (#3, #4 + dead helpers `w1ContOn_lscNarrow_via_pureFA`,
+`W1ContOn_integralContAt`, `W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
+`dobrushin_C_choice`) — 280-line cut, Basic.lean only, build green, deletion-
+completeness doubly certified (named-axiom trace + green build). Inventory now
+**4**: Basic #1 (1465), #2 (1590); CharFlow #7 (3461); Coupling B (291).
 
 ## Remaining genuinely-live surface (after the deletion pass → 4)
 
-* **#7** `lipschitzFlowTrajectoryLipBound` (CharFlow) — L=0 reroute to the
-  sorry-free `_isLagrangianVlasovSolutionOn` producer, then delete #7 + callerless
-  wrappers. **Most characterized; reroute-and-delete, not a hard proof. Cleanest.**
+* **#7** `lipschitzFlowTrajectoryLipBound` (CharFlow 3446) — **NEXT TARGET.
+  CORRECTED CHARACTERIZATION (read-3 fork verdict, 2026-06-05, P5 catch):** the
+  prior "cleanest reroute-and-delete, zero proof" label was over-optimistic. #7's
+  own docstring (RECLASSIFIED 2026-06-03) carries the real gate — the reroute
+  threads a uniform first-moment bound `M_ρ`, "close NOT BUILT." Read 3 settled the
+  fork **FAVORABLE / small-thread orphan** (certified):
+  - Chain to #7 is single-caller-linear, no shared-consumer trap: marquee L=0
+    (13476) → global Lagrangian `…isLagrangianVlasovSolution` (4109, only caller
+    13476) →[4132]→ global plain `…isVlasovSolution` (3931, only caller 4132) →
+    `vlasovTrajectoryLipschitzBound` (3484, only caller 4001) → #7. All 4 orphanable.
+  - Marquee needs only per-T `IsLagrangianVlasovSolutionOn` (discharged 13600–13602
+    via `hf_lag.toOn`), which the **certified sorry-free** producer
+    `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` (4366) concludes
+    directly — `#print axioms` = `[propext, Classical.choice, Quot.sound]`, no
+    sorryAx (its weak-PDE dep 4197 uses sorry-free `vlasov_trajectory_lipschitz_bound_on`
+    3736, never 3931/#7).
+  - The `M_ρ` gate **relocates** to the marquee L=0 site as 4366's `M_ρ`
+    hypothesis — but at L=0 the flow is affine and the `(1+|t|)‖z‖` bound is ALREADY
+    present at 13444–13461, so `M_ρ := (1+T)·M_{f₀}` is a small thread. The
+    general-L "could be large" fear is sidestepped (only ever instantiated at L=0).
+  **Execution**: re-point the marquee `∀T …On` conjunct (13600–13602) to a per-T
+  `…isLagrangianVlasovSolutionOn` (4366) call (build the On-form flow hyps by
+  adapting the existing global discharges at 13477–13513; supply `M_ρ`); then
+  cascade-delete 4109 → 3931 → `vlasovTrajectoryLipschitzBound` → #7 (~600 lines).
+  Twin `vlasov_trajectory_lipschitz_bound_lag` (3532) is already callerless — leave
+  (proved alt, W̄-useful) or delete. Net **4 → 3**. Small-thread orphan, NOT
+  zero-proof — but decisively cheaper than close-via-twin (general-L) or #2.
+  **Execution ordering — the `M_ρ` discharge is THIS surgery's soundness crux, and
+  4366's certification does NOT cover it.** `#print axioms (4366) = [propext,
+  Classical.choice, Quot.sound]` certifies 4366's body *given* its `M_ρ` hypothesis;
+  it does NOT certify the rewire's *discharge* of that hypothesis. 4366 takes `M_ρ`
+  as a hypothesis (`∀ s ∈ Icc 0 T, ∫‖y‖ ∂spatialMarginal(f s) ≤ M_ρ`), so the
+  rewire must discharge it with an actual bound. So the FRESH SESSION'S FIRST
+  leaf-check (before the rewire, well before the cascade delete): does the affine
+  bound at 13444–13461 actually give `∫‖y‖ ∂spatialMarginal(vlasovSolutionViaPushforward
+  charX charV f₀ s) ≤ (1+T)·M_{f₀}` for all `s ∈ Icc 0 T`, in the quantifier/form
+  4366's `hM_ρ` wants? "Small thread" is the *prediction*; this leaf-check is the
+  *confirmation*. Then: rewire second; **cascade-delete LAST**, gated on the rewired
+  marquee being `#print axioms`-clean (no new sorryAx, no Foundation-B leakage from
+  the new path) — replace→verify→delete, the same shape as #5/#6/#8; never delete
+  the ~600-line old path before the new one is axioms-clean (else a subtly-wrong
+  `M_ρ` discharge leaves the marquee's L=0 existence resting on it AND the revert is
+  the whole surgery). Also confirm the affine `M_ρ` bound is L=0-specific and matches
+  the rewired path's scope — the cascade is single-caller-linear (global producer
+  3931's only caller is 4132), so nothing needs the global producer at general L,
+  but the affine bound only covers L=0; confirm that alignment at execution.
 * **#2** `cauchyW1_hasNarrowLimit` (Basic) — tightness (Markov) → Prokhorov narrow
   limit (Mathlib has Prokhorov). Caveat: its exact conclusion (narrow-limit vs
   W₁-convergence) decides clean-close vs drags-a-bridge — read it first.
@@ -91,7 +127,8 @@ in-project, W̄-independent — NOT the A-side W̄ dissolution (evaporated for #
 The W̄ migration as a *forward* program (restate stability, extend to L ≥ 1)
 remains a separate future project.
 
-Sequence: deletion pass (6→4) → #7 (reroute) → #2 (after conclusion-shape read)
+Sequence: ~~deletion pass (6→4)~~ **DONE** (`a83fc35`) → #7 (certified small-thread
+orphan, see above) → #2 (after conclusion-shape read)
 → #1. Foundation B stays the external. (`meanFieldLimit` flag RESOLVED above —
 conditional, not a B-free win; do not re-open. The real remaining mean-field
 content is wiring `hDobrushin`'s discharge for the empirical curve, which the
