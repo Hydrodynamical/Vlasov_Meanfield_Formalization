@@ -378,26 +378,68 @@ here + through `wasserstein1_eq_coupling` (consumers instantiate at the Polish
 `PhaseSpace d`, so it resolves).  See `formalize/kr-duality-plan.md`. -/
 theorem foundationB_coupling_le_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    [SecondCountableTopology α]
+    [SecondCountableTopology α] [StandardBorelSpace α]
     (c : α → α → ℝ)
-    (_hc_nonneg : ∀ x y, 0 ≤ c x y)
-    (_hc_self : ∀ x, c x x = 0)
-    (_hc_symm : ∀ x y, c x y = c y x)
-    (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
-    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
-    (_hμ_fm : Integrable (fun y => dist y x₀) μ)
-    (_hν_fm : Integrable (fun y => dist y x₀) ν) :
+    (hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (hν_fm : Integrable (fun y => dist y x₀) ν) :
     wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν := by
-  sorry
+  -- ε→0; for each ε pick finite-range approximants T, S with transport cost ≤ ε/4.
+  refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
+  have hε4 : (0 : ℝ) < (ε : ℝ) / 4 := by positivity
+  obtain ⟨T, hT, hTfin, hTcost⟩ :=
+    exists_finiteRange_map_cost_le c hc_cont μ x₀ hμ_fm ((ε : ℝ) / 4) hε4
+  obtain ⟨S, hS, hSfin, hScost⟩ :=
+    exists_finiteRange_map_cost_le c hc_cont ν x₀ hν_fm ((ε : ℝ) / 4) hε4
+  haveI : IsProbabilityMeasure (Measure.map T μ) := Measure.isProbabilityMeasure_map hT.aemeasurable
+  haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
+  set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
+  -- triangle through the two approximants
+  have htri1 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle μ ν (Measure.map T μ)
+  have htri2 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle
+    (Measure.map T μ) ν (Measure.map S ν)
+  -- the two outer transport terms are ≤ q
+  have hμμ' : wassersteinCost_coupling c μ (Measure.map T μ) ≤ q :=
+    (wassersteinCost_coupling_map_le c hc_cont μ T hT).trans hTcost
+  have hν'ν : wassersteinCost_coupling c (Measure.map S ν) ν ≤ q := by
+    rw [wassersteinCost_coupling_comm c hc_symm (Measure.map S ν) ν]
+    exact (wassersteinCost_coupling_map_le c hc_cont ν S hS).trans hScost
+  -- the middle: finite KR duality, then dual stability, then bound the two costs by q
+  have hmid : wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+      ≤ wassersteinCost c μ ν + q + q :=
+    (wassersteinCost_coupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
+        μ ν T S hT hS hTfin hSfin).trans
+      ((wassersteinCost_dual_le_add_map c hc_symm hc_cont μ ν T S hT hS).trans
+        (add_le_add (add_le_add le_rfl hTcost) hScost))
+  -- 4q = ofReal ε = ↑ε
+  have hq4 : q + q + q + q = (ε : ℝ≥0∞) := by
+    have h4 : q + q + q + q = ENNReal.ofReal ((ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4) := by
+      rw [hq, ← ENNReal.ofReal_add (by positivity) (by positivity),
+        ← ENNReal.ofReal_add (by positivity) (by positivity),
+        ← ENNReal.ofReal_add (by positivity) (by positivity)]
+    rw [h4, show (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 = (ε : ℝ) from by ring,
+      ENNReal.ofReal_coe_nnreal]
+  calc wassersteinCost_coupling c μ ν
+      ≤ wassersteinCost_coupling c μ (Measure.map T μ)
+          + wassersteinCost_coupling c (Measure.map T μ) ν := htri1
+    _ ≤ q + (wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+          + wassersteinCost_coupling c (Measure.map S ν) ν) := add_le_add hμμ' htri2
+    _ ≤ q + ((wassersteinCost c μ ν + q + q) + q) := add_le_add le_rfl (add_le_add hmid hν'ν)
+    _ = wassersteinCost c μ ν + (q + q + q + q) := by ring
+    _ = wassersteinCost c μ ν + (ε : ℝ≥0∞) := by rw [hq4]
 
 /-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Sorry-free
 corollary of Foundation B (the hard-direction inequality `foundationB_coupling_le_dual`)
 + the easy direction `wasserstein1_le_wasserstein1_coupling`. -/
 theorem wasserstein1_eq_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    [SecondCountableTopology α]
+    [SecondCountableTopology α] [StandardBorelSpace α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
     (hμ_fm : Integrable (fun y => dist y x₀) μ)
