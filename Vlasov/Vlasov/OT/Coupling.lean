@@ -325,6 +325,11 @@ theorem exists_coupling_glue
   set proj : (α × α) × α → α × α := fun w => (w.1.1, w.2) with hproj
   have hproj_meas : Measurable proj :=
     (measurable_fst.comp measurable_fst).prodMk measurable_snd
+  have hg : Measurable (fun z : α × α => ENNReal.ofReal (c z.1 z.2)) :=
+    ENNReal.measurable_ofReal.comp hc_meas
+  have hdisint : π₂.fst ⊗ₘ κ₂ = π₂ := by
+    rw [hκ₂]; exact Measure.disintegrate π₂ π₂.condKernel
+  have hρπ₂ : ρ ⊗ₘ κ₂ = π₂ := by rw [show ρ = π₂.fst from h₂.1.symm]; exact hdisint
   refine ⟨glued.map proj, ⟨?_, ?_⟩, ?_⟩
   · -- fst marginal = μ
     rw [Measure.map_map measurable_fst hproj_meas]
@@ -349,8 +354,6 @@ theorem exists_coupling_glue
           κ₂.aemeasurable]
       exact Measure.bind_congr_right
         (Filter.Eventually.of_forall fun p => Measure.dirac_bind κ₂.measurable p.2)
-    have hdisint : π₂.fst ⊗ₘ κ₂ = π₂ := by
-      rw [hκ₂]; exact Measure.disintegrate π₂ π₂.condKernel
     have hRHS : ν = Measure.bind π₁ (fun p => κ₂ p.2) := by
       calc ν = π₂.snd := h₂.2.symm
         _ = (π₂.fst ⊗ₘ κ₂).snd := by rw [hdisint]
@@ -359,7 +362,42 @@ theorem exists_coupling_glue
         _ = κ₂ ∘ₘ (Measure.map Prod.snd π₁) := by rw [show ρ = Measure.map Prod.snd π₁ from h₁.2.symm]
         _ = Measure.bind π₁ (fun p => κ₂ p.2) := hbindmap
     rw [hLHS, hRHS]
-  · sorry
+  · -- cost bound: lintegral_compProd (Tonelli) + ground-cost triangle + Markov.
+    have hF : Measurable (fun w : (α × α) × α => ENNReal.ofReal (c w.1.1 w.2)) :=
+      hg.comp hproj_meas
+    have hLcost : ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂(glued.map proj)
+        = ∫⁻ p, ∫⁻ z, ENNReal.ofReal (c p.1 z) ∂(κ₂ p.2) ∂π₁ := by
+      rw [hglued]
+      calc ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂((π₁ ⊗ₘ κ₂').map proj)
+          = ∫⁻ w, ENNReal.ofReal (c w.1.1 w.2) ∂(π₁ ⊗ₘ κ₂') := by
+            rw [lintegral_map hg hproj_meas]
+        _ = ∫⁻ p, ∫⁻ z, ENNReal.ofReal (c p.1 z) ∂(κ₂' p) ∂π₁ := Measure.lintegral_compProd hF
+        _ = ∫⁻ p, ∫⁻ z, ENNReal.ofReal (c p.1 z) ∂(κ₂ p.2) ∂π₁ := by
+            simp only [hκ₂', Kernel.comap_apply]
+    -- the c(y,z) leaf: the second piece reduces to the π₂-cost (sibling of snd-marginal).
+    have hkey2 : ∫⁻ p, (∫⁻ z, ENNReal.ofReal (c p.2 z) ∂(κ₂ p.2)) ∂π₁
+        = ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂ := by
+      have hF_meas : Measurable (fun y : α => ∫⁻ z, ENNReal.ofReal (c y z) ∂(κ₂ y)) :=
+        Measurable.lintegral_kernel_prod_right' hg
+      calc ∫⁻ p, (∫⁻ z, ENNReal.ofReal (c p.2 z) ∂(κ₂ p.2)) ∂π₁
+          = ∫⁻ y, (∫⁻ z, ENNReal.ofReal (c y z) ∂(κ₂ y)) ∂(Measure.map Prod.snd π₁) :=
+            (lintegral_map hF_meas measurable_snd).symm
+        _ = ∫⁻ y, (∫⁻ z, ENNReal.ofReal (c y z) ∂(κ₂ y)) ∂ρ := by rw [h₁.2]
+        _ = ∫⁻ w, ENNReal.ofReal (c w.1 w.2) ∂(ρ ⊗ₘ κ₂) := (Measure.lintegral_compProd hg).symm
+        _ = ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂ := by rw [hρπ₂]
+    rw [hLcost]
+    have hbound : ∫⁻ p, ∫⁻ z, ENNReal.ofReal (c p.1 z) ∂(κ₂ p.2) ∂π₁
+        ≤ ∫⁻ p, (ENNReal.ofReal (c p.1 p.2)
+            + ∫⁻ z, ENNReal.ofReal (c p.2 z) ∂(κ₂ p.2)) ∂π₁ := by
+      refine lintegral_mono fun p => ?_
+      calc ∫⁻ z, ENNReal.ofReal (c p.1 z) ∂(κ₂ p.2)
+          ≤ ∫⁻ z, (ENNReal.ofReal (c p.1 p.2) + ENNReal.ofReal (c p.2 z)) ∂(κ₂ p.2) := by
+            refine lintegral_mono fun z => ?_
+            exact (ENNReal.ofReal_le_ofReal (hc_triangle p.1 p.2 z)).trans ENNReal.ofReal_add_le
+        _ = ENNReal.ofReal (c p.1 p.2) + ∫⁻ z, ENNReal.ofReal (c p.2 z) ∂(κ₂ p.2) := by
+            rw [lintegral_add_left measurable_const, lintegral_const, measure_univ, mul_one]
+    refine hbound.trans (le_of_eq ?_)
+    rw [lintegral_add_left hg, hkey2]
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Triangle inequality for the
 coupling cost.**  Gluing of couplings through a common middle measure
