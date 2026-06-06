@@ -305,12 +305,25 @@ integrated transport cost of `T`, witnessed by the graph coupling
 `(id, T)_# μ`. -/
 theorem wassersteinCost_coupling_map_le
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    (c : α → α → ℝ) (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    [SecondCountableTopology α]
+    (c : α → α → ℝ) (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ : Measure α) [IsProbabilityMeasure μ]
-    (T : α → α) (_hT : Measurable T) :
+    (T : α → α) (hT : Measurable T) :
     wassersteinCost_coupling c μ (Measure.map T μ)
       ≤ ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := by
-  sorry
+  -- the graph coupling `(id, T)_# μ` couples `μ` and `T_# μ`; its cost is the integral.
+  have hg : Measurable (fun x : α => (x, T x)) := measurable_id.prodMk hT
+  have hγ : IsCoupling (Measure.map (fun x => (x, T x)) μ) μ (Measure.map T μ) := by
+    refine ⟨?_, ?_⟩
+    · rw [Measure.map_map measurable_fst hg]
+      rw [show (Prod.fst ∘ fun x : α => (x, T x)) = id from rfl, Measure.map_id]
+    · rw [Measure.map_map measurable_snd hg]; rfl
+  unfold wassersteinCost_coupling
+  refine iInf_le_of_le (Measure.map (fun x => (x, T x)) μ) (iInf_le_of_le hγ (le_of_eq ?_))
+  calc ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂(Measure.map (fun x => (x, T x)) μ)
+      = ∫⁻ x, ENNReal.ofReal (c (x, T x).1 (x, T x).2) ∂μ :=
+        lintegral_map (ENNReal.measurable_ofReal.comp hc_cont.measurable) hg
+    _ = ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := rfl
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite-range approximation.**
 For a probability measure with finite first moment, the transport cost to a
