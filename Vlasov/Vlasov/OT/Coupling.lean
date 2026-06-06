@@ -247,6 +247,97 @@ lemma wasserstein1_coupling_eq
   refine iInf_congr fun π => iInf_congr fun _ => ?_
   exact lintegral_congr fun z => edist_dist z.1 z.2
 
+/-! ### Kantorovich–Rubinstein duality (hard direction) — Route 1 skeleton
+
+The helpers below decompose `foundationB_coupling_le_dual` (the hard KR direction)
+via discrete approximation + limit (see `formalize/kr-duality-plan.md`).  All are
+**general optimal-transport facts**, not Vlasov-specific — each is marked
+`[General OT — reusable / Mathlib-upstreamable]` and stated cost-generically.
+Bodies are `sorry` (P4 API-lock); closed in subsequent sessions.
+-/
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Symmetry of the coupling cost.**
+For a symmetric cost, `wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ`
+(push a coupling forward under `Prod.swap`). -/
+theorem wassersteinCost_coupling_comm
+    {α : Type*} [MeasurableSpace α]
+    (c : α → α → ℝ) (_hc_symm : ∀ x y, c x y = c y x)
+    (μ ν : Measure α) :
+    wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Triangle inequality for the
+coupling cost.**  Gluing of couplings through a common middle measure (needs
+disintegration, hence `StandardBorelSpace`). -/
+theorem wassersteinCost_coupling_triangle
+    {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    [IsProbabilityMeasure ρ] :
+    wassersteinCost_coupling c μ ν
+      ≤ wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Graph-coupling bound.**  The
+coupling cost between `μ` and a pushforward `Measure.map T μ` is at most the
+integrated transport cost of `T`, witnessed by the graph coupling
+`(id, T)_# μ`. -/
+theorem wassersteinCost_coupling_map_le
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (c : α → α → ℝ) (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ : Measure α) [IsProbabilityMeasure μ]
+    (T : α → α) (_hT : Measurable T) :
+    wassersteinCost_coupling c μ (Measure.map T μ)
+      ≤ ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Finite-range approximation.**
+For a probability measure with finite first moment, the transport cost to a
+finite-range pushforward can be made arbitrarily small (partition into
+small-diameter cells + finite-moment tail control). -/
+theorem exists_finiteRange_map_cost_le
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    [SecondCountableTopology α]
+    (c : α → α → ℝ) (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ : Measure α) [IsProbabilityMeasure μ] (x₀ : α)
+    (_hμ_fm : Integrable (fun y => dist y x₀) μ)
+    (ε : ℝ) (_hε : 0 < ε) :
+    ∃ T : α → α, Measurable T ∧ (Set.range T).Finite ∧
+      ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ ≤ ENNReal.ofReal ε := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Finite Kantorovich–Rubinstein
+duality.**  For finitely-supported (finite-range pushforward) probability measures,
+the coupling-infimum is at most the dual-supremum — the finite LP duality core
+(Birkhoff–von Neumann vertices + a finite dual-potential construction). -/
+theorem wassersteinCost_coupling_le_dual_of_finiteRange
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (_hc_self : ∀ x, c x x = 0)
+    (_hc_symm : ∀ x y, c x y = c y x) (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S)
+    (_hTfin : (Set.range T).Finite) (_hSfin : (Set.range S).Finite) :
+    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+      ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Dual-side stability under
+pushforward.**  A `c`-admissible test function changes value by at most the
+transport cost, so the dual sup over `(T_# μ, S_# ν)` exceeds that over `(μ, ν)`
+by at most the two transport costs. -/
+theorem wassersteinCost_dual_le_add_map
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (c : α → α → ℝ) (_hc_symm : ∀ x y, c x y = c y x)
+    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S) :
+    wassersteinCost c (Measure.map T μ) (Measure.map S ν)
+      ≤ wassersteinCost c μ ν
+        + (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
+        + (∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν) := by
+  sorry
+
 /-- **Foundation B (the project's single external sorry): the hard direction of
 Kantorovich–Rubinstein duality** — the primal coupling-formula is at most the
 dual-formula.
@@ -270,7 +361,21 @@ uniqueness, the mean-field stability core, and the mean-field limit all stand
 B-free — the axiom footprint pins B to this one line.
 
 Stated cost-generically over a continuous pseudometric `c` so the deferred cutoff
-cost `c = min (dist ·) 1` (the W̄ refactor) reuses it verbatim. -/
+cost `c = min (dist ·) 1` (the W̄ refactor) reuses it verbatim.
+
+**Proof skeleton (Route 1 — discrete approximation + limit; helpers above, P4
+API-lock — body pending).**  For `ε > 0` pick finite-range `T, S` with transport
+cost `≤ ε/4` each (`exists_finiteRange_map_cost_le`).  With `μ' = Measure.map T μ`,
+`ν' = Measure.map S ν`:
+`W_c(μ,ν) ≤ W_c(μ,μ') + W_c(μ',ν') + W_c(ν',ν)`
+(`wassersteinCost_coupling_triangle` ×2, `…_comm`); the outer terms `≤ ε/4`
+(`wassersteinCost_coupling_map_le`); `W_c(μ',ν') ≤ dual(μ',ν')`
+(`wassersteinCost_coupling_le_dual_of_finiteRange`); `dual(μ',ν') ≤ dual(μ,ν) +
+ε/2` (`wassersteinCost_dual_le_add_map`).  Chain → `W_c(μ,ν) ≤ dual(μ,ν) + ε`;
+`ε → 0` (`ENNReal.le_of_forall_pos_le_add`).  NOTE: the triangle needs
+`StandardBorelSpace α` (disintegration); when wiring the body, thread that instance
+here + through `wasserstein1_eq_coupling` (consumers instantiate at the Polish
+`PhaseSpace d`, so it resolves).  See `formalize/kr-duality-plan.md`. -/
 theorem foundationB_coupling_le_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
