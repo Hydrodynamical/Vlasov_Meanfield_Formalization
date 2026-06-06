@@ -1,7 +1,22 @@
-# Next-session brief (as of 2026-06-05) — Option 3 LANDED; B pinned to one labeled bridge
+# Next-session brief (as of 2026-06-06) — Phase A done (B shrunk + sized); Phase B = build KR duality
 
-Build green (8251 jobs); **1 sorry** (`Coupling.lean:276`/body L291 =
-Foundation B). Only `CharacteristicFlow.lean` changed this arc.
+Build green; **1 sorry** = `foundationB_coupling_le_dual` (`Coupling.lean:288`),
+now in its weakest irreducible form — the hard-direction KR duality inequality
+`wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν`.
+
+**ACTIVE: Phase B — build KR duality (the shrunk B).**  Route + verified Mathlib
+inventory + helper skeleton are in **`formalize/kr-duality-plan.md`** (Route 1:
+discrete approximation + limit; the implementation session opens against that
+doc).  Phase A.0 (`656e9b9`) shrank B from attainment + strong duality + equality
+to this inequality alone (consumer `dobrushin` needs only `coupling ≤ dual`;
+attainment dropped, two dead lemmas deleted).  A.1 sized the residual: a genuine
+~250–500-line from-scratch OT build, NO Mathlib scaffolding (no Kantorovich /
+Wasserstein / Fenchel–Rockafellar).  Approved order (plan
+`clear-picture-now-the-starry-sparrow.md`): B → zero external axioms at L<1, then
+Phase C (remove L<1 via window-chaining).
+
+The sections below are the durable terminal-state record (everything else B-free)
+from before the Phase A shrink; still accurate.
 
 ---
 
