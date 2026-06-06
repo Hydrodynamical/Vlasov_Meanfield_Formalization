@@ -406,13 +406,149 @@ proof.  Iter 1 used `simp only [Finset.mul_sum, ...]` and
 `linarith` failed on the resulting mismatched-shape sums; iter 2
 swapped to the recipe above and closed instantly.)
 
+**Pattern 6 — `calc`-as-term over `rw` when a lemma's function argument is unreduced**
+
+- *Trigger*: a change-of-variables / congruence rewrite
+  (`lintegral_map`, `integral_map`, `Measure.map_map`, `lintegral_congr`)
+  where the function/integrand is supplied by composition (`g.comp h`,
+  `Measurable.comp`, `ENNReal.measurable_ofReal.comp hc`), and
+  `rw [lemma …]` fails **"did not find an occurrence of the pattern"**
+  even though the equation is mathematically true.
+- *Recipe*: `.comp` (and friends) produce an *unreduced* `f = a ∘ b`
+  whose application `f x` does NOT syntactically match the goal's
+  β-reduced integrand, so `rw`'s syntactic matcher misses. Use the lemma
+  as a **term inside a `calc`** (which checks the stated equation up to
+  *defeq*) instead of `rw` (which needs *syntactic* match). State the
+  intermediate form explicitly.
+- *Snippet*:
+
+```
+-- WRONG: rw can't match the unreduced (ofReal ∘ c)-integrand
+-- rw [lintegral_map (ENNReal.measurable_ofReal.comp hc_meas) hg]
+-- RIGHT: state both sides; the lemma proves the first step up to defeq
+calc ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂(Measure.map g μ)
+    = ∫⁻ x, ENNReal.ofReal (c (g x).1 (g x).2) ∂μ :=
+      lintegral_map (ENNReal.measurable_ofReal.comp hc_meas) hg
+  _ = ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := rfl   -- or `by refine lintegral_congr …`
+```
+
+(Origin: KR-duality helpers `wassersteinCost_coupling_comm` / `_map_le`.
+`rw [lintegral_map (…comp…)]` failed "did not find pattern"; the
+calc-as-term form closed immediately. This is the actionable form of the
+general lesson "defeq-distinct-but-syntactically-different forms are not
+`rw`-unifiable" — also: when consuming an iff/equality-API, read the
+signature *direction* and apply `.mp`/`.mpr`/`convert` rather than
+assuming `rw` fires the way the name reads.)
+
+**Pattern 7 — paired/product-map measurability + product-space instances**
+
+- *Trigger*: constructing a graph/pair map `fun x => (x, T x)` or using
+  `Prod.swap`; or invoking `Continuous.measurable` / a disintegration
+  (coupling-gluing) on `α × α`.  Errors: `Unknown constant …prod_mk`;
+  `failed to synthesize TopologicalSpace (α × α)` /
+  `OpensMeasurableSpace (α × α)`; `failed to synthesize StandardBorelSpace`.
+- *Recipe*:
+  - The pair lemma is **`Measurable.prodMk` (camelCase)**, not `prod_mk`:
+    `measurable_id.prodMk hT : Measurable (fun x => (x, T x))`;
+    `measurable_swap : Measurable Prod.swap`.
+  - `Continuous.measurable` of a 2-arg cost on a product needs
+    `[SecondCountableTopology α]` (so the product Borel σ-algebra = Borel
+    of the product topology).
+  - Coupling-GLUING / `Measure.condKernel` disintegration needs
+    `[StandardBorelSpace α]`.  **Thread the instance through the lemma's
+    binders and every consumer up to the concrete call site** — products
+    (`MeasureTheory.Constructions.Polish.instProd`) and Polish spaces
+    (e.g. `EuclideanSpace`) have it, so it resolves where instantiated.
+- *Snippet*:
+
+```
+have hg : Measurable (fun x : α => (x, T x)) := measurable_id.prodMk hT
+-- in the lemma binders, when the body needs product topology / disintegration:
+--   {α} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+--       [SecondCountableTopology α] [StandardBorelSpace α]
+```
+
+(Origin: KR-duality helpers `_map_le` (`prodMk` + `SecondCountableTopology`),
+`_triangle` (`StandardBorelSpace`).  Threading `StandardBorelSpace` through
+`foundationB_coupling_le_dual` + `wasserstein1_eq_coupling` resolved
+automatically at the Polish `PhaseSpace d` call site.)
+
+**Pattern 8 — named intermediate `have`s over inline `?_` in chained API calls**
+
+- *Trigger*: a chained Mathlib-API call with ≥2 inline `?_` whose types
+  must be synthesised *backward* through nested calls (classic with the
+  `Integrable.mono' / .add / integrable_const` family, or nested
+  `AEStronglyMeasurable` synthesis); error "don't know how to synthesize
+  implicit argument `g`/`p`".
+- *Recipe*: build each intermediate fact as a **named `have` before** the
+  chained call (a fully-typed term Lean can use), then pass it by name.
+  Rule of thumb: ≥2 threads of integrability / measurability synthesis →
+  name them.
+- *Snippet*:
+
+```
+-- WRONG: two inline ?_ force backward synthesis, elaborator gives up
+-- exact Integrable.mono' ((integrable_const _).add ?_) hmeas (Eventually.of_forall fun y => ?_)
+-- RIGHT: name the dominator first
+have h_dom : Integrable (fun y => |φ 0| + ‖y‖) ν := (integrable_const _).add h_norm_int
+exact Integrable.mono' h_dom hmeas (Eventually.of_forall fun y => …)
+```
+
+(Origin: recurring across Bochner-integral proofs; the elaborator fails
+to synthesise >1 implicit argument backward through nested API calls.)
+
+**Pattern 9 — `ring` needs `CommRing`; additive / vector goals are `abel`**
+
+- *Trigger*: `by ring` on a *purely additive* goal (a difference
+  simplification like `-a - (-b) = b - a`, `(a+b)-(a+c) = b-c`) whose type
+  is an `AddCommGroup` that is **not** a `CommRing` — a vector space,
+  inner-product space, `EuclideanSpace`, product of such; error
+  `ring made no progress`.
+- *Recipe*: use **`abel`** (or `abel_nf`) for additive-group goals;
+  reserve `ring` for `CommRing` (`ℝ`, `ℂ`, `ℝ≥0`, `ENNReal` where defined,
+  polynomial rings).  Before writing `by ring` on a vector-valued goal,
+  type-check "is this a `CommRing`?" — for vector/phase-space differences
+  it essentially never is (no pointwise multiplication is defined).
+- *Snippet*: `by abel` (not `by ring`) for `-u - (-v) = v - u` on
+  `EuclideanSpace ℝ (Fin d)`.
+
+(Origin: phase-space vector-field differences `b_f t x - b_g t x`.  This
+is structural, not a quirk: vector-valued differences are *always*
+`AddCommGroup`-not-`CommRing` by construction.)
+
+**Pattern 10 — ENNReal `a ≤ b` via `∀ ε>0, a ≤ b + ε`**
+
+- *Trigger*: a target `a ≤ b` in `ℝ≥0∞` that is naturally proved by an
+  ε-approximation (limit / inf-over-couplings / dominated bound), not a
+  direct inequality.
+- *Recipe*: `refine ENNReal.le_of_forall_pos_le_add fun ε hε hb => ?_`
+  gives `ε : ℝ≥0`, `hε : 0 < ε`, and `hb : b < ⊤` (free to use), goal
+  `a ≤ b + ↑ε`.  Split ε across the approximation as needed; combine
+  `ENNReal.ofReal` summands with `← ENNReal.ofReal_add (by positivity)
+  (by positivity)` and `ENNReal.ofReal_coe_nnreal : ofReal ↑ε = ↑ε`;
+  reassociate ENNReal sums with `ring` (ENNReal is a `CommSemiring` — no
+  subtraction, so `ring` is fine here, contra Pattern 9).
+- *Snippet*:
+
+```
+refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
+-- … pick approximants with cost ≤ ε/4 each …
+have hq4 : q + q + q + q = (ε : ℝ≥0∞) := by
+  rw [hq, ← ENNReal.ofReal_add (by positivity) (by positivity), …]; …; ring
+```
+
+(Origin: `foundationB_coupling_le_dual`'s ε→0 assembly — four `ε/4`
+transport-cost terms summing to `↑ε`.)
+
 ---
 
-When a new failure mode is observed in production, append a sixth
+When a new failure mode is observed in production, append a further
 pattern here rather than letting the prover re-discover the recipe
-across multiple cycles. The patterns catalogue is the durable
-artefact of session learnings — every entry should reference its
-"Origin" failure so future maintainers see why the pattern matters.
+across multiple cycles. The patterns catalogue is the durable,
+**project-portable** artefact of session learnings — it lives in the
+agent spec (not project memory) precisely so future Lean projects inherit
+it. Every entry references its "Origin" failure so future maintainers see
+why the pattern matters.
 
 ### 3.2 Write the JSON sidecar
 
