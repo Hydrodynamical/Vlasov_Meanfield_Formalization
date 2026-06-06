@@ -1,135 +1,106 @@
-# Next-session brief (as of 2026-06-05, HEAD = `a83fc35`)
+# Next-session brief (as of 2026-06-05, HEAD = `ca12381`)
 
-Durable hand-off. Build green; 4 sorries (Basic 2, Coupling 1, CharFlow 1).
+Durable hand-off. Build green; **3 sorries** (Basic 2, Coupling 1, CharFlow 0).
 
-## Current state — marquee on the integrated coupling core
+## Where this lands — the milestone-of-milestones
 
-Both halves of the marquee route through the single
-`dobrushin_integrated_flow_bound_On` core (base-generic, axiom-clean):
+The deferred surface went 13 → 8 → 6 → 4 → 3 across these sessions, and the **3**
+is qualitatively different from the 13: it is not "13 gaps shrunk to 3 gaps," it
+is the surface **resolved into one genuine external + two in-project closes**:
 
-* **uniqueness** — `dobrushin_uniqueness_On` at `proj = id`, `π₀ = f 0`
-  (commit `118729d`); axiom-clean.
-* **mean-field** — `dobrushin_meanfield_On` at `proj = fst/snd`, `π₀` = optimal
-  coupling (Foundation B); `dobrushin_package_exists` re-pointed through it
-  (commit `72999aa`). Retired #5/#6 (8 → 6), deleted the ~15-decl dead chain.
+* **Foundation B** (`foundationB_optimal_coupling_exists`, Coupling 291) — the one
+  OT attainment theorem Mathlib lacks; sole sorry-dependency of the mean-field
+  marquee `dobrushin`. A genuine external, not an attack target.
+* **#1** (`MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment`, Basic 1465) —
+  existence-side separation. In-project.
+* **#2** (`MathlibTODO_cauchyW1_hasNarrowLimit`, Basic 1590) — Picard existence /
+  Prokhorov narrow limit. In-project.
 
-## REACHABILITY RE-TYPING (named-axiom trace, verified 2026-06-05)
+The marquee — existence **and** uniqueness **and** mean-field — runs on the single
+`dobrushin_integrated_flow_bound_On` core (force-estimate-free). Every W₁-specific
+external (#3/#4/#5/#6/#7/#8) either dissolved under the integrated-core migration
+(orphaned) or retired by construction. The deferred surface is now **minimal and
+correctly typed**.
 
-Traced #1/#2/#3/#4/#7 as distinct axioms against the marquee theorems
-(`#print axioms`). **Proven** live/orphaned split:
+## Marquee axiom footprints (certified `#print axioms`, 2026-06-05)
 
-| sorry | name | reached by | verdict |
-|---|---|---|---|
-| #1 | `MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` | `vlasovWellPosedness` | **LIVE** (existence-side separation, CharFlow 8284) |
-| #2 | `MathlibTODO_cauchyW1_hasNarrowLimit` | `vlasovWellPosedness` | **LIVE** (Picard existence) |
-| #7 | `MathlibTODO_lipschitzFlowTrajectoryLipBound` | `vlasovWellPosedness` | **LIVE** (existence L=0) |
-| #3 | `MathlibTODO_w1LowerSemicontinuousAlongNarrowMomentCurves` | *no marquee* | **ORPHANED** |
-| #4 | `MathlibTODO_bcNarrowFromSmoothCompactNarrow` | *no marquee* | **ORPHANED** |
-| B | `foundationB_optimal_coupling_exists` | `dobrushin` (sole dep) | **LIVE** (genuine external) |
+* `vlasovWellPosedness` (existence) → `[propext, sorryAx, Classical.choice,
+  Quot.sound]`; the `sorryAx` traces to **{#1, #2} only** — not #7 (orphaned and
+  deleted), not B. Certified: the L=0 Lagrangian path now runs through the
+  sorry-free producer `…isLagrangianVlasovSolutionOn` (4366), itself
+  `[propext, Classical.choice, Quot.sound]` (no sorryAx ⟹ Foundation-B-free), so
+  the producer-switch **replaced** the #7 path rather than supplementing it.
+* `dobrushin` (mean-field stability) → sorryAx = **Foundation B only**.
+* `meanFieldLimit` → axiom-clean `[propext, Classical.choice, Quot.sound]`. See
+  Standing items — conditional / naming-artifact per a prior read; keep visible.
 
-* `vlasovWellPosedness` reaches `{#1, #2, #7}` — **not** #3/#4, **not** B.
-* `dobrushin` reaches `sorryAx` = **Foundation B only** (proven earlier too).
-* `meanFieldLimit` is **axiom-clean** `[propext, Classical.choice, Quot.sound]`
-  — depends on NO sorry. **RESOLVED (statement read, 2026-06-05):** it is
-  **CONDITIONAL — case (a)**. It takes the Dobrushin stability estimate as a
-  *hypothesis* `hDobrushin : ∀ N, DobrushinStabilityEstimate (μ^N) f C` and never
-  discharges it; its proof is the one-line Grönwall composition
-  `sup_{[0,T]} W₁(μ^N_t, f_t) ≤ e^{CT}·W₁(μ^N_0, f_0) → 0`. That is *why* it is
-  axiom-clean while `dobrushin` is not — it assumes the estimate `dobrushin`
-  works to *prove*, so it never touches the optimal coupling. **The
-  axiom-cleanness is a naming artifact, NOT a B-free deliverable.** The
-  *unconditional* mean-field limit is `meanFieldLimit ∘ dobrushin`, which routes
-  through Foundation B. So the mean-field external is still B.
-  **Secondary gap (real remaining content):** discharging `hDobrushin` is not a
-  direct application of `dobrushin` — `dobrushin` requires *both* arguments to be
-  `IsLagrangianVlasovSolution`, but the empirical curve `μ^N` is atomic (its flow
-  is the Newton dynamics, not the Lagrangian-witness shape). The integrated core
-  applies to any coupling-of-measures so it is dischargeable in principle, but
-  the wiring `dobrushin`-as-stated → empirical curve is a genuine gap, not a
-  one-liner. Do NOT re-open `meanFieldLimit` as a "B-free win" — it's a
-  conditional composition theorem (the standard propagation-of-chaos shape).
+## DONE log
 
-**The integrated core dissolved the A-side W₁-continuity surface too.** #3/#4
-(LSC-of-the-dual-sup, BC-density-for-narrow-continuity) were the narrow-machinery
-the core obviated — it works on `∫‖Φ_f − Φ_g‖dπ` and never forms
-`t ↦ W₁(f t, g t).toReal`. They are now **vestigial/orphaned**, like #5/#6.
-The planned A-side W̄ *harvest* is largely **moot** — deletion is cheaper than
-dissolution.
+* **6 → 4** (commit `a83fc35`): deleted orphaned #3/#4 + the 5 dead helpers
+  (`w1ContOn_lscNarrow_via_pureFA`, `W1ContOn_integralContAt`, `W1ContOn_lt_top`,
+  `W1ContOn_toRealContOn`, `dobrushin_C_choice`). The integrated core dissolved the
+  A-side W₁-continuity surface; #3/#4 were its orphaned narrow-machinery.
+  **The dead-helper cleanup is COMPLETE — not a pending task** (verified by grep,
+  all five gone).
+* **4 → 3** (commit `ca12381`): orphaned + deleted #7 via the marquee L=0
+  producer-switch. Re-pointed the `∀T …On` conjunct through the sorry-free
+  `…isLagrangianVlasovSolutionOn` (4366); the `M_ρ` hypothesis discharged by the
+  affine `(1+|s|)‖z‖` bound → `(1+T)·M_{f₀}` (machine-verified by the green build,
+  not just predicted). Cascade-deleted the 364-line orphaned chain (#7,
+  `vlasovTrajectoryLipschitzBound`, `…isVlasovSolution`, `…isLagrangianVlasovSolution`).
+  Ordering held: leaf-check `M_ρ` → rewire (green) → certify axioms-clean →
+  delete last (replace→verify→delete, the #5/#6/#8 shape).
 
-## DONE — deletion pass (6 → 4), commit `a83fc35`
+## Next move — #2, then #1 (both in-project, W̄-independent)
 
-Deleted the orphaned cluster (#3, #4 + dead helpers `w1ContOn_lscNarrow_via_pureFA`,
-`W1ContOn_integralContAt`, `W1ContOn_lt_top`, `W1ContOn_toRealContOn`,
-`dobrushin_C_choice`) — 280-line cut, Basic.lean only, build green, deletion-
-completeness doubly certified (named-axiom trace + green build). Inventory now
-**4**: Basic #1 (1465), #2 (1590); CharFlow #7 (3461); Coupling B (291).
+* **#2** `cauchyW1_hasNarrowLimit` (Basic 1590) — **NEXT. GATED on the
+  conclusion-shape read** (same shape as the #7 RECLASSIFIED gate just navigated;
+  P5 — the "Prokhorov, in-project, easy" label is a prior characterization the
+  leaf-read verifies, not a formality). The read:
+  - What does `cauchyW1_hasNarrowLimit` actually *conclude* — narrow-limit
+    existence, or W₁-convergence-to-the-limit?
+  - What does its caller (the Picard existence path) actually *need* from it?
+  - If narrow-limit-existence suffices for the caller → tightness (Markov) →
+    Prokhorov narrow limit (Mathlib has Prokhorov), in-project, **clean close**.
+  - If the caller needs W₁-convergence → it **drags the hard narrow ⟹ W₁
+    bridge**. NB this is *existence-side*, a **different consumer** than the
+    marquee stability path — re-confirm the hard direction isn't needed *here*.
+  The gate decides clean-Prokhorov vs bridge **before** committing to a path.
+* **#1** `bcEqualFromLipschitzEqual…` (Basic 1465) — existence-side separation via
+  `wasserstein1_eq_zero_iff_measure_eq`. Subalgebra-separation / BC-density close;
+  A-side-flavored but LIVE and in-project.
+* **Foundation B** (Coupling 291) — the sole genuine external; not an attack
+  target (optionally shrinkable to ε-optimal, Dobrushin 6.8).
 
-## Remaining genuinely-live surface (after the deletion pass → 4)
+Sequence: ~~6→4~~ **DONE** (`a83fc35`) → ~~#7 orphan (4→3)~~ **DONE** (`ca12381`)
+→ #2 (gated on conclusion-shape read) → #1. Foundation B stays the external.
 
-* **#7** `lipschitzFlowTrajectoryLipBound` (CharFlow 3446) — **NEXT TARGET.
-  CORRECTED CHARACTERIZATION (read-3 fork verdict, 2026-06-05, P5 catch):** the
-  prior "cleanest reroute-and-delete, zero proof" label was over-optimistic. #7's
-  own docstring (RECLASSIFIED 2026-06-03) carries the real gate — the reroute
-  threads a uniform first-moment bound `M_ρ`, "close NOT BUILT." Read 3 settled the
-  fork **FAVORABLE / small-thread orphan** (certified):
-  - Chain to #7 is single-caller-linear, no shared-consumer trap: marquee L=0
-    (13476) → global Lagrangian `…isLagrangianVlasovSolution` (4109, only caller
-    13476) →[4132]→ global plain `…isVlasovSolution` (3931, only caller 4132) →
-    `vlasovTrajectoryLipschitzBound` (3484, only caller 4001) → #7. All 4 orphanable.
-  - Marquee needs only per-T `IsLagrangianVlasovSolutionOn` (discharged 13600–13602
-    via `hf_lag.toOn`), which the **certified sorry-free** producer
-    `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn` (4366) concludes
-    directly — `#print axioms` = `[propext, Classical.choice, Quot.sound]`, no
-    sorryAx (its weak-PDE dep 4197 uses sorry-free `vlasov_trajectory_lipschitz_bound_on`
-    3736, never 3931/#7).
-  - The `M_ρ` gate **relocates** to the marquee L=0 site as 4366's `M_ρ`
-    hypothesis — but at L=0 the flow is affine and the `(1+|t|)‖z‖` bound is ALREADY
-    present at 13444–13461, so `M_ρ := (1+T)·M_{f₀}` is a small thread. The
-    general-L "could be large" fear is sidestepped (only ever instantiated at L=0).
-  **Execution**: re-point the marquee `∀T …On` conjunct (13600–13602) to a per-T
-  `…isLagrangianVlasovSolutionOn` (4366) call (build the On-form flow hyps by
-  adapting the existing global discharges at 13477–13513; supply `M_ρ`); then
-  cascade-delete 4109 → 3931 → `vlasovTrajectoryLipschitzBound` → #7 (~600 lines).
-  Twin `vlasov_trajectory_lipschitz_bound_lag` (3532) is already callerless — leave
-  (proved alt, W̄-useful) or delete. Net **4 → 3**. Small-thread orphan, NOT
-  zero-proof — but decisively cheaper than close-via-twin (general-L) or #2.
-  **Execution ordering — the `M_ρ` discharge is THIS surgery's soundness crux, and
-  4366's certification does NOT cover it.** `#print axioms (4366) = [propext,
-  Classical.choice, Quot.sound]` certifies 4366's body *given* its `M_ρ` hypothesis;
-  it does NOT certify the rewire's *discharge* of that hypothesis. 4366 takes `M_ρ`
-  as a hypothesis (`∀ s ∈ Icc 0 T, ∫‖y‖ ∂spatialMarginal(f s) ≤ M_ρ`), so the
-  rewire must discharge it with an actual bound. So the FRESH SESSION'S FIRST
-  leaf-check (before the rewire, well before the cascade delete): does the affine
-  bound at 13444–13461 actually give `∫‖y‖ ∂spatialMarginal(vlasovSolutionViaPushforward
-  charX charV f₀ s) ≤ (1+T)·M_{f₀}` for all `s ∈ Icc 0 T`, in the quantifier/form
-  4366's `hM_ρ` wants? "Small thread" is the *prediction*; this leaf-check is the
-  *confirmation*. Then: rewire second; **cascade-delete LAST**, gated on the rewired
-  marquee being `#print axioms`-clean (no new sorryAx, no Foundation-B leakage from
-  the new path) — replace→verify→delete, the same shape as #5/#6/#8; never delete
-  the ~600-line old path before the new one is axioms-clean (else a subtly-wrong
-  `M_ρ` discharge leaves the marquee's L=0 existence resting on it AND the revert is
-  the whole surgery). Also confirm the affine `M_ρ` bound is L=0-specific and matches
-  the rewired path's scope — the cascade is single-caller-linear (global producer
-  3931's only caller is 4132), so nothing needs the global producer at general L,
-  but the affine bound only covers L=0; confirm that alignment at execution.
-* **#2** `cauchyW1_hasNarrowLimit` (Basic) — tightness (Markov) → Prokhorov narrow
-  limit (Mathlib has Prokhorov). Caveat: its exact conclusion (narrow-limit vs
-  W₁-convergence) decides clean-close vs drags-a-bridge — read it first.
-* **#1** `bcEqualFromLipschitzEqual…` (Basic) — existence-side separation
-  (`wasserstein1_eq_zero_iff_measure_eq` → CharFlow 8284). A-side-flavored but
-  LIVE; subalgebra-separation / BC-density close.
-* **Foundation B** (Coupling) — the **one genuine OT external**; sole dep of the
-  mean-field marquee. Not an attack target; optionally shrinkable to ε-optimal
-  (Dobrushin 6.8).
+## Standing items (off the #2/#1 critical path — do not let evaporate)
 
-**Next constructive arc is the existence-side closes (#7, #2, #1)** — all
-in-project, W̄-independent — NOT the A-side W̄ dissolution (evaporated for #3/#4).
-The W̄ migration as a *forward* program (restate stability, extend to L ≥ 1)
-remains a separate future project.
+* **`meanFieldLimit` — RESOLVED: naming-artifact, *with its consequence*.** A prior
+  read (2026-06-05) concluded it is **CONDITIONAL**: it takes the Dobrushin
+  stability estimate as a *hypothesis* (`hDobrushin : ∀ N,
+  DobrushinStabilityEstimate (μ^N) f C`) and never discharges it (a one-line
+  Grönwall composition), so its axiom-cleanness `[propext, Classical.choice,
+  Quot.sound]` is a **naming artifact, NOT a B-free deliverable**.
+  **Consequence (bank this — it is the load-bearing part):** the project does
+  **NOT** currently have an unconditional, axiom-clean mean-field-limit theorem as
+  a deliverable. The genuine mean-field deliverable is **`dobrushin` (proven modulo
+  Foundation B)** plus the N→∞ convergence; `meanFieldLimit`'s cleanness is
+  packaging. Do **not** let "`meanFieldLimit` is axiom-clean (resolved)" read as
+  "the mean-field limit is axiom-clean" — the resolution was precisely that the
+  clean `meanFieldLimit` *isn't* the full limit. **No re-read needed** unless
+  someone wants to upgrade `meanFieldLimit` to the unconditional statement — which
+  routes through B. (Wiring detail if upgraded: discharging `hDobrushin` for the
+  *atomic* empirical curve `μ^N` is not a direct `dobrushin` application —
+  `dobrushin` wants both args `IsLagrangianVlasovSolution`, `μ^N`'s flow is Newton
+  dynamics — so the integrated core, which applies to any coupling-of-measures, is
+  the route, but the wiring is a genuine gap.)
 
-Sequence: ~~deletion pass (6→4)~~ **DONE** (`a83fc35`) → #7 (certified small-thread
-orphan, see above) → #2 (after conclusion-shape read)
-→ #1. Foundation B stays the external. (`meanFieldLimit` flag RESOLVED above —
-conditional, not a B-free win; do not re-open. The real remaining mean-field
-content is wiring `hDobrushin`'s discharge for the empirical curve, which the
-current `dobrushin` signature doesn't directly cover.)
+## The W̄ forward program (separate future project)
+
+The W̄ (truncated-metric) migration as a *forward* program — restate the stability
+estimate over `c = min(dist, 1)`, extend the marquee to `L ≥ 1` — is NOT on the
+current critical path. The A-side W̄ *harvest* evaporated (the integrated core
+orphaned #3/#4 rather than needing dissolution). W̄ remains a clean future pivot,
+additive at the def layer (`wassersteinBar := wassersteinCost (fun x y => min (dist x y) 1)`).
