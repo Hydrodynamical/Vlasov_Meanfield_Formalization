@@ -1300,6 +1300,70 @@ lighter consumer-swap the in-file note claimed.
   Develop step (2) against an importing scratch leaf (L12) — `CharacteristicFlow.lean` is a slow
   host and the body restate will take many iterations.
 
+### M4. Removing a chained/tiled smallness restriction: EXACT tiling, not naive offset-drop — and certify by instantiating the forbidden value
+
+**Principle**: when a smallness restriction (`parameter < threshold`) is imposed
+by a construction that CHAINS or TILES short pieces to cover a target interval,
+and you remove the restriction by shrinking the pieces, the naive move — "drop
+the additive offset in the constraint" — can produce a threshold that is
+*general-looking but secretly data-dependent*, because the chain OVERSHOOTS the
+target by a reach-slack the interface does not expose.  The correct fix is EXACT
+tiling: pick the piece width so the chain lands EXACTLY on the target
+(`δ' = T/N`, `N·δ' = T`), killing the slack.  The restriction is then genuinely
+removed — and you certify that by instantiating the construction at a parameter
+value the old restriction FORBADE.
+
+**The trap, concretely** (Phase C, the `(T+1)² → T²` removal, 2026-06-07): the
+per-window flow chained `N = ⌈T/δ⌉` *fixed-width* windows, OVERSHOOTING `T` to
+`N·δ ∈ [T, T+δ)`.  Smallness `L·(T+1)²<1` (the `+1` an artifact of a fixed unit
+force-window).  Naive fix: "drop the +1 → `L·T²<1`, threshold `T<1/√L`, positive
+for all L — done."  **WRONG**: re-deriving on the overshoot gives `L·(T+δ)²<1`,
+threshold `T < 1/√L − δ_max` where `δ_max` depends on the problem data
+(`a, M, V_max`) — positive for small `L`, but NEGATIVE for large `L` (when
+`δ_max > 1/√L`).  The naive fix MOVES the wall (data-dependent), it does not
+remove it; it compiles, strips the binders, passes a naive build, and *still*
+secretly requires small `L`.  EXACT tiling `δ' = T/N` (so `N·δ' = T`, no
+overshoot) lands the clean `L·T²<1`, threshold `T<1/√L`, positive for ALL `L`.
+
+**How you CATCH it** (M3 gate corollary, applied to the threshold): read the
+construction's ACTUAL reach (the overshoot to `N·δ`), not the interface's stated
+bound ("covers `[0,T]`").  The interface says "covers `[0,T]`"; the construction
+reveals it builds on `[0, N·δ]` and restricts — the slack lives in that gap.
+Reading only the interface ("just drop the +1") misses it; reading the
+construction surfaces it *before any code*.
+
+**How you CERTIFY removal** (the acceptance test): a green build with the
+restriction-binder stripped is NOT sufficient — a path could still secretly need
+the restriction (a threshold silently data-dependent), surfacing only at a large
+parameter value.  The certification is an `example` instantiating the
+construction at a value the OLD restriction FORBADE (here `L = 2 ≥ 1`); it
+typechecks iff the restriction is genuinely gone.  Binder-strip *permits* the
+forbidden value; the `example` *certifies* it — the same permit-vs-certify split
+as P10 (build-permits vs audit-certifies) and B's `#print axioms`.
+
+**Empirical confirmation** (3 sightings — promoted from the watch-list at the
+third): (1) Stage 1.9 `L·(T+1)²<1` diagnosis — additive offset structurally fatal
+(`(T+c)^α ≥ c^α` forbids `L ≥ c^{−α}` regardless of `T`); (2) Stage 2b part 3
+predicate-split confirmation (the discriminator fired: the offset-fatal
+prediction matched the breakage shape); (3) Phase C `(T+1)²→T²` removal via exact
+tiling, certified by the `L=2` example (`9d47480`).  The first two established
+"additive offsets are fatal"; the third added the RESOLUTION (exact tiling, NOT
+the predicted W̄ refactor), the general-looking-but-data-dependent trap
+(`L·(T+δ)²`), and the forbidden-value acceptance test.
+
+**Operational rule**: when removing a chained/tiled smallness restriction —
+(a) read the construction's actual reach (overshoot?), not the interface's stated
+bound; (b) use exact tiling (`δ'=target/N`) to kill the slack, not a naive
+offset-drop; (c) certify with an `example` at a previously-forbidden parameter
+value, not just a green build with the binder stripped.
+
+**Generalisation**: M4 is M3 (artifact dissolves under the moving boundary; read
+the construction not the interface) specialised to the THRESHOLD of a chained
+construction, fused with B's certify-don't-assert (the forbidden-value
+instantiation is the threshold's `#print axioms`).  Applies to any "remove a
+smallness/largeness restriction by chaining short pieces": the overshoot-slack
+trap and the exact-tiling fix recur.
+
 ## B-series — Bridging architecture / structural-fix patterns
 
 ### B1. Predicate enrichment over per-site bridging
@@ -1733,6 +1797,16 @@ indefinite watch-listing):
   commit-pattern discipline P4 names) or as its own P-series entry
   (calibration-honesty discipline) — decide at promotion.
 * **Additive offsets in smallness constraints are structurally
+  fatal → PROMOTED to M4** (2026-06-07): reached the third sighting at
+  Phase C (the `(T+1)²→T²` removal via exact tiling, certified by the
+  `L=2` example, commit `9d47480`).  The third sighting was NOT the
+  predicted W̄ refactor — it was the *resolution* of the very offset
+  the entry diagnosed, which is why it promoted with the exact-tiling
+  fix + the general-looking-but-data-dependent trap (`L·(T+δ)²`) + the
+  forbidden-value acceptance test folded in.  See M-series M4.  Original
+  watch-list text retained below for the sighting history.
+
+  **Additive offsets in smallness constraints are structurally
   fatal**: 1 sighting (Stage 1.9's `L · (T+1)² < 1` constraint,
   diagnosed 2026-05-29 via comparison with Dobrushin 1979).
   Diagnostic: smallness constraints with shape `L · (T + c)^α < 1`
