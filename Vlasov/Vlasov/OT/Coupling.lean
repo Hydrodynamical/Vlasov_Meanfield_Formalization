@@ -250,7 +250,7 @@ lemma wasserstein1_coupling_eq
 
 /-! ### Kantorovich–Rubinstein duality (hard direction) — Route 1 skeleton
 
-The helpers below decompose `foundationB_coupling_le_dual` (the hard KR direction)
+The helpers below decompose `wassersteinCost_coupling_le_dual` (the hard KR direction)
 via discrete approximation + limit (see `formalize/kr-duality-plan.md`).  All are
 **general optimal-transport facts**, not Vlasov-specific — each is marked
 `[General OT — reusable / Mathlib-upstreamable]` and stated cost-generically.
@@ -1661,7 +1661,7 @@ cost `≤ ε/4` each (`exists_finiteRange_map_cost_le`).  With `μ' = Measure.ma
 `StandardBorelSpace α` (disintegration); when wiring the body, thread that instance
 here + through `wasserstein1_eq_coupling` (consumers instantiate at the Polish
 `PhaseSpace d`, so it resolves).  See `formalize/kr-duality-plan.md`. -/
-theorem foundationB_coupling_le_dual
+theorem wassersteinCost_coupling_le_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α] [StandardBorelSpace α]
     (c : α → α → ℝ)
@@ -1726,7 +1726,7 @@ theorem foundationB_coupling_le_dual
     _ = wassersteinCost c μ ν + (ε : ℝ≥0∞) := by rw [hq4]
 
 /-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Sorry-free
-corollary of Foundation B (the hard-direction inequality `foundationB_coupling_le_dual`)
+corollary of Foundation B (the hard-direction inequality `wassersteinCost_coupling_le_dual`)
 + the easy direction `wasserstein1_le_wasserstein1_coupling`. -/
 theorem wasserstein1_eq_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
@@ -1738,7 +1738,7 @@ theorem wasserstein1_eq_coupling
     wasserstein1 μ ν = wasserstein1_coupling μ ν := by
   refine le_antisymm (wasserstein1_le_wasserstein1_coupling μ ν x₀ hμ_fm hν_fm) ?_
   rw [wasserstein1_coupling_eq]
-  exact foundationB_coupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
+  exact wassersteinCost_coupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
     (fun x => dist_self x) (fun x y => dist_comm x y) (fun x y z => dist_triangle x y z)
     (continuous_fst.dist continuous_snd) (fun x y => le_refl (dist x y)) μ ν x₀ hμ_fm hν_fm
 
