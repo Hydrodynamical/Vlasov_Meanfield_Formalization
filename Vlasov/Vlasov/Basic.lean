@@ -5,6 +5,7 @@ All proofs are `sorry`; this file is a statement-only scaffold.
 -/
 
 import Mathlib
+import Vlasov.Base.Geometry
 
 open scoped BigOperators
 open MeasureTheory
@@ -20,11 +21,7 @@ Phase space for a single particle is `EuclideanSpace ℝ (Fin d) × EuclideanSpa
 
 variable {d : ℕ} [NeZero d]
 
-/-- Abbreviation for ℝ^d as a Euclidean space. -/
-abbrev PhysSpace (d : ℕ) := EuclideanSpace ℝ (Fin d)
-
-/-- Abbreviation for the single-particle phase space ℝ^d × ℝ^d. -/
-abbrev PhaseSpace (d : ℕ) := PhysSpace d × PhysSpace d
+-- `PhysSpace`/`PhaseSpace` moved to `Vlasov/Base/Geometry.lean` (Phase D).
 
 -- ---------------------------------------------------------------------------
 -- §1  Equation (Hamiltonian)   (tex: eq:HN)
