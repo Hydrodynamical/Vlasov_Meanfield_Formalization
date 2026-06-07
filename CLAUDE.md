@@ -1128,7 +1128,11 @@ a-priori bound: feed the dynamic expansion, not the worst-case static estimate,
 and the fixed-point evaporates.  A smallness constraint that arises from a
 *genuine analytic mechanism* — a contraction ratio `< 1`, an envelope-closure
 inequality — is **real**: it does NOT dissolve and must be carried (it is the
-deferred W̄-consolidation target, not removable in W₁).
+deferred W̄-consolidation target, not removable in W₁).  **[2026-06-07: the
+parenthetical "not removable in W₁ / W̄ target" is CORRECTED — see the refinement
+block at the end of M3.  Contraction/envelope ARE removable in plain W₁ by the same
+small-`δ`-per-window boundary; the real W₁-vs-W̄ split is moment-tracking-vs-moment-
+free.]**
 
 **The boundary is the load-bearing half** (without it the lesson over-applies):
 one must NOT try to dissolve genuine contraction/envelope constraints (`hTL_con`,
@@ -1186,6 +1190,63 @@ reconstruction, read for both: per-window `hR` on a fixed `δ` must be satisfiab
 envelope must re-anchor per window).  Found in the opening read, this is cheap;
 found at line 250 of the rebuild, it is the mid-construction refutation the gate
 exists to prevent.
+
+**Refinement + Phase-C way-forward (2026-06-07, from the Dobrushin §5–6 reference read
+[`Dobrushin79.pdf`] + four Phase-C scoping agents over `CharacteristicFlow.lean`).**
+
+*The correction.*  M3's "genuine contraction/envelope constraints are not removable in
+W₁ / are the W̄ target" claim (above, and in the **Diagnostic** and **genuine
+constraints** paragraphs) is **over-pessimistic**.  Dobrushin 1979 §5–6 imposes **no
+smallness on `L` at all**: the per-window contraction `γ(|Δ|)<1` (eq. 5.16) is forced by
+**shrinking the window `|Δ|`**, not by `L`-smallness, and `γ(δ)→0` as `δ→0` for *any*
+fixed Lipschitz constants.  So `hTL_con` (`L·(exp T−1)<1`) and the envelope `B(T)<1` are
+**offset-free** (`B(0)=0`, continuous increasing) and **dissolve in plain W₁ by the same
+moving boundary — small `δ`-per-window — that the PL-buffer needs.**  They are *not* a
+W̄-only target.  (The "first-order identical but independent" point about con vs. env
+stands; only the "not removable in W₁" classification is wrong.)
+
+*The real distinction.*  W₁-vs-W̄ is **moment-tracking-vs-moment-free, not
+removable-vs-not.**  Dobrushin uses the *bounded* ground metric `ρ=min(dist,1)` (eq. 5.1)
+solely so that `ρ̄≤1` makes the force-Lipschitz estimate (5.6) hold from `‖∇W‖_{C¹}`
+alone with **zero moment bookkeeping** — that is the *only* thing boundedness buys.
+Plain W₁ (the project's unbounded `wasserstein1`) instead must **carry a first-moment
+envelope `M(t)` across windows** (the existing `HasFiniteFirstMoment` / flat-`max`
+machinery).  `M(t)` grows like `exp(C·L·t)` but stays *finite on every finite interval*,
+which is all W₁-finiteness of the force estimate requires — and forces **no** `L`-
+smallness.  So W̄ is *convenient* (gives Dobrushin's moment-free Banach-per-window proof
+verbatim) but **NOT essential** for arbitrary-`L` global well-posedness.
+
+*What survives unchanged (the artifact + gate corollary were confirmed).*  The PL-buffer
+`L·(T+1)²<1` is a genuine static-construction artifact with the additive `+1`: it traces
+to `exists_vlasov_extend_one_window`'s **fixed `[t_start, t_start+1]` bound interval**
+(`CharacteristicFlow.lean:1616`), propagating into `V_max` and the R-selection
+`N_z/(1−L·(T+1)²)`.  The **gate corollary** holds — dissolving it is a *reconstruction of
+the per-window node* (adaptive `[t_start, t_start+δ]` → R-selection `N_z/(1−L·δ²)`,
+threshold `T_0_PL : 1/√L−1 ⇒ 1/√L`, positive for **all** `L`), not a cheap surgery.  The
+window-**count** compounding the gate warns about does NOT bite here: moment accumulation
+is already **flat-`max`** (no compounding) and the window length `T_0(L)` is
+**moment-independent**, so `⌈T_target/T_0⌉` stays finite for any `L` and there is no
+per-window moment-blowup to re-anchor.
+
+*Net Phase-C plan (potential way forward — plain-W₁, no W̄):*
+1. **Reconstruct the per-window flow node** (`exists_vlasov_extend_one_window` →
+   adaptive-`δ` bound interval; propagate through `exists_vlasov_characteristicFlow` +
+   the R-selection) to dissolve `(T+1)²` → `δ²`.  ← the single load-bearing piece.
+2. `LocalSmallness_PL_buffer` → `L·T²<1`; recompute `T_0_PL` dropping the `−1`.
+3. Strip `hL_lt : L<1` from `vlasovWellPosedness_forward` (`:11247`), `_uniqueness`
+   (`:12633`), `_universal_existence` (`:12701`), `vlasovWellPosedness` (`:13014`).
+4. The contraction/envelope (small `δ`) and the flat-`max` moment envelope carry
+   arbitrary `L` as-is.
+5. Re-cert `#print axioms` (expect `[propext, Classical.choice, Quot.sound]` to hold) +
+   an `example` instantiating the marquee at some `L ≥ 1`.
+W̄ remains a legitimate *alternative* (moment-free, Dobrushin-verbatim) but is now known
+to be optional, not required.
+
+*Process note for whoever opens Phase C:* the window-machinery agent reported "3 boundary
+sub-sorries in `_glue_step`" — those are **historical docstring prose**, not live sorries
+(the project is certified 0-sorry; `dobrushin` is axiom-clean and depends on the full
+gluing chain).  Trust `#print axioms`, not in-file "sorry'd" comments (cf. the stale
+"MathlibTODO_ are sorry'd" note that `#print axioms` also disproved).
 
 ## B-series — Bridging architecture / structural-fix patterns
 
