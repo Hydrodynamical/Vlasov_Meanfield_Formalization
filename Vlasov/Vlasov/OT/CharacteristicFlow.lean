@@ -1991,16 +1991,24 @@ Picard solutions).  The hypothesis `hR` enforces that the global
 position-ball radius `R` covers the a-priori reachable set —
 `(3a/2 + M·T)` is the loose bound; tighter forms work too.
 
-**Note on the `(T+1)²` in `hR`** (the additive-`+1` offset): consumers
-that discharge `hR` by a *single* ball over `[0, T+1]`
+**Note on the `(T+1)²` in `hR`** (the additive-`+1` offset; scoping VERIFIED
+2026-06-07): consumers that discharge `hR` by a *single* ball over `[0, T+1]`
 (`exists_vlasov_perz_trajectory`, via `R := N(z)/(1 - L(T+1)²)`) thereby
 incur the smallness `LocalSmallness_PL_buffer L T := L·(T+1)² < 1`, which
 forces `L < 1` (overclaim-by-restriction vs. Dobrushin's arbitrary `L`).
-That constraint lives in the *consumer's* `hR`-discharge, not here — this
-theorem takes `hR`/`hbound` as hypotheses and is `L`-agnostic.  A fixed-`δ`
-N-window *re-consumption* of this (proven) theorem would discharge `hR`
-per short window with `L·δ² < 1` (satisfiable for any `L`), dropping the
-`+1`-offset smallness — a localized consumer swap, not a rebuild. -/
+**The `+1` is NOT removable by a consumer-side window swap.**  This theorem's
+own `hR`/`hbound` hardcode the offset — the force-bound window is `[0, T+1]`
+and `V_max` carries `M·(T+1)` — inherited from
+`exists_vlasov_extend_one_window`'s fixed `[t_start, t_start + 1]` force window
+(L1616).  Re-consuming this theorem with a short `T := δ` therefore still yields
+`hR : … + M·(δ+1)² ≤ R`, i.e. `L·(δ+1)² < 1`, which STILL forces `L < 1` (since
+`(δ+1)² > 1`).  Dropping the offset to `L·δ² < 1` (satisfiable for any `L`)
+requires RECONSTRUCTING the force-window in `exists_vlasov_extend_one_window` to
+the adaptive step `[t_start, t_start + (a/2)/((V_max+a+M)+1)]` (the un-`min`'d δ,
+which is `< 1/2` always, so the `min 1` there is redundant) and propagating
+`(T+1) → T` through this theorem's inductive body — a node reconstruction, not a
+localized consumer swap.  See CLAUDE.md M3 "Phase-C surgery brief" for the full
+chain + edit list. -/
 theorem exists_vlasov_characteristicFlow
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]

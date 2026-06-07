@@ -1248,6 +1248,58 @@ sub-sorries in `_glue_step`" — those are **historical docstring prose**, not l
 gluing chain).  Trust `#print axioms`, not in-file "sorry'd" comments (cf. the stale
 "MathlibTODO_ are sorry'd" note that `#print axioms` also disproved).
 
+**Phase-C surgery brief (atom-level verified, 2026-06-07).**  Diagnostic-mode read of the
+actual construction (P1/P6) confirming the plain-W₁ plan above and *correcting* an
+over-optimistic in-file note.  The `L<1` restriction has **exactly one** structural origin —
+the `(T+1)²` in the PL-buffer — and the reconstruction site is the M3-predicted node, not the
+lighter consumer-swap the in-file note claimed.
+
+* **The propagation chain (root→marquee), with line numbers in `CharacteristicFlow.lean`:**
+  1. `exists_vlasov_extend_one_window` (L1604) — **the root**: `hbound` over the fixed
+     `[t_start, t_start+1]` (L1616); `δ = min 1 ((a/2)/((V_max+a+M)+1))` (L1620).
+  2. `exists_vlasov_characteristicFlow` (L2004): `hR : … + M·(T+1)² ≤ R` (L2031), `hbound`
+     over `[0, T+1]` (L2032), `V_max = ‖z₀.2‖+a/2+M·(T+1)` (L2057).  Inductive-body `(T+1)`
+     sites at L2138, L2231–2274, L2587–2607.
+  3. `exists_vlasov_perz_trajectory` (L4624): consumes `hTL_PL`; `R := N_z/(1−L·(T+1)²)` (L4696).
+  4. `LocalSmallness_PL_buffer L T := L·(T+1)² < 1` (def L4267).
+  5. `vlasovWellPosedness_forward` (L11240): `T_0_PL = 1/√L − 1` (L11261); the discharge algebra
+     `L·(T_0+1)² = (1+√L)²/4 < 1 ⟺ √L < 1 ⟺ L < 1` (L11329–11338).
+
+* **P5 correction — the in-file note at `exists_vlasov_characteristicFlow` L1994–2003 was WRONG**
+  (now corrected in-place).  It claimed a "localized consumer swap, not a rebuild": re-consume
+  `exists_vlasov_characteristicFlow` with a short `T := δ` to discharge `hR` at `L·δ² < 1`.  But
+  the `+1` is **hardcoded in this theorem's own `hR`/`hbound`** (inherited from the root's unit
+  force-window), so `T := δ` gives `hR : … + M·(δ+1)² ≤ R`, i.e. `L·(δ+1)² < 1`, which **still
+  forces `L < 1`** (since `(δ+1)² > 1`).  Verified by tracing the `hR` *shape*, not the interface
+  — exactly the M3 gate-corollary "read the construction, not the interface."  Dropping the offset
+  to `L·δ²` genuinely requires reconstructing the root node.
+
+* **Two confirmations that make the rest cheap:**
+  1. The `min 1` in `δ` (L1620) is **redundant**: denominator `(V_max+a+M)+1 ≥ a+1`, so
+     `δ ≤ (a/2)/(a+1) < 1/2 < 1` always.  The reconstruction is therefore "state the force-window
+     as `[t_start, t_start + (a/2)/((V_max+a+M)+1)]`" (the un-`min`'d δ — all signature inputs, so
+     expressible in the hypothesis) instead of the loose unit window.  Trajectories / Picard /
+     gluing are untouched; it tightens a *stated* window from the loose unit bound to the actual
+     step δ.
+  2. Contraction (`T_0_con`, L11262) and envelope (`T_0_env`, L11268) thresholds are positive for
+     **all** `L > 0` (L11287–11295); they use `hL_lt` only *cosmetically* — the `max(1,L)=1`
+     simplification at L11344.  For `L ≥ 1` recompute with the `max(1,L)=L` branch (contraction
+     becomes `exp(L·T_0)−1 < 1`, threshold `log 2 / L`, positive for all `L`).  M3's "contraction /
+     envelope carry arbitrary L" is verified — only the PL-buffer needed surgery.
+
+* **Net edit list (load-bearing piece first):**
+  (1) restate `exists_vlasov_extend_one_window`'s force-window to adaptive δ + drop `min 1`;
+  (2) propagate `(T+1) → T` (and `V_max`, the `Icc 0 (T+1)` force-window) through
+  `exists_vlasov_characteristicFlow`'s inductive body — the bulk of the work;
+  (3) `LocalSmallness_PL_buffer → L·T² < 1`; `perz_trajectory` `N_z`/R-selection `(T+1)² → T²`;
+  (4) `T_0_PL → 1/√L`; the `(1+√L)²/4` discharge algebra → `1/4 < 1` (all `L`); replace the
+  `max(1,L)=1` simplifications (forward + `_uniqueness` + `_universal_existence`) with the
+  general `max(1,L)=L` branch;
+  (5) strip `hL_lt : (L:ℝ) < 1` from the four marquee theorems (L11247, L12633, L12701, L13014);
+  (6) re-cert `#print axioms` + an `example` at some `L ≥ 1`.
+  Develop step (2) against an importing scratch leaf (L12) — `CharacteristicFlow.lean` is a slow
+  host and the body restate will take many iterations.
+
 ## B-series — Bridging architecture / structural-fix patterns
 
 ### B1. Predicate enrichment over per-site bridging
