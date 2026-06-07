@@ -590,7 +590,7 @@ hypothesis is a 1-Lipschitz integral equality, not a W₁ fact); only
 the *feeder* changes (W̄=0 → 1-Lipschitz equality replacing W₁=0 →
 1-Lipschitz equality), which is a one-line `wasserstein1_dual_lower_bound`
 analogue for W̄. -/
-theorem MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment
+theorem integral_boundedContinuous_eq_of_integral_lipschitz_eq
     {α : Type*}
     [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
@@ -677,7 +677,7 @@ exclusively through banked property lemmas:
 
 The substantive middle (1-Lipschitz equality → BC equality) is
 banked as the named pure-FA placeholder
-`MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` (above).
+`integral_boundedContinuous_eq_of_integral_lipschitz_eq` (above).
 The final step (BC equality → μ = ν) routes through Mathlib's
 `ext_of_forall_integral_eq_of_IsFiniteMeasure`
 (`HasOuterApproxClosed.lean` L268).
@@ -729,9 +729,9 @@ lemma wasserstein1_eq_zero_iff_measure_eq
       rw [h_neg_int] at h_diff_neg
       linarith
     -- Step 2 (placeholder, W̄-survivor): 1-Lipschitz integral equality → BC integral
-    -- equality.  See `MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment` above.
+    -- equality.  See `integral_boundedContinuous_eq_of_integral_lipschitz_eq` above.
     have h_bc_eq : ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
-      MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment μ ν hμ_int hν_int h_1lip_eq
+      integral_boundedContinuous_eq_of_integral_lipschitz_eq μ ν hμ_int hν_int h_1lip_eq
     -- Step 3 (Mathlib `ext_of_forall_integral_eq_of_IsFiniteMeasure`): BC equality → μ=ν.
     exact ext_of_forall_integral_eq_of_IsFiniteMeasure h_bc_eq
   · -- Backward (trivial): μ=ν → W₁=0, via the property `wasserstein1_self`.
