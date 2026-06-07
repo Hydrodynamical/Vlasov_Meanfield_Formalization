@@ -4991,10 +4991,10 @@ lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
 /-- **Smallness predicate for the per-ball Picard-Lindelöf flow's
 ball-geometry constraint** (Stage 2b part 3 split, 2026-05-31).
 
-Defined as `(L : ℝ) * (T + 1) ^ 2 < 1`, this is the smallness condition
-the per-ball flow's R-selection requires: `R · (1 - L·(T+1)²) ≥ N(z)`
-forces R > 0 only when `L·(T+1)² < 1`.  It comes from the
-`(T+1)`-time-buffer Picard-Lindelöf geometry + L-Lipschitz fixed-point
+Defined as `(L : ℝ) * T ^ 2 < 1`, this is the smallness condition
+the per-ball flow's R-selection requires: `R · (1 - L·T²) ≥ N(z)`
+forces R > 0 only when `L·T² < 1`.  It comes from the tight
+adaptive-window Picard-Lindelöf geometry + L-Lipschitz fixed-point
 analysis, NOT from contraction.
 
 **Stage 2b part 3 split**: the original `LocalSmallness` conflated this
@@ -5005,7 +5005,7 @@ two predicates rather than one prevents future edits from fusing them
 back into "the constraint" (per M1: predicates match the mathematical
 structure).  See planning-notes for the M1-recursion reasoning. -/
 def LocalSmallness_PL_buffer (L : NNReal) (T : ℝ) : Prop :=
-  (L : ℝ) * (T + 1) ^ 2 < 1
+  (L : ℝ) * T ^ 2 < 1
 
 /-- **Smallness predicate for the supW1On contraction-ratio constraint**
 (Stage 2b part 3 split, 2026-05-31).
@@ -5414,11 +5414,11 @@ theorem exists_vlasov_perz_trajectory
   -- updates to expose the new algebraic form and R re-derives under
   -- `C₂(L)`.  The `LocalSmallness_contraction` predicate is governed
   -- separately at `_picard_fixedPointFlow`'s `hq_lt` close, NOT here.
-  have hTL : (L : ℝ) * (T + 1) ^ 2 < 1 := hTL_PL
-  set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * (T + 1) ^ 2 := by linarith with hTL_pos_def
+  have hTL : (L : ℝ) * T ^ 2 < 1 := hTL_PL
+  set hTL_pos : (0 : ℝ) < 1 - (L : ℝ) * T ^ 2 := by linarith with hTL_pos_def
   -- N(z) is the right-hand-side numerator; non-negative.
-  set N_z : ℝ := 2 + (‖z.2‖ + 1 / 2) * (T + 1)
-                 + (‖gradW 0‖ + (L : ℝ) * ‖z.1‖ + (L : ℝ) * M_ρ) * (T + 1) ^ 2
+  set N_z : ℝ := 2 + (‖z.2‖ + 1 / 2) * T
+                 + (‖gradW 0‖ + (L : ℝ) * ‖z.1‖ + (L : ℝ) * M_ρ) * T ^ 2
     with hN_z_def
   have hN_z_nn : 0 ≤ N_z := by
     have h1 : 0 ≤ ‖z.2‖ + 1 / 2 := by positivity
@@ -5428,12 +5428,12 @@ theorem exists_vlasov_perz_trajectory
       have hLMρ : 0 ≤ (L : ℝ) * M_ρ := mul_nonneg L.coe_nonneg hM_ρ_nn
       linarith
     have hT1nn : 0 ≤ T + 1 := by linarith
-    have hT1sq : 0 ≤ (T + 1) ^ 2 := sq_nonneg _
+    have hT1sq : 0 ≤ T ^ 2 := sq_nonneg _
     have := mul_nonneg h1 hT1nn
     have := mul_nonneg h2 hT1sq
     rw [hN_z_def]; positivity
   -- R_real := N(z) / (1 - L·(T+1)²)
-  set R_real : ℝ := N_z / (1 - (L : ℝ) * (T + 1) ^ 2) with hR_real_def
+  set R_real : ℝ := N_z / (1 - (L : ℝ) * T ^ 2) with hR_real_def
   have hR_real_nn : 0 ≤ R_real := div_nonneg hN_z_nn (le_of_lt hTL_pos)
   set R : NNReal := Real.toNNReal R_real with hR_def
   have hR_eq : (R : ℝ) = R_real := Real.coe_toNNReal _ hR_real_nn
@@ -5457,20 +5457,20 @@ theorem exists_vlasov_perz_trajectory
   -- ============================================================
   have ha : (0 : NNReal) < 1 := by norm_num
   have hR_local : 2 * ((1 : NNReal) : ℝ)
-                  + (‖z.2‖ + ((1 : NNReal) : ℝ) / 2) * (T + 1)
-                  + (M : ℝ) * (T + 1) ^ 2 ≤ R := by
+                  + (‖z.2‖ + ((1 : NNReal) : ℝ) / 2) * T
+                  + (M : ℝ) * T ^ 2 ≤ R := by
     -- Prove the equivalent inequality in real form, then transport via hM_eq, hR_eq.
-    have hne : 1 - (L : ℝ) * (T + 1) ^ 2 ≠ 0 := ne_of_gt hTL_pos
-    have h_R_rel : R_real * (1 - (L : ℝ) * (T + 1) ^ 2) = N_z := by
+    have hne : 1 - (L : ℝ) * T ^ 2 ≠ 0 := ne_of_gt hTL_pos
+    have h_R_rel : R_real * (1 - (L : ℝ) * T ^ 2) = N_z := by
       simp only [hR_real_def]
       field_simp
-    have h_LHS_eq : (2 : ℝ) + (‖z.2‖ + 1 / 2) * (T + 1) + M_real * (T + 1) ^ 2
-                  = N_z + (L : ℝ) * R_real * (T + 1) ^ 2 := by
+    have h_LHS_eq : (2 : ℝ) + (‖z.2‖ + 1 / 2) * T + M_real * T ^ 2
+                  = N_z + (L : ℝ) * R_real * T ^ 2 := by
       -- M_real contains (R : ℝ); substitute via hR_eq before ring.
       simp only [hM_real_def, hN_z_def, hR_eq]; ring
-    have h_target_eq : N_z + (L : ℝ) * R_real * (T + 1) ^ 2 = R_real := by
+    have h_target_eq : N_z + (L : ℝ) * R_real * T ^ 2 = R_real := by
       nlinarith [h_R_rel]
-    have h_real : (2 : ℝ) + (‖z.2‖ + 1 / 2) * (T + 1) + M_real * (T + 1) ^ 2 ≤ R_real := by
+    have h_real : (2 : ℝ) + (‖z.2‖ + 1 / 2) * T + M_real * T ^ 2 ≤ R_real := by
       linarith [h_LHS_eq, h_target_eq]
     -- Cast to NNReal form: ((1 : NNReal) : ℝ) = 1 and 2 * 1 = 2.
     have h_one : ((1 : NNReal) : ℝ) = 1 := by norm_cast
@@ -5481,7 +5481,7 @@ theorem exists_vlasov_perz_trajectory
   -- Uses ‖conv(ρ t, x)‖ ≤ ‖gradW(0)‖ + L · ∫‖x-y‖ dρ_t ≤ ‖gradW(0)‖ + L·(‖x‖ + M_ρ).
   -- For x ∈ closedBall z.1 R: ‖x‖ ≤ R + ‖z.1‖, so bound ≤ M_real = M.
   -- ============================================================
-  have hbound_local : ∀ t ∈ Set.Icc (0 : ℝ) (T + 1),
+  have hbound_local : ∀ t ∈ Set.Icc (0 : ℝ) T,
                      ∀ x ∈ Metric.closedBall z.1 (R : ℝ),
                      ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M := by
     intro t _ht x hx
@@ -5543,7 +5543,7 @@ theorem exists_vlasov_perz_trajectory
   -- Apply exists_vlasov_characteristicFlow with z₀ = z, a = 1.
   -- ============================================================
   obtain ⟨charX, charV, hflow, h_boundary⟩ :=
-    exists_vlasov_characteristicFlow W gradW hgradW L hL
+    exists_vlasov_characteristicFlow_tight W gradW hgradW L hL
       ρ h_int hρ_cont z 1 ha M T hT R hR_local hbound_local
   -- Extract trajectory at w = z (z is the center of the ball, trivially in it).
   have hz_in : z ∈ Metric.closedBall z (((1 : NNReal) : ℝ) / 2) := by
@@ -11984,7 +11984,6 @@ theorem vlasovWellPosedness_forward
     (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (hL_pos : (0 : ℝ) < L)
-    (hL_lt : (L : ℝ) < 1)
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀)
     {T_target : ℝ} (hT_target : 0 < T_target) :
@@ -11998,34 +11997,22 @@ theorem vlasovWellPosedness_forward
   -- (planning-notes commit `b7d4d05`), these are two genuinely independent
   -- constraints from distinct sub-arguments; T_0 = min(T_0_PL, T_0_con) / 2
   -- with strict-inequality margin lands both.
-  let T_0_PL : ℝ := 1 / Real.sqrt L - 1
-  let T_0_con : ℝ := Real.log (1 / (L : ℝ) + 1)
-  -- Envelope-closure threshold: `B(T) := (L/(1+L))(exp((1+L)T) − 1) < 1` holds for
-  -- `T < T_0_env`.  Positive for EVERY `L ∈ (0,1)` — it is a `T`-threshold at fixed
-  -- `L` (`B(0)=0`, `B` continuous strictly increasing), so adding it to the `min`
-  -- does NOT tighten the admissible `L`-range below the `L < 1` that `T_0_PL`
-  -- already imposes (no `L`-restriction smuggled in).
+  let T_0_PL : ℝ := 1 / Real.sqrt L
+  let T_0_con : ℝ := Real.log (max 1 (L : ℝ) / (L : ℝ) + 1) / max 1 (L : ℝ)
   let T_0_env : ℝ := Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ))
   let T_0 : ℝ := min (min T_0_PL T_0_con) T_0_env / 2
   have hL_nn : (0 : ℝ) ≤ L := NNReal.coe_nonneg L
+  have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
   have hsqrtL_pos : 0 < Real.sqrt (L : ℝ) := Real.sqrt_pos.mpr hL_pos
-  have hsqrtL_lt1 : Real.sqrt (L : ℝ) < 1 := by
-    rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 1)]
-    simpa using hL_lt
+  have hs_eq : (Real.sqrt (L : ℝ)) ^ 2 = (L : ℝ) := Real.sq_sqrt hL_nn
+  have hK_pos : (0 : ℝ) < max 1 (L : ℝ) := lt_of_lt_of_le one_pos (le_max_left _ _)
   have hT_0_PL_pos : 0 < T_0_PL := by
-    show 0 < 1 / Real.sqrt (L : ℝ) - 1
-    have h1 : 1 < 1 / Real.sqrt (L : ℝ) := by
-      rw [one_lt_div hsqrtL_pos]
-      linarith
-    linarith
-  have h_one_div_L_plus_one_pos : 0 < 1 / (L : ℝ) + 1 := by
-    have : 0 < 1 / (L : ℝ) := by positivity
-    linarith
-  have h_one_div_L_plus_one_gt_one : 1 < 1 / (L : ℝ) + 1 := by
-    have : 0 < 1 / (L : ℝ) := by positivity
+    show 0 < 1 / Real.sqrt (L : ℝ); positivity
+  have hKL_gt1 : 1 < max 1 (L : ℝ) / (L : ℝ) + 1 := by
+    have : 0 < max 1 (L : ℝ) / (L : ℝ) := div_pos hK_pos hL_pos
     linarith
   have hT_0_con_pos : 0 < T_0_con :=
-    Real.log_pos h_one_div_L_plus_one_gt_one
+    div_pos (Real.log_pos hKL_gt1) hK_pos
   have h_1L_pos : (0 : ℝ) < 1 + (L : ℝ) := by linarith [hL_pos]
   have hT_0_env_pos : 0 < T_0_env := by
     show 0 < Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ))
@@ -12036,73 +12023,51 @@ theorem vlasovWellPosedness_forward
   have hT_0_min_pos : 0 < min (min T_0_PL T_0_con) T_0_env :=
     lt_min (lt_min hT_0_PL_pos hT_0_con_pos) hT_0_env_pos
   have hT0_pos : 0 < T_0 := by
-    show 0 < min (min T_0_PL T_0_con) T_0_env / 2
-    linarith
-  -- **PL-buffer constraint at T_0** (existing algebra at T_0_PL_old, lifted
-  -- to T_0 via monotonicity since T_0 ≤ T_0_PL_old).
+    show 0 < min (min T_0_PL T_0_con) T_0_env / 2; linarith
   have hTL_T0_PL : LocalSmallness_PL_buffer L T_0 := by
-    show (L : ℝ) * (T_0 + 1) ^ 2 < 1
-    let T_0_PL_old : ℝ := (1 / Real.sqrt (L : ℝ) - 1) / 2
-    have h_T_0_le_old : T_0 ≤ T_0_PL_old := by
-      show min (min T_0_PL T_0_con) T_0_env / 2 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2
+    show (L : ℝ) * T_0 ^ 2 < 1
+    have h_T_0_le : T_0 ≤ 1 / (2 * Real.sqrt (L : ℝ)) := by
+      show min (min T_0_PL T_0_con) T_0_env / 2 ≤ 1 / (2 * Real.sqrt (L : ℝ))
       have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_PL :=
         le_trans (min_le_left _ _) (min_le_left _ _)
-      show min (min T_0_PL T_0_con) T_0_env / 2 ≤ T_0_PL / 2
-      linarith
-    have h_T_0_PL_old_nn : 0 ≤ T_0_PL_old := by
-      show 0 ≤ (1 / Real.sqrt (L : ℝ) - 1) / 2; linarith
+      have hrw : (1 : ℝ) / (2 * Real.sqrt (L : ℝ)) = (1 / Real.sqrt (L : ℝ)) / 2 := by
+        rw [div_div, mul_comm (2 : ℝ) (Real.sqrt (L : ℝ))]
+      rw [hrw]
+      have hTPL : T_0_PL = 1 / Real.sqrt (L : ℝ) := rfl
+      rw [hTPL] at h_min_le; linarith
     have h_T_0_nn : 0 ≤ T_0 := le_of_lt hT0_pos
-    have h_sq_mono : (T_0 + 1) ^ 2 ≤ (T_0_PL_old + 1) ^ 2 := by
-      have h_nn : 0 ≤ T_0 + 1 := by linarith
-      have h_le : T_0 + 1 ≤ T_0_PL_old + 1 := by linarith
-      exact pow_le_pow_left₀ h_nn h_le 2
-    have h_mul_le : (L : ℝ) * (T_0 + 1) ^ 2 ≤ (L : ℝ) * (T_0_PL_old + 1) ^ 2 :=
-      mul_le_mul_of_nonneg_left h_sq_mono hL_nn
-    -- L · (T_0_PL_old + 1)² = (1 + √L)² / 4 < 1 (the existing algebra).
-    have hs_ne : Real.sqrt (L : ℝ) ≠ 0 := ne_of_gt hsqrtL_pos
-    have hs_eq : (Real.sqrt (L : ℝ)) ^ 2 = (L : ℝ) := Real.sq_sqrt hL_nn
-    have hT0_old_plus_1 :
-        T_0_PL_old + 1 = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ)) := by
-      show (1 / Real.sqrt (L : ℝ) - 1) / 2 + 1
-          = (1 + Real.sqrt (L : ℝ)) / (2 * Real.sqrt (L : ℝ))
-      field_simp; ring
-    have key : (L : ℝ) * (T_0_PL_old + 1) ^ 2 = (1 + Real.sqrt (L : ℝ)) ^ 2 / 4 := by
-      rw [hT0_old_plus_1, div_pow]
-      have h_sq_denom : (2 * Real.sqrt (L : ℝ)) ^ 2 = 4 * (L : ℝ) := by
-        rw [mul_pow, hs_eq]; ring
-      rw [h_sq_denom]; field_simp
-    rw [key] at h_mul_le
-    have h_lt : (1 + Real.sqrt (L : ℝ)) ^ 2 < 4 := by
-      have h_sum_lt2 : 1 + Real.sqrt (L : ℝ) < 2 := by linarith
-      have h_sum_nn : 0 ≤ 1 + Real.sqrt (L : ℝ) := by positivity
-      nlinarith [h_sum_lt2, h_sum_nn]
-    linarith
-  -- **Contraction constraint at T_0** (T_0 < T_0_con since T_0 ≤ T_0_con/2 <
-  -- T_0_con; then exp_lt_exp gives `exp T_0 < 1/L + 1`, and L·(...) < 1).
+    have h_sq_le : T_0 ^ 2 ≤ (1 / (2 * Real.sqrt (L : ℝ))) ^ 2 :=
+      pow_le_pow_left₀ h_T_0_nn h_T_0_le 2
+    have h_mul_le : (L : ℝ) * T_0 ^ 2 ≤ (L : ℝ) * (1 / (2 * Real.sqrt (L : ℝ))) ^ 2 :=
+      mul_le_mul_of_nonneg_left h_sq_le hL_nn
+    have h_eq : (L : ℝ) * (1 / (2 * Real.sqrt (L : ℝ))) ^ 2 = 1 / 4 := by
+      rw [div_pow, one_pow, mul_pow, hs_eq]; field_simp; ring
+    rw [h_eq] at h_mul_le; linarith
   have hTL_T0_con : LocalSmallness_contraction L T_0 := by
     show (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T_0) - 1) / (max 1 (L : ℝ)) < 1
-    have hmax_eq : max 1 (L : ℝ) = 1 := max_eq_left hL_lt.le
-    rw [hmax_eq, one_mul, div_one]
-    -- T_0 ≤ T_0_con / 2 < T_0_con.
+    set K : ℝ := max 1 (L : ℝ) with hK_def
     have h_T_0_lt : T_0 < T_0_con := by
       show min (min T_0_PL T_0_con) T_0_env / 2 < T_0_con
       have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_con :=
         le_trans (min_le_left _ _) (min_le_right _ _)
       linarith
-    -- exp T_0 < exp T_0_con = 1/L + 1.
-    have h_exp_lt : Real.exp T_0 < 1 / (L : ℝ) + 1 := by
-      have h_exp_log : Real.exp T_0_con = 1 / (L : ℝ) + 1 :=
-        Real.exp_log h_one_div_L_plus_one_pos
-      calc Real.exp T_0 < Real.exp T_0_con := Real.exp_lt_exp.mpr h_T_0_lt
-        _ = 1 / (L : ℝ) + 1 := h_exp_log
-    -- L · (exp T_0 - 1) < L · (1/L) = 1.
-    have h_step : (L : ℝ) * (Real.exp T_0 - 1) < (L : ℝ) * (1 / (L : ℝ)) := by
-      have h_sub_lt : Real.exp T_0 - 1 < 1 / (L : ℝ) := by linarith
-      exact mul_lt_mul_of_pos_left h_sub_lt hL_pos
-    have h_L_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
-    have h_L_inv : (L : ℝ) * (1 / (L : ℝ)) = 1 := by field_simp
-    rw [h_L_inv] at h_step
-    exact h_step
+    have hKL1_pos : (0 : ℝ) < K / (L : ℝ) + 1 := by
+      have : 0 < K / (L : ℝ) := div_pos hK_pos hL_pos
+      linarith
+    have h_KT0_lt : K * T_0 < Real.log (K / (L : ℝ) + 1) := by
+      have hTcon : T_0_con = Real.log (K / (L : ℝ) + 1) / K := rfl
+      rw [hTcon] at h_T_0_lt
+      have hh := (lt_div_iff₀ hK_pos).mp h_T_0_lt
+      nlinarith [hh]
+    have h_exp_lt : Real.exp (K * T_0) < K / (L : ℝ) + 1 := by
+      have := Real.exp_lt_exp.mpr h_KT0_lt
+      rwa [Real.exp_log hKL1_pos] at this
+    have h_sub_lt : Real.exp (K * T_0) - 1 < K / (L : ℝ) := by linarith
+    have h_num_lt : (L : ℝ) * (Real.exp (K * T_0) - 1) < K := by
+      have := mul_lt_mul_of_pos_left h_sub_lt hL_pos
+      rwa [mul_div_cancel₀ _ hL_ne] at this
+    rw [div_lt_one hK_pos]
+    exact h_num_lt
   -- **hB discharge at T_0** (envelope-closure `B(T_0) < 1`), CLOSED via the
   -- `T_0_env` threshold added to the `min` above: `T_0 < T_0_env` gives
   -- `(1+L)·T_0 < log(1 + (1+L)/L)`, hence `exp((1+L)·T_0) − 1 < (1+L)/L`, hence
@@ -13370,7 +13335,6 @@ theorem vlasovWellPosedness_uniqueness
     (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (hL_pos : (0 : ℝ) < L)
-    (hL_lt : (L : ℝ) < 1)
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀)
     {T_target : ℝ} (hT_target : 0 < T_target)
@@ -13438,7 +13402,6 @@ theorem vlasovWellPosedness_universal_existence
     (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (hL_pos : (0 : ℝ) < L)
-    (hL_lt : (L : ℝ) < 1)
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀) :
     ∃ f : ℝ → Measure (PhaseSpace d),
@@ -13459,7 +13422,7 @@ theorem vlasovWellPosedness_universal_existence
         (∀ t ∈ Set.Icc (0 : ℝ) ((n : ℝ) + 1), HasFiniteFirstMoment (g t)) ∧
         IsLagrangianVlasovSolutionOn gradW g ((n : ℝ) + 1) := by
     intro n
-    exact vlasovWellPosedness_forward W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
+    exact vlasovWellPosedness_forward W gradW hgradW L hL hL_pos f₀ hf₀
       (by positivity : (0 : ℝ) < (n : ℝ) + 1)
   -- Step 2. Pick canonical per-n solutions via Classical.choice.
   let sol : ℕ → ℝ → Measure (PhaseSpace d) :=
@@ -13494,7 +13457,7 @@ theorem vlasovWellPosedness_universal_existence
         · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hnm_cast⟩
         · intro z; exact (h_cont z).mono (fun u hu => ⟨hu.1, le_trans hu.2 hnm_cast⟩)
     -- Apply vlasovWellPosedness_uniqueness (Stage 8) on window [0, n+1]
-    exact vlasovWellPosedness_uniqueness W gradW hgradW L hL hL_pos hL_lt f₀ hf₀
+    exact vlasovWellPosedness_uniqueness W gradW hgradW L hL hL_pos f₀ hf₀
       (by linarith [Nat.cast_nonneg (α := ℝ) n] : (0 : ℝ) < (n : ℝ) + 1)
       (sol n) (sol m) (h_sol_init n) (h_sol_init m)
       (h_sol_mom n)
@@ -13751,7 +13714,7 @@ theorem vlasovWellPosedness
     -- closure-plan Sorry 11 (Category 3, 2026-05-31): explicit `hL_lt_one`
     -- hypothesis eliminates the L≥1 sub-sorry'd branch.  External callers extract
     -- L from `[AssW W]`'s `lipschitzGrad` existential and prove `< 1` themselves.
-    (L : NNReal) (hL_gradW : LipschitzWith L gradW) (hL_lt_one : (L : ℝ) < 1)
+    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀) :
     -- Existence-only (refactor 2026-05-30): Vlasov well-posedness is a forward-
@@ -13789,7 +13752,7 @@ theorem vlasovWellPosedness
     -- uniqueness is available via Stage 8 (`vlasovWellPosedness_uniqueness`) as
     -- a separate interface.
     exact vlasovWellPosedness_universal_existence W gradW hgradW L hL_gradW
-      hL_pos hL_lt_one f₀ hf₀
+      hL_pos f₀ hf₀
   · -- Case: L = 0 (gradW is constant; explicit constant-force solution).
     -- Step L0-1: L = 0 as an NNReal.
     have hL_zero : L = 0 := by
