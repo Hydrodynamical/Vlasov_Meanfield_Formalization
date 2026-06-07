@@ -156,28 +156,41 @@ confirm the graph still matches intent.
   The `Coupling→Basic` edge is GONE. OT layer fully decoupled: `Base/Geometry → OT/Wasserstein → Coupling`,
   Kinetic reaches it only through the 4-name interface. Critical footprint check passed.
 
-**REMAINING (the structural separation is done; these are polish, all footprint-checked):**
-- **Renames** (Step 5, inside the OT layer): `foundationB_coupling_le_dual → wassersteinCost_coupling_le_dual`;
-  the now-closed OT `MathlibTODO_*` → mathematical names. **Keep `wasserstein1_eq_coupling`** (the bridge).
-  **Opening read (front-loaded subtlety): classify each rename as OT-internal vs seam-crossing BEFORE renaming**,
-  the same way the extraction classified decls OT-vs-Vlasov before moving. Call sites now span two layers:
-  within OT (other OT lemmas) and possibly across the interface into Kinetic (a CharacteristicFlow decl calling
-  a renamed OT lemma directly). A rename is footprint-safe only if EVERY call site updates — a missed
-  cross-layer site breaks the build (caught), but the rename's *purpose* (clean OT names) is defeated if a
-  Kinetic caller still references the old name. `foundationB_coupling_le_dual` *should* be OT-internal (it's
-  consumed by the bridge, which keeps its name, so it sits below the seam) — confirm that per name. Footprint-
-  check after each rename.
+**Phase-D-OT (option 3) COMPLETE** — OT layer extracted, decoupled, file-complete, Mathlib-named;
+footprint `[propext, Classical.choice, Quot.sound]` held through every move. Commits beyond moves 1–3:
+- `7ae814c` — rename `foundationB_coupling_le_dual → wassersteinCost_coupling_le_dual` (OT-internal: sole
+  call site was Coupling's own dual-witness wrapper).
+- `0bb0c7f` — mop-up: the 3 W₁ stragglers (`eq_zero_iff`, `le_liminf_of_narrow`, `ofReal_exp_monotone`) →
+  `OT/Wasserstein.lean`; **no `wasserstein1` lemma defs remain in Basic**. `HasFiniteFirstMoment` confirmed
+  Kinetic-only (consumed only by Basic-Vlasov + CharacteristicFlow, zero OT consumers) → stays in Basic.
+- `e9afbaa` — rename `MathlibTODO_bcEqualFromLipschitzEqual_polish_firstMoment →
+  integral_boundedContinuous_eq_of_integral_lipschitz_eq` (proved/closed — verified no live sorry; OT-internal
+  AFTER the mop-up moved its consumer `eq_zero_iff` into OT/Wasserstein).
 
-**Discipline note (this turn — the failure case handled correctly):** move 2's first cut grabbed a dangling
-docstring (boundary off by 25 lines, landed inside `eq_zero_iff`'s docstring). The build caught it
-(`unexpected token 'end'`); the footprint check that ran alongside was STALE (it reflected the move-1 oleans
-because move-2's build had failed) — a passing check against a failed build is NOT certification. Response:
-revert → re-diagnose the true boundary (L1520) → redo. Move-and-verify, not move-and-hope; re-run the footprint
-check only after the build it certifies actually succeeds.
-- **Straggler mop-up** (optional): move the 3 W₁ leaves still in Basic (`wasserstein1_eq_zero_iff_measure_eq`
-  L~1546, `wasserstein1_le_liminf_of_narrow`, `wasserstein1_ofReal_exp_monotone`) + decide `HasFiniteFirstMoment`'s
-  home (PhaseSpace-specific — Base or Kinetic) into the OT layer for completeness. Nothing depends on the 3 leaves.
-- (Deferred, separate phase) the Kinetic split — left untouched per option 3.
+**Jargon audit (full OT public surface — 56 decls across OT/Wasserstein + OT/Coupling): PASS.**
+No campaign vocabulary in any declaration name (no `foundationB_`, no closed `MathlibTODO_`, no Stage/Friction).
+Every name is descriptive-statement-shape. The bridge `wasserstein1_eq_coupling` correctly kept (crosses the seam).
+- PR-prep notes (mild descriptive project-internal shorthand — NOT jargon, NOT rename-now; batch at PR time):
+  `lintegral_ofReal_kept_cells_le`, `finiteTransport_dual_eps`, `wassersteinCost_dual_singleMap_le`,
+  `measure_compl_biUnion_range_tendsto_zero` — descriptive and acceptable; a Mathlib reviewer might tweak
+  `kept_cells`/`_eps` wording at PR time, non-blocking.
+- `MathlibTODO_cauchyW1_hasNarrowLimit` — an intentionally-sorry'd citation placeholder in Basic (Kinetic side),
+  correctly **untouched** (the prefix is meaningful — a genuine deferral, not closed-and-misnamed).
+
+**Discipline notes (this arc):**
+- *Stale-check (→ CLAUDE.md P11)*: move 2's first cut grabbed a dangling docstring (off by 25 lines). The build
+  caught it; the chained footprint check was STALE (move-1 oleans, build had failed) — a passing check against a
+  failed build is NOT certification. Revert → re-diagnose (L1520) → redo. Re-run the check only after the build
+  it certifies succeeds.
+- *Authoritative graph over grep*: the straggler self-containment check used `phase_d_deps.txt` (ground-truth
+  decl graph), not text-grep — grep over-matched `AssW`/`empirical`/`gradW` in docstring prose; the graph showed
+  clean OT-only deps. Trusting the grep would have wrongly blocked a clean move.
+
+**Remaining (DEFERRED — separate phase, fresh session):** the Kinetic split — split CharacteristicFlow's ~105
+decls (+ Basic's Vlasov decls) into VectorField / Solutions / CharacteristicFlow / LagrangianEulerian /
+WellPosedness / Dobrushin / MeanField per the target structure above. Lower-value (internal navigability, not an
+upstreamable contribution) and churnier (105 decls → 6+ files, touching the marquee's own file); deferred per
+option 3, to be a deliberate separate decision later.
 
 **Historical (superseded by the above):**
 
