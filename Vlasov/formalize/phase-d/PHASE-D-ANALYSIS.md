@@ -159,7 +159,21 @@ confirm the graph still matches intent.
 **REMAINING (the structural separation is done; these are polish, all footprint-checked):**
 - **Renames** (Step 5, inside the OT layer): `foundationB_coupling_le_dual → wassersteinCost_coupling_le_dual`;
   the now-closed OT `MathlibTODO_*` → mathematical names. **Keep `wasserstein1_eq_coupling`** (the bridge).
-  Each rename touches its def + call sites (within OT/Coupling; verify none ripple to CharacteristicFlow).
+  **Opening read (front-loaded subtlety): classify each rename as OT-internal vs seam-crossing BEFORE renaming**,
+  the same way the extraction classified decls OT-vs-Vlasov before moving. Call sites now span two layers:
+  within OT (other OT lemmas) and possibly across the interface into Kinetic (a CharacteristicFlow decl calling
+  a renamed OT lemma directly). A rename is footprint-safe only if EVERY call site updates — a missed
+  cross-layer site breaks the build (caught), but the rename's *purpose* (clean OT names) is defeated if a
+  Kinetic caller still references the old name. `foundationB_coupling_le_dual` *should* be OT-internal (it's
+  consumed by the bridge, which keeps its name, so it sits below the seam) — confirm that per name. Footprint-
+  check after each rename.
+
+**Discipline note (this turn — the failure case handled correctly):** move 2's first cut grabbed a dangling
+docstring (boundary off by 25 lines, landed inside `eq_zero_iff`'s docstring). The build caught it
+(`unexpected token 'end'`); the footprint check that ran alongside was STALE (it reflected the move-1 oleans
+because move-2's build had failed) — a passing check against a failed build is NOT certification. Response:
+revert → re-diagnose the true boundary (L1520) → redo. Move-and-verify, not move-and-hope; re-run the footprint
+check only after the build it certifies actually succeeds.
 - **Straggler mop-up** (optional): move the 3 W₁ leaves still in Basic (`wasserstein1_eq_zero_iff_measure_eq`
   L~1546, `wasserstein1_le_liminf_of_narrow`, `wasserstein1_ofReal_exp_monotone`) + decide `HasFiniteFirstMoment`'s
   home (PhaseSpace-specific — Base or Kinetic) into the OT layer for completeness. Nothing depends on the 3 leaves.

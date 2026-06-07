@@ -995,6 +995,44 @@ After a refactor whose correctness depends on consumer-level
 semantics (not just consumer-level types), the audit is the
 certification step.  Green build is a precondition, not a proof.
 
+### P11. A verification that ran against a FAILED build is STALE — not certification
+
+**Failure mode**: a move/edit is followed by `build + secondary-check` (e.g.
+`lake build && #print axioms`).  The build FAILS, but the secondary check still
+prints a passing result — because it ran against the *previous* build's cached
+artifacts (`.olean`s), which reflect the last GOOD state, not the current broken
+one.  Reading the passing secondary check as success is a false certification:
+the thing it certified (the marquee's axiom footprint) is the OLD footprint, and
+the current edit hasn't actually compiled.  The trap is subtle precisely because
+the secondary check looks green — the eye goes to it and skips the build status
+above it.
+
+**Empirical confirmation** (Phase D move 2, 2026-06-07): the OT-core extraction's
+first cut grabbed a dangling docstring (boundary off by 25 lines).
+`lake build` failed (`unexpected token 'end'`), but the chained
+`#print axioms` footprint check still printed both marquee theorems as
+`[propext, Classical.choice, Quot.sound]` — STALE, against the move-1 `.olean`s.
+Reading that as "footprint held" would have been a false pass on a move that
+did not compile.  Caught by reading the build status first; reverted →
+re-diagnosed the true boundary → redid.
+
+**Fix / operational rule**: the secondary certification check (`#print axioms`,
+a probe, a coverage report) is meaningful ONLY when the build it ran against
+SUCCEEDED.  Read the build status FIRST; a green secondary check against a failed
+build is stale and proves nothing.  When chaining `build && check` in one command,
+gate on the build's exit/status before trusting the check — or run the check as a
+separate step only after confirming the build is green.  This is the temporal
+companion to P10 (build-permits-vs-audit-certifies): P10 says a green build is
+consistent with multiple stories; P11 says a green *check* is consistent with the
+build never having succeeded.  Both: the instrument means nothing until you
+confirm what it actually ran against.
+
+**Generalisation**: applies to any edit→build→verify loop with cached build
+artifacts (Lean `.olean`, compiled objects, test binaries).  After a failed
+build, every downstream check is reporting the last good build.  Move-and-verify
+requires verifying the *current* move compiled before reading any verification of
+it.
+
 ## M-series — Mathematical structure
 
 ### M1. Minimize structure-projection boundaries
