@@ -404,6 +404,50 @@ the window suffices to transfer the conclusion).  This is the L-series
 (tactical) companion to the B1 "enrich vs. bridge" decision: clamping is a
 *local* bridge that avoids touching shared infrastructure.
 
+### L12. Develop fiddly proofs in a scratch file that IMPORTS the slow target, not in the target itself
+
+**Failure mode**: closing a large, mechanical proof (e.g. a 150-line
+measure-theory bridge with many fiddly lemma-name / `simp`-set / `rw`-direction
+errors) directly inside a big file means every build iteration recompiles that
+whole file.  When the file is large (`Coupling.lean` ≈ **374 s** per `lake
+build`), and the proof needs 6–8 iterations, that is 30–50 min of pure build
+wall-clock — the iteration loop, not the math, becomes the bottleneck.
+
+**Empirical confirmation** (Foundation B / H2 bridge close, 2026-06-07): the
+matrix→measure bridge + measurable lift had ~13 lemma-name/`simp`/`rw` errors
+across the atom-decomposition, weight-sums, measurability, integral identities,
+and the optimal-coupling marginals/cost.  Iterating in `Coupling.lean` would
+have been ~8 × 374 s.
+
+**Fix — the trick**: develop the proof in a throwaway scratch file that
+`import`s the target module:
+
+1. Revert the target declaration to a single `sorry` so the slow file compiles
+   **once** (374 s) and its `.olean` is cached.
+2. Create `Vlasov/Scratch.lean` with `import Vlasov.OT.Coupling`, `open …`,
+   `namespace …`, and an `example` whose statement is **verbatim** the target's
+   (signature copied, `theorem foo` → `example`).  Paste the proof body.
+3. Iterate with `lake env lean Vlasov/Scratch.lean` — this compiles **only the
+   scratch** (the imported module is cached), so each cycle is ~15–60 s, a
+   **5–25× speed-up**.
+4. When the scratch is green (0 errors, 0 sorries), port the body verbatim back
+   into the target, `rm` the scratch, and do **one** final full build + the
+   `#print axioms` cert.
+
+**Why it works**: `lake env lean <file>` (or `lake build` of a leaf module)
+recompiles only that file against cached `.olean`s.  The expensive dependency is
+paid once; all iteration happens against the fast leaf.  The scratch sees every
+project def the target sees (it imports the same module + opens the same
+namespace), so the proof that closes in the scratch closes verbatim in the
+target.
+
+**Generalisation**: whenever the edit-build-fix loop on a declaration is
+dominated by *recompiling its host file* rather than by the proof difficulty,
+move the development to an importing scratch leaf.  Applies to any large Lean
+file; the bigger the host and the more iterations expected, the larger the win.
+Pairs with P4 (API-lock): revert to `sorry` to keep the host compiling while the
+scratch carries the in-flight work.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
