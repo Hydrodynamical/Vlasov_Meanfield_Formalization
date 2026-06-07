@@ -26,7 +26,7 @@ the three `lsc`/`usc`/`derivBound` placeholders.
 See `formalize/DESIGN.md` for the overall design choices.
 -/
 
-import Vlasov.Basic
+import Vlasov.OT.Wasserstein
 
 /-
 **Mathlib-upstream targeting note.**  The contents of this file —
