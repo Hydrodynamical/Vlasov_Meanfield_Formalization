@@ -144,3 +144,35 @@ Bottom-up (Base first, then OT generic, then Coupling/Duality/Bridge, then Kinet
 so each new file's imports already exist. Re-run depgraph-tool periodically to
 confirm the graph still matches intent.
 ```
+
+## Resume note (status + next-session ordering)
+
+**Done (committed, footprint held at each step):**
+- `d7df18c` — this diagnostic + graph + tool.
+- `ed667c3` — **move 1**: `Base/Geometry.lean` (PhysSpace, PhaseSpace) extracted; Basic imports it.
+  Reusable invariant check banked at `formalize/phase-d/footprint-check.lean`.
+
+**Refinement found during move 1:** `wasserstein1`/`wassersteinCost` are GENERIC over
+`{α : Type*}` (Basic L900/L922) — the OT *core* does NOT depend on Base/Geometry; only
+`HasFiniteFirstMoment` (over `PhaseSpace`) does. So the OT-generic core can sit at the very
+bottom (above Mathlib only), with `HasFiniteFirstMoment` one layer up (above Base).
+
+**Next moves, in order (each: create file → move decls from Basic → build → `footprint-check.lean`
+shows both marquees `[propext, Classical.choice, Quot.sound]` → commit; revert-on-failure):**
+1. Extract the OT-generic core (`wassersteinCost` + lemmas, then `wasserstein1` + lemmas + W̄,
+   then `HasFiniteFirstMoment` + the polish firstMoment helper) out of Basic into `OT/`.
+   (WassersteinCost before Wasserstein — wasserstein1 uses wassersteinCost.)
+2. **THE LOAD-BEARING MOVE — `Coupling` import re-point.** Only AFTER the OT-generic core is fully
+   in `OT/`, re-point `Coupling.lean`'s `import Vlasov.Basic` → the new `OT/` files (removing the
+   `Coupling → Basic` module edge entirely; Coupling becomes pure OT). The footprint check *after
+   this move* is THE critical one — it confirms the marquee still reaches the OT layer through the
+   intended 4-name interface (`wasserstein1_coupling`, `wasserstein1_pushforward_le_iInf`,
+   `wasserstein1_eq_coupling`, `IsCoupling`) and not through a stale `Basic` path.
+3. Renames, kept INSIDE the OT layer so they don't ripple across the seam:
+   `foundationB_coupling_le_dual → wassersteinCost_coupling_le_dual`; closed OT `MathlibTODO_*`
+   → mathematical names. **Keep `wasserstein1_eq_coupling`** (the bridge — it crosses to Kinetic;
+   renaming it would touch the Kinetic call site).
+4. (Optional, this phase) split `Coupling.lean` into `Coupling` / `KantorovichDuality` / `Bridge`.
+
+Kinetic (Basic's 47 Vlasov decls + CharacteristicFlow) is LEFT UNTOUCHED this phase (option 3);
+reassess the Kinetic split after the OT layer lands clean + renamed.
