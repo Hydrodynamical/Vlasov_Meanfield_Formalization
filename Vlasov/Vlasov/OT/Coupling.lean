@@ -1123,68 +1123,50 @@ theorem finiteTransport_dual_eps [Nonempty m] [Nonempty n]
     rw [lt_div_iff₀ hlam_pos]
     nlinarith [hneg]
 
-/-- **ε → 0 limit for the dual.**  From ε-optimal dual-feasible pairs (value `> V − ε` for all
-`ε > 0`) extract a single dual-feasible pair with value `≥ V`.  Proof: c-transform each pair to
-a canonical c-conjugate one (value not decreased), which after gauge-fixing is bounded by the
-cost oscillation; Bolzano–Weierstrass extracts a convergent subsequence whose limit is
-feasible with value `≥ V`. -/
-theorem finiteTransport_dual_limit [Nonempty m] [Nonempty n]
+/-- **ε-approximate finite LP duality with optimal plan.**  Packages the primal optimum
+`P` (`exists_transport_min`) with an ε-optimal dual pair (`finiteTransport_dual_eps`): for
+every `ε > 0`, an optimal feasible plan `P` and a dual-feasible `(u, v)` with the primal
+cost `⟨Cost, P⟩` within `ε` of the dual value.  The downstream KR bridge then sends the ε to
+the Kantorovich sup (no attainment needed — B is ε-optimal throughout). -/
+theorem finiteTransport_dual_eps_plan [Nonempty m] [Nonempty n]
     (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
     (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
     (hasum : ∑ i, a i = 1) (hbsum : ∑ j, b j = 1)
-    (hCost : ∀ i j, 0 ≤ Cost i j) (V : ℝ)
-    (heps : ∀ ε : ℝ, 0 < ε → ∃ (u : m → ℝ) (v : n → ℝ),
-      (∀ i j, u i + v j ≤ Cost i j) ∧ V - ε < (∑ i, a i * u i) + ∑ j, b j * v j) :
-    ∃ (u : m → ℝ) (v : n → ℝ), (∀ i j, u i + v j ≤ Cost i j) ∧
-      V ≤ (∑ i, a i * u i) + ∑ j, b j * v j := by
-  sorry
-
-/-- **Finite transportation LP strong duality** (the Farkas core of finite Kantorovich
-duality).  For finite index types with probability weights `a, b` and a nonnegative cost,
-there is a dual-feasible pair `(u, v)` (`u i + v j ≤ Cost i j`) together with a primal-feasible
-plan `P` (nonnegative, marginals `a, b`) whose cost is dominated by the dual value
-`∑ aᵢuᵢ + ∑ bⱼvⱼ`.  By weak duality this is an equality (no gap), but only the displayed
-inequality is consumed downstream.  Assembles `exists_transport_min` (primal optimum) with
-`finiteTransport_dual_eps` (ε-optimal dual pairs) and `finiteTransport_dual_limit` (ε → 0). -/
-theorem finiteTransport_strong_duality [Nonempty m] [Nonempty n]
-    (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
-    (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
-    (hasum : ∑ i, a i = 1) (hbsum : ∑ j, b j = 1)
-    (hCost : ∀ i j, 0 ≤ Cost i j) :
-    ∃ (u : m → ℝ) (v : n → ℝ), (∀ i j, u i + v j ≤ Cost i j) ∧
-      ∃ P : m → n → ℝ, (∀ i j, 0 ≤ P i j) ∧ (∀ i, ∑ j, P i j = a i) ∧
-        (∀ j, ∑ i, P i j = b j) ∧
-        (∑ i, ∑ j, Cost i j * P i j) ≤ (∑ i, a i * u i) + ∑ j, b j * v j := by
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ (P : m → n → ℝ) (u : m → ℝ) (v : n → ℝ),
+      (∀ i j, 0 ≤ P i j) ∧ (∀ i, ∑ j, P i j = a i) ∧ (∀ j, ∑ i, P i j = b j) ∧
+      (∀ i j, u i + v j ≤ Cost i j) ∧
+      (∑ i, ∑ j, Cost i j * P i j) - ε < (∑ i, a i * u i) + ∑ j, b j * v j := by
   obtain ⟨P, hPnn, hProw, hPcol, hPmin⟩ := exists_transport_min a b Cost ha hb hasum hbsum
   obtain ⟨u, v, hfeas, hval⟩ :=
-    finiteTransport_dual_limit a b Cost ha hb hasum hbsum hCost
-      (∑ i, ∑ j, Cost i j * P i j)
-      (fun ε hε => finiteTransport_dual_eps a b Cost P hPnn hProw hPcol hPmin ε hε)
-  exact ⟨u, v, hfeas, P, hPnn, hProw, hPcol, hval⟩
+    finiteTransport_dual_eps a b Cost P hPnn hProw hPcol hPmin ε hε
+  exact ⟨P, u, v, hPnn, hProw, hPcol, hfeas, hval⟩
 
 end TransportLP
 
-/-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials.**
-For finite-range pushforwards `Measure.map T μ`, `Measure.map S ν`, finite
-transportation LP strong duality yields a dual pair `u, v` with `u a + v b ≤ c a b`
-on the supports `range T`, `range S`, whose value `∫u dμ' + ∫v dν'` *bounds the coupling
-infimum from above* (it is in fact equal — the LP optimum).  Route: encode couplings as
-nonnegative vectors with marginal + cost constraints (the orthant `ProperCone.positive`
-on a finite-dim Hilbert space), apply Farkas
-(`ProperCone.relative_hyperplane_separation` — the *map-form* that absorbs the affine
-marginal system via the linear map + target, no homogenization), read the potentials
-off the separating functional.  **Metric-free**: needs no symmetry/triangle (the
-metric structure enters only in the c-transform `cTransform_dual_witness`). -/
+/-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials (ε-form).**
+For finite-range pushforwards `Measure.map T μ`, `Measure.map S ν` and every `ε > 0`, finite
+transportation LP duality yields a measurable dual pair `u, v` with `u a + v b ≤ c a b` on the
+supports `range T`, `range S`, whose value `∫u dμ' + ∫v dν'` bounds the coupling infimum from
+above *up to `ε`*.  Proof: the finite LP gives (`finiteTransport_dual_eps_plan`) an optimal
+plan `P` and a dual pair within `ε`; the matrix→measure bridge sends `P` to a coupling
+realising `coupling-inf ≤ ofReal⟨Cost,P⟩` and identifies `∫u dμ' = ∑ aᵢ uᵢ` (integral against
+a finitely-supported pushforward), and the dual potentials lift to measurable `α → ℝ`.  The `ε`
+is consumed at the Kantorovich sup downstream — no attainment needed, matching B's ε-optimality
+everywhere else.  **Metric-free**: no symmetry/triangle (those enter only in the c-transform
+`cTransform_dual_witness`). -/
 theorem finiteRange_transportation_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (T S : α → α) (hT : Measurable T) (hS : Measurable S)
-    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite)
+    (ε : ℝ) (hε : 0 < ε) :
     ∃ u v : α → ℝ, Measurable u ∧ Measurable v ∧
       (∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) ∧
       wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
-        ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := by
+        ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
+          + ENNReal.ofReal ε := by
   sorry
 
 /-- **[General OT — c-transform] Dual pair → single globally-admissible potential.**
@@ -1309,21 +1291,29 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
     wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
+  -- ε → 0 at the Kantorovich sup level: the ε-family dual bound has no attainment.
+  refine ENNReal.le_of_forall_pos_le_add fun η hη _ => ?_
   obtain ⟨u, v, hu, hv, hdual, hval⟩ :=
-    finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin
+    finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin (η : ℝ)
+      (by exact_mod_cast hη)
   obtain ⟨g, hg_adm, hg_val⟩ :=
     cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS hTfin hSfin
       u v hu hv hdual
   calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
-      ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := hval
-    _ ≤ ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)) :=
-        ENNReal.ofReal_le_ofReal hg_val
-    _ ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
-        unfold wassersteinCost
-        exact le_iSup_of_le g (le_iSup
-          (f := fun (_ : ∀ x y, |g x - g y| ≤ c x y) =>
-            ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)))
-          hg_adm)
+      ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
+          + ENNReal.ofReal (η : ℝ) := hval
+    _ ≤ ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν))
+          + ENNReal.ofReal (η : ℝ) :=
+        add_le_add (ENNReal.ofReal_le_ofReal hg_val) le_rfl
+    _ ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) + ENNReal.ofReal (η : ℝ) :=
+        add_le_add (by
+          unfold wassersteinCost
+          exact le_iSup_of_le g (le_iSup
+            (f := fun (_ : ∀ x y, |g x - g y| ≤ c x y) =>
+              ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)))
+            hg_adm)) le_rfl
+    _ = wassersteinCost c (Measure.map T μ) (Measure.map S ν) + (η : ℝ≥0∞) := by
+        rw [ENNReal.ofReal_coe_nnreal]
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Single-map dual bound.**  The
 dual cost between a pushforward `Measure.map T μ` and `μ` is at most the integrated
