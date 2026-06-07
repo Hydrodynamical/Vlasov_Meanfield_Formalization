@@ -495,7 +495,80 @@ lemma finiteRange_approxMap_measurable
       (Set.range T).Finite ∧
       (∀ n < N, ∀ x ∈ As n, T x = as n) ∧
       (∀ x ∈ (⋃ n ∈ Finset.range N, As n)ᶜ, T x = x₀) := by
-  sorry
+  classical
+  -- measurability of the recursive step map, for any list of indices
+  have hmeas : ∀ l : List ℕ,
+      Measurable (fun x => l.foldr (fun n acc => if x ∈ As n then as n else acc) x₀) := by
+    intro l
+    induction l with
+    | nil => simp only [List.foldr_nil]; exact measurable_const
+    | cons k l ih =>
+      simp only [List.foldr_cons]
+      exact Measurable.ite (hAs_mble k) measurable_const ih
+  -- the folded value is always `x₀` or `as k` for some `k` in the list
+  have hval : ∀ (l : List ℕ) (x : α),
+      (l.foldr (fun n acc => if x ∈ As n then as n else acc) x₀ = x₀) ∨
+      (∃ k ∈ l, l.foldr (fun n acc => if x ∈ As n then as n else acc) x₀ = as k) := by
+    intro l
+    induction l with
+    | nil => intro x; left; rfl
+    | cons k l ih =>
+      intro x
+      simp only [List.foldr_cons]
+      by_cases hk : x ∈ As k
+      · right; exact ⟨k, List.mem_cons_self, if_pos hk⟩
+      · rw [if_neg hk]
+        rcases ih x with h | ⟨k', hk', h⟩
+        · left; exact h
+        · right; exact ⟨k', List.mem_cons_of_mem k hk', h⟩
+  -- kept property: disjointness pins the matched index
+  have hkept : ∀ (l : List ℕ) (x : α) (n : ℕ), n ∈ l → x ∈ As n →
+      (∀ m ∈ l, x ∈ As m → m = n) →
+      l.foldr (fun n acc => if x ∈ As n then as n else acc) x₀ = as n := by
+    intro l
+    induction l with
+    | nil => intro x n hn _ _; simp at hn
+    | cons k l ih =>
+      intro x n hn hxn huniq
+      simp only [List.foldr_cons]
+      by_cases hk : x ∈ As k
+      · rw [if_pos hk, huniq k (List.mem_cons_self) hk]
+      · rw [if_neg hk]
+        have hnk : n ≠ k := fun h => hk (h ▸ hxn)
+        have hnl : n ∈ l := (List.mem_cons.mp hn).resolve_left hnk
+        exact ih x n hnl hxn (fun m hm hxm => huniq m (List.mem_cons_of_mem k hm) hxm)
+  -- tail property: off all cells the fold returns the fallback
+  have htail : ∀ (l : List ℕ) (x : α), (∀ m ∈ l, x ∉ As m) →
+      l.foldr (fun n acc => if x ∈ As n then as n else acc) x₀ = x₀ := by
+    intro l
+    induction l with
+    | nil => intro x _; rfl
+    | cons k l ih =>
+      intro x hx
+      simp only [List.foldr_cons]
+      rw [if_neg (hx k (List.mem_cons_self))]
+      exact ih x (fun m hm => hx m (List.mem_cons_of_mem k hm))
+  refine ⟨fun x => (List.range N).foldr (fun n acc => if x ∈ As n then as n else acc) x₀,
+    hmeas (List.range N), ?_, ?_, ?_⟩
+  · -- finite range
+    apply Set.Finite.subset ((((Finset.range N).finite_toSet).image as).insert x₀)
+    rintro _ ⟨x, rfl⟩
+    simp only []
+    rcases hval (List.range N) x with h | ⟨k, hk, h⟩
+    · rw [h]; exact Set.mem_insert _ _
+    · rw [h]
+      exact Set.mem_insert_of_mem _
+        (Set.mem_image_of_mem as
+          (Finset.mem_coe.mpr (Finset.mem_range.mpr (List.mem_range.mp hk))))
+  · -- kept
+    intro n hn x hx
+    refine hkept (List.range N) x n (List.mem_range.mpr hn) hx (fun m hm hxm => ?_)
+    by_contra hmn
+    exact absurd hx (Set.disjoint_left.mp (_hAs_disj hmn) hxm)
+  · -- tail
+    intro x hx
+    refine htail (List.range N) x (fun m hm hxm => ?_)
+    exact hx (Set.mem_iUnion₂.mpr ⟨m, Finset.mem_range.mpr (List.mem_range.mp hm), hxm⟩)
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Integrable nonneg → lintegral ofReal finite.**
 If `f : α → ℝ` is integrable with respect to `μ` and a.e. nonneg, then
@@ -505,7 +578,8 @@ lemma lintegral_ofReal_ne_top_of_integrable_nonneg
     {α : Type*} [MeasurableSpace α] {μ : Measure α}
     {f : α → ℝ} (hf : Integrable f μ) (hfnn : ∀ᵐ x ∂μ, 0 ≤ f x) :
     ∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞ := by
-  sorry
+  rw [← lt_top_iff_ne_top]
+  exact (hasFiniteIntegral_iff_ofReal hfnn).mp hf.hasFiniteIntegral
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Tail cost control via absolute continuity.**
 If `∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞` and `μ ((S n)ᶜ) → 0` as `n → ∞`, then the tail
@@ -518,7 +592,7 @@ lemma lintegral_ofReal_tail_tendsto_zero
     (hS_tendsto : Filter.Tendsto (fun n => μ ((S n)ᶜ)) Filter.atTop (nhds 0)) :
     Filter.Tendsto (fun n => ∫⁻ x in (S n)ᶜ, ENNReal.ofReal (f x) ∂μ)
       Filter.atTop (nhds 0) := by
-  sorry
+  exact tendsto_setLIntegral_zero hfint hS_tendsto
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Kept-cells cost bound.**
 For a step map `T` with `T x = as n` on `As n` (for `n < N`), where we have a pointwise
@@ -535,7 +609,18 @@ lemma lintegral_ofReal_kept_cells_le
     (hcT_le : ∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ) :
     ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ
       ≤ ENNReal.ofReal δ := by
-  sorry
+  have hpt : ∀ x ∈ (⋃ n ∈ Finset.range N, As n),
+      ENNReal.ofReal (c x (T x)) ≤ ENNReal.ofReal δ := by
+    intro x hx
+    rw [Set.mem_iUnion₂] at hx
+    obtain ⟨n, hn, hxn⟩ := hx
+    exact ENNReal.ofReal_le_ofReal (hcT_le n (Finset.mem_range.mp hn) x hxn)
+  calc ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ
+      ≤ ∫⁻ _ in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal δ ∂μ :=
+        setLIntegral_mono measurable_const hpt
+    _ = ENNReal.ofReal δ * μ (⋃ n ∈ Finset.range N, As n) := setLIntegral_const _ _
+    _ ≤ ENNReal.ofReal δ * 1 := by gcongr; exact prob_le_one
+    _ = ENNReal.ofReal δ := mul_one _
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Tail mass of a measurable cover → 0.**
 For a finite measure and a measurable cover `⋃ n, As n = univ`, the mass of the complement
@@ -546,7 +631,32 @@ lemma measure_compl_biUnion_range_tendsto_zero
     {As : ℕ → Set α} (hAs_mble : ∀ n, MeasurableSet (As n))
     (hAs_cover : ⋃ n, As n = Set.univ) :
     Filter.Tendsto (fun n => μ ((⋃ j ∈ Finset.range n, As j)ᶜ)) Filter.atTop (nhds 0) := by
-  sorry
+  -- partial unions are monotone, so their complements are antitone
+  have hBmono : ∀ a b : ℕ, a ≤ b →
+      (⋃ j ∈ Finset.range a, As j) ⊆ (⋃ j ∈ Finset.range b, As j) := by
+    intro a b hab x hx
+    rw [Set.mem_iUnion₂] at hx ⊢
+    obtain ⟨j, hj, hxj⟩ := hx
+    exact ⟨j, Finset.mem_range.mpr (lt_of_lt_of_le (Finset.mem_range.mp hj) hab), hxj⟩
+  have hanti : Antitone (fun n => (⋃ j ∈ Finset.range n, As j)ᶜ) :=
+    fun a b hab => Set.compl_subset_compl.mpr (hBmono a b hab)
+  have hmeas : ∀ n, MeasurableSet ((⋃ j ∈ Finset.range n, As j)ᶜ) :=
+    fun n => (MeasurableSet.biUnion (Finset.countable_toSet _) (fun j _ => hAs_mble j)).compl
+  -- the union of all partial unions is everything
+  have hUnion : (⋃ n, ⋃ j ∈ Finset.range n, As j) = Set.univ := by
+    apply Set.eq_univ_of_forall
+    intro x
+    have hxu : x ∈ ⋃ j, As j := by rw [hAs_cover]; exact Set.mem_univ x
+    rw [Set.mem_iUnion] at hxu
+    obtain ⟨j, hxj⟩ := hxu
+    rw [Set.mem_iUnion]
+    exact ⟨j + 1, Set.mem_iUnion₂.mpr ⟨j, Finset.mem_range.mpr (Nat.lt_succ_self j), hxj⟩⟩
+  have hInter : (⋂ n, (⋃ j ∈ Finset.range n, As j)ᶜ) = ∅ := by
+    rw [← Set.compl_iUnion, hUnion, Set.compl_univ]
+  have key := tendsto_measure_iInter_atTop (μ := μ)
+    (fun n => (hmeas n).nullMeasurableSet) hanti ⟨0, measure_ne_top μ _⟩
+  rw [hInter, measure_empty] at key
+  exact key
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite-range approximation.**
 For a probability measure with finite first moment, the transport cost to a
