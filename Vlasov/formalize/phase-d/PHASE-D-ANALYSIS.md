@@ -147,10 +147,25 @@ confirm the graph still matches intent.
 
 ## Resume note (status + next-session ordering)
 
-**Done (committed, footprint held at each step):**
-- `d7df18c` — this diagnostic + graph + tool.
+**Done (committed, footprint `[propext, Classical.choice, Quot.sound]` held at each step):**
+- `d7df18c` — this diagnostic + graph + tool. Reusable check: `formalize/phase-d/footprint-check.lean`.
 - `ed667c3` — **move 1**: `Base/Geometry.lean` (PhysSpace, PhaseSpace) extracted; Basic imports it.
-  Reusable invariant check banked at `formalize/phase-d/footprint-check.lean`.
+- `a9c000d` — **move 2**: OT-generic core (`wassersteinCost`/`wasserstein1`/`wassersteinBar` + lemmas +
+  firstMoment helper) → `OT/Wasserstein.lean` (imports Mathlib only — fully generic). Basic 2658→2015 lines.
+- `6c2cf79` — **move 3 (load-bearing)**: re-pointed `Coupling` `import Vlasov.Basic` → `import Vlasov.OT.Wasserstein`.
+  The `Coupling→Basic` edge is GONE. OT layer fully decoupled: `Base/Geometry → OT/Wasserstein → Coupling`,
+  Kinetic reaches it only through the 4-name interface. Critical footprint check passed.
+
+**REMAINING (the structural separation is done; these are polish, all footprint-checked):**
+- **Renames** (Step 5, inside the OT layer): `foundationB_coupling_le_dual → wassersteinCost_coupling_le_dual`;
+  the now-closed OT `MathlibTODO_*` → mathematical names. **Keep `wasserstein1_eq_coupling`** (the bridge).
+  Each rename touches its def + call sites (within OT/Coupling; verify none ripple to CharacteristicFlow).
+- **Straggler mop-up** (optional): move the 3 W₁ leaves still in Basic (`wasserstein1_eq_zero_iff_measure_eq`
+  L~1546, `wasserstein1_le_liminf_of_narrow`, `wasserstein1_ofReal_exp_monotone`) + decide `HasFiniteFirstMoment`'s
+  home (PhaseSpace-specific — Base or Kinetic) into the OT layer for completeness. Nothing depends on the 3 leaves.
+- (Deferred, separate phase) the Kinetic split — left untouched per option 3.
+
+**Historical (superseded by the above):**
 
 **Refinement found during move 1:** `wasserstein1`/`wassersteinCost` are GENERIC over
 `{α : Type*}` (Basic L900/L922) — the OT *core* does NOT depend on Base/Geometry; only
