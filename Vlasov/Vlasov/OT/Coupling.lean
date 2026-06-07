@@ -746,6 +746,188 @@ theorem exists_finiteRange_map_cost_le
       ≤ ENNReal.ofReal (ε / 2) + ENNReal.ofReal (ε / 2) := by gcongr
     _ = ENNReal.ofReal ε := hε_split
 
+/-! ### Finite transportation LP: compactness leaves (de-risking Foundation B's Farkas kernel)
+
+Two standalone compactness facts underpinning the finite Kantorovich-duality kernel
+`finiteRange_transportation_dual` (H2):
+
+* `exists_transport_min` — the transport polytope `{P ≥ 0 : rowsums = a, colsums = b}` is
+  compact and nonempty, so the primal cost `⟨Cost, P⟩` attains its minimum (extreme value
+  theorem on a closed bounded polytope in the finite-dimensional space `m → n → ℝ`).
+* `isClosed_transport_cone` — the image cone `Φ(orthant) = {(rowsums P, colsums P, ⟨Cost,P⟩ + s)
+  : P ≥ 0, s ≥ 0}` (marginals + relaxed cost coordinate, the slack `s` making the cost
+  coordinate an *inequality*) is closed (Bolzano–Weierstrass), which is the `ProperCone`
+  obligation for the geometric Farkas separation `ProperCone.hyperplane_separation_point`.
+
+Both live on the friction-free geometric `ι → ℝ` route (plain products, no `EuclideanSpace`
+inner-product instances), per the pivot away from the map-form `relative_hyperplane_separation`
+(which forces the systemic PiLp inner-instance mismatch). -/
+
+section TransportLP
+
+open Filter Topology Bornology
+
+variable {m n : Type*} [Fintype m] [Fintype n]
+
+/-- **Primal attainment for the finite transportation LP.**  The feasible polytope
+`{P ≥ 0 : rowsums = a, colsums = b}` is compact (closed + bounded in finite dimension) and
+nonempty (it contains the product `a ⊗ b`), so the linear cost
+`⟨Cost, P⟩ = ∑ᵢⱼ Costᵢⱼ Pᵢⱼ` attains its minimum on it. -/
+theorem exists_transport_min
+    (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
+    (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
+    (hasum : ∑ i, a i = 1) (hbsum : ∑ j, b j = 1) :
+    ∃ P : m → n → ℝ,
+      (∀ i j, 0 ≤ P i j) ∧ (∀ i, ∑ j, P i j = a i) ∧ (∀ j, ∑ i, P i j = b j) ∧
+      ∀ Q : m → n → ℝ,
+        (∀ i j, 0 ≤ Q i j) → (∀ i, ∑ j, Q i j = a i) → (∀ j, ∑ i, Q i j = b j) →
+        (∑ i, ∑ j, Cost i j * P i j) ≤ ∑ i, ∑ j, Cost i j * Q i j := by
+  classical
+  set F : Set (m → n → ℝ) :=
+    {P | (∀ i j, 0 ≤ P i j) ∧ (∀ i, ∑ j, P i j = a i) ∧ (∀ j, ∑ i, P i j = b j)} with hF_def
+  -- nonempty: product coupling `a ⊗ b`
+  have hFne : F.Nonempty := by
+    refine ⟨fun i j => a i * b j, fun i j => mul_nonneg (ha i) (hb j), ?_, ?_⟩
+    · intro i; rw [← Finset.mul_sum, hbsum, mul_one]
+    · intro j; rw [← Finset.sum_mul, hasum, one_mul]
+  -- closed: finite intersection of closed conditions
+  have hFcl : IsClosed F := by
+    have e1 : IsClosed {P : m → n → ℝ | ∀ i j, 0 ≤ P i j} := by
+      rw [Set.setOf_forall]; refine isClosed_iInter fun i => ?_
+      rw [Set.setOf_forall]; refine isClosed_iInter fun j => ?_
+      exact isClosed_le continuous_const (by fun_prop)
+    have e2 : IsClosed {P : m → n → ℝ | ∀ i, ∑ j, P i j = a i} := by
+      rw [Set.setOf_forall]; refine isClosed_iInter fun i => ?_
+      exact isClosed_eq (by fun_prop) continuous_const
+    have e3 : IsClosed {P : m → n → ℝ | ∀ j, ∑ i, P i j = b j} := by
+      rw [Set.setOf_forall]; refine isClosed_iInter fun j => ?_
+      exact isClosed_eq (by fun_prop) continuous_const
+    have hEq : F = {P : m → n → ℝ | ∀ i j, 0 ≤ P i j} ∩
+        {P : m → n → ℝ | ∀ i, ∑ j, P i j = a i} ∩
+        {P : m → n → ℝ | ∀ j, ∑ i, P i j = b j} := by
+      ext P; constructor
+      · rintro ⟨h1, h2, h3⟩; exact ⟨⟨h1, h2⟩, h3⟩
+      · rintro ⟨⟨h1, h2⟩, h3⟩; exact ⟨h1, h2, h3⟩
+    rw [hEq]; exact (e1.inter e2).inter e3
+  -- bounded: every feasible `P` has sup-norm ≤ 1
+  have hFbd : Bornology.IsBounded F := by
+    apply (Metric.isBounded_closedBall (x := (0 : m → n → ℝ)) (r := 1)).subset
+    intro P hP
+    simp only [Metric.mem_closedBall, dist_zero_right]
+    rw [pi_norm_le_iff_of_nonneg zero_le_one]; intro i
+    rw [pi_norm_le_iff_of_nonneg zero_le_one]; intro j
+    obtain ⟨hnn, hrow, _⟩ := hP
+    rw [Real.norm_eq_abs, abs_le]
+    refine ⟨by linarith [hnn i j], ?_⟩
+    calc P i j ≤ ∑ j', P i j' := Finset.single_le_sum (fun j' _ => hnn i j') (Finset.mem_univ j)
+      _ = a i := hrow i
+      _ ≤ ∑ i', a i' := Finset.single_le_sum (fun i' _ => ha i') (Finset.mem_univ i)
+      _ = 1 := hasum
+  -- compact, then extreme value theorem on the linear cost
+  have hFcompact : IsCompact F := Metric.isCompact_of_isClosed_isBounded hFcl hFbd
+  have hcont : Continuous (fun P : m → n → ℝ => ∑ i, ∑ j, Cost i j * P i j) := by fun_prop
+  obtain ⟨P, hPF, hPmin⟩ := hFcompact.exists_isMinOn hFne hcont.continuousOn
+  obtain ⟨hP1, hP2, hP3⟩ := hPF
+  exact ⟨P, hP1, hP2, hP3, fun Q hQ1 hQ2 hQ3 => isMinOn_iff.mp hPmin Q ⟨hQ1, hQ2, hQ3⟩⟩
+
+/-- **Closedness of the transport image cone** (the `ProperCone` obligation for geometric
+Farkas).  The image of the orthant `{(P, s) : P ≥ 0, s ≥ 0}` under the affine-marginal +
+relaxed-cost map `Φ(P, s) = (rowsums P, colsums P, ⟨Cost, P⟩ + s)` is closed.  Proof by
+Bolzano–Weierstrass: a convergent sequence in the image has convergent marginals, hence the
+matrices `Pₖ` are bounded (mass conservation), so a subsequence converges to a feasible limit
+`P*` matching the limit marginals; the slack `s* = (limit cost coord) − ⟨Cost, P*⟩ ≥ 0`. -/
+theorem isClosed_transport_cone (Cost : m → n → ℝ) :
+    IsClosed {w : (m → ℝ) × (n → ℝ) × ℝ |
+      ∃ (P : m → n → ℝ) (s : ℝ), (∀ i j, 0 ≤ P i j) ∧ 0 ≤ s ∧
+        w = (fun i => ∑ j, P i j, fun j => ∑ i, P i j,
+              (∑ i, ∑ j, Cost i j * P i j) + s)} := by
+  classical
+  apply IsSeqClosed.isClosed
+  intro w p hw_mem hw_tend
+  obtain ⟨p1, p2, p3⟩ := p
+  simp only [Set.mem_setOf_eq] at hw_mem
+  choose P s hPnn hsnn hweq using hw_mem
+  -- componentwise convergence of `w`
+  have hfst : Tendsto (fun k => (w k).1) atTop (𝓝 p1) := (continuous_fst.tendsto _).comp hw_tend
+  have hsnd1 : Tendsto (fun k => (w k).2.1) atTop (𝓝 p2) :=
+    ((continuous_fst.comp continuous_snd).tendsto _).comp hw_tend
+  have hsnd2 : Tendsto (fun k => (w k).2.2) atTop (𝓝 p3) :=
+    ((continuous_snd.comp continuous_snd).tendsto _).comp hw_tend
+  -- rewrite via the witness equations
+  have hrow : Tendsto (fun k => (fun i => ∑ j, P k i j : m → ℝ)) atTop (𝓝 p1) := by
+    have heq : (fun k => (fun i => ∑ j, P k i j : m → ℝ)) = (fun k => (w k).1) := by
+      funext k; rw [hweq k]
+    rw [heq]; exact hfst
+  have hcol : Tendsto (fun k => (fun j => ∑ i, P k i j : n → ℝ)) atTop (𝓝 p2) := by
+    have heq : (fun k => (fun j => ∑ i, P k i j : n → ℝ)) = (fun k => (w k).2.1) := by
+      funext k; rw [hweq k]
+    rw [heq]; exact hsnd1
+  have hcost2 : Tendsto (fun k => (∑ i, ∑ j, Cost i j * P k i j) + s k) atTop (𝓝 p3) := by
+    have heq : (fun k => (∑ i, ∑ j, Cost i j * P k i j) + s k) = (fun k => (w k).2.2) := by
+      funext k; rw [hweq k]
+    rw [heq]; exact hsnd2
+  -- the matrices `Pₖ` are uniformly bounded (each entry ≤ its row sum ≤ ‖row sums‖)
+  have hRowBd : IsBounded (Set.range (fun k => (fun i => ∑ j, P k i j : m → ℝ))) :=
+    hrow.cauchySeq.isBounded_range
+  have hPbound : ∀ k, ‖P k‖ ≤ ‖(fun i => ∑ j, P k i j : m → ℝ)‖ := by
+    intro k
+    rw [pi_norm_le_iff_of_nonneg (norm_nonneg _)]; intro i
+    rw [pi_norm_le_iff_of_nonneg (norm_nonneg _)]; intro j
+    rw [Real.norm_eq_abs, abs_of_nonneg (hPnn k i j)]
+    calc P k i j ≤ ∑ j', P k i j' :=
+          Finset.single_le_sum (fun j' _ => hPnn k i j') (Finset.mem_univ j)
+      _ ≤ ‖(fun i => ∑ j, P k i j : m → ℝ)‖ := by
+          refine le_trans (le_abs_self _) ?_
+          rw [← Real.norm_eq_abs]
+          exact norm_le_pi_norm (fun i => ∑ j, P k i j : m → ℝ) i
+  obtain ⟨R, hR⟩ := hRowBd.subset_closedBall (0 : m → ℝ)
+  have hPbd : IsBounded (Set.range P) := by
+    apply (Metric.isBounded_closedBall (x := (0 : m → n → ℝ)) (r := R)).subset
+    rintro _ ⟨k, rfl⟩
+    simp only [Metric.mem_closedBall, dist_zero_right]
+    refine le_trans (hPbound k) ?_
+    have hmem := hR (Set.mem_range_self k)
+    simpa only [Metric.mem_closedBall, dist_zero_right] using hmem
+  -- Bolzano–Weierstrass: extract a convergent subsequence `P (φ ·) → Pstar`
+  obtain ⟨Pstar, -, φ, hφ_mono, hφ_tend⟩ :=
+    tendsto_subseq_of_bounded hPbd (fun k => Set.mem_range_self k)
+  -- `Pstar` is a feasible matrix matching the limit marginals
+  have hPstar_nn : ∀ i j, 0 ≤ Pstar i j := by
+    intro i j
+    have hev : Continuous (fun Q : m → n → ℝ => Q i j) := by fun_prop
+    exact ge_of_tendsto' ((hev.tendsto Pstar).comp hφ_tend) (fun k => hPnn (φ k) i j)
+  have hrowstar : (fun i => ∑ j, Pstar i j : m → ℝ) = p1 := by
+    have hcont : Tendsto (fun k => (fun i => ∑ j, P (φ k) i j : m → ℝ)) atTop
+        (𝓝 (fun i => ∑ j, Pstar i j : m → ℝ)) := by
+      have hC : Continuous (fun Q : m → n → ℝ => (fun i => ∑ j, Q i j : m → ℝ)) := by fun_prop
+      exact (hC.tendsto Pstar).comp hφ_tend
+    exact tendsto_nhds_unique hcont (hrow.comp hφ_mono.tendsto_atTop)
+  have hcolstar : (fun j => ∑ i, Pstar i j : n → ℝ) = p2 := by
+    have hcont : Tendsto (fun k => (fun j => ∑ i, P (φ k) i j : n → ℝ)) atTop
+        (𝓝 (fun j => ∑ i, Pstar i j : n → ℝ)) := by
+      have hC : Continuous (fun Q : m → n → ℝ => (fun j => ∑ i, Q i j : n → ℝ)) := by fun_prop
+      exact (hC.tendsto Pstar).comp hφ_tend
+    exact tendsto_nhds_unique hcont (hcol.comp hφ_mono.tendsto_atTop)
+  -- the slack at the limit is nonnegative
+  have hs_tend : Tendsto (fun k => s (φ k)) atTop
+      (𝓝 (p3 - ∑ i, ∑ j, Cost i j * Pstar i j)) := by
+    have hcs : Tendsto (fun k => (∑ i, ∑ j, Cost i j * P (φ k) i j) + s (φ k)) atTop (𝓝 p3) :=
+      hcost2.comp hφ_mono.tendsto_atTop
+    have hc : Tendsto (fun k => ∑ i, ∑ j, Cost i j * P (φ k) i j) atTop
+        (𝓝 (∑ i, ∑ j, Cost i j * Pstar i j)) := by
+      have hC : Continuous (fun Q : m → n → ℝ => ∑ i, ∑ j, Cost i j * Q i j) := by fun_prop
+      exact (hC.tendsto Pstar).comp hφ_tend
+    simpa only [add_sub_cancel_left] using hcs.sub hc
+  have hsstar_nn : 0 ≤ p3 - ∑ i, ∑ j, Cost i j * Pstar i j :=
+    ge_of_tendsto' hs_tend (fun k => hsnn (φ k))
+  -- assemble: `(p1, p2, p3) ∈ K` with witnesses `Pstar`, `p3 − ⟨Cost, Pstar⟩`
+  refine ⟨Pstar, p3 - ∑ i, ∑ j, Cost i j * Pstar i j, hPstar_nn, hsstar_nn, ?_⟩
+  have h3 : (∑ i, ∑ j, Cost i j * Pstar i j) + (p3 - ∑ i, ∑ j, Cost i j * Pstar i j) = p3 := by
+    ring
+  rw [hrowstar, hcolstar, h3]
+
+end TransportLP
+
 /-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials.**
 For finite-range pushforwards `Measure.map T μ`, `Measure.map S ν`, finite
 transportation LP strong duality yields a dual pair `u, v` with `u a + v b ≤ c a b`
