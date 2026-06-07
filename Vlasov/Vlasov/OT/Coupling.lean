@@ -763,7 +763,7 @@ theorem finiteRange_transportation_dual
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (T S : α → α) (hT : Measurable T) (hS : Measurable S)
     (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
-    ∃ u v : α → ℝ,
+    ∃ u v : α → ℝ, Measurable u ∧ Measurable v ∧
       (∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) ∧
       wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
         ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := by
@@ -782,15 +782,98 @@ theorem cTransform_dual_witness
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (T S : α → α) (hT : Measurable T) (hS : Measurable S)
     (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite)
-    (u v : α → ℝ)
+    (u v : α → ℝ) (hu : Measurable u) (hv : Measurable v)
     (hdual : ∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) :
     ∃ g : α → ℝ, (∀ x y, |g x - g y| ≤ c x y) ∧
       (∫ x, u x ∂(Measure.map T μ)) + (∫ x, v x ∂(Measure.map S ν))
         ≤ ∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν) := by
-  sorry
+  classical
+  haveI : Nonempty α := nonempty_of_isProbabilityMeasure μ
+  set A : Finset α := hTfin.toFinset with hA_def
+  set B : Finset α := hSfin.toFinset with hB_def
+  have hmemA : ∀ a ∈ Set.range T, a ∈ A := fun a ha => by
+    rw [hA_def, Set.Finite.mem_toFinset]; exact ha
+  have hmemB : ∀ b ∈ Set.range S, b ∈ B := fun b hb => by
+    rw [hB_def, Set.Finite.mem_toFinset]; exact hb
+  have hAne : A.Nonempty := by
+    obtain ⟨a, ha⟩ := Set.range_nonempty T; exact ⟨a, hmemA a ha⟩
+  have hBne : B.Nonempty := by
+    obtain ⟨b, hb⟩ := Set.range_nonempty S; exact ⟨b, hmemB b hb⟩
+  -- the c-transform potential g x = ⨆ a ∈ A, (u a − c x a)
+  set g : α → ℝ := fun x => A.sup' hAne (fun a => u a - c x a) with hg_def
+  -- measurability of g (finite sup of measurable fibres)
+  have hpair : ∀ a : α, Measurable (fun x : α => (x, a)) := fun a => by fun_prop
+  have hF_meas : ∀ a, Measurable (fun x => u a - c x a) := fun a =>
+    measurable_const.sub (hc_meas.comp (hpair a))
+  have hg_meas : Measurable g := by
+    have heq : g = A.sup' hAne (fun a x => u a - c x a) := by
+      funext x; exact (Finset.sup'_apply hAne (fun a x => u a - c x a) x).symm
+    rw [heq]; exact Finset.measurable_sup' hAne (fun a _ => hF_meas a)
+  -- g a ≥ u a on range T (the a-term, c a a = 0)
+  have hg_ge_u : ∀ a' ∈ Set.range T, u a' ≤ g a' := by
+    intro a' ha'
+    have h : u a' - c a' a' ≤ g a' := Finset.le_sup' (fun a => u a - c a' a) (hmemA a' ha')
+    rwa [hc_self, sub_zero] at h
+  -- g b ≤ −v b on range S (from u a − c a b ≤ −v b)
+  have hg_le_negv : ∀ b ∈ Set.range S, g b ≤ -v b := by
+    intro b hb
+    show A.sup' hAne (fun a => u a - c b a) ≤ -v b
+    apply Finset.sup'_le
+    intro a haA
+    have ha : a ∈ Set.range T := by rw [hA_def, Set.Finite.mem_toFinset] at haA; exact haA
+    have hd := hdual a ha b hb
+    have hsymm : c b a = c a b := hc_symm b a
+    linarith
+  -- global c-admissibility (triangle + symmetry)
+  have hg_adm : ∀ x y, |g x - g y| ≤ c x y := by
+    have key : ∀ x y, g x ≤ g y + c x y := by
+      intro x y
+      show A.sup' hAne (fun a => u a - c x a) ≤ g y + c x y
+      apply Finset.sup'_le
+      intro a haA
+      have h1 : u a - c y a ≤ g y := Finset.le_sup' (fun a => u a - c y a) haA
+      have h2 : c y a ≤ c y x + c x a := hc_triangle y x a
+      have h3 : c x y = c y x := hc_symm x y
+      linarith
+    intro x y
+    rw [abs_sub_le_iff]
+    refine ⟨by linarith [key x y], ?_⟩
+    have hk := key y x; have hs := hc_symm x y; linarith
+  -- bounded ⇒ integrable on a finite measure
+  have bdd_integ : ∀ (m : Measure α) [IsFiniteMeasure m] (f : α → ℝ) (C : ℝ),
+      Measurable f → (∀ y, |f y| ≤ C) → Integrable f m := by
+    intro m _ f C hf hC
+    exact (integrable_const C).mono' hf.aestronglyMeasurable
+      (ae_of_all m (fun y => by rw [Real.norm_eq_abs]; exact hC y))
+  have hu_int : Integrable (fun y => u (T y)) μ :=
+    bdd_integ μ _ (A.sup' hAne (fun a => |u a|)) (hu.comp hT)
+      (fun y => Finset.le_sup' (fun a => |u a|) (hmemA (T y) (Set.mem_range_self y)))
+  have hgT_int : Integrable (fun y => g (T y)) μ :=
+    bdd_integ μ _ (A.sup' hAne (fun a => |g a|)) (hg_meas.comp hT)
+      (fun y => Finset.le_sup' (fun a => |g a|) (hmemA (T y) (Set.mem_range_self y)))
+  have hv_int : Integrable (fun y => v (S y)) ν :=
+    bdd_integ ν _ (B.sup' hBne (fun b => |v b|)) (hv.comp hS)
+      (fun y => Finset.le_sup' (fun b => |v b|) (hmemB (S y) (Set.mem_range_self y)))
+  have hgnegS_int : Integrable (fun y => -(g (S y))) ν :=
+    (bdd_integ ν _ (B.sup' hBne (fun b => |g b|)) (hg_meas.comp hS)
+      (fun y => Finset.le_sup' (fun b => |g b|) (hmemB (S y) (Set.mem_range_self y)))).neg
+  -- assemble: change of variables, then monotonicity on the supports
+  refine ⟨g, hg_adm, ?_⟩
+  rw [integral_map hT.aemeasurable hu.aestronglyMeasurable,
+      integral_map hS.aemeasurable hv.aestronglyMeasurable,
+      integral_map hT.aemeasurable hg_meas.aestronglyMeasurable,
+      integral_map hS.aemeasurable hg_meas.aestronglyMeasurable]
+  have hmono1 : (∫ y, u (T y) ∂μ) ≤ ∫ y, g (T y) ∂μ :=
+    integral_mono hu_int hgT_int (fun y => hg_ge_u (T y) (Set.mem_range_self y))
+  have hmono2 : (∫ y, v (S y) ∂ν) ≤ ∫ y, -(g (S y)) ∂ν :=
+    integral_mono hv_int hgnegS_int
+      (fun y => by have := hg_le_negv (S y) (Set.mem_range_self y); linarith)
+  rw [integral_neg] at hmono2
+  linarith
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite Kantorovich–Rubinstein
 duality.**  For finitely-supported (finite-range pushforward) probability measures,
@@ -802,16 +885,17 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (T S : α → α) (hT : Measurable T) (hS : Measurable S)
     (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
     wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
-  obtain ⟨u, v, hdual, hval⟩ :=
+  obtain ⟨u, v, hu, hv, hdual, hval⟩ :=
     finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin
   obtain ⟨g, hg_adm, hg_val⟩ :=
-    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle μ ν T S hT hS hTfin hSfin
-      u v hdual
+    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS hTfin hSfin
+      u v hu hv hdual
   calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := hval
     _ ≤ ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)) :=
@@ -1034,7 +1118,7 @@ theorem foundationB_coupling_le_dual
   have hmid : wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c μ ν + q + q :=
     (wassersteinCost_coupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
-        μ ν T S hT hS hTfin hSfin).trans
+        hc_cont.measurable μ ν T S hT hS hTfin hSfin).trans
       ((wassersteinCost_dual_le_add_map c hc_nonneg hc_self hc_symm hc_cont μ ν T S hT hS
           x₀ hμ_cm hν_cm).trans
         (add_le_add (add_le_add le_rfl hTcost) hScost))
