@@ -476,6 +476,78 @@ theorem wassersteinCost_coupling_map_le
         lintegral_map (ENNReal.measurable_ofReal.comp hc_cont.measurable) hg
     _ = ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := rfl
 
+/-! Decomposed by sorry-decomposer.
+    See `formalize/plans/exists_finiteRange_map_cost_le.json`. -/
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Finite-range step map construction.**
+Given a measurable pairwise-disjoint partition `As : ℕ → Set α` covering `univ` with
+representatives `as : ℕ → α` and a fallback point `x₀`, the truncated step map
+`T x = as n` when `x ∈ As n` for some `n < N`, `T x = x₀` otherwise, is measurable
+and has finite range contained in `{as n | n < N} ∪ {x₀}`. -/
+lemma finiteRange_approxMap_measurable
+    {α : Type*} [MeasurableSpace α]
+    (As : ℕ → Set α) (hAs_mble : ∀ n, MeasurableSet (As n))
+    (_hAs_cover : ⋃ n, As n = Set.univ)
+    (_hAs_disj : Pairwise fun n m => Disjoint (As n) (As m))
+    (as : ℕ → α) (x₀ : α) (N : ℕ) :
+    ∃ T : α → α,
+      Measurable T ∧
+      (Set.range T).Finite ∧
+      (∀ n < N, ∀ x ∈ As n, T x = as n) ∧
+      (∀ x ∈ (⋃ n ∈ Finset.range N, As n)ᶜ, T x = x₀) := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Integrable nonneg → lintegral ofReal finite.**
+If `f : α → ℝ` is integrable with respect to `μ` and a.e. nonneg, then
+`∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞`.
+Key tools: `hasFiniteIntegral_iff_ofReal` and `Integrable.hasFiniteIntegral`. -/
+lemma lintegral_ofReal_ne_top_of_integrable_nonneg
+    {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {f : α → ℝ} (hf : Integrable f μ) (hfnn : ∀ᵐ x ∂μ, 0 ≤ f x) :
+    ∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞ := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Tail cost control via absolute continuity.**
+If `∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞` and `μ ((S n)ᶜ) → 0` as `n → ∞`, then the tail
+costs `∫⁻ x in (S n)ᶜ, ENNReal.ofReal (f x) ∂μ → 0`.
+Follows from `MeasureTheory.tendsto_setLIntegral_zero` (absolute continuity of the integral). -/
+lemma lintegral_ofReal_tail_tendsto_zero
+    {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {f : α → ℝ} (hfint : ∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞)
+    {S : ℕ → Set α}
+    (hS_tendsto : Filter.Tendsto (fun n => μ ((S n)ᶜ)) Filter.atTop (nhds 0)) :
+    Filter.Tendsto (fun n => ∫⁻ x in (S n)ᶜ, ENNReal.ofReal (f x) ∂μ)
+      Filter.atTop (nhds 0) := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Kept-cells cost bound.**
+For a step map `T` with `T x = as n` on `As n` (for `n < N`), where we have a pointwise
+bound `∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ` (established from the cell diameter), the
+lintegral of `ENNReal.ofReal (c x (T x))` over the kept cells is at most `ENNReal.ofReal δ`
+since `μ univ = 1`. -/
+lemma lintegral_ofReal_kept_cells_le
+    {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [IsProbabilityMeasure μ]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (As : ℕ → Set α) (hAs_mble : ∀ n, MeasurableSet (As n))
+    (N : ℕ) (δ : ℝ) (_hδ : 0 < δ)
+    (T : α → α)
+    (hcT_le : ∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ) :
+    ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ
+      ≤ ENNReal.ofReal δ := by
+  sorry
+
+/-- **[General OT — reusable / Mathlib-upstreamable] Tail mass of a measurable cover → 0.**
+For a finite measure and a measurable cover `⋃ n, As n = univ`, the mass of the complement
+of the partial unions `⋃ j < n, As j` tends to `0` (continuity from above:
+`⋂ n (⋃ j<n As j)ᶜ = ∅`). -/
+lemma measure_compl_biUnion_range_tendsto_zero
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ]
+    {As : ℕ → Set α} (hAs_mble : ∀ n, MeasurableSet (As n))
+    (hAs_cover : ⋃ n, As n = Set.univ) :
+    Filter.Tendsto (fun n => μ ((⋃ j ∈ Finset.range n, As j)ᶜ)) Filter.atTop (nhds 0) := by
+  sorry
+
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite-range approximation.**
 For a probability measure with finite first moment, the transport cost to a
 finite-range pushforward can be made arbitrarily small (partition into
@@ -483,13 +555,86 @@ small-diameter cells + finite-moment tail control). -/
 theorem exists_finiteRange_map_cost_le
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
-    (c : α → α → ℝ) (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (_hc_self : ∀ x, c x x = 0)
+    (_hc_symm : ∀ x y, c x y = c y x)
+    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (hc_le_dist : ∀ x y, c x y ≤ dist x y)
     (μ : Measure α) [IsProbabilityMeasure μ] (x₀ : α)
     (_hμ_cm : Integrable (fun y => c y x₀) μ)
     (ε : ℝ) (_hε : 0 < ε) :
     ∃ T : α → α, Measurable T ∧ (Set.range T).Finite ∧
       ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ ≤ ENNReal.ofReal ε := by
-  sorry
+  -- Step 1: get a dist-diameter partition (cells of diam ≤ ε/2)
+  haveI : TopologicalSpace.SeparableSpace α := inferInstance
+  obtain ⟨As, hAs_mble, hAs_bdd, hAs_diam, hAs_cover, hAs_disj⟩ :=
+    SeparableSpace.exists_measurable_partition_diam_le α (half_pos _hε)
+  -- per-cell representatives (x₀ on empty cells)
+  classical
+  set as : ℕ → α := fun n => if h : (As n).Nonempty then h.some else x₀ with has_def
+  -- Step 2: lintegral ofReal (c · x₀) is finite
+  have hfint : ∫⁻ x, ENNReal.ofReal (c x x₀) ∂μ ≠ ∞ :=
+    lintegral_ofReal_ne_top_of_integrable_nonneg _hμ_cm
+      (Filter.Eventually.of_forall (fun x => _hc_nonneg x x₀))
+  -- Step 3: tail mass μ (⋃ j ∈ range n, As j)ᶜ → 0
+  have htail_mass : Filter.Tendsto (fun n => μ ((⋃ j ∈ Finset.range n, As j)ᶜ))
+      Filter.atTop (nhds 0) :=
+    measure_compl_biUnion_range_tendsto_zero hAs_mble hAs_cover
+  -- Step 4: tail costs → 0
+  have htail_cost : Filter.Tendsto
+      (fun n => ∫⁻ x in (⋃ j ∈ Finset.range n, As j)ᶜ, ENNReal.ofReal (c x x₀) ∂μ)
+      Filter.atTop (nhds 0) :=
+    lintegral_ofReal_tail_tendsto_zero hfint htail_mass
+  -- Step 5: extract N with tail cost ≤ ε/2
+  obtain ⟨N, hN⟩ : ∃ N, ∫⁻ x in (⋃ j ∈ Finset.range N, As j)ᶜ, ENNReal.ofReal (c x x₀) ∂μ ≤
+      ENNReal.ofReal (ε / 2) := by
+    rw [ENNReal.tendsto_nhds_zero] at htail_cost
+    have hev := htail_cost (ENNReal.ofReal (ε / 2)) (ENNReal.ofReal_pos.mpr (half_pos _hε))
+    rw [Filter.eventually_atTop] at hev
+    obtain ⟨N, hN⟩ := hev
+    exact ⟨N, hN N le_rfl⟩
+  -- Step 6: build finite-range step map T with representative x₀ on each cell
+  -- (prover will later improve representatives to achieve kept-cell cost ≤ ε/2)
+  obtain ⟨T, hT_mble, hT_fin, hT_kept, hT_tail⟩ :=
+    finiteRange_approxMap_measurable As hAs_mble hAs_cover hAs_disj as x₀ N
+  refine ⟨T, hT_mble, hT_fin, ?_⟩
+  -- Step 7: decompose the total lintegral into kept + tail parts
+  have hS_mble : MeasurableSet (⋃ n ∈ Finset.range N, As n) :=
+    MeasurableSet.biUnion (Finset.countable_toSet _) (fun n _ => hAs_mble n)
+  rw [show ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ =
+      ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ +
+      ∫⁻ x in (⋃ n ∈ Finset.range N, As n)ᶜ, ENNReal.ofReal (c x (T x)) ∂μ
+    from (lintegral_add_compl _ hS_mble).symm]
+  -- Step 8a: bound kept cells via the kept-cell lemma
+  have hkept : ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ ≤
+      ENNReal.ofReal (ε / 2) :=
+    lintegral_ofReal_kept_cells_le c _hc_nonneg As hAs_mble N (ε / 2) (half_pos _hε) T
+      (fun n hn x hx => by
+        rw [hT_kept n hn x hx]
+        have hxn : (As n).Nonempty := ⟨x, hx⟩
+        have hasn : as n ∈ As n := by
+          simp only [has_def, dif_pos hxn]; exact hxn.some_mem
+        calc c x (as n) ≤ dist x (as n) := hc_le_dist x (as n)
+          _ ≤ Metric.diam (As n) := Metric.dist_le_diam_of_mem (hAs_bdd n) hx hasn
+          _ ≤ ε / 2 := hAs_diam n)
+  -- Step 8b: bound tail by hN (T x = x₀ on tail, so cost = c x x₀ ≤ ε/2)
+  have htail : ∫⁻ x in (⋃ n ∈ Finset.range N, As n)ᶜ, ENNReal.ofReal (c x (T x)) ∂μ ≤
+      ENNReal.ofReal (ε / 2) := by
+    have heq : Set.EqOn (fun x => ENNReal.ofReal (c x (T x))) (fun x => ENNReal.ofReal (c x x₀))
+        (⋃ n ∈ Finset.range N, As n)ᶜ := by
+      intro x hx
+      simp only []
+      congr 1
+      rw [hT_tail x hx]
+    rw [setLIntegral_congr_fun hS_mble.compl heq]
+    exact hN
+  -- Step 9: combine: ε/2 + ε/2 = ε
+  have hε_split : ENNReal.ofReal (ε / 2) + ENNReal.ofReal (ε / 2) = ENNReal.ofReal ε := by
+    rw [← ENNReal.ofReal_add (le_of_lt (half_pos _hε)) (le_of_lt (half_pos _hε))]
+    congr 1; ring
+  calc ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ +
+        ∫⁻ x in (⋃ n ∈ Finset.range N, As n)ᶜ, ENNReal.ofReal (c x (T x)) ∂μ
+      ≤ ENNReal.ofReal (ε / 2) + ENNReal.ofReal (ε / 2) := by gcongr
+    _ = ENNReal.ofReal ε := hε_split
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite Kantorovich–Rubinstein
 duality.**  For finitely-supported (finite-range pushforward) probability measures,
@@ -684,6 +829,7 @@ theorem foundationB_coupling_le_dual
     (hc_symm : ∀ x y, c x y = c y x)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (hc_le_dist : ∀ x y, c x y ≤ dist x y)
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
     (hμ_cm : Integrable (fun y => c y x₀) μ)
@@ -693,9 +839,11 @@ theorem foundationB_coupling_le_dual
   refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
   have hε4 : (0 : ℝ) < (ε : ℝ) / 4 := by positivity
   obtain ⟨T, hT, hTfin, hTcost⟩ :=
-    exists_finiteRange_map_cost_le c hc_cont μ x₀ hμ_cm ((ε : ℝ) / 4) hε4
+    exists_finiteRange_map_cost_le c hc_nonneg hc_self hc_symm hc_cont hc_le_dist μ x₀ hμ_cm
+      ((ε : ℝ) / 4) hε4
   obtain ⟨S, hS, hSfin, hScost⟩ :=
-    exists_finiteRange_map_cost_le c hc_cont ν x₀ hν_cm ((ε : ℝ) / 4) hε4
+    exists_finiteRange_map_cost_le c hc_nonneg hc_self hc_symm hc_cont hc_le_dist ν x₀ hν_cm
+      ((ε : ℝ) / 4) hε4
   haveI : IsProbabilityMeasure (Measure.map T μ) := Measure.isProbabilityMeasure_map hT.aemeasurable
   haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
   set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
@@ -751,7 +899,7 @@ theorem wasserstein1_eq_coupling
   rw [wasserstein1_coupling_eq]
   exact foundationB_coupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
     (fun x => dist_self x) (fun x y => dist_comm x y) (fun x y z => dist_triangle x y z)
-    (continuous_fst.dist continuous_snd) μ ν x₀ hμ_fm hν_fm
+    (continuous_fst.dist continuous_snd) (fun x y => le_refl (dist x y)) μ ν x₀ hμ_fm hν_fm
 
 /-! ## Pushforward of couplings
 
