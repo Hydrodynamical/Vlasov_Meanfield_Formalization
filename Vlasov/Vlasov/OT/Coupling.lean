@@ -926,6 +926,242 @@ theorem isClosed_transport_cone (Cost : m → n → ℝ) :
     ring
   rw [hrowstar, hcolstar, h3]
 
+/-- The transport image cone `Φ(orthant) = {(rowsums P, colsums P, ⟨Cost,P⟩ + s) : P ≥ 0,
+s ≥ 0}` packaged as a `ProperCone` over `ℝ`: a `PointedCone` (`0`, `+`, `ℝ≥0`-smul closure
+— `Φ` is linear and the orthant a cone) that is closed (`isClosed_transport_cone`).  This is
+the `ProperCone` obligation for the geometric Farkas separation
+`ProperCone.hyperplane_separation_point`. -/
+def transportProperCone (Cost : m → n → ℝ) :
+    ProperCone ℝ ((m → ℝ) × (n → ℝ) × ℝ) where
+  toSubmodule :=
+    { carrier := {w : (m → ℝ) × (n → ℝ) × ℝ |
+        ∃ (P : m → n → ℝ) (s : ℝ), (∀ i j, 0 ≤ P i j) ∧ 0 ≤ s ∧
+          w = (fun i => ∑ j, P i j, fun j => ∑ i, P i j,
+                (∑ i, ∑ j, Cost i j * P i j) + s)}
+      zero_mem' := ⟨0, 0, fun _ _ => le_refl 0, le_refl 0, by
+        refine Prod.ext ?_ (Prod.ext ?_ ?_)
+        · funext i; simp
+        · funext j; simp
+        · simp⟩
+      add_mem' := by
+        rintro x y ⟨P1, s1, hP1, hs1, rfl⟩ ⟨P2, s2, hP2, hs2, rfl⟩
+        refine ⟨P1 + P2, s1 + s2, fun i j => add_nonneg (hP1 i j) (hP2 i j),
+          add_nonneg hs1 hs2, ?_⟩
+        refine Prod.ext (funext fun i => ?_) (Prod.ext (funext fun j => ?_) ?_)
+        · show (∑ j, P1 i j) + (∑ j, P2 i j) = ∑ j, (P1 i j + P2 i j)
+          rw [Finset.sum_add_distrib]
+        · show (∑ i, P1 i j) + (∑ i, P2 i j) = ∑ i, (P1 i j + P2 i j)
+          rw [Finset.sum_add_distrib]
+        · show ((∑ i, ∑ j, Cost i j * P1 i j) + s1) + ((∑ i, ∑ j, Cost i j * P2 i j) + s2)
+              = (∑ i, ∑ j, Cost i j * (P1 i j + P2 i j)) + (s1 + s2)
+          simp_rw [mul_add, Finset.sum_add_distrib]; ring
+      smul_mem' := by
+        rintro c x ⟨P, s, hP, hs, rfl⟩
+        refine ⟨(c : ℝ) • P, (c : ℝ) • s, fun i j => mul_nonneg c.2 (hP i j),
+          mul_nonneg c.2 hs, ?_⟩
+        refine Prod.ext (funext fun i => ?_) (Prod.ext (funext fun j => ?_) ?_)
+        · show (c : ℝ) * (∑ j, P i j) = ∑ j, (c : ℝ) * P i j
+          rw [Finset.mul_sum]
+        · show (c : ℝ) * (∑ i, P i j) = ∑ i, (c : ℝ) * P i j
+          rw [Finset.mul_sum]
+        · show (c : ℝ) * ((∑ i, ∑ j, Cost i j * P i j) + s)
+              = (∑ i, ∑ j, Cost i j * ((c : ℝ) * P i j)) + (c : ℝ) * s
+          simp_rw [mul_add, Finset.mul_sum]; ring }
+  isClosed' := isClosed_transport_cone Cost
+
+/-- **Per-ε Farkas separation.**  Given the optimal plan `P` (primal value `V = ⟨Cost,P⟩`),
+for every `ε > 0` there is a dual-feasible pair `(u, v)` whose value exceeds `V − ε`.  Proof:
+`(a, b, V − ε) ∉ transportProperCone` (no feasible plan beats `V`), so
+`ProperCone.hyperplane_separation_point` yields a separating functional `f`; reading off
+`λ = f(0,0,1)`, `Uᵢ = f(eᵢ,0,0)`, `Wⱼ = f(0,eⱼ,0)` gives `Uᵢ + Wⱼ + λ·Costᵢⱼ ≥ 0` and
+`∑aᵢUᵢ + ∑bⱼWⱼ + λ(V−ε) < 0`; `λ > 0` is forced (else the optimal `P` contradicts the
+strict inequality), and `u = −U/λ`, `v = −W/λ` are feasible with value `> V − ε`. -/
+theorem finiteTransport_dual_eps [Nonempty m] [Nonempty n]
+    (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
+    (P : m → n → ℝ) (hPnn : ∀ i j, 0 ≤ P i j)
+    (hProw : ∀ i, ∑ j, P i j = a i) (hPcol : ∀ j, ∑ i, P i j = b j)
+    (hPmin : ∀ Q : m → n → ℝ, (∀ i j, 0 ≤ Q i j) → (∀ i, ∑ j, Q i j = a i) →
+      (∀ j, ∑ i, Q i j = b j) → (∑ i, ∑ j, Cost i j * P i j) ≤ ∑ i, ∑ j, Cost i j * Q i j)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ (u : m → ℝ) (v : n → ℝ), (∀ i j, u i + v j ≤ Cost i j) ∧
+      (∑ i, ∑ j, Cost i j * P i j) - ε < (∑ i, a i * u i) + ∑ j, b j * v j := by
+  classical
+  set V : ℝ := ∑ i, ∑ j, Cost i j * P i j with hV_def
+  -- the point `(a, b, V − ε)` is not in the cone: no feasible plan beats `V`
+  have hnotmem : ((a, b, V - ε) : (m → ℝ) × (n → ℝ) × ℝ) ∉ transportProperCone Cost := by
+    rintro ⟨Q, s, hQnn, hs, hQeq⟩
+    rw [Prod.mk.injEq, Prod.mk.injEq] at hQeq
+    obtain ⟨haQ, hbQ, hcQ⟩ := hQeq
+    have hQrow : ∀ i, ∑ j, Q i j = a i := fun i => (congrFun haQ i).symm
+    have hQcol : ∀ j, ∑ i, Q i j = b j := fun j => (congrFun hbQ j).symm
+    have hmin := hPmin Q hQnn hQrow hQcol
+    -- `V - ε = ⟨Cost,Q⟩ + s` so `⟨Cost,Q⟩ = V - ε - s ≤ V - ε < V`
+    linarith [hmin, hcQ, hs, hε]
+  -- separating functional
+  obtain ⟨f, hf_nn, hf_neg⟩ := (transportProperCone Cost).hyperplane_separation_point hnotmem
+  -- coordinate functionals via inclusions
+  set fm : (m → ℝ) →L[ℝ] ℝ :=
+    f.comp (ContinuousLinearMap.inl ℝ (m → ℝ) ((n → ℝ) × ℝ)) with hfm_def
+  set fn : (n → ℝ) →L[ℝ] ℝ :=
+    f.comp ((ContinuousLinearMap.inr ℝ (m → ℝ) ((n → ℝ) × ℝ)).comp
+      (ContinuousLinearMap.inl ℝ (n → ℝ) ℝ)) with hfn_def
+  set lam : ℝ := f (0, 0, 1) with hlam_def
+  set U : m → ℝ := fun i => fm (Pi.single i 1) with hU_def
+  set Wv : n → ℝ := fun j => fn (Pi.single j 1) with hW_def
+  have hUi : ∀ i, U i = fm (Pi.single i 1) := fun _ => rfl
+  have hWj : ∀ j, Wv j = fn (Pi.single j 1) := fun _ => rfl
+  -- the splitting identity `f (x, y, z) = fm x + fn y + z·lam`
+  have hsplit : ∀ (x : m → ℝ) (y : n → ℝ) (z : ℝ),
+      f (x, y, z) = fm x + fn y + z * lam := by
+    intro x y z
+    have e : ((x, y, z) : (m → ℝ) × (n → ℝ) × ℝ)
+        = (x, (0 : n → ℝ), (0 : ℝ)) + ((0 : m → ℝ), y, (0 : ℝ))
+          + ((0 : m → ℝ), (0 : n → ℝ), z) := by
+      refine Prod.ext ?_ (Prod.ext ?_ ?_) <;> simp
+    rw [e, map_add, map_add]
+    have h3 : f ((0 : m → ℝ), (0 : n → ℝ), z) = z * lam := by
+      rw [show ((0 : m → ℝ), (0 : n → ℝ), z)
+            = z • ((0 : m → ℝ), (0 : n → ℝ), (1 : ℝ)) by simp, map_smul, smul_eq_mul]
+    rw [h3]
+    rfl
+  -- `fm a = ∑ aᵢ Uᵢ`, `fn b = ∑ bⱼ Wⱼ`
+  have hfm_sum : fm a = ∑ i, a i * U i := by
+    have hbasis : a = ∑ i, a i • (Pi.single i 1 : m → ℝ) := by
+      funext k; rw [Finset.sum_apply]
+      simp only [Pi.smul_apply, Pi.single_apply, smul_eq_mul, mul_ite, mul_one, mul_zero,
+        Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    conv_lhs => rw [hbasis]
+    rw [map_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [map_smul, smul_eq_mul, hUi]
+  have hfn_sum : fn b = ∑ j, b j * Wv j := by
+    have hbasis : b = ∑ j, b j • (Pi.single j 1 : n → ℝ) := by
+      funext k; rw [Finset.sum_apply]
+      simp only [Pi.smul_apply, Pi.single_apply, smul_eq_mul, mul_ite, mul_one, mul_zero,
+        Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    conv_lhs => rw [hbasis]
+    rw [map_sum]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [map_smul, smul_eq_mul, hWj]
+  -- cone membership of the basis points
+  have hmem_s : ((0 : m → ℝ), (0 : n → ℝ), (1 : ℝ)) ∈ transportProperCone Cost :=
+    ⟨0, 1, fun _ _ => le_refl 0, zero_le_one, by
+      refine Prod.ext ?_ (Prod.ext ?_ ?_)
+      · funext i; simp
+      · funext j; simp
+      · simp⟩
+  have hlam_nn : 0 ≤ lam := hf_nn _ hmem_s
+  -- the single-entry membership giving `0 ≤ Uᵢ + Wⱼ + Costᵢⱼ·lam`
+  have hij : ∀ i j, 0 ≤ U i + Wv j + Cost i j * lam := by
+    intro i j
+    have hmem_ij : ((Pi.single i 1 : m → ℝ), (Pi.single j 1 : n → ℝ), Cost i j)
+        ∈ transportProperCone Cost := by
+      refine ⟨fun i' j' => if i' = i then (if j' = j then (1 : ℝ) else 0) else 0, 0,
+        fun i' j' => ?_, le_refl 0, ?_⟩
+      · dsimp only; split_ifs <;> norm_num
+      · refine Prod.ext (funext fun i' => ?_) (Prod.ext (funext fun j' => ?_) ?_)
+        · dsimp only
+          rw [Pi.single_apply]
+          by_cases hi : i' = i
+          · subst hi; simp [Finset.sum_ite_eq']
+          · simp [hi]
+        · dsimp only
+          rw [Pi.single_apply,
+            Finset.sum_ite_eq' Finset.univ i (fun _ => if j' = j then (1 : ℝ) else 0)]
+          simp
+        · dsimp only
+          simp only [add_zero, mul_ite, mul_one, mul_zero]
+          rw [Finset.sum_eq_single i (fun i' _ hi' => by simp [hi']) (by simp)]
+          rw [Finset.sum_eq_single j (fun j' _ hj' => by simp [hj']) (by simp)]
+          simp
+    have hnn := hf_nn _ hmem_ij
+    linarith [hnn, hsplit (Pi.single i 1 : m → ℝ) (Pi.single j 1 : n → ℝ) (Cost i j),
+      hUi i, hWj j]
+  -- `lam > 0`
+  have hlam_pos : 0 < lam := by
+    rcases lt_or_eq_of_le hlam_nn with h | h
+    · exact h
+    · exfalso
+      -- with `lam = 0`: `Uᵢ + Wⱼ ≥ 0`, so `∑ Pᵢⱼ(Uᵢ+Wⱼ) ≥ 0 = fm a + fn b`, contradicting `< 0`
+      have hUW : ∀ i j, 0 ≤ U i + Wv j := by
+        intro i j; have := hij i j; rw [← h] at this; simpa using this
+      have hsum_nn : 0 ≤ ∑ i, ∑ j, P i j * (U i + Wv j) :=
+        Finset.sum_nonneg fun i _ => Finset.sum_nonneg fun j _ =>
+          mul_nonneg (hPnn i j) (hUW i j)
+      have hsum_eq : (∑ i, ∑ j, P i j * (U i + Wv j)) = fm a + fn b := by
+        rw [hfm_sum, hfn_sum]
+        simp_rw [mul_add, Finset.sum_add_distrib]
+        congr 1
+        · refine Finset.sum_congr rfl fun i _ => ?_
+          rw [← Finset.sum_mul, hProw i]
+        · rw [Finset.sum_comm]
+          refine Finset.sum_congr rfl fun j _ => ?_
+          rw [← Finset.sum_mul, hPcol j]
+      have hneg : f (a, b, V - ε) < 0 := hf_neg
+      rw [hsplit, ← h] at hneg
+      simp only [mul_zero, add_zero] at hneg
+      rw [hsum_eq] at hsum_nn
+      linarith
+  -- build `u, v` and verify
+  refine ⟨fun i => -U i / lam, fun j => -Wv j / lam, fun i j => ?_, ?_⟩
+  · -- feasibility: `-Uᵢ/lam + (-Wⱼ/lam) ≤ Costᵢⱼ`
+    rw [← add_div, div_le_iff₀ hlam_pos]
+    nlinarith [hij i j]
+  · -- value `> V - ε`
+    have key1 : (∑ i, a i * (-U i / lam)) = (∑ i, a i * U i) * (-lam⁻¹) := by
+      rw [Finset.sum_mul]; refine Finset.sum_congr rfl fun i _ => ?_
+      rw [div_eq_mul_inv]; ring
+    have key2 : (∑ j, b j * (-Wv j / lam)) = (∑ j, b j * Wv j) * (-lam⁻¹) := by
+      rw [Finset.sum_mul]; refine Finset.sum_congr rfl fun j _ => ?_
+      rw [div_eq_mul_inv]; ring
+    have hval : (∑ i, a i * (-U i / lam)) + ∑ j, b j * (-Wv j / lam)
+        = (-(fm a) - fn b) / lam := by
+      rw [key1, key2, hfm_sum, hfn_sum, div_eq_mul_inv]; ring
+    rw [hval]
+    have hneg : f (a, b, V - ε) < 0 := hf_neg
+    rw [hsplit] at hneg
+    rw [lt_div_iff₀ hlam_pos]
+    nlinarith [hneg]
+
+/-- **ε → 0 limit for the dual.**  From ε-optimal dual-feasible pairs (value `> V − ε` for all
+`ε > 0`) extract a single dual-feasible pair with value `≥ V`.  Proof: c-transform each pair to
+a canonical c-conjugate one (value not decreased), which after gauge-fixing is bounded by the
+cost oscillation; Bolzano–Weierstrass extracts a convergent subsequence whose limit is
+feasible with value `≥ V`. -/
+theorem finiteTransport_dual_limit [Nonempty m] [Nonempty n]
+    (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
+    (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
+    (hasum : ∑ i, a i = 1) (hbsum : ∑ j, b j = 1)
+    (hCost : ∀ i j, 0 ≤ Cost i j) (V : ℝ)
+    (heps : ∀ ε : ℝ, 0 < ε → ∃ (u : m → ℝ) (v : n → ℝ),
+      (∀ i j, u i + v j ≤ Cost i j) ∧ V - ε < (∑ i, a i * u i) + ∑ j, b j * v j) :
+    ∃ (u : m → ℝ) (v : n → ℝ), (∀ i j, u i + v j ≤ Cost i j) ∧
+      V ≤ (∑ i, a i * u i) + ∑ j, b j * v j := by
+  sorry
+
+/-- **Finite transportation LP strong duality** (the Farkas core of finite Kantorovich
+duality).  For finite index types with probability weights `a, b` and a nonnegative cost,
+there is a dual-feasible pair `(u, v)` (`u i + v j ≤ Cost i j`) together with a primal-feasible
+plan `P` (nonnegative, marginals `a, b`) whose cost is dominated by the dual value
+`∑ aᵢuᵢ + ∑ bⱼvⱼ`.  By weak duality this is an equality (no gap), but only the displayed
+inequality is consumed downstream.  Assembles `exists_transport_min` (primal optimum) with
+`finiteTransport_dual_eps` (ε-optimal dual pairs) and `finiteTransport_dual_limit` (ε → 0). -/
+theorem finiteTransport_strong_duality [Nonempty m] [Nonempty n]
+    (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
+    (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
+    (hasum : ∑ i, a i = 1) (hbsum : ∑ j, b j = 1)
+    (hCost : ∀ i j, 0 ≤ Cost i j) :
+    ∃ (u : m → ℝ) (v : n → ℝ), (∀ i j, u i + v j ≤ Cost i j) ∧
+      ∃ P : m → n → ℝ, (∀ i j, 0 ≤ P i j) ∧ (∀ i, ∑ j, P i j = a i) ∧
+        (∀ j, ∑ i, P i j = b j) ∧
+        (∑ i, ∑ j, Cost i j * P i j) ≤ (∑ i, a i * u i) + ∑ j, b j * v j := by
+  obtain ⟨P, hPnn, hProw, hPcol, hPmin⟩ := exists_transport_min a b Cost ha hb hasum hbsum
+  obtain ⟨u, v, hfeas, hval⟩ :=
+    finiteTransport_dual_limit a b Cost ha hb hasum hbsum hCost
+      (∑ i, ∑ j, Cost i j * P i j)
+      (fun ε hε => finiteTransport_dual_eps a b Cost P hPnn hProw hPcol hPmin ε hε)
+  exact ⟨u, v, hfeas, P, hPnn, hProw, hPcol, hval⟩
+
 end TransportLP
 
 /-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials.**
