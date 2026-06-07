@@ -746,20 +746,82 @@ theorem exists_finiteRange_map_cost_le
       ≤ ENNReal.ofReal (ε / 2) + ENNReal.ofReal (ε / 2) := by gcongr
     _ = ENNReal.ofReal ε := hε_split
 
+/-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials.**
+For finite-range pushforwards `Measure.map T μ`, `Measure.map S ν`, finite
+transportation LP strong duality yields a dual pair `u, v` with `u a + v b ≤ c a b`
+on the supports `range T`, `range S`, whose value `∫u dμ' + ∫v dν'` *bounds the coupling
+infimum from above* (it is in fact equal — the LP optimum).  Route: encode couplings as
+nonnegative vectors with marginal + cost constraints (the orthant `ProperCone.positive`
+on a finite-dim Hilbert space), apply Farkas
+(`ProperCone.relative_hyperplane_separation` — the *map-form* that absorbs the affine
+marginal system via the linear map + target, no homogenization), read the potentials
+off the separating functional.  **Metric-free**: needs no symmetry/triangle (the
+metric structure enters only in the c-transform `cTransform_dual_witness`). -/
+theorem finiteRange_transportation_dual
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (hT : Measurable T) (hS : Measurable S)
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
+    ∃ u v : α → ℝ,
+      (∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) ∧
+      wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+        ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := by
+  sorry
+
+/-- **[General OT — c-transform] Dual pair → single globally-admissible potential.**
+Given transportation dual potentials `u, v` with `u a + v b ≤ c a b` on the finite
+supports and `c` a (pseudo)metric cost, the c-transform
+`g x = ⨆ a ∈ range T, (u a − c x a)` is globally `c`-admissible
+(`|g x − g y| ≤ c x y`, by triangle + symmetry) and dominates the dual value:
+`g a ≥ u a` (the `a' = a` term, `c a a = 0`) and `g b ≤ −v b`
+(from `u a − c a b ≤ −v b`), so `∫u dμ' + ∫v dν' ≤ ∫g dμ' − ∫g dν'`.  **This is where
+`hc_triangle`/`hc_symm` are load-bearing** — it converts the Farkas dual *pair* into the
+single 1-Lipschitz potential the Kantorovich dual sup ranges over. -/
+theorem cTransform_dual_witness
+    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (hT : Measurable T) (hS : Measurable S)
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite)
+    (u v : α → ℝ)
+    (hdual : ∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) :
+    ∃ g : α → ℝ, (∀ x y, |g x - g y| ≤ c x y) ∧
+      (∫ x, u x ∂(Measure.map T μ)) + (∫ x, v x ∂(Measure.map S ν))
+        ≤ ∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν) := by
+  sorry
+
 /-- **[General OT — reusable / Mathlib-upstreamable] Finite Kantorovich–Rubinstein
 duality.**  For finitely-supported (finite-range pushforward) probability measures,
-the coupling-infimum is at most the dual-supremum — the finite LP duality core
-(Birkhoff–von Neumann vertices + a finite dual-potential construction). -/
+the coupling-infimum is at most the dual-supremum.  Proof = finite transportation LP
+duality (Farkas, `finiteRange_transportation_dual`) producing a dual pair, then the
+c-transform (`cTransform_dual_witness`) converting it to a single globally-admissible
+potential, which the dual sup dominates (`le_iSup₂`). -/
 theorem wassersteinCost_coupling_le_dual_of_finiteRange
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (_hc_self : ∀ x, c x x = 0)
-    (_hc_symm : ∀ x y, c x y = c y x) (_hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
+    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (T S : α → α) (_hT : Measurable T) (_hS : Measurable S)
-    (_hTfin : (Set.range T).Finite) (_hSfin : (Set.range S).Finite) :
+    (T S : α → α) (hT : Measurable T) (hS : Measurable S)
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
     wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
-  sorry
+  obtain ⟨u, v, hdual, hval⟩ :=
+    finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin
+  obtain ⟨g, hg_adm, hg_val⟩ :=
+    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle μ ν T S hT hS hTfin hSfin
+      u v hdual
+  calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+      ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν)) := hval
+    _ ≤ ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)) :=
+        ENNReal.ofReal_le_ofReal hg_val
+    _ ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
+        unfold wassersteinCost
+        exact le_iSup_of_le g (le_iSup
+          (f := fun (_ : ∀ x y, |g x - g y| ≤ c x y) =>
+            ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν)))
+          hg_adm)
 
 /-- **[General OT — reusable / Mathlib-upstreamable] Single-map dual bound.**  The
 dual cost between a pushforward `Measure.map T μ` and `μ` is at most the integrated
