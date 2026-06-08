@@ -5,12 +5,15 @@ namespace PhaseDDeps
 
 /-- The project modules whose declarations we want the dependency graph for. -/
 def projectModules : List Name :=
-  [`Vlasov.Basic, `Vlasov.OT.Coupling, `Vlasov.OT.CharacteristicFlow,
+  [`Vlasov.Base.Geometry, `Vlasov.OT.Wasserstein,
+   `Vlasov.Basic, `Vlasov.OT.Coupling, `Vlasov.OT.CharacteristicFlow,
    `Vlasov.Mathlib.ODE.PicardLindelof]
 
 /-- Short tag for a module name (for compact output). -/
 def modTag (n : Name) : String :=
-  if n == `Vlasov.Basic then "BASIC"
+  if n == `Vlasov.Base.Geometry then "GEOM"
+  else if n == `Vlasov.OT.Wasserstein then "WASS"
+  else if n == `Vlasov.Basic then "BASIC"
   else if n == `Vlasov.OT.Coupling then "COUP"
   else if n == `Vlasov.OT.CharacteristicFlow then "CHARFLOW"
   else if n == `Vlasov.Mathlib.ODE.PicardLindelof then "PICARD"

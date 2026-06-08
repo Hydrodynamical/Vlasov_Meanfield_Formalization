@@ -186,11 +186,35 @@ Every name is descriptive-statement-shape. The bridge `wasserstein1_eq_coupling`
   decl graph), not text-grep — grep over-matched `AssW`/`empirical`/`gradW` in docstring prose; the graph showed
   clean OT-only deps. Trusting the grep would have wrongly blocked a clean move.
 
-**Remaining (DEFERRED — separate phase, fresh session):** the Kinetic split — split CharacteristicFlow's ~105
-decls (+ Basic's Vlasov decls) into VectorField / Solutions / CharacteristicFlow / LagrangianEulerian /
-WellPosedness / Dobrushin / MeanField per the target structure above. Lower-value (internal navigability, not an
-upstreamable contribution) and churnier (105 decls → 6+ files, touching the marquee's own file); deferred per
-option 3, to be a deliberate separate decision later.
+## Kinetic split — IN PROGRESS (full 7-file split, user-approved)
+
+Refreshed graph: `formalize/phase-d/phase_d_deps_kinetic.txt` (post-OT-extraction; tool updated to current
+modules). Kinetic side = Basic (46 Vlasov decls) + CharacteristicFlow (124 decls) = 170 decls. The OT layer
+(GEOM/WASS/COUP) is below and untouched. Partition (bottom-up DAG; the build is the back-edge oracle —
+revert-diagnose-redo on any cycle/missing-import; footprint-check + commit each file):
+
+1. **`Kinetic/VectorField.lean`** ← Basic {AssW, convolveFunctionMeasure, convolveDiff_norm_le,
+   convolveLipschitz_*, gradient_zero_of_even, MathlibTODO_convolveLipschitzEstimate} + CharFlow Stage A
+   (vlasovVectorField + _lipschitzWith + _norm_le). Imports OT/Wasserstein + Base/Geometry.
+2. **`Kinetic/Solutions.lean`** ← Basic {IsVlasovSolution, IsNewtonSolution, IsLagrangianVlasovSolution,
+   IsCharacteristicFlow(SelfConsistent), WeakEvolutionEq, HasFiniteFirstMoment} + CharFlow localized `_On`
+   predicate family. Imports VectorField.
+3. **`Kinetic/CharacteristicFlow.lean`** (residual) ← Stage A.2 (flow distance growth) + Stage B (flow
+   existence, extend_one_window_tight, characteristicFlow_tight, per-window helpers, perz, global_smallT).
+   Imports Solutions + VectorField + Picard.
+4. **`Kinetic/LagrangianEulerian.lean`** ← Stage C + SC bundle. Imports CharacteristicFlow + Solutions.
+5. **`Kinetic/WellPosedness.lean`** ← §9/9.5/9.6/9.7 + §10 marquee (vlasovWellPosedness). Imports LagrangianEulerian.
+6. **`Kinetic/Dobrushin.lean`** ← §10 Dobrushin chain + Basic {DobrushinStabilityEstimate,
+   wassersteinGronwallCoupling_*, w1_lscNarrow_*, diagonalCorrection_*, gronwall_mild_le,
+   MathlibTODO_cauchyW1_hasNarrowLimit}. Imports OT/Coupling (bridge) + Solutions + CharacteristicFlow.
+7. **`Kinetic/MeanField.lean`** ← Basic {empiricalMeasure*, meanFieldLimit, hamiltonianN, spatialMarginal,
+   weakEvolutionEmpiricalMeasure, vlasovSolutionViaPushforward, hasDerivAt_empirical*,
+   convolveFunctionMeasure_empiricalSpatial_eq}. Imports WellPosedness/Solutions. Top leaf.
+
+DAG: `VectorField → Solutions → CharacteristicFlow → LagrangianEulerian → WellPosedness → {Dobrushin, MeanField}`.
+End state: `Basic.lean` emptied (all OT decls → OT/, all Vlasov decls → Kinetic/) → remove or thin re-export.
+Develop large CharFlow-body extractions against the slow host as usual; boundary-pin per the move-2 lesson
+(end at the decl's end, not the next docstring); footprint `[propext, Classical.choice, Quot.sound]` after each.
 
 **Historical (superseded by the above):**
 
