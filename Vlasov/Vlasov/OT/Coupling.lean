@@ -1,27 +1,17 @@
 /-
 Coupling-based Wasserstein-1 distance.
 
-This is the first installment of the OT infrastructure that would eventually
-close the three remaining `MathlibTODO_*` placeholders in `Vlasov/Basic.lean`
-(`_W1ContOn_lscNarrow`, `_W1ContOn_uscNarrow`, `_derivBound`).  All three
-gaps reduce to a chain of three missing pieces:
+OT infrastructure on pseudometric spaces:
 
-  1. Couplings and the Monge-Kantorovich definition of `W_1`.        ← this file
-  2. Existence of optimal couplings (Prokhorov tightness + LSC cost). ← TODO
-  3. Full Kantorovich-Rubinstein duality:
-       `wasserstein1_dual = wasserstein1_coupling` as equality.       ← TODO
+  1. Couplings and the Monge-Kantorovich definition of `W_1`.
+  2. The easy direction of Kantorovich-Rubinstein duality,
+     `wasserstein1_dual μ ν ≤ wasserstein1_coupling μ ν`.
+  3. The hard direction `wasserstein1_coupling μ ν ≤ wasserstein1_dual μ ν`
+     (via finite-range approximation + finite transportation LP duality),
+     yielding the full KR equality `wasserstein1_eq_coupling`.
 
-This file provides (1) and the **easy direction** of (3) — the inequality
-`wasserstein1_dual μ ν ≤ wasserstein1_coupling μ ν`.  The reverse direction
-(the genuine KR theorem) requires Hahn-Banach extension + a duality
-argument that is deferred to a follow-up file.
-
-Why the easy direction matters: once it's available, the dobrushin
-proof can switch from the dual-formula bound (which requires the hard
-direction of KR for upper-bounding W_1 by a coupling cost) to a
-coupling-cost bound, modulo just the one remaining duality piece.  This
-isolates the trust in a single place rather than spreading it across
-the three `lsc`/`usc`/`derivBound` placeholders.
+The dobrushin proof uses the coupling-cost bound to control W₁ growth along
+characteristic flows.
 
 See `formalize/DESIGN.md` for the overall design choices.
 -/
@@ -29,18 +19,11 @@ See `formalize/DESIGN.md` for the overall design choices.
 import Vlasov.OT.Wasserstein
 
 /-
-**Mathlib-upstream targeting note.**  The contents of this file —
-`IsCoupling`, `wasserstein1_coupling`, the easy direction of KR,
-`IsCoupling.map`, and `wasserstein1_pushforward_le_iInf` — are all
-domain-independent OT on pseudometric spaces.  When eventually
-contributed upstream, the natural home is
-`Mathlib/MeasureTheory/Wasserstein/Coupling.lean` under
-`namespace MeasureTheory`.  We keep `namespace Vlasov` for now so the
-project remains self-contained.  The hard direction of KR
-(Hahn-Banach + Prokhorov tightness for optimal coupling existence)
-is also Mathlib-worthy but a several-month project; we explicitly
-defer it and route the dobrushin proof around it via the easy
-direction + pushforward chain instead.
+The contents of this file — `IsCoupling`, `wasserstein1_coupling`, both
+directions of KR, `IsCoupling.map`, and `wasserstein1_pushforward_le_iInf` —
+are domain-independent OT on pseudometric spaces (natural Mathlib home:
+`Mathlib/MeasureTheory/Wasserstein/Coupling.lean` under `namespace
+MeasureTheory`).  We keep `namespace Vlasov` so the project is self-contained.
 -/
 
 namespace Vlasov
@@ -81,34 +64,25 @@ noncomputable def wasserstein1_coupling
 /-! ## Kantorovich-Rubinstein: easy direction
 
 The dual-formula `wasserstein1` is at most the coupling-formula
-`wasserstein1_coupling`.  This is the *one-line proof* in the OT literature:
-for any 1-Lipschitz `φ` and any coupling `π`:
+`wasserstein1_coupling`.  The one-line argument in the OT literature:
+for any 1-Lipschitz `φ` and any coupling `π`,
 
   ∫φ d(μ - ν) = ∫(φ x - φ y) dπ ≤ ∫ |φ x - φ y| dπ ≤ ∫ dist(x,y) dπ.
 
-The reverse inequality is the hard direction of KR (Hahn-Banach extension);
-it is deferred to a follow-up file.
+The reverse inequality is the hard direction `wassersteinCost_coupling_le_dual`.
 -/
 
 /-- KR easy direction.  Under finite-moment assumptions on `μ` and `ν`, the
 dual-formula `wasserstein1 μ ν` is bounded above by the coupling-formula
 `wasserstein1_coupling μ ν`.
 
-**Proof strategy** (full proof TODO).  By `iSup_le` and `le_iInf`, it suffices
-to show that for every 1-Lipschitz `φ` and every coupling `π` of (μ, ν):
-`ENNReal.ofReal (∫φ dμ − ∫φ dν) ≤ ∫⁻ edist z.1 z.2 ∂π`.
-
-Two cases:
-  - `∫⁻ edist z.1 z.2 ∂π = ⊤`: trivially `_ ≤ ⊤`.  This case is handled.
-  - `∫⁻ edist z.1 z.2 ∂π < ⊤`: requires the substantive work:
-      (a) `edist`-integrability of `π` implies `dist`-integrability;
-      (b) by `Measure.IsCoupling` marginals and `integral_map`,
-          `∫φ dμ = ∫(φ ∘ Prod.fst) dπ`, similarly for `ν`;
-      (c) `∫φ dμ - ∫φ dν = ∫(φ(z.1) - φ(z.2)) dπ`;
-      (d) `|φ(z.1) - φ(z.2)| ≤ dist(z.1, z.2)` by 1-Lipschitz;
-      (e) integrability of each side via finite-first-moment of μ and ν,
-          derivable from finite coupling cost.
-This proof would need ~50-100 lines of measure-theoretic plumbing. -/
+By `iSup_le` and `le_iInf`, it suffices to show that for every 1-Lipschitz `φ`
+and every coupling `π` of `(μ, ν)`:
+`ENNReal.ofReal (∫φ dμ − ∫φ dν) ≤ ∫⁻ edist z.1 z.2 ∂π`.  When the coupling cost
+is `⊤` the bound is trivial; otherwise `edist`-integrability of `π` gives
+`dist`-integrability, change of variables through the marginals rewrites
+`∫φ dμ - ∫φ dν = ∫(φ(z.1) - φ(z.2)) dπ`, and `|φ(z.1) - φ(z.2)| ≤ dist(z.1, z.2)`
+(1-Lipschitz) closes it (integrability via the finite first moments of `μ`, `ν`). -/
 theorem wasserstein1_le_wasserstein1_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
@@ -220,14 +194,13 @@ theorem wasserstein1_le_wasserstein1_coupling
   intro z
   exact (edist_dist z.1 z.2).symm
 
-/-! ## Foundation B — optimal coupling existence + hard Kantorovich–Rubinstein duality
+/-! ## Hard Kantorovich–Rubinstein duality
 
-This section states the project's single external optimal-transport theorem,
-`foundationB_optimal_coupling_exists`, and derives the duality equality from it
-(combined with the easy direction above).  Everything is stated
-**cost-generically** over a continuous pseudometric cost `c`, so the deferred
-cutoff cost `c = min (dist ·) 1` (the W̄ refactor) instantiates the same
-statements verbatim.
+This section proves the hard direction `wassersteinCost_coupling_le_dual`
+(coupling-inf ≤ dual-sup) and derives the KR equality from it together with the
+easy direction above.  Everything is stated **cost-generically** over a
+continuous pseudometric cost `c`, so an alternative cutoff cost
+`c = min (dist ·) 1` instantiates the same statements verbatim.
 -/
 
 /-- Cost-generic coupling cost: the infimum over couplings `π` of `(μ, ν)` of
@@ -248,16 +221,14 @@ lemma wasserstein1_coupling_eq
   refine iInf_congr fun π => iInf_congr fun _ => ?_
   exact lintegral_congr fun z => edist_dist z.1 z.2
 
-/-! ### Kantorovich–Rubinstein duality (hard direction) — Route 1 skeleton
+/-! ### Kantorovich–Rubinstein duality (hard direction) helpers
 
-The helpers below decompose `wassersteinCost_coupling_le_dual` (the hard KR direction)
-via discrete approximation + limit (see `formalize/kr-duality-plan.md`).  All are
-**general optimal-transport facts**, not Vlasov-specific — each is marked
-`[General OT — reusable / Mathlib-upstreamable]` and stated cost-generically.
-Bodies are `sorry` (P4 API-lock); closed in subsequent sessions.
+The lemmas below decompose `wassersteinCost_coupling_le_dual` via discrete
+approximation + limit.  All are general optimal-transport facts (not
+Vlasov-specific), stated cost-generically over a continuous pseudometric cost.
 -/
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Symmetry of the coupling cost.**
+/-- **Symmetry of the coupling cost.**
 For a symmetric cost, `wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ`
 (push a coupling forward under `Prod.swap`). -/
 theorem wassersteinCost_coupling_comm
@@ -287,7 +258,7 @@ theorem wassersteinCost_coupling_comm
           exact congrArg ENNReal.ofReal (hc_symm z.2 z.1)
   exact le_antisymm (key μ ν) (key ν μ)
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Gluing of couplings.**  Given a
+/-- **Gluing of couplings.**  Given a
 coupling `π₁` of `(μ, ρ)` and a coupling `π₂` of `(ρ, ν)`, disintegrating `π₂` over
 its `ρ`-marginal (`condKernel`) and re-binding along `π₁`'s `ρ`-marginal yields a
 coupling `π₃` of `(μ, ν)` whose cost is at most the sum of the two costs (ground-cost
@@ -399,7 +370,7 @@ theorem exists_coupling_glue
     refine hbound.trans (le_of_eq ?_)
     rw [lintegral_add_left hg, hkey2]
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Triangle inequality for the
+/-- **Triangle inequality for the
 coupling cost.**  Gluing of couplings through a common middle measure
 (`exists_coupling_glue`), then the `iInf` arithmetic. -/
 theorem wassersteinCost_coupling_triangle
@@ -450,7 +421,7 @@ theorem wassersteinCost_coupling_triangle
     _ = wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) := by
         rw [add_add_add_comm, ENNReal.add_halves]
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Graph-coupling bound.**  The
+/-- **Graph-coupling bound.**  The
 coupling cost between `μ` and a pushforward `Measure.map T μ` is at most the
 integrated transport cost of `T`, witnessed by the graph coupling
 `(id, T)_# μ`. -/
@@ -476,10 +447,7 @@ theorem wassersteinCost_coupling_map_le
         lintegral_map (ENNReal.measurable_ofReal.comp hc_cont.measurable) hg
     _ = ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := rfl
 
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/exists_finiteRange_map_cost_le.json`. -/
-
-/-- **[General OT — reusable / Mathlib-upstreamable] Finite-range step map construction.**
+/-- **Finite-range step map construction.**
 Given a measurable pairwise-disjoint partition `As : ℕ → Set α` covering `univ` with
 representatives `as : ℕ → α` and a fallback point `x₀`, the truncated step map
 `T x = as n` when `x ∈ As n` for some `n < N`, `T x = x₀` otherwise, is measurable
@@ -570,7 +538,7 @@ lemma finiteRange_approxMap_measurable
     refine htail (List.range N) x (fun m hm hxm => ?_)
     exact hx (Set.mem_iUnion₂.mpr ⟨m, Finset.mem_range.mpr (List.mem_range.mp hm), hxm⟩)
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Integrable nonneg → lintegral ofReal finite.**
+/-- **Integrable nonneg → lintegral ofReal finite.**
 If `f : α → ℝ` is integrable with respect to `μ` and a.e. nonneg, then
 `∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞`.
 Key tools: `hasFiniteIntegral_iff_ofReal` and `Integrable.hasFiniteIntegral`. -/
@@ -581,7 +549,7 @@ lemma lintegral_ofReal_ne_top_of_integrable_nonneg
   rw [← lt_top_iff_ne_top]
   exact (hasFiniteIntegral_iff_ofReal hfnn).mp hf.hasFiniteIntegral
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Tail cost control via absolute continuity.**
+/-- **Tail cost control via absolute continuity.**
 If `∫⁻ x, ENNReal.ofReal (f x) ∂μ ≠ ∞` and `μ ((S n)ᶜ) → 0` as `n → ∞`, then the tail
 costs `∫⁻ x in (S n)ᶜ, ENNReal.ofReal (f x) ∂μ → 0`.
 Follows from `MeasureTheory.tendsto_setLIntegral_zero` (absolute continuity of the integral). -/
@@ -594,7 +562,7 @@ lemma lintegral_ofReal_tail_tendsto_zero
       Filter.atTop (nhds 0) := by
   exact tendsto_setLIntegral_zero hfint hS_tendsto
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Kept-cells cost bound.**
+/-- **Kept-cells cost bound.**
 For a step map `T` with `T x = as n` on `As n` (for `n < N`), where we have a pointwise
 bound `∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ` (established from the cell diameter), the
 lintegral of `ENNReal.ofReal (c x (T x))` over the kept cells is at most `ENNReal.ofReal δ`
@@ -622,7 +590,7 @@ lemma lintegral_ofReal_kept_cells_le
     _ ≤ ENNReal.ofReal δ * 1 := by gcongr; exact prob_le_one
     _ = ENNReal.ofReal δ := mul_one _
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Tail mass of a measurable cover → 0.**
+/-- **Tail mass of a measurable cover → 0.**
 For a finite measure and a measurable cover `⋃ n, As n = univ`, the mass of the complement
 of the partial unions `⋃ j < n, As j` tends to `0` (continuity from above:
 `⋂ n (⋃ j<n As j)ᶜ = ∅`). -/
@@ -658,7 +626,7 @@ lemma measure_compl_biUnion_range_tendsto_zero
   rw [hInter, measure_empty] at key
   exact key
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Finite-range approximation.**
+/-- **Finite-range approximation.**
 For a probability measure with finite first moment, the transport cost to a
 finite-range pushforward can be made arbitrarily small (partition into
 small-diameter cells + finite-moment tail control). -/
@@ -702,8 +670,8 @@ theorem exists_finiteRange_map_cost_le
     rw [Filter.eventually_atTop] at hev
     obtain ⟨N, hN⟩ := hev
     exact ⟨N, hN N le_rfl⟩
-  -- Step 6: build finite-range step map T with representative x₀ on each cell
-  -- (prover will later improve representatives to achieve kept-cell cost ≤ ε/2)
+  -- Step 6: build finite-range step map T sending each kept cell `As n` to its
+  -- representative `as n` (and the tail to `x₀`).
   obtain ⟨T, hT_mble, hT_fin, hT_kept, hT_tail⟩ :=
     finiteRange_approxMap_measurable As hAs_mble hAs_cover hAs_disj as x₀ N
   refine ⟨T, hT_mble, hT_fin, ?_⟩
@@ -746,10 +714,10 @@ theorem exists_finiteRange_map_cost_le
       ≤ ENNReal.ofReal (ε / 2) + ENNReal.ofReal (ε / 2) := by gcongr
     _ = ENNReal.ofReal ε := hε_split
 
-/-! ### Finite transportation LP: compactness leaves (de-risking Foundation B's Farkas kernel)
+/-! ### Finite transportation LP: compactness leaves
 
 Two standalone compactness facts underpinning the finite Kantorovich-duality kernel
-`finiteRange_transportation_dual` (H2):
+`finiteRange_transportation_dual`:
 
 * `exists_transport_min` — the transport polytope `{P ≥ 0 : rowsums = a, colsums = b}` is
   compact and nonempty, so the primal cost `⟨Cost, P⟩` attains its minimum (extreme value
@@ -759,9 +727,8 @@ Two standalone compactness facts underpinning the finite Kantorovich-duality ker
   coordinate an *inequality*) is closed (Bolzano–Weierstrass), which is the `ProperCone`
   obligation for the geometric Farkas separation `ProperCone.hyperplane_separation_point`.
 
-Both live on the friction-free geometric `ι → ℝ` route (plain products, no `EuclideanSpace`
-inner-product instances), per the pivot away from the map-form `relative_hyperplane_separation`
-(which forces the systemic PiLp inner-instance mismatch). -/
+Both use the geometric `ι → ℝ` route (plain products, no `EuclideanSpace` inner-product
+instances). -/
 
 section TransportLP
 
@@ -1127,7 +1094,7 @@ theorem finiteTransport_dual_eps [Nonempty m] [Nonempty n]
 `P` (`exists_transport_min`) with an ε-optimal dual pair (`finiteTransport_dual_eps`): for
 every `ε > 0`, an optimal feasible plan `P` and a dual-feasible `(u, v)` with the primal
 cost `⟨Cost, P⟩` within `ε` of the dual value.  The downstream KR bridge then sends the ε to
-the Kantorovich sup (no attainment needed — B is ε-optimal throughout). -/
+the Kantorovich sup (no attainment needed — ε-optimal throughout). -/
 theorem finiteTransport_dual_eps_plan [Nonempty m] [Nonempty n]
     (a : m → ℝ) (b : n → ℝ) (Cost : m → n → ℝ)
     (ha : ∀ i, 0 ≤ a i) (hb : ∀ j, 0 ≤ b j)
@@ -1144,7 +1111,7 @@ theorem finiteTransport_dual_eps_plan [Nonempty m] [Nonempty n]
 
 end TransportLP
 
-/-- **[General OT — finite LP duality core, Farkas] Transportation dual potentials (ε-form).**
+/-- **Transportation dual potentials (ε-form).**
 For finite-range pushforwards `Measure.map T μ`, `Measure.map S ν` and every `ε > 0`, finite
 transportation LP duality yields a measurable dual pair `u, v` with `u a + v b ≤ c a b` on the
 supports `range T`, `range S`, whose value `∫u dμ' + ∫v dν'` bounds the coupling infimum from
@@ -1152,9 +1119,8 @@ above *up to `ε`*.  Proof: the finite LP gives (`finiteTransport_dual_eps_plan`
 plan `P` and a dual pair within `ε`; the matrix→measure bridge sends `P` to a coupling
 realising `coupling-inf ≤ ofReal⟨Cost,P⟩` and identifies `∫u dμ' = ∑ aᵢ uᵢ` (integral against
 a finitely-supported pushforward), and the dual potentials lift to measurable `α → ℝ`.  The `ε`
-is consumed at the Kantorovich sup downstream — no attainment needed, matching B's ε-optimality
-everywhere else.  **Metric-free**: no symmetry/triangle (those enter only in the c-transform
-`cTransform_dual_witness`). -/
+is consumed at the Kantorovich sup downstream — no attainment needed.  **Metric-free**: no
+symmetry/triangle (those enter only in the c-transform `cTransform_dual_witness`). -/
 theorem finiteRange_transportation_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [MeasurableSingletonClass α]
@@ -1345,7 +1311,7 @@ theorem finiteRange_transportation_dual
       _ ≤ ENNReal.ofReal ((∫ x, ulift x ∂(Measure.map T μ))
             + ∫ y, vlift y ∂(Measure.map S ν)) + ENNReal.ofReal ε := ENNReal.ofReal_add_le
 
-/-- **[General OT — c-transform] Dual pair → single globally-admissible potential.**
+/-- **c-transform: dual pair → single globally-admissible potential.**
 Given transportation dual potentials `u, v` with `u a + v b ≤ c a b` on the finite
 supports and `c` a (pseudo)metric cost, the c-transform
 `g x = ⨆ a ∈ range T, (u a − c x a)` is globally `c`-admissible
@@ -1451,7 +1417,7 @@ theorem cTransform_dual_witness
   rw [integral_neg] at hmono2
   linarith
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Finite Kantorovich–Rubinstein
+/-- **Finite Kantorovich–Rubinstein
 duality.**  For finitely-supported (finite-range pushforward) probability measures,
 the coupling-infimum is at most the dual-supremum.  Proof = finite transportation LP
 duality (Farkas, `finiteRange_transportation_dual`) producing a dual pair, then the
@@ -1492,7 +1458,7 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     _ = wassersteinCost c (Measure.map T μ) (Measure.map S ν) + (η : ℝ≥0∞) := by
         rw [ENNReal.ofReal_coe_nnreal]
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Single-map dual bound.**  The
+/-- **Single-map dual bound.**  The
 dual cost between a pushforward `Measure.map T μ` and `μ` is at most the integrated
 transport cost of `T`.  Direct dual-side analogue of `wassersteinCost_coupling_map_le`:
 for any `c`-admissible test `f` (oscillation `≤ c`, hence continuous), the change of
@@ -1582,7 +1548,7 @@ theorem wassersteinCost_dual_singleMap_le
   exact ofReal_integral_eq_lintegral_ofReal hcT_int
     (Filter.Eventually.of_forall fun x => hc_nonneg x (T x))
 
-/-- **[General OT — reusable / Mathlib-upstreamable] Dual-side stability under
+/-- **Dual-side stability under
 pushforward.**  A `c`-admissible test function changes value by at most the
 transport cost, so the dual sup over `(T_# μ, S_# ν)` exceeds that over `(μ, ν)`
 by at most the two transport costs.  Dual triangle (`wassersteinCost_triangle`)
@@ -1623,44 +1589,31 @@ theorem wassersteinCost_dual_le_add_map
           + (∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ)
           + (∫⁻ y, ENNReal.ofReal (c y (S y)) ∂ν) := by abel
 
-/-- **Foundation B (the project's single external sorry): the hard direction of
-Kantorovich–Rubinstein duality** — the primal coupling-formula is at most the
-dual-formula.
+/-- **Hard direction of Kantorovich–Rubinstein duality** — the primal
+coupling-formula is at most the dual-formula.
 
 For probability measures `μ, ν` with finite first moment on a Polish (here
-second-countable Borel pseudometric) space and a continuous pseudometric cost
-`c`:  `wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν`.  The reverse
-inequality (weak duality, `≥`) is the **easy** direction
-`wasserstein1_le_wasserstein1_coupling` (already proved); together they give the
-full KR equality `wasserstein1_eq_coupling`.
+second-countable Borel pseudometric, standard Borel) space and a continuous
+pseudometric cost `c`:  `wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν`.
+The reverse inequality is the easy direction
+`wasserstein1_le_wasserstein1_coupling`; together they give the full KR equality
+`wasserstein1_eq_coupling`.
 
-**Scope (post-Option-3 shrink, 2026-06-06).**  This inequality is ALL the project
-trusts externally.  It is an *inf ≤ sup* statement (`inf over couplings ≤ sup over
-1-Lipschitz`), so it needs neither the infimum **attained** (no optimal-coupling
-existence / Prokhorov-tightness build) nor the full equality — only the duality
-bound, approachable ε-optimally.  The earlier attainment-and-equality form
-(`foundationB_optimal_coupling_exists`) was removed: its sole live consumer
-(`dobrushin`, via `wasserstein1_eq_coupling`) needs only this inequality, which it
-applies by monotonicity.  "Foundation A" (narrow ↔ W₁) was a phantom; existence,
-uniqueness, the mean-field stability core, and the mean-field limit all stand
-B-free — the axiom footprint pins B to this one line.
+This is an `inf ≤ sup` statement, so the infimum need not be attained — the bound
+is reached ε-optimally.  Stated cost-generically over a continuous pseudometric
+`c`, so a cutoff cost `c = min (dist ·) 1` reuses it verbatim.
 
-Stated cost-generically over a continuous pseudometric `c` so the deferred cutoff
-cost `c = min (dist ·) 1` (the W̄ refactor) reuses it verbatim.
-
-**Proof skeleton (Route 1 — discrete approximation + limit; helpers above, P4
-API-lock — body pending).**  For `ε > 0` pick finite-range `T, S` with transport
-cost `≤ ε/4` each (`exists_finiteRange_map_cost_le`).  With `μ' = Measure.map T μ`,
-`ν' = Measure.map S ν`:
+**Proof** (discrete approximation + limit).  For `ε > 0` pick finite-range
+`T, S` with transport cost `≤ ε/4` each (`exists_finiteRange_map_cost_le`).  With
+`μ' = Measure.map T μ`, `ν' = Measure.map S ν`:
 `W_c(μ,ν) ≤ W_c(μ,μ') + W_c(μ',ν') + W_c(ν',ν)`
 (`wassersteinCost_coupling_triangle` ×2, `…_comm`); the outer terms `≤ ε/4`
 (`wassersteinCost_coupling_map_le`); `W_c(μ',ν') ≤ dual(μ',ν')`
 (`wassersteinCost_coupling_le_dual_of_finiteRange`); `dual(μ',ν') ≤ dual(μ,ν) +
 ε/2` (`wassersteinCost_dual_le_add_map`).  Chain → `W_c(μ,ν) ≤ dual(μ,ν) + ε`;
-`ε → 0` (`ENNReal.le_of_forall_pos_le_add`).  NOTE: the triangle needs
-`StandardBorelSpace α` (disintegration); when wiring the body, thread that instance
-here + through `wasserstein1_eq_coupling` (consumers instantiate at the Polish
-`PhaseSpace d`, so it resolves).  See `formalize/kr-duality-plan.md`. -/
+`ε → 0` (`ENNReal.le_of_forall_pos_le_add`).  The triangle step needs
+`StandardBorelSpace α` (disintegration); consumers instantiate at the Polish
+`PhaseSpace d`. -/
 theorem wassersteinCost_coupling_le_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α] [StandardBorelSpace α]
@@ -1725,9 +1678,9 @@ theorem wassersteinCost_coupling_le_dual
     _ = wassersteinCost c μ ν + (q + q + q + q) := by ring
     _ = wassersteinCost c μ ν + (ε : ℝ≥0∞) := by rw [hq4]
 
-/-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Sorry-free
-corollary of Foundation B (the hard-direction inequality `wassersteinCost_coupling_le_dual`)
-+ the easy direction `wasserstein1_le_wasserstein1_coupling`. -/
+/-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Combines the
+hard-direction inequality `wassersteinCost_coupling_le_dual` with the easy direction
+`wasserstein1_le_wasserstein1_coupling`. -/
 theorem wasserstein1_eq_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α] [StandardBorelSpace α]
@@ -1744,11 +1697,9 @@ theorem wasserstein1_eq_coupling
 
 /-! ## Pushforward of couplings
 
-The lemmas below are the "reusable pieces" needed for the dobrushin chain
-once the easy direction of KR is available.  They build the bridge from
-coupling-based bounds on initial measures (`μ`, `ν`) to coupling-based
-bounds on pushed-forward measures (`Φ_# μ`, `Ψ_# ν`), which is how the
-Dobrushin proof connects characteristic flows back to W₁ growth.
+These lemmas bridge from coupling-based bounds on initial measures (`μ`, `ν`) to
+coupling-based bounds on pushed-forward measures (`Φ_# μ`, `Ψ_# ν`), which is how
+the Dobrushin proof connects characteristic flows back to W₁ growth.
 -/
 
 /-- Pushforward of a coupling under a pair of measurable maps is a coupling

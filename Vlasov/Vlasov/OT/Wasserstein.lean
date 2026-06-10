@@ -25,10 +25,7 @@ conditional-sup junk value `0` that `⨆` produces on `ℝ`.  Negative
 arguments to `ENNReal.ofReal` round up to `0`; that is consistent with the
 dual formula because the family of 1-Lipschitz `f` is closed under `f ↦ -f`,
 so the positive parts already realise the absolute value of the signed
-difference.
-
--- TODO(mathlib): replace with Mathlib's `MeasureTheory.Measure.wasserstein`
--- once the API is stable. -/
+difference. -/
 /-- **Cost-parameterized Wasserstein-1 functional.**  KR-dual sup over functions
 whose oscillation is controlled by a cost `c`.  Using the explicit oscillation
 bound `|f x − f y| ≤ c x y` (rather than `LipschitzWith 1 f` w.r.t. an ambient
@@ -61,10 +58,9 @@ noncomputable def wasserstein1 {α : Type*} [MeasurableSpace α] [PseudoMetricSp
     (μ ν : Measure α) : ENNReal :=
   wassersteinCost (fun x y => dist x y) μ ν
 
-/-- `wasserstein1` equals the original `LipschitzWith 1`-phrased sup.  The
-property/API lemmas below `rw` through this so their bodies are unchanged from
-the original definition (the only structural-touch sites; consumers reference
-`wasserstein1` only through these property lemmas). -/
+/-- `wasserstein1` equals the `LipschitzWith 1`-phrased sup.  The property lemmas
+below `rw` through this; consumers reference `wasserstein1` only through these
+property lemmas. -/
 lemma wasserstein1_eq_iSup_lipschitz {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) :
     wasserstein1 μ ν = ⨆ (f : α → ℝ) (_ : LipschitzWith 1 f),
@@ -321,8 +317,7 @@ lemma wasserstein1_le_moments_sum
           integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
   linarith
 
-/-- **Cost-generic non-expansion under Lipschitz pushforward** (O2 generalization,
-front-loaded for the W̄ migration, 2026-06-04).
+/-- **Cost-generic non-expansion under Lipschitz pushforward.**
 
 If `T : α → β` is `L`-Lipschitz **with respect to the costs**
 (`c_β (T x) (T y) ≤ L · c_α x y`) and `c_β` is dominated by the metric on `β`
@@ -332,10 +327,7 @@ pushforward by `T` is `L`-non-expansive in `wassersteinCost`:
 `wassersteinCost c_β (T_# μ) (T_# ν) ≤ L · wassersteinCost c_α μ ν`.
 
 `wasserstein1_le_of_lipschitz_map` (`c = dist`, below) and the W̄ analog
-(`c = fun x y => min (dist x y) 1`, see the sanity `example` below) are
-instances.  This is the single substantive piece of the O2 cost-parameterization
-that O2-minimal deferred to the W̄ step; landing it validates the W̄-additivity
-claim (the property lemmas instantiate at `min(dist,1)`). -/
+(`c = fun x y => min (dist x y) 1`) are instances. -/
 lemma wassersteinCost_le_of_lipschitz_map
     {α β : Type*}
     [MeasurableSpace α]
@@ -411,13 +403,11 @@ lemma wasserstein1_le_of_lipschitz_map
   wassersteinCost_le_of_lipschitz_map (fun x y => dist x y) (fun x y => dist x y)
     (fun _ _ => le_refl _) T L (fun x y => hT.dist_le_mul x y) hT_meas μ ν
 
-/-- **W̄-additivity sanity check** (the instantiation O2-minimal could not run —
-there was no `c`-generic lemma to instantiate).  The truncated cost
+/-- **W̄-additivity sanity check.**  The truncated cost
 `min(dist, 1)` satisfies both hypotheses of `wassersteinCost_le_of_lipschitz_map`
 (`min(dist,1) ≤ dist`; and for 1-Lipschitz `T`,
 `min(dist(Tx,Ty),1) ≤ min(dist x y, 1)`), so the property lemma drops in at
-`c := fun x y => min (dist x y) 1`.  This validates that the W̄ migration is the
-additive instantiation the plan claims. -/
+`c := fun x y => min (dist x y) 1`. -/
 example {α β : Type*}
     [MeasurableSpace α] [PseudoMetricSpace α]
     [MeasurableSpace β] [PseudoMetricSpace β] [OpensMeasurableSpace β]
@@ -432,9 +422,7 @@ example {α β : Type*}
       have := hT.dist_le_mul x y; rwa [NNReal.coe_one, one_mul] at this)
     hT_meas μ ν
 
-/-- **KR-dual lower bound for `wasserstein1`** (the fourth property of the
-W₁-property API, banked as a property lemma for forward-looking
-close discipline per planning-notes commit `9b70ecb`).
+/-- **KR-dual lower bound for `wasserstein1`.**
 
 For any 1-Lipschitz `f : α → ℝ` and any measures μ, ν on a pseudo-metric
 measurable space, the (positive part of the) integral difference is a
@@ -445,21 +433,11 @@ This is the "easy direction" of the Kantorovich-Rubinstein dual
 characterization — it is built into the definition `wasserstein1 :=
 ⨆ f hf, ENNReal.ofReal (∫ f dμ - ∫ f dν)` and follows by `le_iSup`.
 
-**The unfold is appropriate here**: this lemma IS the property-API
-exposure of `wasserstein1`'s dual structure.  The forward-looking
-discipline ("let `wasserstein1` touch proofs only through abstract
-properties") applies to *consumers* of W₁; property lemmas like this
-one ARE the abstraction layer and unfold to establish the
-property-level interface.  W̄-survivor automatically: when W̄ replaces
-`wasserstein1`, this lemma's proof gets re-derived against W̄'s
-concrete form (the KR-dual lower bound is generic across cost
-formulations).
+Chained with `f → -f` 1-Lipschitz, it gives the
+"W₁=0 → ∫f dμ = ∫f dν for 1-Lipschitz f" reduction used by the
+separation lemma `wasserstein1_eq_zero_iff_measure_eq`.
 
-**Application** (sketch): chained with `f → -f` 1-Lipschitz, gives the
-"W₁=0 → ∫f dμ = ∫f dν for 1-Lipschitz f" reduction at the entry to
-the separation lemma.
-
-**Cost-generic** (W̄-additivity): stated below for `wassersteinCost c` with `f`
+**Cost-generic**: stated below for `wassersteinCost c` with `f`
 of `c`-oscillation, no hypothesis on `c`; `wasserstein1_dual_lower_bound` is the
 `c = dist` corollary. -/
 lemma wassersteinCost_dual_lower_bound
@@ -476,13 +454,11 @@ lemma wasserstein1_dual_lower_bound
   wassersteinCost_dual_lower_bound (fun x y => dist x y) μ ν f
     ((lipschitzWith_one_iff_oscillation f).mp hf)
 
-/-- **W̄-additivity across the remaining property layer** (gate-1 completion,
-2026-06-04).  The cost-generic `_self`/`_comm`/`_triangle`/`_dual_lower_bound`
-carry no hypothesis on `c`, so each instantiates at the truncated cost
-`min(dist, 1)` unconditionally — in particular `_triangle` needs **no** triangle
-inequality on `c` (the inequality is the test-function decomposition).  Together
-with `wassersteinCost_le_of_lipschitz_map`'s sanity check, this validates
-W̄-additivity for the full property layer. -/
+/-- **W̄-additivity across the property layer.**  The cost-generic
+`_self`/`_comm`/`_triangle`/`_dual_lower_bound` carry no hypothesis on `c`, so
+each instantiates at the truncated cost `min(dist, 1)` unconditionally — in
+particular `_triangle` needs **no** triangle inequality on `c` (the inequality
+is the test-function decomposition). -/
 example {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν τ : Measure α) (f : α → ℝ) (hf : ∀ x y, |f x - f y| ≤ min (dist x y) 1) :
     wassersteinCost (fun x y => min (dist x y) 1) μ μ = 0 ∧
@@ -498,12 +474,11 @@ example {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
 
 /-! ### `wassersteinBar` — the truncated (cutoff) Wasserstein-1 distance W̄
 
-The W̄ migration target (Dobrushin 1979 §5): `W̄ := wassersteinCost (min(dist, 1))`.
-The bounded cost makes the dual test class *bounded* 1-Lipschitz, so W̄ metrizes
-narrow convergence directly and is always finite (no moment hypotheses).  The
-property layer instantiates verbatim from the cost-generic lemmas (gate-1
-validated): `min(dist, 1)` is a continuous pseudometric dominated by `dist`, so
-every hypothesis is met. -/
+`W̄ := wassersteinCost (min(dist, 1))` (Dobrushin 1979 §5).  The bounded cost
+makes the dual test class *bounded* 1-Lipschitz, so W̄ metrizes narrow
+convergence directly and is always finite (no moment hypotheses).  The property
+layer instantiates verbatim from the cost-generic lemmas: `min(dist, 1)` is a
+continuous pseudometric dominated by `dist`, so every hypothesis is met. -/
 
 /-- The **truncated Wasserstein-1 distance** `W̄` (Dobrushin 1979 §5): the
 `c = min(dist, 1)` instance of `wassersteinCost`. -/
@@ -549,47 +524,23 @@ lemma wassersteinBar_le_of_lipschitz_map {α β : Type*}
     hT_meas μ ν
   rwa [ENNReal.coe_one, one_mul] at h
 
-/-- **Mathlib-TODO (pure measure theory + functional analysis):
-bounded-continuous integral equality from 1-Lipschitz integral equality
-on first-moment-integrable probability measures over Polish normed
-spaces.**
+/-- **Bounded-continuous integral equality from 1-Lipschitz integral equality.**
 
-For probability measures μ, ν on a normed-AddCommGroup space `α` with
-the Borel σ-algebra, both having finite first moments, if
-`∫ f dμ = ∫ f dν` for every 1-Lipschitz function `f : α → ℝ` (with
-appropriate integrability), then the same equality holds for every
-bounded continuous function `f : α →ᵇ ℝ`.
+For probability measures μ, ν on a normed `AddCommGroup` `α` with the Borel
+σ-algebra, both having finite first moments, if `∫ f dμ = ∫ f dν` for every
+1-Lipschitz function `f : α → ℝ` (with appropriate integrability), then the same
+equality holds for every bounded continuous function `f : α →ᵇ ℝ`.
 
-**Proof idea (sketch — substantive Bucket-1 Mathlib gap)**:
-1. For bounded-Lipschitz `g` with Lipschitz constant `L > 0`,
-   `g / L` is 1-Lipschitz, so equality of integrals at scale `L`
-   follows from the 1-Lipschitz hypothesis.
-2. For BC `φ`, approximate by bounded-Lipschitz functions in
-   `L¹(μ + ν)` via truncation + Lipschitz mollification:
-   * Truncation: replace `φ` with `φ · χ_R` where `χ_R` is a Lipschitz
-     bump supported on a ball of radius `R + 1`; the tail
-     `μ({|y| > R}) + ν({|y| > R}) → 0` as `R → ∞` (Markov + finite
-     first moments).
-   * Lipschitz mollification: on a Polish normed space, BC functions
-     can be uniformly approximated on bounded sets by Lipschitz
-     functions (Stone-Weierstrass-flavored density of bounded-Lipschitz
-     in BC under the appropriate uniformity).
-3. Combining truncation + mollification + the 1-Lipschitz hypothesis
-   gives `|∫ φ dμ - ∫ φ dν| ≤ ε` for any ε > 0, hence equality.
-
-**Bucket-1 PR scope**: standard measure theory + functional analysis.
-Same family as `MathlibTODO_bcNarrowFromSmoothCompactNarrow`
-(Basic.lean L1794) — both are BC-extension-from-smaller-class results,
-operating on different sub-classes (smooth-CS for narrow continuity
-along curves vs 1-Lipschitz for integral equality on static measures).
-
-**Banked for forward-looking close discipline**: the separation lemma
-`wasserstein1_eq_zero_iff_measure_eq` consumes this as its W̄-survivor
-middle step.  When W̄ arrives, this placeholder doesn't change (its
-hypothesis is a 1-Lipschitz integral equality, not a W₁ fact); only
-the *feeder* changes (W̄=0 → 1-Lipschitz equality replacing W₁=0 →
-1-Lipschitz equality), which is a one-line `wasserstein1_dual_lower_bound`
-analogue for W̄. -/
+**Proof.**
+* Step A: upgrade the 1-Lipschitz hypothesis to arbitrary `K`-Lipschitz
+  integrable functions by scaling into the 1-Lipschitz class (`c⁻¹ • g` with
+  `c = K + 1`).
+* Step B: closed sets `F` receive equal measure.  Thickened indicators
+  `thickenedIndicator δ F` are bounded Lipschitz, so their integrals against μ
+  and ν agree (Step A); letting `δ → 0` and using
+  `tendsto_lintegral_thickenedIndicator_of_isClosed` gives `μ F = ν F`.
+* Closed sets form a π-system generating the Borel σ-algebra, so `μ = ν` by
+  `ext_of_generate_finite`; equality of all BC integrals is then immediate. -/
 theorem integral_boundedContinuous_eq_of_integral_lipschitz_eq
     {α : Type*}
     [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
@@ -660,34 +611,22 @@ theorem integral_boundedContinuous_eq_of_integral_lipschitz_eq
   · rw [BorelSpace.measurable_eq (α := α), borel_eq_generateFrom_isClosed]
 
 
-/-! ## W₁ property stragglers (separation, narrow-liminf LSC, ofReal-exp monotonicity)
-    — moved from Basic in the Phase D straggler mop-up. -/
+/-! ## Further `wasserstein1` properties
+    (separation, narrow-liminf LSC, ofReal-exp monotonicity). -/
 
-/-- **Separation lemma for `wasserstein1`** (Stage 2b part 4, 2026-05-31).
+/-- **Separation lemma for `wasserstein1`.**
 
 For probability measures μ, ν on a Polish normed space with finite
 first moments, `W₁(μ, ν) = 0` iff `μ = ν`.
 
-**Property-only proof per forward-looking close discipline** (planning-
-notes commit `9b70ecb`).  `wasserstein1` enters the proof body
-exclusively through banked property lemmas:
-* `wasserstein1_self` (trivial direction).
-* `wasserstein1_dual_lower_bound` (W₁=0 → 1-Lipschitz integral
-  equality).
+`wasserstein1` enters the proof body only through its property lemmas:
+* `wasserstein1_self` (backward direction).
+* `wasserstein1_dual_lower_bound` (W₁=0 → 1-Lipschitz integral equality).
 
 The substantive middle (1-Lipschitz equality → BC equality) is
-banked as the named pure-FA placeholder
-`integral_boundedContinuous_eq_of_integral_lipschitz_eq` (above).
-The final step (BC equality → μ = ν) routes through Mathlib's
-`ext_of_forall_integral_eq_of_IsFiniteMeasure`
-(`HasOuterApproxClosed.lean` L268).
-
-**No `simp [wasserstein1]` or `unfold wasserstein1` anywhere in the
-body** — `wasserstein1` enters only via the property API and the
-hypothesis `h_w1_zero : wasserstein1 μ ν = 0`.  W̄-survivor by
-construction: when W̄ replaces `wasserstein1`, the only changes are
-the property-lemma proofs (mechanical re-derivation); this lemma's
-body composes against the abstract property API and recompiles. -/
+`integral_boundedContinuous_eq_of_integral_lipschitz_eq` (above); the final
+step (BC equality → μ = ν) routes through Mathlib's
+`ext_of_forall_integral_eq_of_IsFiniteMeasure`. -/
 lemma wasserstein1_eq_zero_iff_measure_eq
     {α : Type*}
     [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
@@ -728,8 +667,8 @@ lemma wasserstein1_eq_zero_iff_measure_eq
         simp only [Pi.neg_apply, integral_neg]; ring
       rw [h_neg_int] at h_diff_neg
       linarith
-    -- Step 2 (placeholder, W̄-survivor): 1-Lipschitz integral equality → BC integral
-    -- equality.  See `integral_boundedContinuous_eq_of_integral_lipschitz_eq` above.
+    -- Step 2: 1-Lipschitz integral equality → BC integral equality.
+    -- See `integral_boundedContinuous_eq_of_integral_lipschitz_eq` above.
     have h_bc_eq : ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
       integral_boundedContinuous_eq_of_integral_lipschitz_eq μ ν hμ_int hν_int h_1lip_eq
     -- Step 3 (Mathlib `ext_of_forall_integral_eq_of_IsFiniteMeasure`): BC equality → μ=ν.
@@ -745,12 +684,11 @@ functions) and `μ, ν` have finite first moments, then
 `W₁(μ, ν) ≤ liminf_n W₁(μ, νs n)`.
 
 This is the *static* optimal-transport fact — pure lower semicontinuity of the
-metric under weak convergence, with no flow/superposition — and is the
-load-bearing piece for closing `MathlibTODO_cauchyW1_hasNarrowLimit`
-**in-project** (Prokhorov supplies the narrow limit; this upgrades a W₁-Cauchy
-sequence to W₁-convergence, no Foundation A needed).  Distinct from the *dynamic*
-narrow continuity along a Vlasov flow (`MathlibTODO_W1ContOn_lscNarrow`), which
-genuinely needs DiPerna–Lions superposition; the static LSC does not.
+metric under weak convergence, with no flow/superposition.  Prokhorov supplies
+the narrow limit; this upgrades a W₁-Cauchy sequence to W₁-convergence.
+Distinct from the *dynamic* narrow continuity along a Vlasov flow
+(`MathlibTODO_W1ContOn_lscNarrow`), which genuinely needs DiPerna–Lions
+superposition; the static LSC does not.
 
 **Proof.**  For each 1-Lipschitz `φ` truncate to `φ_k = clamp(φ, -k, k)` (bounded
 and 1-Lipschitz).  Narrow convergence gives `∫ φ_k d(νs n) → ∫ φ_k dν`, and the
@@ -880,15 +818,12 @@ lemma wasserstein1_ofReal_exp_monotone
   exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)
 
 -- `dobrushin_ennreal_bound`, `dobrushin_package_exists`, and `dobrushin`
--- (the .tex thm:dobrushin marquee) **relocated to
--- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
--- 2026-05-31).  The marquee theorem `dobrushin` follows its chain
--- (items 5/6 + W1ContOn + Gronwall lift + ennreal bound) to CharFlow so
--- the substantive close paths can compose against flow infrastructure.
--- The Basic-resident `meanFieldLimit` (below) consumes the Dobrushin
--- estimate as a hypothesis (`hDobrushin : ∀ N, DobrushinStabilityEstimate
--- ...`) rather than calling `dobrushin` directly, so this relocation
--- doesn't ripple to `meanFieldLimit`'s signature.
+-- (the .tex thm:dobrushin marquee) live in
+-- `Vlasov/OT/CharacteristicFlow.lean` §10, alongside the flow infrastructure
+-- their proofs compose against (items 5/6 + W1ContOn + Gronwall lift + ennreal
+-- bound).  `meanFieldLimit` consumes the Dobrushin estimate as a hypothesis
+-- (`hDobrushin : ∀ N, DobrushinStabilityEstimate ...`) rather than calling
+-- `dobrushin` directly.
 
 -- ---------------------------------------------------------------------------
 -- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)

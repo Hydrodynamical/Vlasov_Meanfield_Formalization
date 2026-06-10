@@ -1,7 +1,20 @@
 /-
-Formalization skeleton for "Derivation of the Vlasov Equation from N-Particle Hamiltonian Dynamics".
-Generated from vlasov.tex.
-All proofs are `sorry`; this file is a statement-only scaffold.
+# Derivation of the Vlasov equation from N-particle Hamiltonian dynamics
+
+Formalization of the companion paper (`vlasov.tex`).  This file develops the
+mean-field theory of the Vlasov equation:
+
+* the N-particle mean-field Hamiltonian and Newton equations of motion;
+* the empirical measure of a configuration and its weak (distributional)
+  evolution along Newton trajectories;
+* the distributional Vlasov equation and its Lagrangian (characteristic-flow)
+  formulation;
+* the Kantorovich–Rubinstein convolution estimate and the Dobrushin
+  Wasserstein-1 stability estimate;
+* the mean-field limit theorem: the empirical measures of the N-particle
+  system converge in W₁ to the Vlasov solution as N → ∞.
+
+`(tex: …)` labels cross-reference the companion LaTeX paper.
 -/
 
 import Mathlib
@@ -22,7 +35,7 @@ Phase space for a single particle is `EuclideanSpace ℝ (Fin d) × EuclideanSpa
 
 variable {d : ℕ} [NeZero d]
 
--- `PhysSpace`/`PhaseSpace` moved to `Vlasov/Base/Geometry.lean` (Phase D).
+-- `PhysSpace`/`PhaseSpace` live in `Vlasov/Base/Geometry.lean`.
 
 -- ---------------------------------------------------------------------------
 -- §1  Equation (Hamiltonian)   (tex: eq:HN)
@@ -216,9 +229,6 @@ noncomputable def spatialMarginal (μ : Measure (PhaseSpace d)) :
     Measure (PhysSpace d) :=
   Measure.map Prod.fst μ
 
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/weakEvolutionEmpiricalMeasure.json`. -/
-
 /-- The integral of a function φ against the empirical measure `empiricalMeasure N X V`
 equals `(1/N) * ∑ i, φ(X i, V i)`, by unfolding the weighted sum of Dirac masses. -/
 lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
@@ -235,16 +245,12 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
 derivative `⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨a t i, gradVφ (X t i, V t i)⟩` at t,
 where `a t i` is the acceleration vector at particle i and time t.
 
-Signature refactored (Phase B of the 2026-05-25 plan): φ's Fréchet derivative is
-an INPUT hypothesis `hφ_fderiv` instead of being derived inside the helper.  This
-lifts the `ContDiff.hasFDerivAt + WithLp.toLp + gradient → toDual → toLinearMap`
-type-class friction up to the call site (where `ContDiff ℝ ⊤ φ` is already a
-hypothesis and the Fréchet derivative is a one-line `have`).  The body of this
-helper is then a straight composition:
+φ's Fréchet derivative is an input hypothesis `hφ_fderiv` rather than derived
+inside the helper, keeping the body a straight composition:
   · `HasDerivAt.prodMk hX hV` gives the curve derivative `t ↦ (X t i, V t i)`.
   · `(hφ_fderiv (X t i, V t i)).comp_hasDerivAt` composes through φ.
   · Unfolding `gradXφ`/`gradVφ` via `hgradXφ`/`hgradVφ` and rewriting the
-    Fréchet derivative's action via `inner_product` partial-derivative
+    Fréchet derivative's action via inner-product partial-derivative
     identities gives the target inner-product form. -/
 lemma hasDerivAt_phi_along_trajectory (N : ℕ)
     (X V : ℝ → Fin N → PhysSpace d)
@@ -348,12 +354,11 @@ lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
 
 /-- Convolution of the kernel `gradW` against the spatial marginal of the
 empirical measure unfolds to the explicit finite sum
-`(1/N) • Σⱼ gradW(X t i − X t j)`.  This is the API-navigation step that
-separates the Measure-pushforward / Dirac-integration machinery from the
-algebraic "add and subtract the diagonal" step in `diagonalCorrection_eq`.
+`(1/N) • Σⱼ gradW(X t i − X t j)`.  This separates the measure-pushforward /
+Dirac-integration machinery from the algebraic "add and subtract the diagonal"
+step in `diagonalCorrection_eq`.
 
-Proof strategy (decomposer-supplied mathlib_hints, grep-validated against
-Mathlib 4.x at `.lake/packages/mathlib/`):
+Proof strategy:
   1. `empiricalMeasureCurve` and `empiricalMeasure` unfold to
      `(1/N : ℝ≥0∞) • Σⱼ Measure.dirac (X t j, V t j)`.
   2. `Measure.map_smul` (`MeasureTheory/Measure/Map.lean:127`) pushes
@@ -771,14 +776,13 @@ def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
 def HasFiniteFirstMoment (μ : Measure (PhaseSpace d)) : Prop :=
   IsProbabilityMeasure μ ∧ Integrable (fun z : PhaseSpace d => ‖z‖) μ
 
--- The §9 statement `vlasovWellPosedness` (tex: thm:vlasov-wp) has been
--- relocated to `Vlasov/OT/CharacteristicFlow.lean` so its proof can compose
--- directly with the characteristic-flow infrastructure
--- (`exists_vlasov_characteristicFlow`, `flow_distance_growth_bound`,
--- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`).  See the
--- declaration site in `CharacteristicFlow.lean` for the full statement and
--- proof status; the `HasFiniteFirstMoment` predicate above stays here, used
--- by `vlasovWellPosedness`'s hypothesis and by the `_lag` cascade.
+-- The §9 statement `vlasovWellPosedness` (tex: thm:vlasov-wp) lives in
+-- `Vlasov/OT/CharacteristicFlow.lean`, where it composes directly with the
+-- characteristic-flow infrastructure (`exists_vlasov_characteristicFlow`,
+-- `flow_distance_growth_bound`,
+-- `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`).  The
+-- `HasFiniteFirstMoment` predicate above stays here, used by
+-- `vlasovWellPosedness`'s hypothesis and by the Lagrangian solution cascade.
 
 -- ---------------------------------------------------------------------------
 -- §10  Equation (Characteristic / mean-field ODE)   (tex: eq:char)
@@ -836,27 +840,22 @@ satisfies the weak PDE AND admits a global characteristic flow `(charX, charV)`
 such that `f t = (charX t, charV t)_# (f 0)` for every `t`.
 
 This is the regularity level at which the dynamic-continuity / Lipschitz-on-
-flow / dominated-convergence-on-trajectory proofs (USC of W₁ under narrow
-convergence, derivative bound for Gronwall, narrow continuity in the KR-dual
-formulation) compose cleanly.  The session's three structural-failure
-datapoints (`MathlibTODO_W1ContOn_uscNarrow`, `vlasov_trajectory_lipschitz_bound`,
-`w1_lscNarrow_integralContOn_lip`) all root-cause to the absence of these
-witnesses in the abstract `IsVlasovSolution`.
+flow / dominated-convergence-on-trajectory arguments (upper semicontinuity of
+W₁ under narrow convergence, the derivative bound feeding Gronwall, narrow
+continuity in the KR-dual formulation) compose cleanly — these all need the
+flow witness, which the abstract `IsVlasovSolution` does not carry.
 
-Proved producers:
+Producers:
   * `vlasovSolutionViaPushforward_isLagrangianVlasovSolution`
-    (`Vlasov/OT/CharacteristicFlow.lean`) — trivially, since the Stage C
-    wrapper already takes the flow as a hypothesis and the pushforward
-    equation holds by `vlasovSolutionViaPushforward`'s definition.
-  * `vlasovWellPosedness` produces `IsLagrangianVlasovSolution` from a
-    Banach fixed-point construction on spatial marginals — the characteristic
-    flow falls out of the existence proof as a byproduct, so the predicate's
-    stronger conclusion is free of additional infrastructure cost.
+    (`Vlasov/OT/CharacteristicFlow.lean`) — takes the flow as a hypothesis,
+    and the pushforward equation holds by `vlasovSolutionViaPushforward`'s
+    definition.
+  * `vlasovWellPosedness` produces `IsLagrangianVlasovSolution` from a Banach
+    fixed-point construction on spatial marginals — the characteristic flow
+    falls out of the existence proof, so the stronger conclusion costs no
+    extra infrastructure.
 
-Strict additivity: `IsLagrangianVlasovSolution gradW f → IsVlasovSolution gradW f`
-by `.1`.  No existing `IsVlasovSolution` consumer needs to migrate; opt-in
-`_lag` variants of targets that need the flow witness (uscNarrow, derivBound,
-H1, SC.8) are introduced as new declarations alongside the originals. -/
+`IsLagrangianVlasovSolution gradW f → IsVlasovSolution gradW f` by `.1`. -/
 def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) : Prop :=
   IsVlasovSolution gradW f ∧
@@ -869,57 +868,33 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
 -- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)
 -- ---------------------------------------------------------------------------
 
--- TODO(mathlib): Wasserstein-1 distance between probability measures is
--- available in Mathlib as `MeasureTheory.ProbabilityMeasure.FiniteWasserstein`
--- or via `MeasureTheory.Measure.HasFiniteWasserstein`, but the API is still
--- developing.  We introduce a local placeholder `wasserstein1`.
+-- The Wasserstein-1 distance (`wasserstein1`), `wassersteinCost`, and
+-- `wassersteinBar` OT core live in `Vlasov/OT/Wasserstein.lean`.
+-- `HasFiniteFirstMoment` (PhaseSpace-specific) stays here.
+/-- Completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.
 
--- The Wasserstein-1 / wassersteinCost / wassersteinBar OT core moved to
--- `Vlasov/OT/Wasserstein.lean` (Phase D).  `HasFiniteFirstMoment` (PhaseSpace-
--- specific) and the W₁ property stragglers (eq_zero_iff, le_liminf_of_narrow,
--- ofReal_exp_monotone) stay here for now.
--- W₁ property stragglers (eq_zero_iff, le_liminf_of_narrow, ofReal_exp_monotone)
--- moved to `Vlasov/OT/Wasserstein.lean` (Phase D straggler mop-up).
-/-- **Mathlib-TODO: completeness of `(𝒫_1(PhysSpace d), W₁)` for Polish spaces.**
+A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit in
+`𝒫_1`.  The proof routes through Prokhorov + tightness from the moment bound
++ narrow-to-W₁ upgrade under moment control.
 
-A Cauchy sequence in W₁ with a uniform first-moment bound has a W₁-limit
-in `𝒫_1`.  The proof routes through Prokhorov + tightness from the moment
-bound + narrow-to-W₁ upgrade under moment control.  Mathlib's
-narrow-tightness machinery for Polish spaces is not stable at time of
-writing; lifted to a placeholder until upstream catches up.
-
-**Used by**: Stage 4 of the well-posedness plan to lift the Picard
-iteration's Cauchy sequence (derived from the `Phi_supW1_contraction`
-contraction estimate) to a W₁-limit in the curve space.  The resulting
-limit is a fixed point of the Picard iteration, which yields a
-self-consistent characteristic flow + Vlasov solution on `[0, T₀]`.
-
-**Architectural rationale** (per plan's Stage 4 decision): treating this
-as a named placeholder is consistent with the project's strategic
-discipline.  The four existing `MathlibTODO_*` placeholders made the same
-trade — known-doable Mathlib-OT gap, deferred to a separate focused
-session, with the API in place so downstream consumers compose cleanly.
-Closure routes through Prokhorov + narrow-tightness for Polish spaces;
-substantial Mathlib-OT effort, treated as separate from the project's
-critical-path closure.
-
-**Sorry-count impact**: +1 (placeholder body) — planned per the plan's
-Stage 4 sorry-count trajectory `5 → 6`. -/
+Used to lift the Picard iteration's Cauchy sequence (from the
+`Phi_supW1_contraction` contraction estimate) to a W₁-limit in the curve
+space; the limit is a fixed point of the Picard iteration, yielding a
+self-consistent characteristic flow + Vlasov solution on `[0, T₀]`. -/
 theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
     (ν : ℕ → Measure (PhysSpace d)) [∀ n, IsProbabilityMeasure (ν n)]
     (M : ℝ) (hMom : ∀ n, ∫ y, ‖y‖ ∂(ν n) ≤ M)
     (h_yint : ∀ n, Integrable (fun y : PhysSpace d => ‖y‖) (ν n))
-    -- Cauchy hypothesis in ENNReal form (per M-series design principle:
-    -- ENNReal-valued algebraic arguments stay in ENNReal; project to ℝ
-    -- via `.toReal` only at the boundary or not at all).
+    -- Cauchy hypothesis in ENNReal form (kept in ENNReal throughout,
+    -- projecting to ℝ via `.toReal` only at the boundary).
     (hCauchy : ∀ ε : ENNReal, 0 < ε → ∃ N, ∀ m n, N ≤ m → N ≤ n →
                  wasserstein1 (ν m) (ν n) < ε) :
     ∃ μ : Measure (PhysSpace d), IsProbabilityMeasure μ ∧
       Integrable (fun y : PhysSpace d => ‖y‖) μ ∧
       -- Moment-preservation: the bound `M` passes to the limit by
       -- lower-semicontinuity of `∫ ‖·‖ ∂·` under W₁-convergence.  Standard
-      -- consequence of W₁-convergence + uniform moment control; included
-      -- in the placeholder's conclusion so downstream consumers
+      -- consequence of W₁-convergence + uniform moment control; exposed in
+      -- the conclusion so downstream consumers
       -- (`picard_iterate_bundlesAs_VlasovMeasureCurve`) can re-use the
       -- same moment bound for the limit's `VlasovMeasureCurve` packaging.
       ∫ y, ‖y‖ ∂μ ≤ M ∧
@@ -1097,42 +1072,16 @@ theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
         Filter.liminf_le_liminf h_ev_le
     _ = ε := Filter.liminf_const ε
 
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/dobrushin.json`. -/
-
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/MathlibTODO_convolveLipschitzEstimate.json`. -/
-
 /-!
-## Note on the remaining sorries in this cascade
+## Note on finiteness in the convolution Lipschitz cascade
 
-`convolveLipschitz_KR_le`, `convolveLipschitz_inner_bound`, the parent
-`MathlibTODO_convolveLipschitzEstimate`, and (downstream) the
-`wassersteinGronwallCoupling_ofReal_le` + parent
-`MathlibTODO_wassersteinGronwallCoupling` all conclude in `.toReal`
-of an ENNReal expression involving `wasserstein1 ρ σ`.  The
-inequality is FALSE without a finiteness hypothesis on
-`wasserstein1 ρ σ`, because `(⊤ : ℝ≥0∞).toReal = 0` collapses any
-positive LHS bound by a `wasserstein1` term.
-
-To close these sorries constructively, we'd need either
-  (a) thread `wasserstein1 ρ σ ≠ ⊤` as a hypothesis through the
-      cascade and derive it at the dobrushin call site from
-      `HasFiniteFirstMoment` via a `wasserstein1_lt_top_of_finite_moment`
-      lemma (provable but ~30-50 lines of measure-theoretic
-      plumbing); or
-  (b) restate the cascade in ENNReal form (no `.toReal`), where the
-      bound holds trivially when `wasserstein1 = ⊤`.
-
-Either is a structural change beyond the scope of the current
-cleanup pass, so the cascade stays decomposed-with-sorries: each
-helper has a clear constructive sketch in its docstring, and the
-plan JSON records the textbook proof structure.  The remaining
-`MathlibTODO_*` placeholders (`W1ContOn`, `derivBound`) are the
-genuine PDE/coupling-theory gaps and are blocked on Mathlib OT
-infrastructure (full KR duality, characteristic flow theory for
-measure-valued ODEs).  See `formalize/DESIGN.md` for the bigger
-picture.
+`convolveLipschitz_KR_le`, `convolveLipschitz_inner_bound`, and
+`MathlibTODO_convolveLipschitzEstimate` conclude in `.toReal` of an ENNReal
+expression involving `wasserstein1 ρ σ`.  The inequality requires a finiteness
+hypothesis `wasserstein1 ρ σ ≠ ⊤`: without it `(⊤ : ℝ≥0∞).toReal = 0` would
+collapse any positive LHS bound.  The hypothesis is threaded through the
+cascade and discharged at the Dobrushin call site from `HasFiniteFirstMoment`
+via `wasserstein1_lt_top_of_finite_moment`.  See `formalize/DESIGN.md`.
 -/
 
 
@@ -1348,42 +1297,15 @@ theorem MathlibTODO_convolveLipschitzEstimate
     ((L : ℝ) * (wasserstein1 ρ σ).toReal)
     (convolveLipschitz_inner_bound gradW L hL ρ σ x hW hρ_int hσ_int)
 
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling.json`. -/
+/-- W₁-continuity of the integral against a Lagrangian Vlasov solution.
 
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/MathlibTODO_wassersteinGronwallCoupling_W1ContOn.json`. -/
-
-/-! Decomposed by sorry-decomposer.
-    See `formalize/plans/MathlibTODO_W1ContOn_lscNarrow.json`. -/
-
--- Removed (closure-plan Sorry 1, 2026-05-31):
---   `w1_lscNarrow_integralContOn_lip` (the sorry'd non-`_lag` version)
---   + downstream chain `w1_lscNarrow_diff_contOn` + `w1_lscNarrow_summand_lscOn`.
--- The chain was sorry-decomposer scaffolding for `MathlibTODO_W1ContOn_lscNarrow`.
--- Since the load-bearing sub-lemma is unprovable without DiPerna-Lions
--- superposition (out of scope), the chain has been removed and
--- `MathlibTODO_W1ContOn_lscNarrow` is now a direct sorry placeholder per the
--- MathlibTODO-only-state cleanup arc.
--- The `_lag` variant `w1_lscNarrow_integralContOn_lip_lag` (which IS proved
--- via the pushforward equation) is preserved below as banked infrastructure.
-
-/-- **`_lag` variant of `w1_lscNarrow_integralContOn_lip`** — uses the
-enriched `IsLagrangianVlasovSolution` predicate instead of bare
-`IsVlasovSolution`.
-
-The enrichment makes the proof structurally clean: by the pushforward
-equation `f t = Measure.map (charX t, charV t) (f 0)` and `integral_map`,
-`∫ φ d(f t) = ∫ (φ ∘ (charX t, charV t)) d(f 0)`.  Continuity in `t` then
-reduces to dominated convergence on the *fixed* measure `f 0`, with
-pointwise continuity from the flow's `HasDerivAt` and an integrable
-dominator from `HasFiniteFirstMoment (f 0)` + a flow-growth bound.
-
-The mollification approach (which couldn't close due to non-uniform-in-t
-first moments) is bypassed entirely.
-
-This `_lag` variant exists alongside the original (which remains sorry'd)
-for opt-in consumers that have access to the characteristic flow witness. -/
+Uses the enriched `IsLagrangianVlasovSolution` predicate (carrying the
+characteristic flow), which makes the proof structurally clean: by the
+pushforward equation `f t = Measure.map (charX t, charV t) (f 0)` and
+`integral_map`, `∫ φ d(f t) = ∫ (φ ∘ (charX t, charV t)) d(f 0)`.  Continuity
+in `t` then reduces to dominated convergence on the *fixed* measure `f 0`,
+with pointwise continuity from the flow's `HasDerivAt` and an integrable
+dominator from `HasFiniteFirstMoment (f 0)` + a flow-growth bound. -/
 lemma w1_lscNarrow_integralContOn_lip_lag
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1392,10 +1314,9 @@ lemma w1_lscNarrow_integralContOn_lip_lag
     (hf_lag : IsLagrangianVlasovSolution gradW f)
     (hf_prob_0 : HasFiniteFirstMoment (f 0))
     (T : ℝ) (hT : 0 ≤ T)
-    -- Flow-growth prerequisites: imported from `flow_distance_growth_bound`.
-    -- Eventual callers (e.g. `vlasovWellPosedness`) will derive these from
-    -- `HasFiniteFirstMoment (f 0)` + `LipschitzWith gradW` via a bootstrap
-    -- Gronwall on the first moment of the spatial marginal.
+    -- Flow-growth prerequisites: callers (e.g. `vlasovWellPosedness`) derive
+    -- these from `HasFiniteFirstMoment (f 0)` + `LipschitzWith gradW` via a
+    -- Gronwall bootstrap on the first moment of the spatial marginal.
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t ∈ Set.Icc 0 T,
       ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
@@ -1557,14 +1478,6 @@ lemma w1_lscNarrow_integralContOn_lip_lag
         (hflow_x s z).continuousAt.prodMk (hflow_v s z).continuousAt
     · exact fun _ _ => Set.mem_univ _
 
--- Removed (closure-plan Sorry 1, 2026-05-31):
---   `w1_lscNarrow_diff_contOn` (depended on the removed
---   `w1_lscNarrow_integralContOn_lip`).
---   `w1_lscNarrow_summand_lscOn` (depended on the removed `_diff_contOn`).
--- See the removal comment above `w1_lscNarrow_integralContOn_lip_lag` for
--- the closure-plan rationale.  `MathlibTODO_W1ContOn_lscNarrow` below now
--- has a direct sorry body instead of composing through the removed chain.
-
 /-- Given per-1-Lipschitz LSC of each summand `t ↦ ENNReal.ofReal(∫φd(f t) - ∫φd(g t))`,
 the Wasserstein-1 distance `wasserstein1 (f t) (g t) = ⨆ φ (_ : LipschitzWith 1 φ), …`
 is LowerSemicontinuousOn `Set.Icc 0 T` as a double supremum of LSC functions
@@ -1600,9 +1513,9 @@ lemma wassersteinGronwallCoupling_gronwall_le
     hcont hderiv hinit (fun _ _ => by linarith) t ht
   rwa [sub_zero, gronwallBound_ε0] at key
 
-/-- **Scalar mild-form Gronwall** (integrated-Dobrushin collapse, `M→0` core,
-2026-06-03): a continuous nonnegative `Q` satisfying the *integral* inequality
-`Q t ≤ q0 + K · ∫₀ᵗ Q` on `[0, T]` obeys `Q t ≤ q0 · exp (K t)`.
+/-- **Scalar mild-form Gronwall**: a continuous nonnegative `Q` satisfying the
+*integral* inequality `Q t ≤ q0 + K · ∫₀ᵗ Q` on `[0, T]` obeys
+`Q t ≤ q0 · exp (K t)`.
 
 This is the mild-form companion to `wassersteinGronwallCoupling_gronwall_le`
 (which takes the Dini/right-derivative form).  The integrated coupling-Gronwall
@@ -1648,11 +1561,10 @@ lemma gronwall_mild_le (Q : ℝ → ℝ) (q0 K T : ℝ) (hK : 0 ≤ K) (hq0 : 0 
   rw [sub_zero, gronwallBound_ε0, Real.norm_eq_abs, abs_of_nonneg (hG_nonneg t ht)] at hgb
   exact le_trans (hmild t ht) hgb
 
--- `wassersteinGronwallCoupling_real_bound` (formerly here) **relocated to
--- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
--- 2026-05-31).  Calls the now-CharFlow-resident W1ContOn and item 6,
--- plus the still-in-Basic `wassersteinGronwallCoupling_gronwall_le`
--- helper.
+-- `wassersteinGronwallCoupling_real_bound` lives in
+-- `Vlasov/OT/CharacteristicFlow.lean` §10, where it composes with the
+-- CharFlow-resident W₁-continuity machinery and the
+-- `wassersteinGronwallCoupling_gronwall_le` helper above.
 
 /-- For reals δ ≥ 0 and C > 0 and t ≥ 0, if r ≤ δ * Real.exp(C * t) then
 ENNReal.ofReal r ≤ ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ.
@@ -1663,20 +1575,16 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
       ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
   rw [ENNReal.ofReal_mul hδ, mul_comm]
 
--- `wassersteinGronwallCoupling_ofReal_le` (formerly here) **relocated to
--- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
--- 2026-05-31).  Calls the relocated `wassersteinGronwallCoupling_real_bound`.
-
--- `MathlibTODO_wassersteinGronwallCoupling` (formerly here) **relocated to
--- `Vlasov/OT/CharacteristicFlow.lean` §10** (Phase 4 Path A Stage 2a,
--- 2026-05-31).  Thin wrapper around the relocated
--- `wassersteinGronwallCoupling_ofReal_le`.
+-- `wassersteinGronwallCoupling_ofReal_le` and
+-- `MathlibTODO_wassersteinGronwallCoupling` live in
+-- `Vlasov/OT/CharacteristicFlow.lean` §10, built on
+-- `wassersteinGronwallCoupling_real_bound`.
 
 /-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
 on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.
 This is the key estimate: the convolution ∇W * ρ is Lipschitz in ρ with respect to
 the Wasserstein-1 distance, via Kantorovich–Rubinstein duality.
-TODO(mathlib): depends on `MathlibTODO_convolveLipschitzEstimate` Mathlib gap. -/
+A thin wrapper around `MathlibTODO_convolveLipschitzEstimate`. -/
 lemma convolveDiff_norm_le
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -1750,7 +1658,6 @@ theorem meanFieldLimit
       (fun N : ℕ => ⨆ t ∈ Set.Icc 0 T,
         wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t))
       Filter.atTop (nhds 0) := by
-  -- Skeleton from sorry-prover; finished manually.
   -- (1) hsup_bound: for each N, the sup over t ∈ [0,T] is bounded by
   --     exp(C·T) · W_1(μ_0^N, f_0).  Uses hDobrushin pointwise then
   --     monotonicity of exp to lift `t` to the upper endpoint T.
