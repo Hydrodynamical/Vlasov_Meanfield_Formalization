@@ -229,7 +229,7 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
   simp only [empiricalMeasure]
   rw [integral_smul_measure]
   rw [integral_finset_sum_measure (fun i _ => integrable_dirac (by simp))]
-  simp [integral_dirac, ENNReal.toReal_div, ENNReal.toReal_natCast, smul_eq_mul]
+  simp [integral_dirac, ENNReal.toReal_natCast, smul_eq_mul]
 
 /-- For a smooth test function φ, the chain rule gives: the map `t ↦ φ(X t i, V t i)` has
 derivative `⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨a t i, gradVφ (X t i, V t i)⟩` at t,
@@ -280,11 +280,11 @@ lemma hasDerivAt_phi_along_trajectory (N : ℕ)
   have hgX : @inner ℝ (PhysSpace d) _ (V t i) (gradient (fun x => φ (x, z.2)) z.1) =
       fderiv ℝ (fun x => φ (x, z.2)) z.1 (V t i) := by
     rw [inner_gradient_right hpX.differentiableAt]
-    simp [RCLike.conj_eq_iff_re, conj_trivial]
+    simp
   have hgV : @inner ℝ (PhysSpace d) _ (a t i) (gradient (fun v => φ (z.1, v)) z.2) =
       fderiv ℝ (fun v => φ (z.1, v)) z.2 (a t i) := by
     rw [inner_gradient_right hpV.differentiableAt]
-    simp [RCLike.conj_eq_iff_re, conj_trivial]
+    simp
   rw [hgX, hgV, hpX.fderiv, hpV.fderiv]
   simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
         ContinuousLinearMap.inr_apply]
@@ -390,7 +390,7 @@ lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
   -- Each Dirac integral collapses to the function value at the centre.
   simp only [integral_dirac' _ _ hsm_z]
   -- Normalize (1/(N:ℝ≥0∞)).toReal = 1/(N:ℝ); the .1 projection collapses on pairs.
-  simp [ENNReal.toReal_div, ENNReal.toReal_natCast]
+  simp [ENNReal.toReal_natCast]
 
 /-- The remainder term `r` in the weak evolution identity equals
 `(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
@@ -557,7 +557,7 @@ theorem weakEvolutionEmpiricalMeasure
     -- φ is a smooth compactly supported test function on phase space
     (φ : PhaseSpace d → ℝ)
     (hφ_smooth : ContDiff ℝ ⊤ φ)
-    (hφ_compact : HasCompactSupport φ)
+    (_hφ_compact : HasCompactSupport φ)
     -- ∇_x φ and ∇_v φ regarded as functions
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
@@ -1114,7 +1114,7 @@ lemma convolveLipschitz_KR_le
     have := (ENNReal.toReal_le_toReal ENNReal.ofReal_ne_top hW).mpr h_sup
     rwa [ENNReal.toReal_ofReal h_pos] at this
   · -- negative case: LHS < 0 ≤ wasserstein1.toReal
-    push_neg at h_pos
+    push Not at h_pos
     exact h_pos.le.trans ENNReal.toReal_nonneg
 
 /-- For any `v : PhysSpace d` with `‖v‖ ≤ 1`, the real inner product
@@ -1479,7 +1479,7 @@ Gronwall's inequality gives h(t) ≤ δ * Real.exp(C * t) for all t ∈ [0, T].
 This wraps Mathlib's `le_gronwallBound_of_liminf_deriv_right_le` with ε = 0
 and then simplifies via `gronwallBound_ε0`. -/
 lemma wassersteinGronwallCoupling_gronwall_le
-    (h : ℝ → ℝ) (δ C T : ℝ) (hT : 0 ≤ T)
+    (h : ℝ → ℝ) (δ C T : ℝ) (_hT : 0 ≤ T)
     (hcont : ContinuousOn h (Set.Icc 0 T))
     (hinit : h 0 ≤ δ)
     (hderiv : ∀ s ∈ Set.Ico 0 T, ∀ r : ℝ, C * h s < r →
@@ -1612,16 +1612,16 @@ that would need a separate hypothesis to link them to the trajectory.
 theorem meanFieldLimit
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
+    (_hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (_hL : LipschitzWith L gradW)
     -- the Vlasov solution with initial datum f₀
-    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    (f₀ : Measure (PhaseSpace d)) (_hf₀ : HasFiniteFirstMoment f₀)
     (f : ℝ → Measure (PhaseSpace d))
-    (hf_sol : IsLagrangianVlasovSolution gradW f)
+    (_hf_sol : IsLagrangianVlasovSolution gradW f)
     (hf_init : f 0 = f₀)
     -- N-particle Newton trajectories; initial data is `(X N 0, V N 0)`.
     (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
-    (hSol : ∀ (N : ℕ), IsNewtonSolution N gradW (X N) (V N))
+    (_hSol : ∀ (N : ℕ), IsNewtonSolution N gradW (X N) (V N))
     -- initial empirical measures converge to f₀ in W_1
     (hInit : Filter.Tendsto
       (fun N : ℕ => wasserstein1 (empiricalMeasure N (X N 0) (V N 0)) f₀)
@@ -1630,7 +1630,7 @@ theorem meanFieldLimit
     (C : ℝ) (hC : 0 < C)
     (hDobrushin : ∀ (N : ℕ), DobrushinStabilityEstimate
       (empiricalMeasureCurve N (X N) (V N)) f C)
-    (T : ℝ) (hT : 0 < T) :
+    (T : ℝ) (_hT : 0 < T) :
     Filter.Tendsto
       (fun N : ℕ => ⨆ t ∈ Set.Icc 0 T,
         wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t))

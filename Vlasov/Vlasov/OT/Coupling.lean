@@ -97,7 +97,7 @@ theorem wasserstein1_le_wasserstein1_coupling
   -- Goal: ENNReal.ofReal (∫φ dμ - ∫φ dν) ≤ ∫⁻ z, edist z.1 z.2 ∂π
   by_cases h_top : ∫⁻ z, edist z.1 z.2 ∂π = ⊤
   · rw [h_top]; exact le_top
-  push_neg at h_top
+  push Not at h_top
   -- Step 1: π inherits IsProbabilityMeasure from its first marginal μ.
   haveI hπ_prob : IsProbabilityMeasure π := by
     refine ⟨?_⟩
@@ -267,7 +267,7 @@ triangle `c x z ≤ c x y + c y z`).  The load-bearing facts are the two margina
 `bind`/`map`/`comap` law). -/
 theorem exists_coupling_glue
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
-    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
@@ -571,8 +571,8 @@ since `μ univ = 1`. -/
 lemma lintegral_ofReal_kept_cells_le
     {α : Type*} [MeasurableSpace α]
     {μ : Measure α} [IsProbabilityMeasure μ]
-    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
-    (As : ℕ → Set α) (hAs_mble : ∀ n, MeasurableSet (As n))
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (As : ℕ → Set α) (_hAs_mble : ∀ n, MeasurableSet (As n))
     (N : ℕ) (δ : ℝ) (_hδ : 0 < δ)
     (T : α → α)
     (hcT_le : ∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ) :
@@ -916,11 +916,11 @@ def transportProperCone (Cost : m → n → ℝ) :
         refine ⟨P1 + P2, s1 + s2, fun i j => add_nonneg (hP1 i j) (hP2 i j),
           add_nonneg hs1 hs2, ?_⟩
         refine Prod.ext (funext fun i => ?_) (Prod.ext (funext fun j => ?_) ?_)
-        · show (∑ j, P1 i j) + (∑ j, P2 i j) = ∑ j, (P1 i j + P2 i j)
+        · change (∑ j, P1 i j) + (∑ j, P2 i j) = ∑ j, (P1 i j + P2 i j)
           rw [Finset.sum_add_distrib]
-        · show (∑ i, P1 i j) + (∑ i, P2 i j) = ∑ i, (P1 i j + P2 i j)
+        · change (∑ i, P1 i j) + (∑ i, P2 i j) = ∑ i, (P1 i j + P2 i j)
           rw [Finset.sum_add_distrib]
-        · show ((∑ i, ∑ j, Cost i j * P1 i j) + s1) + ((∑ i, ∑ j, Cost i j * P2 i j) + s2)
+        · change ((∑ i, ∑ j, Cost i j * P1 i j) + s1) + ((∑ i, ∑ j, Cost i j * P2 i j) + s2)
               = (∑ i, ∑ j, Cost i j * (P1 i j + P2 i j)) + (s1 + s2)
           simp_rw [mul_add, Finset.sum_add_distrib]; ring
       smul_mem' := by
@@ -928,11 +928,11 @@ def transportProperCone (Cost : m → n → ℝ) :
         refine ⟨(c : ℝ) • P, (c : ℝ) • s, fun i j => mul_nonneg c.2 (hP i j),
           mul_nonneg c.2 hs, ?_⟩
         refine Prod.ext (funext fun i => ?_) (Prod.ext (funext fun j => ?_) ?_)
-        · show (c : ℝ) * (∑ j, P i j) = ∑ j, (c : ℝ) * P i j
+        · change (c : ℝ) * (∑ j, P i j) = ∑ j, (c : ℝ) * P i j
           rw [Finset.mul_sum]
-        · show (c : ℝ) * (∑ i, P i j) = ∑ i, (c : ℝ) * P i j
+        · change (c : ℝ) * (∑ i, P i j) = ∑ i, (c : ℝ) * P i j
           rw [Finset.mul_sum]
-        · show (c : ℝ) * ((∑ i, ∑ j, Cost i j * P i j) + s)
+        · change (c : ℝ) * ((∑ i, ∑ j, Cost i j * P i j) + s)
               = (∑ i, ∑ j, Cost i j * ((c : ℝ) * P i j)) + (c : ℝ) * s
           simp_rw [mul_add, Finset.mul_sum]; ring }
   isClosed' := isClosed_transport_cone Cost
@@ -1325,7 +1325,7 @@ supports and `c` a (pseudo)metric cost, the c-transform
 single 1-Lipschitz potential the Kantorovich dual sup ranges over. -/
 theorem cTransform_dual_witness
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
-    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
@@ -1366,7 +1366,7 @@ theorem cTransform_dual_witness
   -- g b ≤ −v b on range S (from u a − c a b ≤ −v b)
   have hg_le_negv : ∀ b ∈ Set.range S, g b ≤ -v b := by
     intro b hb
-    show A.sup' hAne (fun a => u a - c b a) ≤ -v b
+    change A.sup' hAne (fun a => u a - c b a) ≤ -v b
     apply Finset.sup'_le
     intro a haA
     have ha : a ∈ Set.range T := by rw [hA_def, Set.Finite.mem_toFinset] at haA; exact haA
@@ -1377,7 +1377,7 @@ theorem cTransform_dual_witness
   have hg_adm : ∀ x y, |g x - g y| ≤ c x y := by
     have key : ∀ x y, g x ≤ g y + c x y := by
       intro x y
-      show A.sup' hAne (fun a => u a - c x a) ≤ g y + c x y
+      change A.sup' hAne (fun a => u a - c x a) ≤ g y + c x y
       apply Finset.sup'_le
       intro a haA
       have h1 : u a - c y a ≤ g y := Finset.le_sup' (fun a => u a - c y a) haA

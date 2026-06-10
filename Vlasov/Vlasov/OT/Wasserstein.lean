@@ -122,9 +122,9 @@ lemma wasserstein1_lt_top_of_finite_moment
       exact h_bound_abs y)
   -- ∫(φ y - φ 0) dμ = ∫φ dμ - φ 0  (since μ is a probability measure)
   have h_int_μ_const : ∫ _ : E, φ 0 ∂μ = φ 0 := by
-    simp [integral_const, measure_univ]
+    simp [integral_const]
   have h_int_ν_const : ∫ _ : E, φ 0 ∂ν = φ 0 := by
-    simp [integral_const, measure_univ]
+    simp [integral_const]
   have h_int_μ_sub : ∫ y, (φ y - φ 0) ∂μ = ∫ y, φ y ∂μ - φ 0 := by
     rw [integral_sub hφ_int_μ (integrable_const _), h_int_μ_const]
   have h_int_ν_sub : ∫ y, (φ y - φ 0) ∂ν = ∫ y, φ y ∂ν - φ 0 := by
@@ -289,9 +289,9 @@ lemma wasserstein1_le_moments_sum
       rw [abs_of_nonneg (add_nonneg (abs_nonneg _) (norm_nonneg _))]
       exact h_bound_abs y)
   have h_int_μ_const : ∫ _ : E, φ 0 ∂μ = φ 0 := by
-    simp [integral_const, measure_univ]
+    simp [integral_const]
   have h_int_ν_const : ∫ _ : E, φ 0 ∂ν = φ 0 := by
-    simp [integral_const, measure_univ]
+    simp [integral_const]
   have h_int_μ_sub : ∫ y, (φ y - φ 0) ∂μ = ∫ y, φ y ∂μ - φ 0 := by
     rw [integral_sub hφ_int_μ (integrable_const _), h_int_μ_const]
   have h_int_ν_sub : ∫ y, (φ y - φ 0) ∂ν = ∫ y, φ y ∂ν - φ 0 := by
@@ -823,7 +823,7 @@ lemma wasserstein1_le_liminf_of_narrow
 ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
 This is the monotonicity of the exponential bound in time. -/
 lemma wasserstein1_ofReal_exp_monotone
-    (C : ℝ) (hC : 0 < C) (s t : ℝ) (hs : 0 ≤ s) (hst : s ≤ t) :
+    (C : ℝ) (hC : 0 < C) (s t : ℝ) (_hs : 0 ≤ s) (hst : s ≤ t) :
     ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)) := by
   apply ENNReal.ofReal_le_ofReal
   exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)
