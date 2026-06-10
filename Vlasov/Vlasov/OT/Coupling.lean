@@ -330,7 +330,8 @@ theorem exists_coupling_glue
         _ = (π₂.fst ⊗ₘ κ₂).snd := by rw [hdisint]
         _ = κ₂ ∘ₘ π₂.fst := Measure.snd_compProd π₂.fst κ₂
         _ = κ₂ ∘ₘ ρ := by rw [show π₂.fst = ρ from h₂.1]
-        _ = κ₂ ∘ₘ (Measure.map Prod.snd π₁) := by rw [show ρ = Measure.map Prod.snd π₁ from h₁.2.symm]
+        _ = κ₂ ∘ₘ (Measure.map Prod.snd π₁) := by
+            rw [show ρ = Measure.map Prod.snd π₁ from h₁.2.symm]
         _ = Measure.bind π₁ (fun p => κ₂ p.2) := hbindmap
     rw [hLHS, hRHS]
   · -- cost bound: lintegral_compProd (Tonelli) + ground-cost triangle + Markov.
@@ -1271,7 +1272,8 @@ theorem finiteRange_transportation_dual
           (fun x => Measure.map T μ {x} * Set.indicator E 1 x)]
         refine Finset.sum_congr rfl fun i _ => ?_
         have hind : ∀ j : hSfin.toFinset,
-            Set.indicator (Prod.fst ⁻¹' E) (1 : α × α → ℝ≥0∞) (↑i, ↑j) = Set.indicator E 1 (↑i : α) :=
+            Set.indicator (Prod.fst ⁻¹' E) (1 : α × α → ℝ≥0∞) (↑i, ↑j)
+              = Set.indicator E 1 (↑i : α) :=
           fun j => by simp only [Set.indicator_apply, Set.mem_preimage, Pi.one_apply]
         simp_rw [hind, ← Finset.sum_mul, ← ENNReal.ofReal_sum_of_nonneg (fun j _ => hPnn i j),
           hProw, hofw]
@@ -1284,7 +1286,8 @@ theorem finiteRange_transportation_dual
           (fun y => Measure.map S ν {y} * Set.indicator E 1 y)]
         refine Finset.sum_congr rfl fun j _ => ?_
         have hind : ∀ i : hTfin.toFinset,
-            Set.indicator (Prod.snd ⁻¹' E) (1 : α × α → ℝ≥0∞) (↑i, ↑j) = Set.indicator E 1 (↑j : α) :=
+            Set.indicator (Prod.snd ⁻¹' E) (1 : α × α → ℝ≥0∞) (↑i, ↑j)
+              = Set.indicator E 1 (↑j : α) :=
           fun i => by simp only [Set.indicator_apply, Set.mem_preimage, Pi.one_apply]
         simp_rw [hind, ← Finset.sum_mul, ← ENNReal.ofReal_sum_of_nonneg (fun i _ => hPnn i j),
           hPcol, hofb]
@@ -1440,8 +1443,8 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin (η : ℝ)
       (by exact_mod_cast hη)
   obtain ⟨g, hg_adm, hg_val⟩ :=
-    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS hTfin hSfin
-      u v hu hv hdual
+    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS
+      hTfin hSfin u v hu hv hdual
   calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
           + ENNReal.ofReal (η : ℝ) := hval

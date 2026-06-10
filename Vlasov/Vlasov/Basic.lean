@@ -37,9 +37,7 @@ variable {d : ℕ} [NeZero d]
 
 -- `PhysSpace`/`PhaseSpace` live in `Vlasov/Base/Geometry.lean`.
 
--- ---------------------------------------------------------------------------
--- §1  Equation (Hamiltonian)   (tex: eq:HN)
--- ---------------------------------------------------------------------------
+/-! ## §1 Equation (Hamiltonian)  (`tex: eq:HN`) -/
 
 /-- (tex: eq:HN)
 The mean-field Hamiltonian for N identical unit-mass particles in ℝ^d:
@@ -55,9 +53,7 @@ noncomputable def hamiltonianN (N : ℕ) (W : PhysSpace d → ℝ)
   + (1 / (N : ℝ)) * ∑ i : Fin N, ∑ j : Fin N,
       if (i : ℕ) < j then W (X i - X j) else 0
 
--- ---------------------------------------------------------------------------
--- §2  Equation (Hamilton / Newton equations of motion)   (tex: eq:newton)
--- ---------------------------------------------------------------------------
+/-! ## §2 Equation (Hamilton / Newton equations of motion)  (`tex: eq:newton`) -/
 
 /-- (tex: eq:newton)
 Predicate asserting that a curve (X, V) : ℝ → (Fin N → PhysSpace d)²
@@ -77,9 +73,7 @@ def IsNewtonSolution (N : ℕ) (gradW : PhysSpace d → PhysSpace d)
       (-(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else 0)
       t)
 
--- ---------------------------------------------------------------------------
--- §3  Assumption   (tex: ass:W)
--- ---------------------------------------------------------------------------
+/-! ## §3 Assumption  (`tex: ass:W`) -/
 
 /-- (tex: ass:W)
 Standing assumption on the pair potential W : ℝ^d → ℝ.
@@ -166,9 +160,7 @@ lemma gradient_zero_of_even (W : PhysSpace d → ℝ) [hW : AssW W] :
       (map_neg _ _)
   exact h_grad
 
--- ---------------------------------------------------------------------------
--- §4  Definition (Empirical measure)   (tex: def:empirical)
--- ---------------------------------------------------------------------------
+/-! ## §4 Definition (Empirical measure)  (`tex: def:empirical`) -/
 
 -- TODO(mathlib): Mathlib does not yet have a ready-made `empiricalMeasure`
 -- construction returning a `ProbabilityMeasure`.  We define it here as a
@@ -209,9 +201,7 @@ noncomputable def empiricalMeasureCurve (N : ℕ) (X V : ℝ → Fin N → PhysS
     ℝ → Measure (PhaseSpace d) :=
   fun t => empiricalMeasure N (X t) (V t)
 
--- ---------------------------------------------------------------------------
--- §5  Proposition (Weak evolution of the empirical measure)   (tex: prop:weak)
--- ---------------------------------------------------------------------------
+/-! ## §5 Proposition (Weak evolution of the empirical measure)  (`tex: prop:weak`) -/
 
 -- TODO(mathlib): Convolution of a function with a measure (∇W * ρ) is used
 -- below.  In Mathlib this would be `MeasureTheory.Measure.convolution` or a
@@ -660,9 +650,7 @@ theorem weakEvolutionEmpiricalMeasure
   · -- Bound: direct application of diagonalCorrection_bound.
     exact diagonalCorrection_bound N gradW X V gradVφ hgradW_bdd hgradVφ_bdd t
 
--- ---------------------------------------------------------------------------
--- §6  Equation (Weak form of empirical-measure evolution)   (tex: eq:weak-eq)
--- ---------------------------------------------------------------------------
+/-! ## §6 Equation (Weak form of empirical-measure evolution)  (`tex: eq:weak-eq`) -/
 
 /-- (tex: eq:weak-eq)
 The distributional evolution identity for the empirical measure (the content
@@ -688,9 +676,7 @@ def WeakEvolutionEq (gradW : PhysSpace d → PhysSpace d)
         ∂μ t
         + R_N t) t
 
--- ---------------------------------------------------------------------------
--- §7  Corollary (Empirical measure solves Vlasov)   (tex: cor:empirical-vlasov)
--- ---------------------------------------------------------------------------
+/-! ## §7 Corollary (Empirical measure solves Vlasov)  (`tex: cor:empirical-vlasov`) -/
 
 /-- (tex: cor:empirical-vlasov)
 Under Assumption ass:W, the empirical measure μ_t^N satisfies the distributional
@@ -737,9 +723,7 @@ theorem empiricalMeasureSolvesVlasov
   -- `(fun _ => 0) t` is definitionally 0.
   simpa [hr_zero] using hr_deriv
 
--- ---------------------------------------------------------------------------
--- §8  Equation (Vlasov equation)   (tex: eq:vlasov)
--- ---------------------------------------------------------------------------
+/-! ## §8 Equation (Vlasov equation)  (`tex: eq:vlasov`) -/
 
 -- TODO(mathlib): A full measure-valued notion of distributional solution to
 -- the nonlinear Vlasov PDE is not in Mathlib.  We define a placeholder
@@ -764,9 +748,7 @@ def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
       WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
 
--- ---------------------------------------------------------------------------
--- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
--- ---------------------------------------------------------------------------
+/-! ## §9 Theorem (Existence and uniqueness for Vlasov)  (`tex: thm:vlasov-wp`) -/
 
 -- TODO(mathlib): `𝒫_1` (probability measures with finite first moment) is
 -- expressed here via `IsProbabilityMeasure` together with a `HasFiniteIntegral`
@@ -784,9 +766,7 @@ def HasFiniteFirstMoment (μ : Measure (PhaseSpace d)) : Prop :=
 -- `HasFiniteFirstMoment` predicate above stays here, used by
 -- `vlasovWellPosedness`'s hypothesis and by the Lagrangian solution cascade.
 
--- ---------------------------------------------------------------------------
--- §10  Equation (Characteristic / mean-field ODE)   (tex: eq:char)
--- ---------------------------------------------------------------------------
+/-! ## §10 Equation (Characteristic / mean-field ODE)  (`tex: eq:char`) -/
 
 -- TODO(mathlib): The self-consistent / mean-field characteristic ODE involves
 -- a fixed-point condition coupling the flow to the pushforward measure.
@@ -864,9 +844,7 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (∀ t, f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) ∧
     (∀ s, AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0))
 
--- ---------------------------------------------------------------------------
--- §11  Theorem (Dobrushin, 1979)   (tex: thm:dobrushin)
--- ---------------------------------------------------------------------------
+/-! ## §11 Theorem (Dobrushin, 1979)  (`tex: thm:dobrushin`) -/
 
 -- The Wasserstein-1 distance (`wasserstein1`), `wassersteinCost`, and
 -- `wassersteinBar` OT core live in `Vlasov/OT/Wasserstein.lean`.
@@ -1144,8 +1122,9 @@ lemma convolveLipschitz_KR_le
 Proof: unfold `convolveFunctionMeasure` to expose `∫ gradW(x−y) dρ` and `∫ gradW(x−y) dσ`;
 commute the inner product `⟨·, v⟩` (a continuous linear map) through each integral via
 `ContinuousLinearMap.integral_comp_comm`; then the integrand function
-`y ↦ ⟨gradW(x−y), v⟩` has Lipschitz constant `L * ‖v‖` ≤ `L` (from `convolveLipschitz_inner_lipschitz`),
-so `(1/L) * (that integrand)` is 1-Lipschitz and `convolveLipschitz_KR_le` closes the estimate. -/
+`y ↦ ⟨gradW(x−y), v⟩` has Lipschitz constant `L * ‖v‖` ≤ `L`
+(from `convolveLipschitz_inner_lipschitz`), so `(1/L) * (that integrand)` is 1-Lipschitz and
+`convolveLipschitz_KR_le` closes the estimate. -/
 lemma convolveLipschitz_inner_bound
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
@@ -1613,9 +1592,7 @@ def DobrushinStabilityEstimate
     wasserstein1 (f t) (g t) ≤
       ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
 
--- ---------------------------------------------------------------------------
--- §13  Corollary (Mean-field limit)   (tex: cor:mfl)
--- ---------------------------------------------------------------------------
+/-! ## §13 Corollary (Mean-field limit)  (`tex: cor:mfl`) -/
 
 /-- (tex: cor:mfl)
 Mean-field limit theorem.

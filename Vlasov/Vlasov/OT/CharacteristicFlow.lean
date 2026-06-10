@@ -83,7 +83,8 @@ lemma convolveFunctionMeasure_lipschitz_in_x
   unfold convolveFunctionMeasure
   rw [dist_eq_norm, ← integral_sub (h_int x) (h_int x')]
   -- Pointwise bound: ‖gradW(x − y) − gradW(x' − y)‖ ≤ L · ‖x − x'‖
-  have h_pt : ∀ y, ‖gradW (x - y) - gradW (x' - y)‖ ≤ (L : ℝ) * ‖x - x'‖ := fun y => by
+  have h_pt : ∀ y, ‖gradW (x - y) - gradW (x' - y)‖ ≤ (L : ℝ) * ‖x - x'‖ :=
+    fun y => by
     have h_sub : (x - y) - (x' - y) = x - x' := by
       rw [sub_sub_sub_cancel_right]
     have := hL.dist_le_mul (x - y) (x' - y)
@@ -167,7 +168,8 @@ theorem flow_distance_growth_bound
       have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
         (integrable_const _).add (h_sub_int.const_mul _)
       -- Pointwise bound: ‖gradW(x-y)‖ ≤ ‖gradW 0‖ + L*‖x-y‖
-      have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+      have h_pt : ∀ y : PhysSpace d,
+          ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
         intro y
         have hd := hL.dist_le_mul (x - y) 0
         simp only [dist_eq_norm, sub_zero] at hd
@@ -767,7 +769,8 @@ theorem flow_distance_growth_bound_on
             exact norm_sub_le x y)
       have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
         (integrable_const _).add (h_sub_int.const_mul _)
-      have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+      have h_pt : ∀ y : PhysSpace d,
+          ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
         intro y
         have hd := hL.dist_le_mul (x - y) 0
         simp only [dist_eq_norm, sub_zero] at hd
@@ -922,7 +925,8 @@ theorem flow_distance_growth_bound_on_timedep
           simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
     have h_bnd_int : Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (ρ s) :=
       (integrable_const _).add (h_sub_int.const_mul _)
-    have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+    have h_pt : ∀ y : PhysSpace d,
+        ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
       intro y
       have hd := hL.dist_le_mul (x - y) 0
       simp only [dist_eq_norm, sub_zero] at hd
@@ -3430,7 +3434,8 @@ lemma vlasov_trajectory_lipschitz_bound_lag
         ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
         (Filter.Eventually.of_forall fun y => by
           simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
-    have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+    have h_pt : ∀ y : PhysSpace d,
+        ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
       intro y
       have hd := hL.dist_le_mul (x - y) 0
       simp only [dist_eq_norm, sub_zero] at hd
@@ -3533,7 +3538,8 @@ lemma vlasov_trajectory_lipschitz_bound_lag
         _ ≤ M_φ * (K * C_T + ε₀) * (‖z‖ + 1) := by
             have hz1 : 1 ≤ ‖z‖ + 1 := by linarith [norm_nonneg z]
             nlinarith [mul_nonneg hM_φ_nn hε₀_nn,
-                       mul_nonneg (mul_nonneg hM_φ_nn hε₀_nn) (by linarith [norm_nonneg z] : (0:ℝ) ≤ ‖z‖),
+                       mul_nonneg (mul_nonneg hM_φ_nn hε₀_nn)
+                         (by linarith [norm_nonneg z] : (0:ℝ) ≤ ‖z‖),
                        mul_nonneg hM_φ_nn hC_T_nn]
   · -- Integrable bound z
     have h_bound_eq : (fun z : PhaseSpace d => M_φ * (K * C_T + ε₀) * (‖z‖ + 1)) =
@@ -3621,7 +3627,8 @@ lemma vlasov_trajectory_lipschitz_bound_on
         ((aestronglyMeasurable_const (b := x)).sub aestronglyMeasurable_id |>.norm)
         (Filter.Eventually.of_forall fun y => by
           simp only [Real.norm_of_nonneg (norm_nonneg _)]; exact norm_sub_le x y)
-    have h_pt : ∀ y : PhysSpace d, ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
+    have h_pt : ∀ y : PhysSpace d,
+        ‖gradW (x - y)‖ ≤ ‖gradW 0‖ + (L : ℝ) * ‖x - y‖ := by
       intro y
       have hd := hL.dist_le_mul (x - y) 0
       simp only [dist_eq_norm, sub_zero] at hd
@@ -3723,7 +3730,8 @@ lemma vlasov_trajectory_lipschitz_bound_on
         _ ≤ M_φ * (K * C_T + ε₀) * (‖z‖ + 1) := by
             have hz1 : 1 ≤ ‖z‖ + 1 := by linarith [norm_nonneg z]
             nlinarith [mul_nonneg hM_φ_nn hε₀_nn,
-                       mul_nonneg (mul_nonneg hM_φ_nn hε₀_nn) (by linarith [norm_nonneg z] : (0:ℝ) ≤ ‖z‖),
+                       mul_nonneg (mul_nonneg hM_φ_nn hε₀_nn)
+                         (by linarith [norm_nonneg z] : (0:ℝ) ≤ ‖z‖),
                        mul_nonneg hM_φ_nn hC_T_nn]
   · -- Integrable bound (same as `_lag`).
     have h_bound_eq : (fun z : PhaseSpace d => M_φ * (K * C_T + ε₀) * (‖z‖ + 1)) =
@@ -4037,9 +4045,7 @@ theorem wasserstein1_lagrangian_pushforward_bound
     (fun z => (charX_g t z, charV_g t z))
     h_meas_f h_meas_g f₀ g₀ x₀ h_fmpr_f h_fmpr_g h_fm_f h_fm_g
 
--- ---------------------------------------------------------------------------
--- Banach fixed-point scaffolding for `vlasovWellPosedness`
--- ---------------------------------------------------------------------------
+/-! ## Banach fixed-point scaffolding for `vlasovWellPosedness` -/
 -- The infrastructure here makes the Φ-well-definedness, Gronwall-contraction
 -- and Picard-iteration steps compose cleanly:
 --   * `VlasovMeasureCurve T M`: admissible curves of probability measures
@@ -4132,9 +4138,7 @@ lemma supW1On_iterated_triangle {d : ℕ} [NeZero d] (S : Set ℝ)
       _ = ∑ k ∈ Finset.Ico m (n+1), supW1On S (x k) (x (k+1)) := by
           rw [Finset.sum_Ico_succ_top hmn]
 
--- ---------------------------------------------------------------------------
--- Metric-dependent smallness predicates
--- ---------------------------------------------------------------------------
+/-! ## Metric-dependent smallness predicates -/
 --
 -- The existence-and-contraction analysis uses TWO independent smallness
 -- constraints, captured as two separate predicates:
@@ -4707,9 +4711,7 @@ theorem exists_vlasov_characteristicFlow_global_smallT
     intro z t ht
     exact (Classical.choose_spec (h_perZ z)).2.2 t ht
 
--- ---------------------------------------------------------------------------
--- The pushforward operator Φ and its well-definedness
--- ---------------------------------------------------------------------------
+/-! ## The pushforward operator Φ and its well-definedness -/
 -- The pushforward operator Φ takes a characteristic flow `charX : ℝ → PhaseSpace
 -- d → PhysSpace d` and an initial measure `f₀ : Measure (PhaseSpace d)`, and
 -- produces a time-indexed curve of measures on `PhysSpace d` via
@@ -6829,9 +6831,7 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
   intro t ht
   exact h_tendsto t ht
 
--- ---------------------------------------------------------------------------
--- §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp)
--- ---------------------------------------------------------------------------
+/-! ## §9  Theorem (Existence and uniqueness for Vlasov)   (tex: thm:vlasov-wp) -/
 -- The proof composes directly with the characteristic-flow infrastructure
 -- developed in this file: `exists_vlasov_characteristicFlow`,
 -- `flow_distance_growth_bound`, and
@@ -7955,7 +7955,8 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
   -- Step 2: IsCharacteristicFlowSelfConsistent
   -- ρ t = spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)
   --     = Measure.map Prod.fst (Measure.map (fun z => (charX t z, charV t z)) f₀)
-  --     = Measure.map (Prod.fst ∘ fun z => (charX t z, charV t z)) f₀   [by map_map_of_aemeasurable]
+  --     = Measure.map (Prod.fst ∘ fun z => (charX t z, charV t z)) f₀
+  --         [by map_map_of_aemeasurable]
   --     = Measure.map (charX t) f₀
   have hself : IsCharacteristicFlowSelfConsistent charX f₀
       (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) := by
@@ -8176,9 +8177,7 @@ theorem vlasovWellPosedness_local
     intro z
     exact _hflow_on.1 z (Set.mem_univ z)
 
--- ---------------------------------------------------------------------------
--- Banked infrastructure: localized `hasDerivAt_of_hasDerivAt_of_ne`
--- ---------------------------------------------------------------------------
+/-! ## Banked infrastructure: localized `hasDerivAt_of_hasDerivAt_of_ne` -/
 -- Generic real-analysis helper banked for `_glue_step` case (a)'s substantive
 -- close.  Mathlib's `hasDerivAt_of_hasDerivAt_of_ne`
 -- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) requires a UNIVERSAL
@@ -8252,9 +8251,7 @@ theorem hasDerivAt_of_hasDerivAt_of_ne_in_nhds
 
 end HasDerivAtPunctured
 
--- ---------------------------------------------------------------------------
--- Variable-`T_target` continuation via fixed-`T_0` iteration
--- ---------------------------------------------------------------------------
+/-! ## Variable-`T_target` continuation via fixed-`T_0` iteration -/
 -- Composes `vlasovWellPosedness_local` against itself to extend the local
 -- solution from `[0, T_0]` to `[0, T_target]` for any `T_target > 0`.  The
 -- contraction time `T_0` is *fixed* (depends only on `L`, not on iteration-
@@ -8768,13 +8765,15 @@ theorem vlasovWellPosedness_glue_step
     -- FLAT (window-constant) uniform first-moment bound on f_prev's spatial marginal.
     (hM_prev : ∃ M : ℝ, 0 ≤ M ∧
         ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M)
-    -- Explicit flow witnesses for f_prev (avoids witness-identity issues with IsLagrangianVlasovSolutionOn)
+    -- Explicit flow witnesses for f_prev (avoids witness-identity issues with
+    -- IsLagrangianVlasovSolutionOn)
     (charX_prev charV_prev : ℝ → PhaseSpace d → PhysSpace d)
     (h_prev_vlasov : IsVlasovSolutionOn gradW f_prev T)
     (h_prev_flow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f_prev t))
         charX_prev charV_prev (Set.Ioo 0 T) Set.univ)
     (h_prev_push : ∀ t ∈ Set.Icc (0 : ℝ) T,
-        f_prev t = Measure.map (fun z : PhaseSpace d => (charX_prev t z, charV_prev t z)) (f_prev 0))
+        f_prev t =
+          Measure.map (fun z : PhaseSpace d => (charX_prev t z, charV_prev t z)) (f_prev 0))
     (h_prev_aemeas : ∀ s ∈ Set.Icc (0 : ℝ) T,
         AEMeasurable (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) (f_prev 0))
     (h_prev_boundary : ∀ (z : PhaseSpace d) (t : ℝ), t ∈ Set.Icc (0 : ℝ) T →
@@ -8797,7 +8796,8 @@ theorem vlasovWellPosedness_glue_step
         ∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), ∫ y, ‖y‖ ∂(spatialMarginal (f_next t)) ≤ M) ∧
       IsLagrangianVlasovSolutionOn gradW f_next (T + T_0) ∧
       (∀ t ∈ Set.Icc (0 : ℝ) (T + T_0),
-          f_next t = Measure.map (fun z : PhaseSpace d => (charX_next t z, charV_next t z)) (f_next 0)) ∧
+          f_next t =
+            Measure.map (fun z : PhaseSpace d => (charX_next t z, charV_next t z)) (f_next 0)) ∧
       (∀ s ∈ Set.Icc (0 : ℝ) (T + T_0),
           AEMeasurable (fun z : PhaseSpace d => (charX_next s z, charV_next s z)) (f_next 0)) ∧
       (∀ (z : PhaseSpace d) (t : ℝ), t ∈ Set.Icc (0 : ℝ) (T + T_0) →
@@ -9431,7 +9431,8 @@ theorem vlasovWellPosedness_glue_step
                               (charX_prev s z))
                             (gradVφ (charX_prev s z, charV_prev s z))) ∂f₀
                   have h_meq : f_next s
-                      = Measure.map (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ := by
+                      = Measure.map
+                          (fun z : PhaseSpace d => (charX_prev s z, charV_prev s z)) f₀ := by
                     rw [h_fnext, h_prev_push s hs, h_prev_init]
                   rw [h_marg, h_meq,
                       integral_map h_aemeas_f₀
@@ -9448,14 +9449,16 @@ theorem vlasovWellPosedness_glue_step
                 have hgradXφ_bd : ∀ z : PhaseSpace d, ‖gradXφ z‖ ≤ M_φ := by
                   intro z
                   have hfd : fderiv ℝ (fun x => φ (x, z.2)) z.1 =
-                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
+                      (fderiv ℝ φ z).comp
+                        (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
                     have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
                       (hφ_smooth.differentiable (by simp) z).hasFDerivAt
                     have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
                         (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
                       hasFDerivAt_prodMk_left z.1 z.2
                     exact (h1.comp z.1 h2).fderiv
-                  rw [hgradXφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  rw [hgradXφ z, gradient, hfd,
+                    (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
                   refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
                   refine le_trans (mul_le_mul_of_nonneg_left
                     (ContinuousLinearMap.norm_inl_le_one (𝕜 := ℝ)
@@ -9464,14 +9467,16 @@ theorem vlasovWellPosedness_glue_step
                 have hgradVφ_bd : ∀ z : PhaseSpace d, ‖gradVφ z‖ ≤ M_φ := by
                   intro z
                   have hfd : fderiv ℝ (fun v => φ (z.1, v)) z.2 =
-                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
+                      (fderiv ℝ φ z).comp
+                        (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
                     have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
                       (hφ_smooth.differentiable (by simp) z).hasFDerivAt
                     have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
                         (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
                       hasFDerivAt_prodMk_right z.1 z.2
                     exact (h1.comp z.2 h2).fderiv
-                  rw [hgradVφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  rw [hgradVφ z, gradient, hfd,
+                    (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
                   refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
                   refine le_trans (mul_le_mul_of_nonneg_left
                     (ContinuousLinearMap.norm_inr_le_one (𝕜 := ℝ)
@@ -9510,7 +9515,8 @@ theorem vlasovWellPosedness_glue_step
                       simp only [sub_add_cancel] at this; linarith
                     linarith
                   have h_bnd_int :
-                      Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖) (spatialMarginal (f_prev s)) :=
+                      Integrable (fun y => ‖gradW 0‖ + (L : ℝ) * ‖x - y‖)
+                        (spatialMarginal (f_prev s)) :=
                     (integrable_const _).add (h_sub_int.const_mul _)
                   calc ‖∫ y, gradW (x - y) ∂(spatialMarginal (f_prev s))‖
                       ≤ ∫ y, ‖gradW (x - y)‖ ∂(spatialMarginal (f_prev s)) :=
@@ -9567,12 +9573,14 @@ theorem vlasovWellPosedness_glue_step
                         ≤ (C_T * (‖z‖ + 1)) * M_φ := this
                       _ = M_φ * (C_T * (‖z‖ + 1)) := by ring
                   have ht2 : ‖@inner ℝ (PhysSpace d) _
-                        (convolveFunctionMeasure gradW (spatialMarginal (f_prev s)) (charX_prev s z))
+                        (convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
+                          (charX_prev s z))
                         (gradVφ (charX_prev s z, charV_prev s z))‖
                       ≤ (‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ) * M_φ := by
                     refine le_trans (norm_inner_le_norm _ _) ?_
                     have hc : ‖convolveFunctionMeasure gradW (spatialMarginal (f_prev s))
-                        (charX_prev s z)‖ ≤ ‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ := by
+                        (charX_prev s z)‖
+                        ≤ ‖gradW 0‖ + (L : ℝ) * (C_T * (‖z‖ + 1)) + (L : ℝ) * M_ρ := by
                       refine le_trans (h_conv_force s hs (charX_prev s z)) ?_
                       have := mul_le_mul_of_nonneg_left hX L.coe_nonneg
                       linarith
@@ -9651,10 +9659,12 @@ theorem vlasovWellPosedness_glue_step
                     intro z
                     -- first term: velocity ⬝ gradXφ ∘ flow
                     have hX_cwn : ContinuousWithinAt (fun s => charX_prev s z) (Set.Iic T) T :=
-                      ((h_prev_boundary z T ⟨hT_pos.le, le_refl T⟩).1.continuousWithinAt).mono_of_mem_nhdsWithin
+                      ((h_prev_boundary z T
+                          ⟨hT_pos.le, le_refl T⟩).1.continuousWithinAt).mono_of_mem_nhdsWithin
                         h_nhd_L
                     have hV_cwn : ContinuousWithinAt (fun s => charV_prev s z) (Set.Iic T) T :=
-                      ((h_prev_boundary z T ⟨hT_pos.le, le_refl T⟩).2.continuousWithinAt).mono_of_mem_nhdsWithin
+                      ((h_prev_boundary z T
+                          ⟨hT_pos.le, le_refl T⟩).2.continuousWithinAt).mono_of_mem_nhdsWithin
                         h_nhd_L
                     have h_pair_cwn : ContinuousWithinAt
                         (fun s => (charX_prev s z, charV_prev s z)) (Set.Iic T) T :=
@@ -9706,7 +9716,8 @@ theorem vlasovWellPosedness_glue_step
                       (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ :=
                     h_prev_init ▸ h_prev_aemeas T hT_Icc
                   have h_meq : f_next T
-                      = Measure.map (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ := by
+                      = Measure.map
+                          (fun z : PhaseSpace d => (charX_prev T z, charV_prev T z)) f₀ := by
                     rw [h_fnext_T, h_prev_push T hT_Icc, h_prev_init]
                   rw [h_marg, h_meq,
                       integral_map h_aemeas_f₀_T (h_integrand_cont T hT_Icc).aestronglyMeasurable]
@@ -10204,14 +10215,16 @@ theorem vlasovWellPosedness_glue_step
                 have hgradXφ_bd : ∀ z : PhaseSpace d, ‖gradXφ z‖ ≤ M_φ := by
                   intro z
                   have hfd : fderiv ℝ (fun x => φ (x, z.2)) z.1 =
-                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
+                      (fderiv ℝ φ z).comp
+                        (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) := by
                     have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
                       (hφ_smooth.differentiable (by simp) z).hasFDerivAt
                     have h2 : HasFDerivAt (fun x : PhysSpace d => (x, z.2))
                         (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)) z.1 :=
                       hasFDerivAt_prodMk_left z.1 z.2
                     exact (h1.comp z.1 h2).fderiv
-                  rw [hgradXφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  rw [hgradXφ z, gradient, hfd,
+                    (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
                   refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
                   refine le_trans (mul_le_mul_of_nonneg_left
                     (ContinuousLinearMap.norm_inl_le_one (𝕜 := ℝ)
@@ -10220,14 +10233,16 @@ theorem vlasovWellPosedness_glue_step
                 have hgradVφ_bd : ∀ z : PhaseSpace d, ‖gradVφ z‖ ≤ M_φ := by
                   intro z
                   have hfd : fderiv ℝ (fun v => φ (z.1, v)) z.2 =
-                      (fderiv ℝ φ z).comp (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
+                      (fderiv ℝ φ z).comp
+                        (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) := by
                     have h1 : HasFDerivAt φ (fderiv ℝ φ z) z :=
                       (hφ_smooth.differentiable (by simp) z).hasFDerivAt
                     have h2 : HasFDerivAt (fun v : PhysSpace d => (z.1, v))
                         (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)) z.2 :=
                       hasFDerivAt_prodMk_right z.1 z.2
                     exact (h1.comp z.2 h2).fderiv
-                  rw [hgradVφ z, gradient, hfd, (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
+                  rw [hgradVφ z, gradient, hfd,
+                    (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.norm_map]
                   refine le_trans (ContinuousLinearMap.opNorm_comp_le _ _) ?_
                   refine le_trans (mul_le_mul_of_nonneg_left
                     (ContinuousLinearMap.norm_inr_le_one (𝕜 := ℝ)
@@ -10327,7 +10342,8 @@ theorem vlasovWellPosedness_glue_step
                       ≤ (‖gradW 0‖ + (L : ℝ) * (C_comp * (‖z‖ + 1)) + (L : ℝ) * M_g) * M_φ := by
                     refine le_trans (norm_inner_le_norm _ _) ?_
                     have hc : ‖convolveFunctionMeasure gradW (spatialMarginal (g (s - T)))
-                        (Zpos s z)‖ ≤ ‖gradW 0‖ + (L : ℝ) * (C_comp * (‖z‖ + 1)) + (L : ℝ) * M_g := by
+                        (Zpos s z)‖
+                        ≤ ‖gradW 0‖ + (L : ℝ) * (C_comp * (‖z‖ + 1)) + (L : ℝ) * M_g := by
                       refine le_trans (h_conv_force (s - T) hsT_Icc (Zpos s z)) ?_
                       have := mul_le_mul_of_nonneg_left hX L.coe_nonneg
                       linarith
@@ -10640,8 +10656,8 @@ theorem vlasovWellPosedness_glue_step
                   Set.left_mem_Ici
               have hV_union := hV_left.union hV_right
               rw [Set.Iic_union_Ici] at hV_union
-              -- Goal: HasDerivAt (...) (-(conv ... (spatialMarginal (f_next t)) (charX_next t z))) t
-              -- with t = T (after simp the charX_next has been reduced to charX_prev)
+              -- Goal: HasDerivAt (...) (-(conv ... (spatialMarginal (f_next t)) (charX_next t z)))
+              --   t with t = T (after simp the charX_next has been reduced to charX_prev)
               rw [h_t_eq]
               exact hV_union.hasDerivAt Filter.univ_mem
           · simp only [if_neg ht_le]
@@ -10691,8 +10707,10 @@ theorem vlasovWellPosedness_glue_step
         -- f_next t = g (t - T), pushes forward (f_prev T) via charX_g, charV_g
         -- g (t-T) = Measure.map (charX_g (t-T), charV_g (t-T)) (g 0)
         --         = Measure.map (charX_g (t-T), charV_g (t-T)) (f_prev T)  [by hg_init]
-        --         = Measure.map (charX_g (t-T), charV_g (t-T)) (Measure.map (charX_prev T, charV_prev T) (f_prev 0))
-        --         = Measure.map ((charX_g (t-T), charV_g (t-T)) ∘ (charX_prev T, charV_prev T)) (f_prev 0)
+        --         = Measure.map (charX_g (t-T), charV_g (t-T))
+        --             (Measure.map (charX_prev T, charV_prev T) (f_prev 0))
+        --         = Measure.map
+        --             ((charX_g (t-T), charV_g (t-T)) ∘ (charX_prev T, charV_prev T)) (f_prev 0)
         simp only [if_pos hT_pos.le]
         have hT_mem : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
         have htT_mem : t - T ∈ Set.Icc (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
@@ -10969,9 +10987,11 @@ theorem vlasovWellPosedness_forward
     | zero =>
       -- Base: n = 0, need solution on [0, 1·T_0] = [0, T_0].
       simp only [T_n, Nat.cast_zero, zero_add, Nat.cast_one, one_mul]
-      obtain ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag, hf_push, hf_aemeas, hf_boundary, hf_ic⟩ :=
+      obtain ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag, hf_push, hf_aemeas,
+        hf_boundary, hf_ic⟩ :=
         vlasovWellPosedness_local W gradW hgradW L hL f₀ hf₀ hT0_pos hTL_T0_PL hTL_T0_con hTL_T0_B
-      exact ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag.1, hf_push, hf_aemeas, hf_boundary, hf_ic⟩
+      exact ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag.1, hf_push, hf_aemeas,
+        hf_boundary, hf_ic⟩
     | succ n ih =>
       -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
       obtain ⟨f_n, charX_n, charV_n, hfn_init, hfn_mom, hfn_mom_unif, hfn_vlasov,
@@ -11052,9 +11072,7 @@ theorem vlasovWellPosedness_forward
             ((hf_boundary z t ht).2.continuousWithinAt)
         exact h_big.mono (fun t ht => ⟨ht.1, le_trans ht.2 hN_covers⟩)
 
--- ---------------------------------------------------------------------------
--- Uniqueness over `IsLagrangianVlasovSolutionOn` per window
--- ---------------------------------------------------------------------------
+/-! ## Uniqueness over `IsLagrangianVlasovSolutionOn` per window -/
 -- Two Lagrangian solutions on `[0, T_target]` with the same initial measure
 -- agree on `[0, T_target]`.  The argument: contraction in `Phi_supW1_contraction`
 -- + Banach fixed-point uniqueness on the iterated windows.  Within the
@@ -11654,7 +11672,8 @@ private theorem dobrushin_integrated_flow_bound_On
         (Filter.Eventually.of_forall (fun ω' => ?_))
       · have haem_charX : AEMeasurable (fun ω' : PhaseSpace d => charX (clampT s) ω') ν :=
           (measurable_fst.comp_aemeasurable (haem (clampT s) (hclampT_mem s)))
-        exact ((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp_aemeasurable
+        exact ((hL.continuous.comp
+            (continuous_const.sub continuous_id)).measurable.comp_aemeasurable
           haem_charX).aestronglyMeasurable
       · have hd := hL.dist_le_mul (xS s - charX (clampT s) ω') 0
         simp only [dist_eq_norm, sub_zero] at hd
@@ -12158,9 +12177,7 @@ theorem vlasovWellPosedness_uniqueness
   exact dobrushin_uniqueness_On gradW L hL f g T_target hT_target
     hf_lag hg_lag hf_mom hg_mom hfg0
 
--- ---------------------------------------------------------------------------
--- Universal-in-`t` bridge to `IsLagrangianVlasovSolution`
--- ---------------------------------------------------------------------------
+/-! ## Universal-in-`t` bridge to `IsLagrangianVlasovSolution` -/
 -- Combines `vlasovWellPosedness_forward` (forward iteration) +
 -- `vlasovWellPosedness_uniqueness` into a single universal-in-`t`
 -- existence theorem.  The universal `f` is constructed as the colimit of
@@ -12293,7 +12310,8 @@ theorem vlasovWellPosedness_universal_existence
       have ht_nn : (0 : ℝ) ≤ t := ht.1
       show (if 0 ≤ t then sol ⌈t⌉₊ t else f₀) = sol N t
       simp only [ht_nn, ↓reduceIte]
-      exact h_agree ⌈t⌉₊ N (Nat.ceil_mono ht.2) t ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
+      exact h_agree ⌈t⌉₊ N (Nat.ceil_mono ht.2) t
+        ⟨ht.1, le_trans (Nat.le_ceil t) (by push_cast; linarith)⟩
     -- Extract components from h_sol_lag N
     obtain ⟨h_pde_N, charX_N, charV_N, h_flow_N, h_push_N, h_aemeas_N, h_boundary_N⟩ :=
       h_sol_lag N
@@ -12474,9 +12492,7 @@ theorem vlasovWellPosedness_universal_existence
       -- Lift ContinuousWithinAt from Icc 0 N to Ici 0 using hIcc_mem.
       exact h_cont_Icc.mono_of_mem_nhdsWithin hIcc_mem
 
--- ---------------------------------------------------------------------------
--- §10  Marquee theorem (tex: thm:vlasov-wp)
--- ---------------------------------------------------------------------------
+/-! ## §10  Marquee theorem (tex: thm:vlasov-wp) -/
 
 /-- (tex: thm:vlasov-wp)
 Forward-in-time existence for the Vlasov equation.
@@ -12828,9 +12844,7 @@ theorem vlasovWellPosedness
       intro g hg_cont hg_bdd
       exact (hf_cont g hg_cont hg_bdd).continuousOn
 
--- ---------------------------------------------------------------------------
--- §10  Dobrushin stability chain
--- ---------------------------------------------------------------------------
+/-! ## §10  Dobrushin stability chain -/
 --
 -- These declarations live here (rather than in `Basic.lean`) because their
 -- substantive close needs `convolveFunctionMeasure_lipschitz_in_x`, defined in

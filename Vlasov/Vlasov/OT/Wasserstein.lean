@@ -73,8 +73,9 @@ lemma wasserstein1_eq_iSup_lipschitz {α : Type*} [MeasurableSpace α] [PseudoMe
 is finite: `wasserstein1 μ ν < ⊤`.
 
 Proof sketch:  For any 1-Lipschitz `φ : E → ℝ`, set `ψ y := φ y - φ 0`.  Then
-|ψ(y)| ≤ ‖y‖ by 1-Lipschitz-ness, and ∫φdμ − ∫φdν = ∫ψdμ − ∫ψdν (the constants
-φ(0)·μ(univ) = φ(0)·ν(univ) cancel since both are probability measures).
+|ψ(y)| ≤ ‖y‖ by 1-Lipschitz-ness, and ∫φdμ − ∫φdν = ∫ψdμ − ∫ψdν (the
+constants φ(0)·μ(univ) = φ(0)·ν(univ) cancel since both are probability
+measures).
 So ∫φdμ − ∫φdν ≤ ∫|ψ|dμ + ∫|ψ|dν ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, finite.
 Taking sup over 1-Lip φ: `wasserstein1 μ ν ≤ ENNReal.ofReal M < ⊤`. -/
 lemma wasserstein1_lt_top_of_finite_moment
@@ -83,7 +84,8 @@ lemma wasserstein1_lt_top_of_finite_moment
     (μ ν : Measure E) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (hμ : Integrable (fun y => ‖y‖) μ) (hν : Integrable (fun y => ‖y‖) ν) :
     wasserstein1 μ ν < ⊤ := by
-  -- Bound: sup over 1-Lip φ of ∫φd(μ-ν) ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, which is finite.
+  -- Bound: sup over 1-Lip φ of ∫φd(μ-ν) ≤ ∫‖y‖dμ + ∫‖y‖dν =: M, which is
+  -- finite.
   set M : ℝ := ∫ y, ‖y‖ ∂μ + ∫ y, ‖y‖ ∂ν with hM_def
   suffices h : wasserstein1 μ ν ≤ ENNReal.ofReal M from
     h.trans_lt ENNReal.ofReal_lt_top
@@ -140,14 +142,16 @@ lemma wasserstein1_lt_top_of_finite_moment
   have h_bound_μ : ∫ y, (φ y - φ 0) ∂μ ≤ ∫ y, ‖y‖ ∂μ := by
     calc ∫ y, (φ y - φ 0) ∂μ
         ≤ ∫ y, |φ y - φ 0| ∂μ :=
-          integral_mono_ae hψ_int_μ hψ_int_μ.abs (Filter.Eventually.of_forall fun _ => le_abs_self _)
+          integral_mono_ae hψ_int_μ hψ_int_μ.abs
+            (Filter.Eventually.of_forall fun _ => le_abs_self _)
       _ ≤ ∫ y, ‖y‖ ∂μ :=
           integral_mono_ae hψ_int_μ.abs hμ (Filter.Eventually.of_forall hψ_bound)
   have h_bound_ν : -∫ y, (φ y - φ 0) ∂ν ≤ ∫ y, ‖y‖ ∂ν := by
     rw [← integral_neg]
     calc ∫ y, -(φ y - φ 0) ∂ν
         ≤ ∫ y, |φ y - φ 0| ∂ν :=
-          integral_mono_ae hψ_int_ν.neg hψ_int_ν.abs (Filter.Eventually.of_forall fun y => neg_le_abs _)
+          integral_mono_ae hψ_int_ν.neg hψ_int_ν.abs
+            (Filter.Eventually.of_forall fun y => neg_le_abs _)
       _ ≤ ∫ y, ‖y‖ ∂ν :=
           integral_mono_ae hψ_int_ν.abs hν (Filter.Eventually.of_forall hψ_bound)
   linarith
@@ -381,7 +385,8 @@ lemma wassersteinCost_le_of_lipschitz_map
       rw [h_eq, div_le_iff₀ hL_pos]
       calc |g (T x) - g (T y)| ≤ (L : ℝ) * c_α x y := h_gT_osc x y
         _ = c_α x y * (L : ℝ) := mul_comm _ _
-    have h_int_factor : ∀ (κ : Measure α), ∫ x, g (T x) ∂κ = (L : ℝ) * ∫ x, h x ∂κ := by
+    have h_int_factor :
+        ∀ (κ : Measure α), ∫ x, g (T x) ∂κ = (L : ℝ) * ∫ x, h x ∂κ := by
       intro κ; simp_rw [h_def]; rw [integral_div, mul_div_cancel₀ _ hL_ne]
     have h_diff_factor : ∫ x, g (T x) ∂μ - ∫ x, g (T x) ∂ν =
         (L : ℝ) * (∫ x, h x ∂μ - ∫ x, h x ∂ν) := by
@@ -442,7 +447,8 @@ of `c`-oscillation, no hypothesis on `c`; `wasserstein1_dual_lower_bound` is the
 `c = dist` corollary. -/
 lemma wassersteinCost_dual_lower_bound
     {α : Type*} [MeasurableSpace α]
-    (c : α → α → ℝ) (μ ν : Measure α) (f : α → ℝ) (hf : ∀ x y, |f x - f y| ≤ c x y) :
+    (c : α → α → ℝ) (μ ν : Measure α) (f : α → ℝ)
+    (hf : ∀ x y, |f x - f y| ≤ c x y) :
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wassersteinCost c μ ν := by
   unfold wassersteinCost
   exact le_iSup_of_le f (le_iSup_of_le hf le_rfl)
@@ -649,7 +655,8 @@ lemma wasserstein1_eq_zero_iff_measure_eq
         wasserstein1_dual_lower_bound μ ν f hf
       have hf_neg : LipschitzWith 1 (-f) := by
         simpa using hf.neg
-      have h_neg : ENNReal.ofReal (∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν) ≤ wasserstein1 μ ν :=
+      have h_neg :
+          ENNReal.ofReal (∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν) ≤ wasserstein1 μ ν :=
         wasserstein1_dual_lower_bound μ ν (-f) hf_neg
       rw [h_w1_zero] at h_pos h_neg
       -- ENNReal.ofReal ≤ 0 (in ENNReal) iff = 0 iff the real argument is ≤ 0.
@@ -669,7 +676,8 @@ lemma wasserstein1_eq_zero_iff_measure_eq
       linarith
     -- Step 2: 1-Lipschitz integral equality → BC integral equality.
     -- See `integral_boundedContinuous_eq_of_integral_lipschitz_eq` above.
-    have h_bc_eq : ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
+    have h_bc_eq :
+        ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
       integral_boundedContinuous_eq_of_integral_lipschitz_eq μ ν hμ_int hν_int h_1lip_eq
     -- Step 3 (Mathlib `ext_of_forall_integral_eq_of_IsFiniteMeasure`): BC equality → μ=ν.
     exact ext_of_forall_integral_eq_of_IsFiniteMeasure h_bc_eq
@@ -778,7 +786,8 @@ lemma wasserstein1_le_liminf_of_narrow
       wasserstein1_dual_lower_bound μ (νs n) (fR k) (hfR_lip k)
     calc ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂ν)
         = Filter.liminf
-            (fun n => ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂(νs n))) Filter.atTop :=
+            (fun n => ENNReal.ofReal (∫ x, fR k x ∂μ - ∫ x, fR k x ∂(νs n)))
+            Filter.atTop :=
           h_tend2.liminf_eq.symm
       _ ≤ Filter.liminf (fun n => wasserstein1 μ (νs n)) Filter.atTop :=
           Filter.liminf_le_liminf (Filter.Eventually.of_forall h_le)
@@ -792,12 +801,14 @@ lemma wasserstein1_le_liminf_of_narrow
       rw [min_eq_left ((le_abs_self (f x)).trans hk'),
           max_eq_right (le_trans (neg_le_neg hk') (neg_abs_le (f x)))]
     exact tendsto_const_nhds.congr' (h_ev.mono fun k hk => hk.symm)
-  have h_dct_μ : Filter.Tendsto (fun k => ∫ x, fR k x ∂μ) Filter.atTop (nhds (∫ x, f x ∂μ)) :=
+  have h_dct_μ :
+      Filter.Tendsto (fun k => ∫ x, fR k x ∂μ) Filter.atTop (nhds (∫ x, f x ∂μ)) :=
     tendsto_integral_of_dominated_convergence (fun x => |f 0| + ‖x‖)
       (fun k => (hfR_cont k).aestronglyMeasurable) ((integrable_const |f 0|).add hμ_int)
       (fun k => Filter.Eventually.of_forall fun x => h_dom k x)
       (Filter.Eventually.of_forall h_ptwise)
-  have h_dct_ν : Filter.Tendsto (fun k => ∫ x, fR k x ∂ν) Filter.atTop (nhds (∫ x, f x ∂ν)) :=
+  have h_dct_ν :
+      Filter.Tendsto (fun k => ∫ x, fR k x ∂ν) Filter.atTop (nhds (∫ x, f x ∂ν)) :=
     tendsto_integral_of_dominated_convergence (fun x => |f 0| + ‖x‖)
       (fun k => (hfR_cont k).aestronglyMeasurable) ((integrable_const |f 0|).add hν_int)
       (fun k => Filter.Eventually.of_forall fun x => h_dom k x)
@@ -825,8 +836,6 @@ lemma wasserstein1_ofReal_exp_monotone
 -- (`hDobrushin : ∀ N, DobrushinStabilityEstimate ...`) rather than calling
 -- `dobrushin` directly.
 
--- ---------------------------------------------------------------------------
--- §12  Equation (Dobrushin stability estimate)   (tex: eq:dobrushin)
--- ---------------------------------------------------------------------------
+/-! ## Equation (Dobrushin stability estimate) (`tex: eq:dobrushin`) -/
 
 end Vlasov
