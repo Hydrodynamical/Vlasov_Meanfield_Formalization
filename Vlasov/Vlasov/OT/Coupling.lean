@@ -1,4 +1,9 @@
 /-
+Copyright (c) 2026 Joseph K. Miller. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Joseph K. Miller
+-/
+/-
 Coupling-based Wasserstein-1 distance.
 
 OT infrastructure on pseudometric spaces:

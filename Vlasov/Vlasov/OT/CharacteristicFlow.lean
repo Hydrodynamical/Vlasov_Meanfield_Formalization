@@ -1,4 +1,9 @@
 /-
+Copyright (c) 2026 Joseph K. Miller. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Joseph K. Miller
+-/
+/-
 Characteristic flow for the Vlasov ODE + Lagrangian-Eulerian equivalence.
 
 This file builds on `Vlasov/OT/Coupling.lean` and provides the flow-side
