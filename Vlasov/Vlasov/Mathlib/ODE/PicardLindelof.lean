@@ -1,20 +1,21 @@
 /-
-Copyright (c) 2026 Joseph K. Miller. All rights reserved.
+Copyright (c) 2021 Yury Kudryashov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Joseph K. Miller
--/
-/-
-Copyright (c) 2026 Joseph K. Miller. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Joseph K. Miller
+Authors: Yury Kudryashov, Winston Yin, Joseph K. Miller
 -/
 import Mathlib.Analysis.ODE.PicardLindelof
 
 /-!
 # Picard-Lindelöf with explicit confinement conjunct (vendored from Mathlib)
 
-This file vendors two theorems from `Mathlib/Analysis/ODE/PicardLindelof.lean`
-with one additional conjunct in the public conclusion.
+This file is **vendored** from `Mathlib/Analysis/ODE/PicardLindelof.lean`
+(Yury Kudryashov, Winston Yin): it copies two upstream theorems and adds **one**
+conjunct to each public conclusion; the proofs are otherwise the upstream proofs.
+The two upstream sources are
+`IsPicardLindelof.exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith`
+and `IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`.
+The single difference from each original is marked inline below with a
+`Vendored addition` comment.
 
 The new conjunct exposes `FunSpace.compProj_mem_closedBall`'s guarantee at the
 public theorem level: every flow trajectory `α x t` stays inside
@@ -59,6 +60,8 @@ theorem exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confine
     (hf : IsPicardLindelof f t₀ x₀ a r L K) :
     ∃ α : E → ℝ → E, (∀ x ∈ closedBall x₀ r, α x t₀ = x ∧
       (∀ t ∈ Icc tmin tmax, HasDerivWithinAt (α x) (f t (α x t)) (Icc tmin tmax) t) ∧
+      -- Vendored addition (absent from the upstream `_lipschitzOnWith`): the flow
+      -- stays confined to `closedBall x₀ a`, the region where `f` is Lipschitz.
       (∀ t ∈ Icc tmin tmax, α x t ∈ closedBall x₀ a)) ∧
       ∃ L' : ℝ≥0, ∀ t ∈ Icc tmin tmax, LipschitzOnWith L' (α · t) (closedBall x₀ r) := by
   have (x) (hx : x ∈ closedBall x₀ r) := FunSpace.exists_isFixedPt_next hf hx
@@ -79,7 +82,9 @@ theorem exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confine
     intro t' ht'
     nth_rw 1 [← hα]
     rw [FunSpace.compProj_of_mem ht', FunSpace.next_apply]
-  · -- confinement: α' x t = (α x hx).compProj t ∈ closedBall x₀ a
+  · -- Vendored addition — confinement: α' x t = (α x hx).compProj t ∈ closedBall x₀ a.
+    -- Discharged by `FunSpace.compProj_mem_closedBall`, the invariant the upstream proof
+    -- already uses internally; here it is re-exported through the public conclusion.
     rw [hα']
     beta_reduce
     rw [dif_pos hx]
@@ -101,6 +106,9 @@ theorem exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined
     (hf : IsPicardLindelof f t₀ x₀ a r L K) :
     ∃ α : E → ℝ → E, ∀ x ∈ closedBall x₀ r, α x t₀ = x ∧
       (∀ t ∈ Icc tmin tmax, HasDerivWithinAt (α x) (f t (α x t)) (Icc tmin tmax) t) ∧
+      -- Vendored addition (absent from the upstream
+      -- `exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`): the flow
+      -- stays confined to `closedBall x₀ a`.
       (∀ t ∈ Icc tmin tmax, α x t ∈ closedBall x₀ a) :=
   have ⟨α, hα⟩ := exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined hf
   ⟨α, hα.1⟩
