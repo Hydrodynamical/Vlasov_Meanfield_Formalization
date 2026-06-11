@@ -7,19 +7,21 @@ Authors: Joseph K. Miller
 Characteristic flow for the Vlasov ODE + Lagrangian-Eulerian equivalence.
 
 This file builds on `Vlasov/OT/Coupling.lean` and provides the flow-side
-infrastructure needed to close the two flow-dependent placeholders in
-`Vlasov/Basic.lean`:
+infrastructure of the development:
 
-  - `MathlibTODO_W1ContOn_uscNarrow`   (USC of W₁ along Vlasov flows)
-  - `MathlibTODO_derivBound`           (right-derivative Gronwall condition)
+* existence of the characteristic flow for the Vlasov field
+  (`exists_vlasov_characteristicFlow`), via the vendored Picard–Lindelöf
+  wrapper and a tight per-window construction valid for arbitrary Lipschitz
+  constant;
+* the Lagrangian → Eulerian equivalence — the pushforward of `f₀` under the
+  characteristic flow satisfies the weak Vlasov equation;
+* the marquee results: `vlasovWellPosedness` (forward-in-time existence),
+  `vlasovWellPosedness_uniqueness`, `dobrushin` (W₁ stability, proved by
+  coupling the two flows and a Grönwall estimate), and the mean-field limit.
 
-Once these exports are in place, each placeholder becomes a ~20-line
-composition: take an ε-optimal coupling at the base time, push forward
-via the joint characteristic flows from `exists_vlasov_characteristicFlow`,
-apply `wasserstein1_pushforward_le_iInf` from Coupling.lean to bound W₁
-by the pushed-forward cost, then control the cost via Gronwall on the
-pointwise ODE.  The LSC placeholder remains independent of this file
-(it is the dual-formula + narrow-continuity approximation argument).
+The Grönwall step rests on the force estimate
+‖∇W∗ρ − ∇W∗σ‖ ≤ L·W₁(ρ, σ) (`norm_convolveFunctionMeasure_sub_le`) and on
+`wasserstein1_pushforward_le_iInf` from Coupling.lean.
 
 **Mathlib-upstream targeting note.**  The position-Lipschitz of
 convolution against a probability measure and the Picard-Lindelöf
@@ -4059,7 +4061,7 @@ theorem wasserstein1_lagrangian_pushforward_bound
 --   * `supW1On`: sup-W₁ pseudodistance over a set of times; the natural
 --     contraction metric for the Picard iteration.
 --   * `vlasovMeasureCurve_convCont`: convolution continuity in `t` derived
---     from the W₁-continuity field via `MathlibTODO_convolveLipschitzEstimate`.
+--     from the W₁-continuity field via `norm_convolveFunctionMeasure_sub_le`.
 --   * `constantCurve`: the constant curve `t ↦ μ₀`, used as the Picard
 --     iteration's starting point and as a sanity-check witness that the
 --     structure is inhabited.
@@ -4257,7 +4259,7 @@ lemma supW1On_ne_top_of_VlasovMeasureCurve {d : ℕ} [NeZero d] {T : ℝ} {M : �
             ENNReal.ofReal_lt_top)
 
 /-- Convolution continuity in time, derived from the structural
-`hW1Cont` field via `MathlibTODO_convolveLipschitzEstimate`.
+`hW1Cont` field via `norm_convolveFunctionMeasure_sub_le`.
 
 For each `x ∈ PhysSpace d`, the map `t ↦ (∇W ∗ ρ_t)(x)` is continuous on
 `[0, T]`.  Used inside `Φ`'s well-definedness proof to discharge the
@@ -4300,7 +4302,7 @@ lemma vlasovMeasureCurve_convCont {d : ℕ} [NeZero d]
   have h_finite : wasserstein1 (ρ.ρ s) (ρ.ρ t) ≠ ⊤ :=
     wasserstein1_ne_top_of_finite_moment _ _
       (ρ.yIntegrable s hs) (ρ.yIntegrable t ht)
-  have h_lip := MathlibTODO_convolveLipschitzEstimate gradW L hL
+  have h_lip := norm_convolveFunctionMeasure_sub_le gradW L hL
     (ρ.ρ s) (ρ.ρ t) x h_finite (h_int s hs) (h_int t ht)
   -- h_lip : ‖conv(ρ_s, x) - conv(ρ_t, x)‖ ≤ L · W₁(ρ_s, ρ_t).toReal
   rw [dist_eq_norm]
@@ -5964,7 +5966,7 @@ where `K := max(1, L)`.
   `vlasovVectorField_lipschitzWith`.
 * Second bracket: the velocity components cancel (`VF`'s first component is
   `z.2`, identical in both); only the force components differ.  Bounded by
-  `L · W₁(ρ_s, σ_s).toReal ≤ L · D` via `MathlibTODO_convolveLipschitzEstimate`.
+  `L · W₁(ρ_s, σ_s).toReal ≤ L · D` via `norm_convolveFunctionMeasure_sub_le`.
 * Apply `norm_le_gronwallBound_of_norm_deriv_right_le` with `δ := 0`,
   `K := max(1, L)`, `ε := L · D`.
 
@@ -6067,7 +6069,7 @@ theorem flow_difference_gronwall_bound {d : ℕ} [NeZero d]
          convolveFunctionMeasure gradW (ρ s) (γ_σ s).1‖ := by
       rw [h_VF_diff_explicit]
       simp [Prod.norm_def]
-    have h_conv_lip := MathlibTODO_convolveLipschitzEstimate gradW L hL
+    have h_conv_lip := norm_convolveFunctionMeasure_sub_le gradW L hL
       (σ s) (ρ s) (γ_σ s).1
       (by rw [wasserstein1_comm]; exact h_W1_fin s hs_Icc)
       (h_int_σ s _) (h_int_ρ s _)
@@ -6521,7 +6523,7 @@ lemma picard_iterate_geometric_bound {d : ℕ} [NeZero d] (S : Set ℝ)
 Standard Banach-fixed-point Cauchy condition derived from the geometric
 contraction.
 
-**Output form** matches `MathlibTODO_cauchyW1_hasNarrowLimit`'s ENNReal-form
+**Output form** matches `exists_wasserstein1_limit_of_cauchy`'s ENNReal-form
 Cauchy hypothesis: for every `ε : ENNReal` with `0 < ε`, there is `N` such
 that `supW1On (x m) (x n) < ε` for all `m, n ≥ N`.
 
@@ -6659,7 +6661,7 @@ produce a limit `ρ_lim : VlasovMeasureCurve d T M` such that
 1. Apply `picard_iterate_isCauchy_of_contraction` to get supW1On Cauchy.
 2. Per-`t ∈ Icc 0 T`, the pointwise sequence `n ↦ (x n).ρ t` is Cauchy in
    W₁ (by `wasserstein1_le_supW1On` from the sup-Cauchy).
-3. Invoke `MathlibTODO_cauchyW1_hasNarrowLimit` per-`t` to obtain the
+3. Invoke `exists_wasserstein1_limit_of_cauchy` per-`t` to obtain the
    pointwise limit `ρ_lim t` (with probability, integrability, moment bound,
    W₁-tendsto, all from the strengthened placeholder).
 4. Extend `ρ_lim` to all of `ℝ` by `(x 0).ρ` outside `Icc 0 T` (so the
@@ -6703,7 +6705,7 @@ theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
       Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) μ) Filter.atTop (nhds 0) := by
     intro t ht
     haveI : ∀ n, IsProbabilityMeasure ((x n).ρ t) := fun n => (x n).isProb t
-    exact MathlibTODO_cauchyW1_hasNarrowLimit (fun n => (x n).ρ t) (M t)
+    exact exists_wasserstein1_limit_of_cauchy (fun n => (x n).ρ t) (M t)
       (fun n => (x n).hasMoment t ht) (fun n => (x n).yIntegrable t ht)
       (h_per_t_cauchy t ht)
   -- Step 4: define ρ_lim via dependent choice on whether t ∈ Icc 0 T.
@@ -12155,8 +12157,8 @@ Two `IsLagrangianVlasovSolutionOn`s with the same initial data agree on
 
 1. Extract `IsVlasovSolutionOn` from each `IsLagrangianVlasovSolutionOn`.
 2. Note `f 0 = f₀ = g 0` from the init hypotheses.
-3. Apply `MathlibTODO_dobrushin_uniqueness_On` (localized Dobrushin
-   uniqueness, Helper above) to conclude `f t = g t`. -/
+3. Apply `dobrushin_uniqueness_On` (localized Dobrushin uniqueness, the
+   private helper above) to conclude `f t = g t`. -/
 theorem vlasovWellPosedness_uniqueness
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
@@ -12621,8 +12623,7 @@ theorem vlasovWellPosedness
     -- Step L0-7: per-window `IsLagrangianVlasovSolutionOn` via the **sorry-free**
     -- `_On` producer.  The previous route went through the GLOBAL producer
     -- `…isLagrangianVlasovSolution`, whose `IsVlasovSolution` conjunct passes
-    -- through `vlasovTrajectoryLipschitzBound` → #7
-    -- (`MathlibTODO_lipschitzFlowTrajectoryLipBound`).  Feeding the affine flow's
+    -- through the trajectory Lipschitz bound.  Feeding the affine flow's
     -- universal facts (restricted to `_On`) into `…isLagrangianVlasovSolutionOn`
     -- instead orphans that whole chain (it is deleted below).
     haveI := hf₀.1
@@ -12880,9 +12881,8 @@ lemma dobrushin_package_exists
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1_coupling (f 0) (g 0) := by
   -- Routed through the integrated-coupling core via `dobrushin_meanfield_On`:
   -- pick C = 2·(max 1 L) and window each `t ≥ 0` at `T = t + 1` (uniform in
-  -- `t`, including `t = 0`) via `.toOn`.  This bypasses
-  -- `MathlibTODO_wassersteinGronwallCoupling` and its W₁-continuity /
-  -- right-derivative sub-axioms entirely.
+  -- `t`, including `t = 0`) via `.toOn`.  This bypasses the Gronwall-coupling
+  -- W₁-continuity / right-derivative analytic route entirely.
   refine ⟨2 * ((max 1 L : NNReal) : ℝ), ?_, ?_⟩
   · have h1 : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
       rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_left _ _

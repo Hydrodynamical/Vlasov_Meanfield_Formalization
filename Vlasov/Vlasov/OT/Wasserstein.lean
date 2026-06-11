@@ -699,9 +699,8 @@ functions) and `μ, ν` have finite first moments, then
 This is the *static* optimal-transport fact — pure lower semicontinuity of the
 metric under weak convergence, with no flow/superposition.  Prokhorov supplies
 the narrow limit; this upgrades a W₁-Cauchy sequence to W₁-convergence.
-Distinct from the *dynamic* narrow continuity along a Vlasov flow
-(`MathlibTODO_W1ContOn_lscNarrow`), which genuinely needs DiPerna–Lions
-superposition; the static LSC does not.
+Distinct from the *dynamic* narrow continuity along a Vlasov flow, which
+genuinely needs DiPerna–Lions superposition; the static LSC does not.
 
 **Proof.**  For each 1-Lipschitz `φ` truncate to `φ_k = clamp(φ, -k, k)` (bounded
 and 1-Lipschitz).  Narrow convergence gives `∫ φ_k d(νs n) → ∫ φ_k dν`, and the
@@ -711,7 +710,7 @@ the liminf in `n` yields `ofReal(∫φ_k dμ − ∫φ_k dν) ≤ liminf_n W₁(
 have finite first moment) recovers `ofReal(∫φ dμ − ∫φ dν) ≤ liminf_n W₁`.  Taking
 the `⨆` over `φ` closes it.  The narrow hypothesis is taken in
 bounded-continuous-test form (what `ProbabilityMeasure.tendsto_iff_forall_integral_tendsto`
-exposes), so the `MathlibTODO_cauchyW1_hasNarrowLimit` caller feeds it directly
+exposes), so the `exists_wasserstein1_limit_of_cauchy` caller feeds it directly
 from Prokhorov. -/
 lemma wasserstein1_le_liminf_of_narrow
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]

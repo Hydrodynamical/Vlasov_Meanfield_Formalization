@@ -864,7 +864,7 @@ Used to lift the Picard iteration's Cauchy sequence (from the
 `Phi_supW1_contraction` contraction estimate) to a W₁-limit in the curve
 space; the limit is a fixed point of the Picard iteration, yielding a
 self-consistent characteristic flow + Vlasov solution on `[0, T₀]`. -/
-theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
+theorem exists_wasserstein1_limit_of_cauchy {d : ℕ} [NeZero d]
     (ν : ℕ → Measure (PhysSpace d)) [∀ n, IsProbabilityMeasure (ν n)]
     (M : ℝ) (hMom : ∀ n, ∫ y, ‖y‖ ∂(ν n) ≤ M)
     (h_yint : ∀ n, Integrable (fun y : PhysSpace d => ‖y‖) (ν n))
@@ -1059,7 +1059,7 @@ theorem MathlibTODO_cauchyW1_hasNarrowLimit {d : ℕ} [NeZero d]
 ## Note on finiteness in the convolution Lipschitz cascade
 
 `convolveLipschitz_KR_le`, `convolveLipschitz_inner_bound`, and
-`MathlibTODO_convolveLipschitzEstimate` conclude in `.toReal` of an ENNReal
+`norm_convolveFunctionMeasure_sub_le` conclude in `.toReal` of an ENNReal
 expression involving `wasserstein1 ρ σ`.  The inequality requires a finiteness
 hypothesis `wasserstein1 ρ σ ≠ ⊤`: without it `(⊤ : ℝ≥0∞).toReal = 0` would
 collapse any positive LHS bound.  The hypothesis is threaded through the
@@ -1262,7 +1262,7 @@ lemma convolveLipschitz_norm_le_of_inner_forall
 -- Mathlib gap: pointwise Lipschitz estimate for the convolution ∇W * ρ.
 -- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
 -- in Mathlib's stable API for general metric spaces.
-theorem MathlibTODO_convolveLipschitzEstimate
+theorem norm_convolveFunctionMeasure_sub_le
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -1559,16 +1559,11 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
       ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
   rw [ENNReal.ofReal_mul hδ, mul_comm]
 
--- `wassersteinGronwallCoupling_ofReal_le` and
--- `MathlibTODO_wassersteinGronwallCoupling` live in
--- `Vlasov/OT/CharacteristicFlow.lean` §10, built on
--- `wassersteinGronwallCoupling_real_bound`.
-
 /-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
 on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.
 This is the key estimate: the convolution ∇W * ρ is Lipschitz in ρ with respect to
 the Wasserstein-1 distance, via Kantorovich–Rubinstein duality.
-A thin wrapper around `MathlibTODO_convolveLipschitzEstimate`. -/
+A thin wrapper around `norm_convolveFunctionMeasure_sub_le`. -/
 lemma convolveDiff_norm_le
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -1580,7 +1575,7 @@ lemma convolveDiff_norm_le
     (hσ_int : Integrable (fun y => gradW (x - y)) σ) :
     ‖convolveFunctionMeasure gradW ρ x - convolveFunctionMeasure gradW σ x‖ ≤
       (L : ℝ) * (wasserstein1 ρ σ).toReal :=
-  MathlibTODO_convolveLipschitzEstimate gradW L hL ρ σ x hW hρ_int hσ_int
+  norm_convolveFunctionMeasure_sub_le gradW L hL ρ σ x hW hρ_int hσ_int
 
 /-- (tex: eq:dobrushin)
 The exponential Wasserstein-1 stability estimate for Vlasov solutions
