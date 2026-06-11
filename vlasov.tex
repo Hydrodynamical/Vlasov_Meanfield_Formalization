@@ -149,6 +149,88 @@ with $\rho_t = (X(t,\cdot))_\# (\int f_0\, dv)$, and set $f_t = (X(t,\cdot), V(t
 The fixed-point argument for \eqref{eq:char} uses the Lipschitz hypothesis on $\nabla W$ and
 the Wasserstein-$1$ metric on probability measures.
 
+\subsection*{Weak and Lagrangian solutions}\label{sec:weak-lagrangian}
+
+The construction above produces a solution of a special form---a pushforward of the
+initial datum along the characteristic flow---whereas Theorem~\ref{thm:vlasov-wp}
+asserts uniqueness among \emph{all} distributional solutions. To relate the two
+notions we make each precise. Throughout, $\rho_t := (\mathrm{pr}_x)_\# f_t$ denotes
+the spatial (position) marginal, where $\mathrm{pr}_x(x,v) = x$.
+
+\begin{definition}[Weak solution]\label{def:weak-sol}
+A narrowly continuous family $f : [0,\infty) \to \mathcal{P}_1(\R^d \times \R^d)$ is a
+\emph{weak (Eulerian) solution} of \eqref{eq:vlasov} with datum $f_0$ if $f_{|t=0} = f_0$
+and, for every test function $\varphi \in C_c^\infty(\R^d \times \R^d)$, the map
+$t \mapsto \langle f_t, \varphi \rangle$ is differentiable with
+\begin{equation}
+  \frac{d}{dt} \langle f_t, \varphi \rangle
+  \;=\; \big\langle f_t,\; v \cdot \nabla_x \varphi
+        \;-\; (\nabla W * \rho_t) \cdot \nabla_v \varphi \big\rangle
+  \qquad (t \ge 0).
+  \label{eq:weak-sol}
+\end{equation}
+Equivalently, $f$ satisfies \eqref{eq:weak-eq} with remainder $R_N \equiv 0$.
+\end{definition}
+
+\begin{definition}[Lagrangian solution]\label{def:lagrangian-sol}
+A weak solution $f$ is a \emph{Lagrangian solution} if it admits a characteristic
+representation: there exist maps $X, V : [0,\infty) \times (\R^d \times \R^d) \to \R^d$
+solving the characteristic system \eqref{eq:char} relative to its own spatial marginal
+$\rho_t = (\mathrm{pr}_x)_\# f_t$, with initial condition $(X,V)(0,\cdot) = \mathrm{id}$,
+such that
+\begin{equation}
+  f_t \;=\; \big( X(t,\cdot),\, V(t,\cdot) \big)_\# f_0
+  \qquad \text{for all } t \ge 0.
+  \label{eq:lagrangian-rep}
+\end{equation}
+\end{definition}
+
+A Lagrangian solution is a weak solution by definition. The substantive content is
+the converse, which is the theorem we wish to establish. It requires one degree of
+regularity beyond Assumption~\ref{ass:W}.
+
+\begin{assumption}\label{ass:W2}
+In addition to Assumption~\ref{ass:W}, the gradient is continuously differentiable:
+$\nabla W \in C^1(\R^d)$, equivalently $W \in C^2(\R^d)$ with continuous Hessian
+$D^2 W$ (already bounded, with $\|D^2 W\|_\infty = L$, by Assumption~\ref{ass:W}).
+\end{assumption}
+
+\begin{theorem}[Weak solutions are Lagrangian]\label{thm:weak-lagrangian}
+Under Assumption~\ref{ass:W2}, every weak solution $f$ of \eqref{eq:vlasov} with datum
+$f_0 \in \mathcal{P}_1(\R^d \times \R^d)$ is a Lagrangian solution: there is a characteristic
+flow \eqref{eq:char} for which the representation \eqref{eq:lagrangian-rep} holds.
+Consequently the weak and Lagrangian notions of solution coincide, and the unique
+solution of Theorem~\ref{thm:vlasov-wp} is transported by the characteristic flow.
+\end{theorem}
+
+\begin{remark}[On the regularity hypothesis]\label{rem:weak-lagrangian-reg}
+Theorem~\ref{thm:weak-lagrangian} is the superposition (probabilistic representation)
+principle for the phase-space continuity equation
+$\partial_t f + \mathrm{div}_{(x,v)}(b_f\, f) = 0$ with velocity field
+$b_f(t,x,v) = \big( v,\; -(\nabla W * \rho_t)(x) \big)$. Already under
+Assumption~\ref{ass:W} this field is globally Lipschitz in $(x,v)$, uniformly in $t$
+(convolution with a probability measure preserves $\Lip(\nabla W) = L$), so the flow
+\eqref{eq:char} exists, is unique, and is bi-Lipschitz by Cauchy--Lipschitz. The proof
+reduces to uniqueness for the \emph{linear} continuity equation with this field: writing
+$g_t := (X(t,\cdot), V(t,\cdot))_\# f_0$ for the pushforward of $f_0$ along the flow frozen
+at $\rho_t = (\mathrm{pr}_x)_\# f_t$, both $f$ and $g$ solve the same linear equation with
+the same datum, whence $f = g$. This uniqueness is proved by the dual transported test
+function $\psi(s,z) := \varphi\big(\Phi_{s,T}(z)\big)$, which is constant along
+characteristics; for $\psi(s,\cdot)$ to be an admissible $C^1$ test function the flow must
+be $C^1$ in the initial point $z$. \emph{This is precisely what the stronger
+Assumption~\ref{ass:W2} buys}: with $\nabla W \in C^1$ one has $\nabla W * \rho_t \in C^1$
+and $\|D(\nabla W * \rho_t)\|_\infty \le L$, so $b_f$ is $C^1$ in $z$ and the flow inherits
+$C^1$ dependence on $z$. At the bare $C^{1,1}$ regularity of Assumption~\ref{ass:W} the flow
+is only bi-Lipschitz, the transported test function only Lipschitz, and the chain-rule
+identity holds merely Lebesgue-a.e.\ rather than $f_t$-a.e.; the representation then requires
+the full superposition theorem of Ambrosio. Stating the theorem under
+Assumption~\ref{ass:W2} keeps the proof at the elementary dual-argument level and matches
+the hypothesis to what the argument actually uses. Dobrushin~\cite{Dobrushin} sidesteps the
+equivalence altogether by taking the Lagrangian representation \eqref{eq:lagrangian-rep} as
+the \emph{definition} of solution, for which the Lipschitz regularity of
+Assumption~\ref{ass:W} suffices.
+\end{remark}
+
 \section{The Mean-Field Limit: Dobrushin's Theorem}
 
 The empirical-measure framework reduces the mean-field limit to a stability statement for
