@@ -112,7 +112,7 @@ Vlasov/
     VectorField.lean        — AssW, convolveFunctionMeasure, convolveLipschitz_*, gradient_zero_of_even
                               (CharFlow Stage A/A.2 + the convolve* / gradient Basic decls)
     Solutions.lean          — IsVlasovSolution(On), IsLagrangianVlasovSolution(On), IsCharacteristicFlow*, the _On predicate family
-    CharacteristicFlow.lean — the tight flow: extend_one_window_tight, characteristicFlow_tight, perz, global_smallT,
+    CharacteristicFlow.lean — the tight flow: extend_one_window_tight, characteristicFlow_tight, exists_vlasov_trajectory, global_smallT,
                               per-window helpers (CharFlow Stage B + per-window helpers)
     LagrangianEulerian.lean — Stage C (pushforward solves weak Vlasov) + SC bundle  [large; may split]
     WellPosedness.lean      — vlasovWellPosedness_forward/_uniqueness/_universal + the marquee vlasovWellPosedness
@@ -174,8 +174,8 @@ Every name is descriptive-statement-shape. The bridge `wasserstein1_eq_coupling`
   `lintegral_ofReal_kept_cells_le`, `finiteTransport_dual_eps`, `wassersteinCost_dual_singleMap_le`,
   `measure_compl_biUnion_range_tendsto_zero` — descriptive and acceptable; a Mathlib reviewer might tweak
   `kept_cells`/`_eps` wording at PR time, non-blocking.
-- `MathlibTODO_cauchyW1_hasNarrowLimit` — an intentionally-sorry'd citation placeholder in Basic (Kinetic side),
-  correctly **untouched** (the prefix is meaningful — a genuine deferral, not closed-and-misnamed).
+- `MathlibTODO_cauchyW1_hasNarrowLimit` — at the time of this audit a sorry'd placeholder; since PROVEN and
+  renamed to `exists_wasserstein1_limit_of_cauchy` (Tier-2 names, 2026-06-10). No `MathlibTODO_*` remain.
 
 **Discipline notes (this arc):**
 - *Stale-check (→ CLAUDE.md P11)*: move 2's first cut grabbed a dangling docstring (off by 25 lines). The build
@@ -186,35 +186,98 @@ Every name is descriptive-statement-shape. The bridge `wasserstein1_eq_coupling`
   decl graph), not text-grep — grep over-matched `AssW`/`empirical`/`gradW` in docstring prose; the graph showed
   clean OT-only deps. Trusting the grep would have wrongly blocked a clean move.
 
-## Kinetic split — IN PROGRESS (full 7-file split, user-approved)
+## Kinetic split — PLANNED (full 7-file split; refreshed 2026-06-10, NOT started)
 
-Refreshed graph: `formalize/phase-d/phase_d_deps_kinetic.txt` (post-OT-extraction; tool updated to current
-modules). Kinetic side = Basic (46 Vlasov decls) + CharacteristicFlow (124 decls) = 170 decls. The OT layer
-(GEOM/WASS/COUP) is below and untouched. Partition (bottom-up DAG; the build is the back-edge oracle —
-revert-diagnose-redo on any cycle/missing-import; footprint-check + commit each file):
+**Status.** OT extraction is complete; the Kinetic split was deferred while the codebase was
+cleaned — Tier 0 (truthful comments/docstrings), Tier 1 (≤100-codepoint lines, `/-! ## -/`
+section headers, Mathlib copyright + LICENSE, linter), Tier 2 (names: the 2 real
+`MathlibTODO_*` lemmas + 8 Group-A jargon helpers renamed; 0 `MathlibTODO_*` remain). This
+plan is refreshed to current names. Bonus from the cleanup: `CharacteristicFlow.lean` now
+carries `/-! ## -/` headers that fall on the partition boundaries, so it is effectively
+pre-cut (see the **cut-point map** below).
 
-1. **`Kinetic/VectorField.lean`** ← Basic {AssW, convolveFunctionMeasure, convolveDiff_norm_le,
-   convolveLipschitz_*, gradient_zero_of_even, MathlibTODO_convolveLipschitzEstimate} + CharFlow Stage A
-   (vlasovVectorField + _lipschitzWith + _norm_le). Imports OT/Wasserstein + Base/Geometry.
-2. **`Kinetic/Solutions.lean`** ← Basic {IsVlasovSolution, IsNewtonSolution, IsLagrangianVlasovSolution,
-   IsCharacteristicFlow(SelfConsistent), WeakEvolutionEq, HasFiniteFirstMoment} + CharFlow localized `_On`
-   predicate family. Imports VectorField.
-3. **`Kinetic/CharacteristicFlow.lean`** (residual) ← Stage A.2 (flow distance growth) + Stage B (flow
-   existence, extend_one_window_tight, characteristicFlow_tight, per-window helpers, perz, global_smallT).
-   Imports Solutions + VectorField + Picard.
-4. **`Kinetic/LagrangianEulerian.lean`** ← Stage C + SC bundle. Imports CharacteristicFlow + Solutions.
-5. **`Kinetic/WellPosedness.lean`** ← §9/9.5/9.6/9.7 + §10 marquee (vlasovWellPosedness). Imports LagrangianEulerian.
-6. **`Kinetic/Dobrushin.lean`** ← §10 Dobrushin chain + Basic {DobrushinStabilityEstimate,
-   wassersteinGronwallCoupling_*, w1_lscNarrow_*, diagonalCorrection_*, gronwall_mild_le,
-   MathlibTODO_cauchyW1_hasNarrowLimit}. Imports OT/Coupling (bridge) + Solutions + CharacteristicFlow.
-7. **`Kinetic/MeanField.lean`** ← Basic {empiricalMeasure*, meanFieldLimit, hamiltonianN, spatialMarginal,
-   weakEvolutionEmpiricalMeasure, vlasovSolutionViaPushforward, hasDerivAt_empirical*,
-   convolveFunctionMeasure_empiricalSpatial_eq}. Imports WellPosedness/Solutions. Top leaf.
+Kinetic side = Basic (Vlasov decls) + CharacteristicFlow (~13.0k lines, ~111 decls); OT
+(Base/Geometry → OT/Wasserstein → OT/Coupling) is below and untouched. Partition is a
+bottom-up DAG. Oracles/gates per move: `depgraph-tool.lean` (back-edge oracle —
+revert-diagnose-redo on any cycle) → `lake build` green → `footprint-check.lean` (both
+marquees `[propext, Classical.choice, Quot.sound]`) → `sorry-scan.lean` (0) →
+`reuse-score.lean` (total stays 230) → commit each file.
 
-DAG: `VectorField → Solutions → CharacteristicFlow → LagrangianEulerian → WellPosedness → {Dobrushin, MeanField}`.
-End state: `Basic.lean` emptied (all OT decls → OT/, all Vlasov decls → Kinetic/) → remove or thin re-export.
-Develop large CharFlow-body extractions against the slow host as usual; boundary-pin per the move-2 lesson
-(end at the decl's end, not the next docstring); footprint `[propext, Classical.choice, Quot.sound]` after each.
+**Target files (bottom-up; current names):**
+
+1. **`Kinetic/VectorField.lean`** ← AssW, convolveFunctionMeasure, convolveLipschitz_*,
+   `norm_convolveFunctionMeasure_sub_le` (was MathlibTODO_convolveLipschitzEstimate),
+   convolveDiff_norm_le, gradient_zero_of_even, + the velocity field
+   (vlasovVectorField + _lipschitzWith + growth/Gronwall). Imports OT/Wasserstein + Base/Geometry.
+2. **`Kinetic/Solutions.lean`** ← IsVlasovSolution(On), IsNewtonSolution,
+   IsLagrangianVlasovSolution(On), IsCharacteristicFlow(SelfConsistent)(On), WeakEvolutionEq,
+   HasFiniteFirstMoment, vlasovSolutionViaPushforward, the `_On` predicate family. Imports VectorField.
+3. **`Kinetic/CharacteristicFlow.lean`** (residual) ← the tight per-window flow:
+   exists_vlasov_extend_one_window(_tight), exists_vlasov_characteristicFlow_tight,
+   `exists_vlasov_trajectory` (was perz), _global_smallT, the Φ operator + Picard fixed point
+   (Phi_*), LocalSmallness_*, supW1On_*, `characteristicFlow_boundary_regularity` (was Stage_1_9_…).
+   Imports Solutions + VectorField + Mathlib/ODE/PicardLindelof.
+4. **`Kinetic/LagrangianEulerian.lean`** ← Stage C (pushforward solves weak Vlasov) +
+   the SC.5–SC.8 bundle. [largest residual; may split in two.] Imports CharacteristicFlow.
+5. **`Kinetic/WellPosedness.lean`** ← vlasovWellPosedness_{forward,uniqueness,universal_existence},
+   `vlasovWellPosedness_local(_moment/_isLagrangian)` (was _finalAssembly_*),
+   `vlasovWellPosedness_glue(_boundary)` (was _glue_step / glue_step_boundary_bundle),
+   `dobrushin_uniqueness_On` (the §9.6 private per-window uniqueness helper — see wrinkle),
+   and the marquee `vlasovWellPosedness` (§10). Imports LagrangianEulerian.
+6. **`Kinetic/Dobrushin.lean`** ← the §10 stability chain: DobrushinStabilityEstimate,
+   wassersteinGronwallCoupling_*, `continuousOn_integral_of_isLagrangianVlasovSolution`
+   (was w1_lscNarrow_integralContOn_lip_lag), w1_lscNarrow_of_summands, diagonalCorrection_*,
+   `exists_wasserstein1_limit_of_cauchy` (was MathlibTODO_cauchyW1…, now proven), and `dobrushin`.
+   Imports OT/Coupling (the `wasserstein1_eq_coupling` bridge) + Solutions + CharacteristicFlow.
+7. **`Kinetic/MeanField.lean`** ← hamiltonianN, empiricalMeasure*, weakEvolutionEmpiricalMeasure,
+   empiricalMeasureSolvesVlasov, meanFieldLimit(_coupling), spatialMarginal, hasDerivAt_empirical*,
+   convolveFunctionMeasure_empiricalSpatial_eq. Imports WellPosedness + Dobrushin. Top leaf.
+
+DAG: `VectorField → Solutions → CharacteristicFlow → LagrangianEulerian → WellPosedness → Dobrushin → MeanField`.
+
+**Dependency wrinkle (resolved).** `vlasovWellPosedness_uniqueness` (file 5) calls
+`dobrushin_uniqueness_On` (the §9.6 *private* per-window uniqueness), so that helper stays in
+WellPosedness — the §10 marquee `dobrushin` stability theorem is the only thing in Dobrushin
+(file 6). The depgraph tool flags this as the sole would-be back-edge; keeping the helper in
+WellPosedness makes the DAG strictly linear.
+
+**Cut-point map** — current `CharacteristicFlow.lean` `/-! ## -/` headers → target file:
+
+  L48   Vlasov velocity field + Lipschitz             → VectorField
+  L117  Flow distance growth (Gronwall)               → VectorField / CharacteristicFlow
+  L1162 Characteristic flow existence (Picard)        → CharacteristicFlow
+  L1233 Localized `_On` solution predicates           → Solutions
+  L1750 Per-window helpers (N-window induction)       → CharacteristicFlow
+  L2877 Lagrangian → Eulerian (pushforward → weak PDE)→ LagrangianEulerian
+  L3251 LE bundle sub-helpers (SC.5–SC.8)             → LagrangianEulerian
+  L4008 "Integration smoke test"                      → drop, or move to a test file
+  L4055 Banach fixed-point scaffolding                → CharacteristicFlow
+  L4148 Metric-dependent smallness (LocalSmallness_*) → CharacteristicFlow
+  L4321 Constant extension past [0,T]                 → CharacteristicFlow
+  L4721 The pushforward operator Φ (Phi_*)            → CharacteristicFlow
+  L6841 §9 Existence and uniqueness                   → WellPosedness
+  L8187 Banked hasDerivAt_of_hasDerivAt_of_ne         → WellPosedness (helper)
+  L8261 Variable-T_target continuation                → WellPosedness
+  L11082 Uniqueness over …On per window               → WellPosedness (dobrushin_uniqueness_On)
+  L12187 Universal-in-t bridge                        → WellPosedness
+  L12502 §10 Marquee theorem                          → WellPosedness
+  L12853 §10 Dobrushin stability chain                → Dobrushin
+
+Plus the Basic-resident Vlasov decls distribute: AssW/convolve*/gradient → VectorField;
+solution predicates → Solutions; empirical*/meanField/hamiltonianN → MeanField;
+DobrushinStabilityEstimate/Gronwall/cauchy-limit → Dobrushin. End state: `Basic.lean`
+emptied (all Vlasov decls → Kinetic/) → delete, or keep a thin re-export shim.
+
+**Open design questions:** split the large LagrangianEulerian (Stage C) in two? Keep
+`HasFiniteFirstMoment` in Solutions or push to OT/Wasserstein? Delete `Basic.lean` or keep a
+shim? Drop the "Integration smoke test" or relocate it?
+
+**Effort & caution.** The heaviest structural item — ~15k lines redistributed, ~15–20 moves,
+each a CharFlow-class rebuild; a multi-session phase. Develop large body-extractions against
+the slow host (L12 scratch trick); boundary-pin per the move-2 lesson (end at the decl's end,
+not the next docstring). If any moves are delegated to subagents, apply the edit move-ban +
+`agent-edit-guard.sh`; doing the moves directly sidesteps the `.prover-bak` hazard. Orthogonal
+to the weak⟺Lagrangian bridge, which slots into Solutions/LagrangianEulerian either way.
 
 **Historical (superseded by the above):**
 
