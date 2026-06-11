@@ -878,7 +878,7 @@ theorem exists_wasserstein1_limit_of_cauchy {d : ℕ} [NeZero d]
       -- lower-semicontinuity of `∫ ‖·‖ ∂·` under W₁-convergence.  Standard
       -- consequence of W₁-convergence + uniform moment control; exposed in
       -- the conclusion so downstream consumers
-      -- (`picard_iterate_bundlesAs_VlasovMeasureCurve`) can re-use the
+      -- (`picard_iterate_exists_limit`) can re-use the
       -- same moment bound for the limit's `VlasovMeasureCurve` packaging.
       ∫ y, ‖y‖ ∂μ ≤ M ∧
       -- Conclusion also in ENNReal form; downstream consumers project
@@ -1290,7 +1290,7 @@ pushforward equation `f t = Measure.map (charX t, charV t) (f 0)` and
 in `t` then reduces to dominated convergence on the *fixed* measure `f 0`,
 with pointwise continuity from the flow's `HasDerivAt` and an integrable
 dominator from `HasFiniteFirstMoment (f 0)` + a flow-growth bound. -/
-lemma w1_lscNarrow_integralContOn_lip_lag
+lemma continuousOn_integral_of_isLagrangianVlasovSolution
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)

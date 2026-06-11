@@ -1190,7 +1190,7 @@ Picard-Lindelöf (`exists_vlasov_extend_one_window`), and stitches
 `N = ⌈T/δ⌉` windows per-`z` via `HasDerivWithinAt.union` under the
 position/velocity inductive invariant.  Downstream callers discharge its
 `hR`/`hbound` hypotheses; the single-ball-over-`[0,T+1]` `hR` discharge in
-`exists_vlasov_perz_trajectory` is what introduces the
+`exists_vlasov_trajectory` is what introduces the
 `LocalSmallness_PL_buffer L T := L·(T+1)² < 1` constraint — see that
 theorem's docstring for the `+1`-offset / arbitrary-`L` discussion. -/
 
@@ -4324,7 +4324,7 @@ A `VlasovMeasureCurve d T M` has its structural properties (moment bound,
 integrability of `‖·‖`, W₁-continuity) only on `Icc 0 T`.
 `exists_vlasov_characteristicFlow_global_smallT` takes universal-in-`t`
 hypotheses (the proof internally accesses `ρ` at `t ∈ Icc 0 (T + 1)` —
-see `exists_vlasov_perz_trajectory`'s `hbound_local` — but the exposed
+see `exists_vlasov_trajectory`'s `hbound_local` — but the exposed
 signature is universal).
 
 The constant-extension wrapper `VlasovMeasureCurve.extend` produces a
@@ -4440,7 +4440,7 @@ existence-bound on `T` driven by `L·T² < 1`.
 
 The forward-iteration continuation extends to arbitrary T via shifted
 initial data; the small-T regime here is where the contraction operates. -/
-theorem exists_vlasov_perz_trajectory
+theorem exists_vlasov_trajectory
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
@@ -4649,7 +4649,7 @@ forward-iteration continuation extends to arbitrary T via shifted-initial-data
 iteration.
 
 **Architecture**: per-z application of `exists_vlasov_characteristicFlow`
-with `z₀ = z, a = 1` (via `exists_vlasov_perz_trajectory` helper), bundled
+with `z₀ = z, a = 1` (via `exists_vlasov_trajectory` helper), bundled
 into a global flow via `Classical.choose`.  See helper's docstring for the
 algebraic R(z), M(z) computation.
 
@@ -4697,7 +4697,7 @@ theorem exists_vlasov_characteristicFlow_global_smallT
         HasDerivWithinAt (fun s => (γ s).2)
           (-(convolveFunctionMeasure gradW (ρ t) (γ t).1)) (Set.Icc 0 T) t) := by
     intro z
-    exact exists_vlasov_perz_trajectory W gradW hgradW L hL ρ h_int hρ_cont
+    exact exists_vlasov_trajectory W gradW hgradW L hL ρ h_int hρ_cont
       h_y_int M_ρ hM_ρ_nn hM_ρ T hT hTL_PL z
   -- Bundle via Classical.choose.
   let γ_func : PhaseSpace d → ℝ → PhaseSpace d := fun z =>
@@ -5508,7 +5508,7 @@ and transports it into the precise form needed:
 * `h_deriv_Ico` from `h_boundary`'s HasDerivWithinAt-on-Icc lifted to
   HasDerivWithinAt-on-Ici at boundary points via `mono_of_mem_nhdsWithin`
   (the local-equivalence-of-filters argument). -/
-theorem Stage_1_9_flow_boundary_regularity
+theorem characteristicFlow_boundary_regularity
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d))
@@ -5589,7 +5589,7 @@ theorem Stage_1_9_flow_boundary_regularity
 /-- **Single Picard step `VlasovMeasureCurve d T M → VlasovMeasureCurve d T M'`**.
 
 Composes `exists_vlasov_characteristicFlow_global_smallT` +
-`Stage_1_9_flow_boundary_regularity` + `flow_distance_growth_bound_on` +
+`characteristicFlow_boundary_regularity` + `flow_distance_growth_bound_on` +
 `charFlow_measurable_via_gronwall` + `Phi_asVlasovMeasureCurve` into a
 single Picard step.
 
@@ -5651,7 +5651,7 @@ theorem Phi_step
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
       ρ.extend h_int_ext hρ_cont h_y_int Mbar hMbar_nn hM_ρ T hT hTL_PL
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
+    characteristicFlow_boundary_regularity gradW ρ.extend charX charV T hT
       hflow_on h_boundary
   -- Piece A (time-local envelope) per-`z` growth bound against the input
   -- envelope `M` (on `Icc`, `ρ.extend t = ρ.ρ t`, so `ρ`'s moment bound `M t`
@@ -5826,7 +5826,7 @@ theorem Phi_step_envelope
     exists_vlasov_characteristicFlow_global_smallT W gradW hgradW L hL
       ρ.extend h_int_ext hρ_cont h_y_int (m T) hMbar_nn hM_ρ T hT hTL_PL
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW ρ.extend charX charV T hT
+    characteristicFlow_boundary_regularity gradW ρ.extend charX charV T hT
       hflow_on h_boundary
   have hm_M : ∀ t ∈ Set.Icc (0:ℝ) T, ∫ y, ‖y‖ ∂(ρ.extend t) ≤ m t := by
     intro t ht
@@ -6675,7 +6675,7 @@ produce a limit `ρ_lim : VlasovMeasureCurve d T M` such that
    * `hW1Cont`: ε/3 triangle through `x N`, using
      `picard_iterate_limit_uniform_tendsto` for the uniform tendsto +
      `(x N).hW1Cont` for the middle term. -/
-theorem picard_iterate_bundlesAs_VlasovMeasureCurve {d : ℕ} [NeZero d]
+theorem picard_iterate_exists_limit {d : ℕ} [NeZero d]
     {T : ℝ} {M : ℝ → ℝ}
     (x : ℕ → VlasovMeasureCurve d T M)
     (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
@@ -6854,7 +6854,7 @@ uncontrolled `Classical.choose` data), and the sole consumer applies this
 only at `clampToIcc T s ∈ Icc 0 T`.  On the window the joint flow's
 measurability follows from `charFlow_measurable_via_gronwall` (genuine
 `Measurable`, via the boundary bundle through
-`Stage_1_9_flow_boundary_regularity`).
+`characteristicFlow_boundary_regularity`).
 
 **In-project consumer**: `vlasovWellPosedness_local_picard_fixedPointFlow`'s
 AEMeasurable conjunct, applied at clamp times `clampToIcc T s ∈ Icc 0 T`. -/
@@ -6876,14 +6876,14 @@ private lemma picardCharFlow_aemeasurable
       AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) μ := by
   intro s hs
   obtain ⟨h_init, h_cont, h_deriv⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW ρ charX charV T hT hflow hbdry
+    characteristicFlow_boundary_regularity gradW ρ charX charV T hT hflow hbdry
   exact (charFlow_measurable_via_gronwall gradW L hL ρ h_int charX charV T hT
     h_init h_cont h_deriv s hs).aemeasurable
 
 /-- **Contraction-input helper**: from a flow's exposed facts (`IsCharacteristicFlowOn`
 on `Ioo` + the boundary bundle on `Icc` — the `Phi_step_envelope` output shape)
 against a curve `ν`, derive the six per-`z` regularity facts that
-`Phi_supW1_contraction` consumes.  Chains `Stage_1_9_flow_boundary_regularity`
+`Phi_supW1_contraction` consumes.  Chains `characteristicFlow_boundary_regularity`
 (→ init/cont/deriv, the last three EXACT), `charFlow_measurable_via_gronwall`
 (→ AEMeasurable), and `flow_distance_growth_bound_on` (→ growth bound, integrated
 to the two integrability facts). -/
@@ -6916,7 +6916,7 @@ private lemma envelopeStep_contractionInputs {d : ℕ} [NeZero d]
         (Set.Ici s) s) := by
   haveI : ∀ t, IsProbabilityMeasure (ν.extend t) := VlasovMeasureCurve.extend_isProb ν
   obtain ⟨h_init, h_cont, h_deriv⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW ν.extend cX cV T hT hflow hbdry
+    characteristicFlow_boundary_regularity gradW ν.extend cX cV T hT hflow hbdry
   have h_meas : ∀ t ∈ Set.Icc (0:ℝ) T,
       AEMeasurable (fun z : PhaseSpace d => cX t z) f₀ := by
     have h_meas_Icc := charFlow_measurable_via_gronwall gradW L hL ν.extend h_int_ext
@@ -6971,7 +6971,7 @@ The body carries the substantive Picard analysis:
   `x_0 := constantCurve (spatialMarginal f₀)` and `x_{n+1} := Phi_step(x_n)`.
 * Contraction via `Phi_supW1_contraction`: `supW1On (Φρ) (Φσ) ≤ q · D`
   with `q < 1`.  Apply `picard_iterate_isCauchy_of_contraction` +
-  `picard_iterate_bundlesAs_VlasovMeasureCurve` to get the W₁-limit
+  `picard_iterate_exists_limit` to get the W₁-limit
   `ρ_lim : VlasovMeasureCurve d T M`.
 * Self-consistency `Φ(ρ_lim) = ρ_lim`: triangle through `x_n`.
 * Apply `exists_vlasov_characteristicFlow_global_smallT` to `ρ_lim.extend`
@@ -7390,10 +7390,10 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
         exact h_contr
     exact ⟨x, charXs, charVs, h_contract, h_flow⟩
   -- ============================================================
-  -- Step 5: Extract limit ρ_lim via picard_iterate_bundlesAs_VlasovMeasureCurve.
+  -- Step 5: Extract limit ρ_lim via picard_iterate_exists_limit.
   -- ============================================================
   obtain ⟨ρ_lim, h_tendsto⟩ :=
-    picard_iterate_bundlesAs_VlasovMeasureCurve x q hq_nn hq_lt D₀ hD₀_nn h_contract
+    picard_iterate_exists_limit x q hq_nn hq_lt D₀ hD₀_nn h_contract
   -- ============================================================
   -- Step 6: Convolution integrability for ρ_lim.extend.
   -- Needed by exists_vlasov_characteristicFlow_global_smallT.
@@ -7772,7 +7772,7 @@ Given the Picard fixed-point flow's bundle (from
 **Proof strategy**:
 
 1. Boundary transport: extract `h_init / h_cont_Icc / h_deriv_Ico` from
-   `hflow_on + h_boundary` via `Stage_1_9_flow_boundary_regularity`.
+   `hflow_on + h_boundary` via `characteristicFlow_boundary_regularity`.
 2. `flow_distance_growth_bound_on` applied to `(charX, charV)` produces
    the growth constant `C_T` with `‖(charX t z, charV t z)‖ ≤ C_T * (‖z‖ + 1)`.
 3. Probability of `f t = Measure.map (z ↦ (charX t z, charV t z)) f₀` from
@@ -7781,7 +7781,7 @@ Given the Picard fixed-point flow's bundle (from
    `Integrable ‖·‖ f₀`.
 
 Factored out to keep `vlasovWellPosedness_local`'s body a clean glue. -/
-theorem vlasovWellPosedness_local_finalAssembly_moment
+theorem vlasovWellPosedness_local_moment
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
@@ -7838,7 +7838,7 @@ theorem vlasovWellPosedness_local_finalAssembly_moment
     exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
   -- Step 1: Extract h_init, h_cont_Icc, h_deriv_Ico via boundary transport.
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW
+    characteristicFlow_boundary_regularity gradW
       (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
       charX charV T hT.le hflow_on h_boundary
   -- Step 2: Growth bound from flow_distance_growth_bound_on.
@@ -7904,7 +7904,7 @@ threading through
    with the full hypothesis bundle.
 
 Factored out to keep `vlasovWellPosedness_local`'s body a clean glue. -/
-theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
+theorem vlasovWellPosedness_local_isLagrangian
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
@@ -7956,7 +7956,7 @@ theorem vlasovWellPosedness_local_finalAssembly_isLagrangian
     exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
   -- Step 1: Extract h_init, h_cont_Icc, h_deriv_Ico via boundary transport.
   obtain ⟨h_init, h_cont_Icc, h_deriv_Ico⟩ :=
-    Stage_1_9_flow_boundary_regularity gradW
+    characteristicFlow_boundary_regularity gradW
       (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
       charX charV T hT.le hflow_on h_boundary
   -- Step 2: IsCharacteristicFlowSelfConsistent
@@ -8027,7 +8027,7 @@ from `IsLagrangianVlasovSolutionOn` (local) to `IsLagrangianVlasovSolution`
 4. Apply `picard_iterate_isCauchy_of_contraction` to get the ENNReal-form
    Cauchy condition on the `supW1On` pseudodistance.
 
-5. Apply `picard_iterate_bundlesAs_VlasovMeasureCurve` to extract the
+5. Apply `picard_iterate_exists_limit` to extract the
    limit `ρ_lim : VlasovMeasureCurve d T M` plus pointwise W₁-tendsto.
 
 6. Self-consistency `Φ(ρ_lim) = ρ_lim`: triangle through `ρ_n` using
@@ -8088,7 +8088,7 @@ theorem vlasovWellPosedness_local
   --   * `vlasovWellPosedness_local_picard_fixedPointFlow` carries the Picard
   --     mathematics — spatial-marginal setup, the Picard sequence via
   --     `Phi_step`, the contraction estimate via `Phi_supW1_contraction`,
-  --     the limit via `picard_iterate_bundlesAs_VlasovMeasureCurve`,
+  --     the limit via `picard_iterate_exists_limit`,
   --     self-consistency `Φ(ρ_lim) = ρ_lim`, and the flow construction via
   --     `exists_vlasov_characteristicFlow_global_smallT`.
   --   * `vlasovWellPosedness_local_finalAssembly_*` thread the moment and
@@ -8124,7 +8124,7 @@ theorem vlasovWellPosedness_local
     -- pushforward-moment-bound chain — exactly the threading work that
     -- the _finalAssembly sub-helper handles).
     intro t ht
-    exact vlasovWellPosedness_local_finalAssembly_moment W gradW hgradW L hL
+    exact vlasovWellPosedness_local_moment W gradW hgradW L hL
       f₀ hf₀_int hT hTL_PL hTL_con charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
       _h_aemeas _h_int_conv
@@ -8141,7 +8141,7 @@ theorem vlasovWellPosedness_local
     -- convolution integrability (extension of `_hconv_cont`'s implications),
     -- and threads all the hypotheses through
     -- `vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn`.
-    exact vlasovWellPosedness_local_finalAssembly_isLagrangian W gradW hgradW L hL
+    exact vlasovWellPosedness_local_isLagrangian W gradW hgradW L hL
       f₀ hf₀_int hT hTL_PL hTL_con charX charV
       _M_ρ _hM_ρ_nn _hflow_on _h_boundary _hM_ρ_bound _h_y_int_ρ _hconv_cont
       _h_aemeas _h_int_conv
@@ -8185,10 +8185,10 @@ theorem vlasovWellPosedness_local
     exact _hflow_on.1 z (Set.mem_univ z)
 
 /-! ## Banked infrastructure: localized `hasDerivAt_of_hasDerivAt_of_ne` -/
--- Generic real-analysis helper banked for `_glue_step` case (a)'s substantive
+-- Generic real-analysis helper banked for `vlasovWellPosedness_glue` case (a)'s substantive
 -- close.  Mathlib's `hasDerivAt_of_hasDerivAt_of_ne`
 -- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) requires a UNIVERSAL
--- `∀ y ≠ x, HasDerivAt f (g y) y` hypothesis; the `_glue_step` setting only
+-- `∀ y ≠ x, HasDerivAt f (g y) y` hypothesis; the `vlasovWellPosedness_glue` setting only
 -- gives HasDerivAt on a bounded interval `Ioo 0 (T + T_0)`.  This helper
 -- localizes the Mathlib pattern to a neighborhood-eventually hypothesis,
 -- enabling case (a)'s close via union of one-sided extension lemmas.
@@ -8267,16 +8267,16 @@ end HasDerivAtPunctured
 -- `Phi_supW1_contraction` factor `q` depends only on `L` and `T`).
 --
 -- Two sub-theorems:
--- * `vlasovWellPosedness_glue_step`: extend a solution on `[0, T]` by one
+-- * `vlasovWellPosedness_glue`: extend a solution on `[0, T]` by one
 --   window of length `T_0`, gluing at `t = T`.
--- * `vlasovWellPosedness_forward`: `Nat.rec` iteration of `_glue_step`
+-- * `vlasovWellPosedness_forward`: `Nat.rec` iteration of `vlasovWellPosedness_glue`
 --   to reach any `T_target`.
 --
 -- The universal-in-`t` bridge (below) then goes from
 -- `IsLagrangianVlasovSolutionOn` (any `T_target`) to
 -- `IsLagrangianVlasovSolution` (universal-in-`t`), and uniqueness follows.
 
-private lemma glue_step_boundary_bundle {d : ℕ} [NeZero d]
+private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     {T T_0 : ℝ} (hT_pos : 0 < T) (hT_0_pos : 0 < T_0)
     (f_prev g f_next : ℝ → Measure (PhaseSpace d))
@@ -8757,7 +8757,7 @@ satisfying the smallness constraints `LocalSmallness_PL_buffer L T_0` +
        charX_g(t - T, (charX_prev(T, z), charV_prev(T, z)))).
      * Pushforward equation: holds piecewise.
      * AEMeasurable witness: composition of AEMeasurable maps. -/
-theorem vlasovWellPosedness_glue_step
+theorem vlasovWellPosedness_glue
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d)
@@ -9376,7 +9376,7 @@ theorem vlasovWellPosedness_glue_step
                   rw [h_eq]
                   exact h_prev_flow.2.2 t ht z hz
                 obtain ⟨h_init_ρc, h_cont_Icc_ρc, h_deriv_Ico_ρc⟩ :=
-                  Stage_1_9_flow_boundary_regularity gradW ρc charX_prev charV_prev T hT_pos.le
+                  characteristicFlow_boundary_regularity gradW ρc charX_prev charV_prev T hT_pos.le
                     h_prev_flow_ρc h_bdry_ρc
                 obtain ⟨C_T, hC_T_nn, hC_T_pair⟩ :=
                   flow_distance_growth_bound_on gradW L hL ρc charX_prev charV_prev T hT_pos.le
@@ -9984,7 +9984,7 @@ theorem vlasovWellPosedness_glue_step
                   rw [h_eq]
                   exact h_prev_flow.2.2 t ht z hz
                 obtain ⟨h_init_ρc, h_cont_Icc_ρc, h_deriv_Ico_ρc⟩ :=
-                  Stage_1_9_flow_boundary_regularity gradW ρc charX_prev charV_prev T hT_pos.le
+                  characteristicFlow_boundary_regularity gradW ρc charX_prev charV_prev T hT_pos.le
                     h_prev_flow_ρc h_bdry_ρc
                 obtain ⟨C_prev, hC_prev_nn, hC_prev_pair⟩ :=
                   flow_distance_growth_bound_on gradW L hL ρc charX_prev charV_prev T hT_pos.le
@@ -10063,7 +10063,7 @@ theorem vlasovWellPosedness_glue_step
                   rw [h_eq]
                   exact hg_boundary z t ht
                 obtain ⟨h_init_σc, h_cont_Icc_σc, h_deriv_Ico_σc⟩ :=
-                  Stage_1_9_flow_boundary_regularity gradW σc charX_g charV_g T_0 hT_0_pos.le
+                  characteristicFlow_boundary_regularity gradW σc charX_g charV_g T_0 hT_0_pos.le
                     h_g_flow_σc h_g_bdry_σc
                 obtain ⟨C_g, hC_g_nn, hC_g_pair⟩ :=
                   flow_distance_growth_bound_on gradW L hL σc charX_g charV_g T_0 hT_0_pos.le
@@ -10755,10 +10755,10 @@ theorem vlasovWellPosedness_glue_step
       · -- Boundary ContinuousOn on Icc 0 (T + T_0): project the boundary bundle.
         intro z
         intro s hs
-        exact ((glue_step_boundary_bundle gradW hT_pos hT_0_pos f_prev g f_next
+        exact ((vlasovWellPosedness_glue_boundary gradW hT_pos hT_0_pos f_prev g f_next
           charX_prev charV_prev charX_g charV_g charX_next charV_next rfl rfl rfl
           h_prev_boundary hg_boundary hg_init hg_init_cond z s hs).1.continuousWithinAt.prodMk
-          (glue_step_boundary_bundle gradW hT_pos hT_0_pos f_prev g f_next
+          (vlasovWellPosedness_glue_boundary gradW hT_pos hT_0_pos f_prev g f_next
             charX_prev charV_prev charX_g charV_g charX_next charV_next rfl rfl rfl
             h_prev_boundary hg_boundary hg_init hg_init_cond z s hs).2.continuousWithinAt)
   · -- Conjunct (v): explicit pushforward for charX_next charV_next
@@ -10793,7 +10793,7 @@ theorem vlasovWellPosedness_glue_step
       rw [hg_init, h_prev_push T hT_mem] at h_g_at_sT
       exact h_g_at_sT.comp_aemeasurable (h_prev_aemeas T hT_mem)
   · -- Conjunct (vii): boundary bundle for charX_next charV_next on Icc 0 (T + T_0)
-    exact glue_step_boundary_bundle gradW hT_pos hT_0_pos f_prev g f_next
+    exact vlasovWellPosedness_glue_boundary gradW hT_pos hT_0_pos f_prev g f_next
       charX_prev charV_prev charX_g charV_g charX_next charV_next rfl rfl rfl
       h_prev_boundary hg_boundary hg_init hg_init_cond
   · -- Conjunct (viii): initial condition for charX_next charV_next
@@ -10818,7 +10818,7 @@ data at a fixed step `T_0` depending only on `L` (no `L < 1` hypothesis).
 
 3. `Nat.rec` construction: a solution holding the conjuncts at `T = n·T_0`.
    - Base case: apply `vlasovWellPosedness_local` directly.
-   - Step case (`n → n+1`): apply `vlasovWellPosedness_glue_step` to extend.
+   - Step case (`n → n+1`): apply `vlasovWellPosedness_glue` to extend.
 
 4. Take `f := f_N` and verify the conjuncts for `T_target ≤ N · T_0` via
    `IsLagrangianVlasovSolutionOn`'s monotonicity in `T` (project down). -/
@@ -10968,7 +10968,7 @@ theorem vlasovWellPosedness_forward
               mul_le_mul_of_nonneg_right hle (le_of_lt hT0_pos)
   -- Step 3: Induction on n : ℕ — solution exists on [0, (n+1)·T_0].
   -- The induction carries explicit flow witnesses (charX, charV) and the full
-  -- 7-component bundle to enable _glue_step calls without witness-identity issues.
+  -- 7-component bundle to enable vlasovWellPosedness_glue calls without witness-identity issues.
   let T_n := fun n : ℕ => ((n + 1 : ℕ) : ℝ) * T_0
   have h_ind : ∀ n : ℕ,
       ∃ (f : ℝ → Measure (PhaseSpace d))
@@ -11000,7 +11000,7 @@ theorem vlasovWellPosedness_forward
       exact ⟨f, charX, charV, hf_init, hf_mom, hf_mom_unif, hf_lag.1, hf_push, hf_aemeas,
         hf_boundary, hf_ic⟩
     | succ n ih =>
-      -- Step: n+1 → (n+2)·T_0.  Use _glue_step with T = (n+1)·T_0 > 0.
+      -- Step: n+1 → (n+2)·T_0.  Use vlasovWellPosedness_glue with T = (n+1)·T_0 > 0.
       obtain ⟨f_n, charX_n, charV_n, hfn_init, hfn_mom, hfn_mom_unif, hfn_vlasov,
               hfn_push, hfn_aemeas, hfn_boundary, hfn_ic⟩ := ih
       simp only [T_n] at hfn_mom hfn_mom_unif hfn_vlasov hfn_push hfn_aemeas hfn_boundary
@@ -11019,7 +11019,7 @@ theorem vlasovWellPosedness_forward
             (Icc_mem_nhds ht.1 ht.2)
       obtain ⟨f_next, charX_next, charV_next, _h_agree, h_init, h_mom, h_mom_unif, h_lag,
               h_push, h_aemeas, h_boundary, h_ic⟩ :=
-        vlasovWellPosedness_glue_step W gradW hgradW L hL f₀ hf₀ hT_n_pos
+        vlasovWellPosedness_glue W gradW hgradW L hL f₀ hf₀ hT_n_pos
           f_n hfn_init hfn_mom hfn_mom_unif
           charX_n charV_n hfn_vlasov hfn_flow
           hfn_push hfn_aemeas hfn_boundary hfn_ic
