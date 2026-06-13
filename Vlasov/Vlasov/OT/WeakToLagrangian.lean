@@ -377,7 +377,79 @@ lemma measure_eq_of_forall_Cc_integral_eq {μ ν : Measure (PhaseSpace d)}
     (h : ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
       ∫ z, φ z ∂μ = ∫ z, φ z ∂ν) :
     μ = ν := by
-  sorry
+  -- Haar instance on the ambient volume via the product reduction.
+  haveI hHaar : (volume : Measure (PhaseSpace d)).IsAddHaarMeasure := by
+    rw [show (volume : Measure (PhaseSpace d)) = (volume : Measure (PhysSpace d)).prod volume from
+      Measure.volume_eq_prod _ _]
+    infer_instance
+  haveI hvolReg : (volume : Measure (PhaseSpace d)).Regular := inferInstance
+  haveI hμreg : μ.Regular := inferInstance
+  haveI hνreg : ν.Regular := inferInstance
+  -- Reduce `μ = ν` to equality of integrals against continuous compactly-supported `g`.
+  refine MeasureTheory.Measure.ext_of_integral_eq_on_compactlySupported (fun g => ?_)
+  set gf : PhaseSpace d → ℝ := ⇑g with hgf
+  have hg_cont : Continuous gf := map_continuous g
+  have hg_cs : HasCompactSupport gf := CompactlySupportedContinuousMap.hasCompactSupport g
+  -- Uniform sup bound on `g`.
+  obtain ⟨C, hC⟩ := hg_cont.bounded_above_of_compact_support hg_cs
+  have hCnn : 0 ≤ C := le_trans (norm_nonneg _) (hC 0)
+  -- A mollifier family `φ n` with outer radius `2/(n+2) → 0`.
+  set φ : ℕ → ContDiffBump (0 : PhaseSpace d) :=
+    fun n => ⟨1 / (n + 2), 2 / (n + 2), by positivity, by
+      rw [div_lt_div_iff_of_pos_right (by positivity)]; norm_num⟩ with hφ
+  have hrout : ∀ n, (φ n).rOut = 2 / (n + 2) := fun n => rfl
+  have hrout_tendsto : Filter.Tendsto (fun n => (φ n).rOut) Filter.atTop (nhds 0) := by
+    simp only [hrout]
+    apply Filter.Tendsto.div_atTop (tendsto_const_nhds)
+    exact Filter.tendsto_atTop_add_const_right _ 2 tendsto_natCast_atTop_atTop
+  -- The mollified functions.
+  set gn : ℕ → PhaseSpace d → ℝ :=
+    fun n => convolution ((φ n).normed volume) gf (ContinuousLinearMap.lsmul ℝ ℝ) volume with hgn
+  -- Each `gn n` is `C^∞` with compact support, hence covered by the hypothesis `h`.
+  have hgn_smooth : ∀ n, ContDiff ℝ (⊤ : ℕ∞) (gn n) := fun n =>
+    ((φ n).hasCompactSupport_normed).contDiff_convolution_left _
+      (φ n).contDiff_normed (hg_cont.locallyIntegrable)
+  have hgn_cs : ∀ n, HasCompactSupport (gn n) := fun n =>
+    HasCompactSupport.convolution _ (φ n).hasCompactSupport_normed hg_cs
+  have hgn_eq : ∀ n, ∫ z, gn n z ∂μ = ∫ z, gn n z ∂ν := fun n =>
+    h (gn n) (hgn_smooth n) (hgn_cs n)
+  -- Pointwise convergence `gn n → gf` (continuous `g`, shrinking bumps).
+  have hgn_lim : ∀ x, Filter.Tendsto (fun n => gn n x) Filter.atTop (nhds (gf x)) := fun x =>
+    ContDiffBump.convolution_tendsto_right_of_continuous hrout_tendsto hg_cont x
+  -- Uniform bound `‖gn n x‖ ≤ C` (averaging keeps the sup bound).
+  have hgn_bound : ∀ n, ∀ x, ‖gn n x‖ ≤ C := by
+    intro n x
+    rw [hgn]
+    simp only
+    rw [convolution_lsmul]
+    calc ‖∫ t, (φ n).normed volume t • gf (x - t) ∂volume‖
+        ≤ ∫ t, ‖(φ n).normed volume t • gf (x - t)‖ ∂volume := norm_integral_le_integral_norm _
+      _ ≤ ∫ t, (φ n).normed volume t * C ∂volume := by
+          apply integral_mono_of_nonneg
+          · exact Filter.Eventually.of_forall (fun t => norm_nonneg _)
+          · exact ((φ n).integrable_normed).mul_const C
+          · refine Filter.Eventually.of_forall (fun t => ?_)
+            simp only
+            rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg ((φ n).nonneg_normed t)]
+            exact mul_le_mul_of_nonneg_left (hC _) ((φ n).nonneg_normed t)
+      _ = C := by rw [integral_mul_const, (φ n).integral_normed, one_mul]
+  -- DCT: `∫ gn n dμ → ∫ gf dμ` and likewise for `ν`.
+  have hconv_μ : Filter.Tendsto (fun n => ∫ z, gn n z ∂μ) Filter.atTop (nhds (∫ z, gf z ∂μ)) := by
+    apply tendsto_integral_of_dominated_convergence (fun _ => C)
+    · exact fun n => (hgn_smooth n).continuous.aestronglyMeasurable
+    · exact integrable_const C
+    · exact fun n => Filter.Eventually.of_forall (fun x => hgn_bound n x)
+    · exact Filter.Eventually.of_forall hgn_lim
+  have hconv_ν : Filter.Tendsto (fun n => ∫ z, gn n z ∂ν) Filter.atTop (nhds (∫ z, gf z ∂ν)) := by
+    apply tendsto_integral_of_dominated_convergence (fun _ => C)
+    · exact fun n => (hgn_smooth n).continuous.aestronglyMeasurable
+    · exact integrable_const C
+    · exact fun n => Filter.Eventually.of_forall (fun x => hgn_bound n x)
+    · exact Filter.Eventually.of_forall hgn_lim
+  -- The two limits coincide because the prelimit sequences are equal.
+  have hμν : Filter.Tendsto (fun n => ∫ z, gn n z ∂μ) Filter.atTop (nhds (∫ z, gf z ∂ν)) := by
+    simpa only [hgn_eq] using hconv_ν
+  exact tendsto_nhds_unique hconv_μ hμν
 
 /-- Convenience extractor: under `[AssW2 W]`, a gradient field `gradW = ∇W` is `C¹`.
 
