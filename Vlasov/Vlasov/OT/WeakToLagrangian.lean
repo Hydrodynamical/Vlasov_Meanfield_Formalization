@@ -459,7 +459,13 @@ yields `ContDiff ℝ 1 gradW`. -/
 lemma assW2_contDiff_gradW (W : PhysSpace d → ℝ) [AssW2 W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x) :
     ContDiff ℝ 1 gradW := by
-  sorry
+  have heq : gradW =
+      fun x => (InnerProductSpace.toDual ℝ (PhysSpace d)).symm (fderiv ℝ W x) := by
+    funext x; rw [hgradW]; rfl
+  rw [heq]
+  have hriesz : ContDiff ℝ 1 fun u => (InnerProductSpace.toDual ℝ (PhysSpace d)).symm u :=
+    (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.toContinuousLinearEquiv.contDiff
+  exact hriesz.comp ‹AssW2 W›.gradContDiff
 
 /-- **Weak ⟹ Lagrangian on `[0,T]`** (tex: thm:weak-lagrangian).
 
