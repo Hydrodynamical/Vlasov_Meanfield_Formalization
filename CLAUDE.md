@@ -448,6 +448,55 @@ file; the bigger the host and the more iterations expected, the larger the win.
 Pairs with P4 (API-lock): revert to `sorry` to keep the host compiling while the
 scratch carries the in-flight work.
 
+### L13. `ContDiff ℝ ⊤` means real-analytic (`ω`), NOT C^∞ — and vacuates compact-support test classes
+
+**Failure mode**: in current Mathlib, `ContDiff`'s smoothness order has type
+`WithTop ℕ∞`, whose top `⊤` is `ω` = **real-analytic**, not C^∞.  C^∞ is the
+*lower* element `∞ = ((⊤ : ℕ∞) : WithTop ℕ∞)`.  So `ContDiff ℝ ⊤ φ` silently
+means *analytic*.  Because real-analytic `+` `HasCompactSupport` ⟹ `φ = 0`
+(identity theorem), any predicate of the shape
+`∀ φ, ContDiff ℝ ⊤ φ → HasCompactSupport φ → …` has test class `{0}` and is
+**vacuously true** — the classic "the weak-solution test class is secretly
+empty" trap.
+
+**Why it hides**: it is almost always a *silent semantic regression from a
+Mathlib bump* — code written when the order was `ℕ∞` (`⊤ = ∞ = C^∞`) keeps
+building after the `WithTop ℕ∞` refactor redefined `⊤` to analytic, because
+consumers only use `.differentiable` / `.continuous_fderiv` (which analytic
+also supplies) and a vacuous `∀`-hypothesis discharges trivially.  The build
+stays green; the vacuity surfaces only when something *constructs* a test
+function (mollifier/bump), which can never be analytic+compact.
+
+**Empirical confirmation** (2026-06-13, Vlasov project @ mathlib v4.29.1): the
+entire weak-solution side (`IsVlasovSolution`, `IsVlasovSolutionOn`,
+`WeakEvolutionEq(On)`, the SC helpers, the new `IsLinearVlasovSolutionOn`) used
+`ContDiff ℝ ⊤` at 12 sites — all vacuous.  Surfaced when the weak⟹Lagrangian
+bridge's measure-extensionality lemma (the first declaration that must *produce*
+test functions) proved unclosable.  The marquee `vlasovWellPosedness`/`dobrushin`
+were NOT vacuously true (their flow/pushforward content via
+`IsLagrangianVlasovSolution`'s `∃ flow` conjunct is real), but their embedded
+weak-PDE conjunct was contentless.
+
+**Diagnosis** (decisive, ~30s via a `lake env lean` scratch):
+`#check fun (φ : ℝ → ℝ) => (ContDiff ℝ ⊤ φ : Prop)` prints `ContDiff ℝ ω φ`;
+and `example (φ : ℝ → ℝ) (h : ContDiff ℝ (∞ : WithTop ℕ∞) φ) : ContDiff ℝ ⊤ φ := h`
+FAILS (`type mismatch ∞ vs ω`) — C^∞ does not imply `⊤`.
+
+**Fix**: replace `ContDiff ℝ ⊤` → `ContDiff ℝ (⊤ : ℕ∞)` (the inner-`ℕ∞` top,
+auto-coerced to the C^∞ element).  This form is **clash-free** (needs no
+`open scoped ContDiff`, so it dodges the ENNReal `∞`/`⊤` notation collision);
+`decide` proves `((⊤ : ℕ∞) : WithTop ℕ∞) ≠ (⊤ : WithTop ℕ∞)`.  The fix is
+typically **proof-safe** (consumers use only finite-order facts) but it
+*de-vacuates* the predicate, so producers must then genuinely prove the claim
+for all C^∞ test functions — confirm with a full rebuild + `#print axioms`
+re-cert.
+
+**Generalisation**: whenever a Mathlib upgrade touches a notation whose meaning
+is order/lattice-dependent (`⊤`, `∞`, `⊥`), re-confirm what the symbol *means*
+in the new version before trusting green builds — a green build is consistent
+with a silently-vacuous statement (P10/P11).  Especially suspect any
+`∀ φ, [smoothness] φ → HasCompactSupport φ → …` weak-formulation test class.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
