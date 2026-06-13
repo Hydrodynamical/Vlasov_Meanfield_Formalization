@@ -95,6 +95,22 @@ class AssW (W : PhysSpace d → ℝ) : Prop where
   /-- The gradient ∇W is Lipschitz with some constant L ≥ 0. -/
   lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
 
+/-- (tex: ass:W2)
+Strengthened standing assumption for the weak ⟹ Lagrangian bridge: `AssW` (so `W ∈ C^{1,1}`,
+i.e. ∇W globally Lipschitz, and W even) together with `∇W ∈ C¹` (so `W ∈ C²`).
+
+The extra `gradContDiff` field is stated on `fun x => fderiv ℝ W x` — the same object as
+`AssW.lipschitzGrad` — so the `C^{1,1}` (Lipschitz) and `C²` (continuously differentiable)
+facts concern one map.  This is what makes the Vlasov phase-space field C¹ in space, which the
+characteristic flow's C¹ dependence on its initial point (the variational equation) requires.
+
+Only the weak ⟹ Lagrangian bridge (`Vlasov/OT/WeakToLagrangian.lean`) carries `AssW2`; the
+marquee `vlasovWellPosedness` / `dobrushin` stay at the weaker `AssW` (arbitrary Lipschitz
+constant). -/
+class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+  /-- ∇W is continuously differentiable (equivalently `W ∈ C²`). -/
+  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)
+
 omit [NeZero d] in
 /-- Helper: under `[AssW W]` (even + differentiable), the gradient of `W`
 at the origin vanishes.
