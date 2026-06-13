@@ -1283,7 +1283,7 @@ def IsVlasovSolutionOn {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) : Prop :=
   ∀ (φ : PhaseSpace d → ℝ),
-    ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+    ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
     ∀ (gradXφ gradVφ : PhaseSpace d → PhysSpace d),
       (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
@@ -2935,7 +2935,7 @@ lemma vlasov_traj_chain_rule
     (ρ : ℝ → Measure (PhysSpace d))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
@@ -3048,7 +3048,7 @@ lemma vlasov_traj_chain_rule_at
     (ρ : ℝ → Measure (PhysSpace d))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
@@ -3317,7 +3317,7 @@ lemma vlasov_pointwise_deriv_aestronglymeas
     (ρ : ℝ → Measure (PhysSpace d))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ : Measure (PhaseSpace d))
-    (φ : PhaseSpace d → ℝ) (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (φ : PhaseSpace d → ℝ) (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
@@ -3396,7 +3396,7 @@ lemma vlasov_trajectory_lipschitz_bound_lag
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hφ_compact : HasCompactSupport φ)
     (hflow : IsCharacteristicFlow gradW ρ charX charV)
     (_hgradW_cont : Continuous gradW)
@@ -3580,7 +3580,7 @@ lemma vlasov_trajectory_lipschitz_bound_on
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_fm : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hφ_compact : HasCompactSupport φ)
     {T : ℝ} (hT : 0 < T)
     (hflow_on : IsCharacteristicFlowOn gradW ρ charX charV

@@ -322,7 +322,7 @@ lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
     (X V : ℝ → Fin N → PhysSpace d)
     (hSol : IsNewtonSolution N gradW X V)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2)
@@ -577,7 +577,7 @@ theorem weakEvolutionEmpiricalMeasure
     (hSol : IsNewtonSolution N gradW X V)
     -- φ is a smooth compactly supported test function on phase space
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (_hφ_compact : HasCompactSupport φ)
     -- ∇_x φ and ∇_v φ regarded as functions
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
@@ -713,7 +713,7 @@ theorem empiricalMeasureSolvesVlasov
     (X V : ℝ → Fin N → PhysSpace d)
     (hSol : IsNewtonSolution N gradW X V)
     (φ : PhaseSpace d → ℝ)
-    (hφ_smooth : ContDiff ℝ ⊤ φ)
+    (hφ_smooth : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hφ_compact : HasCompactSupport φ)
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
@@ -763,7 +763,7 @@ the map t ↦ ∫ φ df_t satisfies
 def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) : Prop :=
   ∀ (φ : PhaseSpace d → ℝ),
-    ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+    ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
     ∀ (gradXφ gradVφ : PhaseSpace d → PhysSpace d),
       (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →

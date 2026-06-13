@@ -115,7 +115,7 @@ def IsLinearVlasovSolutionOn
     (ρ : ℝ → Measure (PhysSpace d))
     (μ : ℝ → Measure (PhaseSpace d)) (T : ℝ) : Prop :=
   ∀ (φ : PhaseSpace d → ℝ),
-    ContDiff ℝ ⊤ φ → HasCompactSupport φ →
+    ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
     ∀ (gradXφ gradVφ : PhaseSpace d → PhysSpace d),
       (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
@@ -345,6 +345,39 @@ theorem exists_frozenField_charFlow_On
       rintro u ⟨hu1, hu2⟩
       exact ⟨le_trans hs.1 hu1, le_trans hu2 (by linarith [hs.2])⟩
     exact (hasDerivWithinAt_inter hmem).mp (hpair.mono hsub)
+
+/-! ## Final-step layer (crux-independent): constancy + measure extensionality -/
+
+/-- **C2 #7 — constancy from a vanishing derivative.**
+
+If a real function is continuous on `[0,T]` and has zero derivative throughout the open
+interval, its endpoint values agree.  This is the dual argument's payoff step: `s ↦ ∫ ψ_s dμ_s`
+is constant, so its value at `T` (= `∫ φ dμ_T`) equals its value at `0` (= `∫ ψ_0 dμ_0`). Mean
+value theorem (`exists_hasDerivAt_eq_slope`). -/
+lemma transportedIntegral_const_On {h : ℝ → ℝ} {T : ℝ} (hT : 0 < T)
+    (hcont : ContinuousOn h (Set.Icc 0 T))
+    (hderiv : ∀ s ∈ Set.Ioo (0 : ℝ) T, HasDerivAt h 0 s) :
+    h 0 = h T := by
+  obtain ⟨c, _hc, hc'⟩ :=
+    exists_hasDerivAt_eq_slope h (fun _ => 0) hT hcont (fun s hs => hderiv s hs)
+  have hc0 : (0 : ℝ) = (h T - h 0) / (T - 0) := hc'
+  rcases div_eq_zero_iff.mp hc0.symm with h1 | h2
+  · exact (sub_eq_zero.mp h1).symm
+  · exact absurd h2 (ne_of_gt (by linarith : (0 : ℝ) < T - 0))
+
+/-- **C2 #9 — `C_c^∞` test functions determine a finite measure.**
+
+If `∫ φ dμ = ∫ φ dν` for every smooth compactly-supported `φ`, then `μ = ν` (finite measures on
+phase space).  The dual argument yields equality of integrals against the `IsVlasovSolution` test
+class `C_c^∞`; this closes the bridge's final step `f T = g T`.  Route: extend `C_c^∞ →`
+bounded-continuous (smooth approximation), then the in-house bounded-continuous extensionality
+`ext_of_forall_integral_eq_of_IsFiniteMeasure` (cf. `Wasserstein.lean`). -/
+lemma measure_eq_of_forall_Cc_integral_eq {μ ν : Measure (PhaseSpace d)}
+    [IsFiniteMeasure μ] [IsFiniteMeasure ν]
+    (h : ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+      ∫ z, φ z ∂μ = ∫ z, φ z ∂ν) :
+    μ = ν := by
+  sorry
 
 /-- Convenience extractor: under `[AssW2 W]`, a gradient field `gradW = ∇W` is `C¹`.
 
