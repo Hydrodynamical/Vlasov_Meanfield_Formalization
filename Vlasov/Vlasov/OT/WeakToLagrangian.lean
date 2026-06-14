@@ -874,7 +874,25 @@ remainder, using `gradW ∈ C¹`); 3.4 assemble into `HasFDerivAt`.
 
 The `HasFDerivAt`/continuity *conclusion* is route-independent, so this interface is stable; the
 universal-`t` probability instance + force-integrability `h_int` are the field-regularity inputs
-the proof consumes (the window-only application clamps, L11, at the grind). -/
+the proof consumes (the window-only application clamps, L11, at the grind).
+
+**`hρD_cont` (joint continuity of the convolution-derivative field).**  This is the regularity that
+makes the variational coefficient `A(s,z) = D_z b(s, Φ_s z)` continuous in `s` — its only non-flow
+varying part is `D_x conv(ρ_s)(x) = ∫ fderiv gradW (x − y) ∂ρ_s`, evaluated at the *moving* point
+`Φ_s z`, so per-`x` continuity is not enough; joint `(s,x)`-continuity is needed.  Note the
+asymmetry with the *field*: `∫ gradW(x−y) dρ_s` gets joint continuity for free (per-`x` continuity
++ uniform Lipschitz-in-`x`, `convolveFunctionMeasure_lipschitz_in_x`), but the *derivative* field is
+NOT uniformly Lipschitz in `x` (that needs `W ∈ C³`; `AssW2` gives only `C²`), so its joint
+continuity must be supplied.
+
+**Option-B note (running — eventual extension).**  `hρD_cont` is, in the complete theory, NOT a new
+assumption: it is *derivable* from **narrow continuity of `s ↦ ρ_s`** (since `fderiv gradW` is
+bounded continuous, `‖·‖ ≤ L`), which is in turn derivable from `IsVlasovSolutionOn` + tightness
+(the uniform moment bound) via the standard **"`C_c^∞`-continuity + tight ⟹ narrow-continuity"**
+upgrade — a self-contained measure-theory lemma not yet in the codebase.  We thread it as a
+hypothesis (Option A) to unblock the variational-equation grind; folding it into a derived fact
+(so the bridge assumes only the weak solution + moments) is the **Option-B extension**, tracked as
+a follow-up. -/
 theorem charFlow_hasFDerivAt_in_initialPoint
     (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -882,7 +900,10 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (T : ℝ) (hT : 0 < T)
     (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
-    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s)) :
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
     ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
       (∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z : PhaseSpace d,
         HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
@@ -923,6 +944,9 @@ theorem weak_eq_frozenField_pushforward_On
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
@@ -950,6 +974,12 @@ architecture; the universal form is obtained by window-gluing (deferred).
 Hypotheses mirror what `exists_vlasov_characteristicFlow_global_smallT` consumes for the frozen
 curve `ρ^f := fun t => spatialMarginal (f t)`.
 
+`hf_cont_deriv` (joint continuity of the convolution-*derivative* field
+`∫ fderiv gradW (x−y) ∂ρ^f_s`) is the regularity threaded down to the variational equation (`#3`);
+like `hf_cont` it is *assumed* at the bridge boundary (**Option A**).  In the complete theory it is
+derivable from `hf_weak` + `hf_mom` (tightness) via a narrow-continuity upgrade — the **Option-B**
+extension that would let the bridge assume only the weak solution + moments; see `#3`'s docstring.
+
 Proof (API-locked; body built over C1–C4 per the roadmap above):
 freeze the field at `ρ^f`, build its flow `Φ` (#2) and the pushforward `g := (Φ_t)_# (f 0)` which
 solves the frozen linear weak eq (#1); show `f = g` by the dual-transported-test-function
@@ -963,6 +993,9 @@ theorem weak_isLagrangianVlasovSolutionOn
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (hTL_PL : LocalSmallness_PL_buffer L T) :
@@ -1028,7 +1061,7 @@ theorem weak_isLagrangianVlasovSolutionOn
   have hpush : ∀ t ∈ Set.Icc (0 : ℝ) T,
       f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) :=
     weak_eq_frozenField_pushforward_On W gradW hgradW L hL f T hT hf_weak hf_mom hf_cont
-      M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco
+      hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco
   -- Assemble the localized Lagrangian witness.
   refine ⟨hf_weak, charX, charV, hflow, hpush, ?_, hcontIcc⟩
   -- AEMeasurability of the flow at each window time, from the pushforward identity: a
