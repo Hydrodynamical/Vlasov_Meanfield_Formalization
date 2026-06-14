@@ -538,6 +538,37 @@ theorem convolveFunctionMeasure_hasFDerivAt
     have hc := h1.comp x₀ h2
     simpa using hc
 
+/-- **C3 F2 — the Vlasov field is `C¹` in the phase-space variable, with the block Jacobian.**
+At fixed time `t`, `vlasovVectorField gradW ρ t = fun (x,v) ↦ (v, −conv(x))` is
+Fréchet-differentiable in `z = (x,v)` with derivative the block continuous-linear map
+`δ ↦ (δ.2, −(D_x conv)(δ.1))`, where `D_x conv = ∫ y, fderiv ℝ gradW (z.1 − y) ∂(ρ t)` (F1).
+This is the coefficient `A(t) := D_z b(t, Φ_t z)` of the variational ODE `Ṁ = A(t)·M`. -/
+theorem vlasovVectorField_hasFDerivAt_in_z
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (t : ℝ) (z : PhaseSpace d) :
+    HasFDerivAt (vlasovVectorField gradW ρ t)
+      ((ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+        (-((∫ y, fderiv ℝ gradW (z.1 - y) ∂(ρ t)).comp
+            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) z := by
+  have hconv : HasFDerivAt (fun x => convolveFunctionMeasure gradW (ρ t) x)
+      (∫ y, fderiv ℝ gradW (z.1 - y) ∂(ρ t)) z.1 :=
+    convolveFunctionMeasure_hasFDerivAt gradW hgradW_C1 L hL (ρ t) (h_int t) z.1
+  have hfst : HasFDerivAt (fun w : PhaseSpace d => w.1)
+      (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)) z :=
+    (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)).hasFDerivAt
+  have h1 : HasFDerivAt (fun w : PhaseSpace d => w.2)
+      (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)) z :=
+    (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).hasFDerivAt
+  have h2 : HasFDerivAt (fun w : PhaseSpace d => convolveFunctionMeasure gradW (ρ t) w.1)
+      ((∫ y, fderiv ℝ gradW (z.1 - y) ∂(ρ t)).comp
+        (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))) z :=
+    hconv.comp z hfst
+  have hprod := h1.prodMk h2.neg
+  simpa only [vlasovVectorField] using hprod
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
