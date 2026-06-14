@@ -671,6 +671,32 @@ lemma picardIter_continuousOn_and_bound {E : Type*} [NormedAddCommGroup E] [Norm
             field_simp
             ring
 
+/-- **C3 V1c-conv — the Dyson sum `M := ∑ₙ Iₙ` is continuous on `[0,T]`.**  Weierstrass M-test:
+the terms are dominated by the summable majorant `(KT)ⁿ/n!·‖x₀‖`, so the series converges
+uniformly; the uniform limit of the continuous partial sums is continuous.  (`M` is the candidate
+solution: `M = x₀ + ∫₀ᵗ 𝒜(s)(M s) ds`, proved next.) -/
+lemma picardSum_continuousOn {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K) :
+    ContinuousOn (fun t => ∑' n, picardIter 𝒜 x₀ n t) (Set.Icc 0 T) := by
+  have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
+  have hbd : ∀ (n : ℕ) (t : ℝ), t ∈ Set.Icc (0:ℝ) T →
+      ‖picardIter 𝒜 x₀ n t‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
+    intro n t ht
+    refine le_trans ((hcb n).2 t ht) ?_
+    have hKt : 0 ≤ K * t := mul_nonneg hK ht.1
+    have hle : K * t ≤ K * T := mul_le_mul_of_nonneg_left ht.2 hK
+    gcongr
+  have hsum : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
+    (Real.summable_pow_div_factorial (K * T)).mul_right ‖x₀‖
+  have hunif : TendstoUniformlyOn
+      (fun (u : Finset ℕ) (t : ℝ) => ∑ n ∈ u, picardIter 𝒜 x₀ n t)
+      (fun t => ∑' n, picardIter 𝒜 x₀ n t) Filter.atTop (Set.Icc 0 T) :=
+    tendstoUniformlyOn_tsum hsum hbd
+  refine hunif.continuousOn ?_
+  exact (Filter.Eventually.of_forall
+    (fun u => continuousOn_finset_sum u (fun n _ => (hcb n).1))).frequently
+
 /-- **C3 V1c — existence for a linear ODE with continuous coefficients on a compact interval**
 (the fundamental solution of the variational equation; a Mathlib gap).
 
