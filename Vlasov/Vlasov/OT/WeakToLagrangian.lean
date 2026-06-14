@@ -944,12 +944,42 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
     (hρD_cont : ContinuousOn
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
-      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
     ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
       (∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z : PhaseSpace d,
         HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
       (∀ t ∈ Set.Ioo (0 : ℝ) T, Continuous (Dflow t)) := by
-  sorry
+  -- **Reduction (banked).**  The fundamental matrix `M z` of the variational ODE `Ṁ = A(s,z)·M`,
+  -- `M 0 = id`, exists (`exists_fundamentalMatrix`) because `A(·,z)` is continuous on `[0,T]`
+  -- (`vlasovVariationalCoeff_continuousOn`, needing `hcontIcc` + `hρD_cont`); set
+  -- `Dflow t z := M z t`.  This reduces #3 to two INDEPENDENT hard cores, D1 and V2.
+  -- (`hcontIcc` is the closed-interval flow continuity — supplied by `exists_frozenField_charFlow_On`
+  -- at the #8 call site — that the `Ioo`-only `hflow` lacks.)
+  have hAcont : ∀ z : PhaseSpace d, ContinuousOn
+      (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+        (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) (Set.Icc 0 T) :=
+    fun z => vlasovVariationalCoeff_continuousOn gradW ρ charX charV T z (hcontIcc z) hρD_cont
+  choose M hM0 hMcont hMderiv using
+    fun z : PhaseSpace d => exists_fundamentalMatrix
+      (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+        (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) T hT.le (hAcont z)
+  refine ⟨fun t z => M z t, ?_, ?_⟩
+  · -- **D1 — the difference-quotient heart**: `Φ_t(z+h) − Φ_t(z) − M_t(z)·h = o(‖h‖)`, via
+    -- Gronwall (`dist_le_of_approx_trajectories_ODE`) with the `C¹` Taylor remainder of `b` along
+    -- the flow as the `o(‖h‖)` defect (uses `hgradW_C1`/F2), and the flow Lipschitz-in-`z` bound
+    -- (`charFlow_lipschitzInZ_via_gronwall_Ioo`).  The uniform-in-`s` Taylor remainder over the
+    -- compact flow image is the load-bearing analytic core.
+    intro t ht z
+    sorry
+  · -- **V2 — continuity of the fundamental matrix `z ↦ M z t`**: `A(s,z)` is continuous in `z`
+    -- (flow continuity-in-`z` + F1c), and continuity propagates through the V1c Dyson-series
+    -- construction (each iterate continuous in `z`; uniform M-test limit).
+    intro t ht
+    sorry
 
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window** (the dual
 transported-test-function assembly; this is where the crux is spent).
