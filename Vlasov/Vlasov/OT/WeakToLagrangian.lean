@@ -482,6 +482,62 @@ C3-open design choices to be fixed by atom-level reading at the grind.  They are
 `#8`'s proof plan; only `#3` (route-independent conclusion) and `#8` (stable predicates) are
 locked. -/
 
+/-- **C3 F1 — the convolution force field is `C¹` in space (Fréchet derivative under the
+integral).**  For `gradW ∈ C¹` (and `L`-Lipschitz, a probability measure `ρ` with the kernel
+integrable), `x ↦ ∫ y, gradW (x − y) ∂ρ` is Fréchet-differentiable with derivative
+`∫ y, fderiv ℝ gradW (x₀ − y) ∂ρ`.  This is the field-regularity foundation of the variational
+equation (#3): it makes `D_z (vlasovVectorField …)` exist and continuous, so the variational ODE
+`Ṁ = (D_z b)·M` has continuous coefficients.
+
+Differentiation under the integral sign (`hasFDerivAt_integral_of_dominated_loc_of_lip`): the
+per-fibre map `x ↦ gradW (x − y)` is `L`-Lipschitz (a uniform, integrable bound against a
+probability measure) and differentiable, so the parametric integral differentiates with derivative
+the integral of the fibrewise derivatives. -/
+theorem convolveFunctionMeasure_hasFDerivAt
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : Measure (PhysSpace d)) [IsProbabilityMeasure ρ]
+    (h_int : ∀ x : PhysSpace d, Integrable (fun y => gradW (x - y)) ρ)
+    (x₀ : PhysSpace d) :
+    HasFDerivAt (fun x => convolveFunctionMeasure gradW ρ x)
+      (∫ y, fderiv ℝ gradW (x₀ - y) ∂ρ) x₀ := by
+  have hdiff : Differentiable ℝ gradW := hgradW_C1.differentiable one_ne_zero
+  have hfderiv_cont : Continuous (fun z => fderiv ℝ gradW z) :=
+    hgradW_C1.continuous_fderiv one_ne_zero
+  have key := hasFDerivAt_integral_of_dominated_loc_of_lip
+    (μ := ρ) (s := (Set.univ : Set (PhysSpace d))) (x₀ := x₀)
+    (F := fun x y => gradW (x - y))
+    (F' := fun y => fderiv ℝ gradW (x₀ - y))
+    (bound := fun _ => (L : ℝ))
+    (Filter.univ_mem)
+    (Filter.Eventually.of_forall fun x =>
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable)
+    (h_int x₀)
+    ((hfderiv_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable)
+    (Filter.Eventually.of_forall fun a => ?_)
+    (integrable_const _)
+    (Filter.Eventually.of_forall fun a => ?_)
+  · have h2 := key.2
+    simpa only [convolveFunctionMeasure] using h2
+  · -- h_lip: `fun x => gradW (x - a)` is `L`-Lipschitz, hence `LipschitzOnWith (nnabs L)` on univ
+    have hLip : LipschitzWith L (fun x : PhysSpace d => gradW (x - a)) := by
+      refine LipschitzWith.of_dist_le_mul (fun x y => ?_)
+      have hd : dist (x - a) (y - a) = dist x y := by
+        rw [dist_eq_norm, dist_eq_norm]; congr 1; abel
+      calc dist (gradW (x - a)) (gradW (y - a))
+          ≤ (L : ℝ) * dist (x - a) (y - a) := hL.dist_le_mul _ _
+        _ = (L : ℝ) * dist x y := by rw [hd]
+    rw [Real.nnabs_coe L]
+    exact hLip.lipschitzOnWith
+  · -- h_diff: `HasFDerivAt (fun x => gradW (x - a)) (fderiv ℝ gradW (x₀ - a)) x₀`
+    have h1 : HasFDerivAt gradW (fderiv ℝ gradW (x₀ - a)) (x₀ - a) :=
+      (hdiff (x₀ - a)).hasFDerivAt
+    have h2 : HasFDerivAt (fun x : PhysSpace d => x - a)
+        (ContinuousLinearMap.id ℝ (PhysSpace d)) x₀ :=
+      (hasFDerivAt_id x₀).sub_const a
+    have hc := h1.comp x₀ h2
+    simpa using hc
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
