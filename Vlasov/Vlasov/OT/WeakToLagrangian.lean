@@ -592,6 +592,36 @@ theorem convolveFunctionMeasure_fderiv_continuous
   · exact Filter.Eventually.of_forall (fun y =>
       hfderiv_cont.comp (continuous_id.sub continuous_const))
 
+/-- **C3 V1c — existence for a linear ODE with continuous coefficients on a compact interval**
+(the fundamental solution of the variational equation; a Mathlib gap).
+
+For a continuous family of bounded linear maps `𝒜 : ℝ → (E →L[ℝ] E)` on a Banach space `E`, the
+linear IVP `ẋ = 𝒜(t) x`, `x(0) = x₀` has a solution on `[0,T]`.  Generic and reusable
+(promotable to `Mathlib/Analysis/ODE/`); instantiated for the variational equation with
+`E := PhaseSpace d →L[ℝ] PhaseSpace d`, `𝒜(t) := (·).comp-by A(t)` (left composition), `x₀ := id`
+to produce the fundamental matrix `M(t)`, where `A(t) = vlasovVectorField_hasFDerivAt_in_z`'s
+block CLM evaluated along the flow.
+
+**Why not Mathlib's `IsPicardLindelof`**: that needs a *globally bounded* field
+(`norm_le : ‖f t x‖ ≤ L`); the linear field `x ↦ 𝒜(t) x` is unbounded, and confining to a ball
+makes the Picard window-condition `K·e^{KT}·T ≤ e^{KT}−1` fail for a single window (⇒ tiling).
+
+**Proof plan (integral-operator contraction, no tiling)**: on the Banach space
+`C([0,T]; E)` the Picard operator `𝒯[M](t) := x₀ + ∫_0^t 𝒜(s) (M s) ds` is `K·T`-Lipschitz
+(`K := sup_{[0,T]} ‖𝒜‖`, finite by continuity on the compact `[0,T]`), and its `n`-th iterate is
+`(K·T)^n/n!`-Lipschitz (induction on the Bochner-integral bound), which is `< 1` for large `n`;
+so `𝒯` has a unique fixed point by the iterated-contraction Banach theorem
+(`ContractingWith` + `exists_fixedPoint`, `Mathlib/Topology/MetricSpace/Contracting.lean`).
+Differentiating the fixed-point integral equation (FTC, `HasDerivWithinAt` of `t ↦ ∫_0^t …`)
+recovers `ẋ = 𝒜(t) x`; `x(0) = x₀` from the lower integral limit. -/
+theorem exists_linearODE_solution_Icc
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (T : ℝ) (hT : 0 ≤ T)
+    (h𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (x₀ : E) :
+    ∃ M : ℝ → E, M 0 = x₀ ∧ ContinuousOn M (Set.Icc 0 T) ∧
+      ∀ t ∈ Set.Icc 0 T, HasDerivWithinAt M (𝒜 t (M t)) (Set.Icc 0 T) t := by
+  sorry
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
