@@ -723,6 +723,69 @@ lemma picardSum_finset_recurrence
   refine intervalIntegral.integral_congr (fun s _ => ?_)
   exact (map_sum (𝒜 s) (fun i => picardIter 𝒜 x₀ i s) (Finset.range N)).symm
 
+/-- **C3 V1c-inteq — the Dyson sum solves the integral equation.**
+`M(t) = x₀ + ∫₀ᵗ 𝒜(s)(M s) ds` on `[0,T]`, where `M = ∑'ₙ Iₙ`.  Pass `N → ∞` in the finite
+recurrence: LHS → `M t` (partial sums of the summable series); RHS via DCT (the terms
+`𝒜(s)(S_N s) → 𝒜(s)(M s)` pointwise, dominated by the constant `K·∑'ₙ (KT)ⁿ/n!·‖x₀‖`). -/
+lemma picardSum_solves_integralEq
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K)
+    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (∑' n, picardIter 𝒜 x₀ n t)
+      = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (∑' n, picardIter 𝒜 x₀ n s) := by
+  have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
+  have ht0 : (0:ℝ) ≤ t := ht.1
+  have htT : t ≤ T := ht.2
+  have hmaj : ∀ n, ∀ s ∈ Set.Icc (0:ℝ) T,
+      ‖picardIter 𝒜 x₀ n s‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
+    intro n s hs
+    refine le_trans ((hcb n).2 s hs) ?_
+    have hKs : 0 ≤ K * s := mul_nonneg hK hs.1
+    have hle : K * s ≤ K * T := mul_le_mul_of_nonneg_left hs.2 hK
+    gcongr
+  have hmaj_summable : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
+    (Real.summable_pow_div_factorial (K * T)).mul_right ‖x₀‖
+  have hsummable : ∀ s ∈ Set.Icc (0:ℝ) T, Summable (fun n => picardIter 𝒜 x₀ n s) := by
+    intro s hs
+    exact (hmaj_summable.of_nonneg_of_le (fun n => norm_nonneg _) (fun n => hmaj n s hs)).of_norm
+  set C : ℝ := ∑' n, (K * T) ^ n / n.factorial * ‖x₀‖ with hC
+  have hSbound : ∀ N, ∀ s ∈ Set.Icc (0:ℝ) T,
+      ‖∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s‖ ≤ C := by
+    intro N s hs
+    refine le_trans (norm_sum_le _ _) ?_
+    refine le_trans (Finset.sum_le_sum (fun n _ => hmaj n s hs)) ?_
+    exact hmaj_summable.sum_le_tsum _ (fun n _ => by positivity)
+  set M : ℝ → E := fun u => ∑' n, picardIter 𝒜 x₀ n u with hM
+  have hLHS : Filter.Tendsto (fun N => ∑ n ∈ Finset.range (N + 1), picardIter 𝒜 x₀ n t)
+      Filter.atTop (nhds (M t)) :=
+    ((hsummable t ht).hasSum.tendsto_sum_nat).comp (Filter.tendsto_add_atTop_nat 1)
+  have hRHS_int : Filter.Tendsto
+      (fun N => ∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s))
+      Filter.atTop (nhds (∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (M s))) := by
+    apply MeasureTheory.tendsto_integral_of_dominated_convergence (bound := fun _ => K * C)
+    · intro N
+      apply ContinuousOn.aestronglyMeasurable _ measurableSet_Ioc
+      exact (hcont𝒜.clm_apply (continuousOn_finset_sum _ (fun n _ => (hcb n).1))).mono
+        (Set.Ioc_subset_Icc_self.trans (Set.Icc_subset_Icc_right htT))
+    · exact integrableOn_const (hs := measure_Ioc_lt_top.ne)
+    · intro N
+      refine MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioc (fun s hs => ?_)
+      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
+      calc ‖𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s)‖
+          ≤ ‖𝒜 s‖ * ‖∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s‖ := (𝒜 s).le_opNorm _
+        _ ≤ K * C := mul_le_mul (hbound𝒜 s hsT) (hSbound N s hsT) (norm_nonneg _) hK
+    · refine MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioc (fun s hs => ?_)
+      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
+      exact ((𝒜 s).continuous.tendsto (M s)).comp ((hsummable s hsT).hasSum.tendsto_sum_nat)
+  rw [intervalIntegral.integral_of_le ht0]
+  have hrec' : ∀ N, ∑ n ∈ Finset.range (N + 1), picardIter 𝒜 x₀ n t
+      = x₀ + ∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
+    intro N
+    rw [picardSum_finset_recurrence 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜 N t ht,
+      intervalIntegral.integral_of_le ht0]
+  exact tendsto_nhds_unique hLHS ((hRHS_int.const_add x₀).congr (fun N => (hrec' N).symm))
+
 /-- **C3 V1c — existence for a linear ODE with continuous coefficients on a compact interval**
 (the fundamental solution of the variational equation; a Mathlib gap).
 
@@ -751,7 +814,29 @@ theorem exists_linearODE_solution_Icc
     (h𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (x₀ : E) :
     ∃ M : ℝ → E, M 0 = x₀ ∧ ContinuousOn M (Set.Icc 0 T) ∧
       ∀ t ∈ Set.Icc 0 T, HasDerivWithinAt M (𝒜 t (M t)) (Set.Icc 0 T) t := by
-  sorry
+  obtain ⟨K, hbK⟩ := isCompact_Icc.exists_bound_of_continuousOn h𝒜
+  have hK'0 : 0 ≤ max K 0 := le_max_right _ _
+  have hbound : ∀ t ∈ Set.Icc (0:ℝ) T, ‖𝒜 t‖ ≤ max K 0 :=
+    fun t ht => le_trans (hbK t ht) (le_max_left _ _)
+  set M : ℝ → E := fun u => ∑' n, picardIter 𝒜 x₀ n u with hM
+  have hMcont : ContinuousOn M (Set.Icc 0 T) :=
+    picardSum_continuousOn 𝒜 x₀ T hT (max K 0) hK'0 h𝒜 hbound
+  have hMeq : ∀ t ∈ Set.Icc (0:ℝ) T, M t = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (M s) :=
+    fun t ht => picardSum_solves_integralEq 𝒜 x₀ T hT (max K 0) hK'0 h𝒜 hbound t ht
+  have hg_cont : ContinuousOn (fun s => 𝒜 s (M s)) (Set.Icc 0 T) := h𝒜.clm_apply hMcont
+  refine ⟨M, ?_, hMcont, fun t ht => ?_⟩
+  · rw [hMeq 0 ⟨le_refl 0, hT⟩, intervalIntegral.integral_same, add_zero]
+  · haveI : Fact (t ∈ Set.Icc (0:ℝ) T) := ⟨ht⟩
+    have hg_int : IntervalIntegrable (fun s => 𝒜 s (M s)) volume 0 t := by
+      apply ContinuousOn.intervalIntegrable
+      rw [Set.uIcc_of_le ht.1]
+      exact hg_cont.mono (Set.Icc_subset_Icc_right ht.2)
+    have hg_meas : StronglyMeasurableAtFilter (fun s => 𝒜 s (M s)) (nhdsWithin t (Set.Icc 0 T)) :=
+      ⟨Set.Icc 0 T, self_mem_nhdsWithin, hg_cont.aestronglyMeasurable measurableSet_Icc⟩
+    have hFTC : HasDerivWithinAt (fun u => ∫ s in (0:ℝ)..u, 𝒜 s (M s)) (𝒜 t (M t))
+        (Set.Icc 0 T) t :=
+      intervalIntegral.integral_hasDerivWithinAt_right hg_int hg_meas (hg_cont t ht)
+    exact (hFTC.const_add x₀).congr (fun y hy => hMeq y hy) (hMeq t ht)
 
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
