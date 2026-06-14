@@ -838,6 +838,23 @@ theorem exists_linearODE_solution_Icc
       intervalIntegral.integral_hasDerivWithinAt_right hg_int hg_meas (hg_cont t ht)
     exact (hFTC.const_add x₀).congr (fun y hy => hMeq y hy) (hMeq t ht)
 
+/-- **C3 V1c→matrix — the fundamental matrix of a linear ODE.**  Specialising
+`exists_linearODE_solution_Icc` to the operator space `E := F →L[ℝ] F` with `𝒜(s) := A(s) ∘ (·)`
+(left composition) and `x₀ := id` gives the fundamental solution `Ṁ = A(t)∘M`, `M(0) = id`.
+This `M(t)` is the candidate `Dflow t z` of the variational equation (#3), once `A` is the Vlasov
+field Jacobian `A(s) = D_z b(s, Φ_s z)` along the flow (F2). -/
+lemma exists_fundamentalMatrix
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    (A : ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (hA : ContinuousOn A (Set.Icc 0 T)) :
+    ∃ M : ℝ → (F →L[ℝ] F), M 0 = ContinuousLinearMap.id ℝ F ∧ ContinuousOn M (Set.Icc 0 T) ∧
+      ∀ t ∈ Set.Icc 0 T, HasDerivWithinAt M ((A t).comp (M t)) (Set.Icc 0 T) t := by
+  obtain ⟨M, hM0, hMcont, hMderiv⟩ := exists_linearODE_solution_Icc
+    (fun s => ContinuousLinearMap.compL ℝ F F F (A s)) T hT
+    ((ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA)
+    (ContinuousLinearMap.id ℝ F)
+  refine ⟨M, hM0, hMcont, fun t ht => ?_⟩
+  simpa [ContinuousLinearMap.compL_apply] using hMderiv t ht
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
