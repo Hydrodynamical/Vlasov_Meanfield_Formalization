@@ -569,6 +569,29 @@ theorem vlasovVectorField_hasFDerivAt_in_z
   have hprod := h1.prodMk h2.neg
   simpa only [vlasovVectorField] using hprod
 
+/-- **C3 F1c — the convolution derivative is continuous in space.**  `x ↦ ∫ y, fderiv ℝ gradW
+(x − y) ∂ρ` (the Fréchet derivative of the convolution field, F1) is continuous, by dominated
+convergence: the integrand is continuous in `x` and bounded by `‖fderiv gradW‖ ≤ L` (a constant,
+integrable against the probability measure `ρ`).  Continuity of the variational coefficient
+`A(t)` in its spatial argument — half of the `t`-continuity of `A` (the other half is the
+measure-curve regularity `t ↦ ρ t`, supplied at the V1c ODE-existence step). -/
+theorem convolveFunctionMeasure_fderiv_continuous
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : Measure (PhysSpace d)) [IsProbabilityMeasure ρ] :
+    Continuous (fun x => ∫ y, fderiv ℝ gradW (x - y) ∂ρ) := by
+  have hfderiv_cont : Continuous (fun z => fderiv ℝ gradW z) :=
+    hgradW_C1.continuous_fderiv one_ne_zero
+  refine continuous_of_dominated
+    (F := fun x y => fderiv ℝ gradW (x - y)) (bound := fun _ => (L : ℝ)) ?_ ?_ ?_ ?_
+  · intro x
+    exact (hfderiv_cont.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+  · intro x
+    exact Filter.Eventually.of_forall (fun y => norm_fderiv_le_of_lipschitz (𝕜 := ℝ) hL)
+  · exact integrable_const _
+  · exact Filter.Eventually.of_forall (fun y =>
+      hfderiv_cont.comp (continuous_id.sub continuous_const))
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
