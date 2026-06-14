@@ -467,6 +467,105 @@ lemma assW2_contDiff_gradW (W : PhysSpace d → ℝ) [AssW2 W]
     (InnerProductSpace.toDual ℝ (PhysSpace d)).symm.toContinuousLinearEquiv.contDiff
   exact hriesz.comp ‹AssW2 W›.gradContDiff
 
+/-! ## Crux layer (C3): the variational equation and the dual-transport assembly
+
+The two interfaces below are the load-bearing locks for the bridge.  `#3` is the genuine research
+gap (C¹ dependence of an ODE flow on its initial point — absent from Mathlib); `#8` is the
+bridge-specific dual-transported-test-function assembly that consumes it.  `#10` (the public
+theorem) composes the proven reuse layer (`exists_frozenField_charFlow_On`, #2) with `#8`.
+
+The dual-argument *internals* `#4`/`#5`/`#6` (test-class enlargement `C_c^∞ → C¹_c`, the
+transported test function `ψ_s = φ ∘ Φ_{s→t}` and its transport identity, and the zero-derivative
+of `s ↦ ∫ ψ_s dμ_s`) are **deliberately not locked as Lean signatures here** (P5): their exact
+shapes depend on the two-time-flow representation `Φ_{s→t}` and the mollification regularity, both
+C3-open design choices to be fixed by atom-level reading at the grind.  They are documented in
+`#8`'s proof plan; only `#3` (route-independent conclusion) and `#8` (stable predicates) are
+locked. -/
+
+/-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
+
+For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
+consumer via `assW2_contDiff_gradW`), the time-`t` characteristic map
+`z ↦ (charX t z, charV t z)` is Fréchet-differentiable in the initial point `z`, with a derivative
+`Dflow t z` that is continuous in `z` (so the flow map is `C¹` in `z`).  The derivative solves the
+linear matrix variational ODE `Ṁ = (D_z b(t, Φ_t z)) · M`, `M_0 = id`.
+
+**This is the load-bearing research gap** — Mathlib has no C¹-dependence-of-an-ODE-flow-on-its-
+initial-condition lemma.  Intended route (b), to be ground out in the C3 grind session
+(`charFlow_lipschitzInZ_via_gronwall_Ioo`, `CharacteristicFlow.lean`, is the Lipschitz-in-`z`
+scaffold; Mathlib Gronwall + the vendored `IsPicardLindelof` confinement are the analytic inputs):
+3.1 existence/uniqueness of the continuous matrix solution `M_t(z)` of the variational ODE;
+3.2 joint `(t,z)` continuity of `M`; 3.3 the difference-quotient estimate
+`Φ_t(z+h) − Φ_t(z) − M_t(z)·h = o(‖h‖)` uniformly on compacts (Gronwall on the linearization
+remainder, using `gradW ∈ C¹`); 3.4 assemble into `HasFDerivAt`.
+
+The `HasFDerivAt`/continuity *conclusion* is route-independent, so this interface is stable; the
+universal-`t` probability instance + force-integrability `h_int` are the field-regularity inputs
+the proof consumes (the window-only application clamps, L11, at the grind). -/
+theorem charFlow_hasFDerivAt_in_initialPoint
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s)) :
+    ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
+      (∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z : PhaseSpace d,
+        HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
+      (∀ t ∈ Set.Ioo (0 : ℝ) T, Continuous (Dflow t)) := by
+  sorry
+
+/-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window** (the dual
+transported-test-function assembly; this is where the crux is spent).
+
+Given the frozen-field characteristic flow `(charX, charV)` for `ρ^f := spatialMarginal ∘ f` (as
+produced by `exists_frozenField_charFlow_On`, #2), the weak solution `f` coincides on `[0,T]` with
+its pushforward `g t := (charX t, charV t)_# (f 0)`.
+
+Proof plan (the dual transported test function `ψ_s(z) := φ(Φ_{s→t}(z))`), deferred to the C4
+assembly:
+* `g` solves the frozen *linear* weak equation `IsLinearVlasovSolutionOn gradW ρ^f g T`
+  (`vlasov_frozenField_pushforward_isLinearVlasovSolutionOn`, #1), and `f` does too via its own
+  marginal (`IsVlasovSolutionOn.toLinearSelf`); both share `μ_0 = f 0` (since `Φ_0 = id`, `hinit`).
+* The flow is `C¹` in `z` (`charFlow_hasFDerivAt_in_initialPoint`, #3), so for a `C_c^∞` terminal
+  test `φ` the transported `ψ_s = φ ∘ Φ_{s→t}` is `C¹_c`; the linear weak equation extends from
+  the `C_c^∞` test class to this `C¹_c` test (**#4**, deferred — signature pending the C3-open
+  mollification read, P5).
+* `ψ_s` carries the transport identity `∂_sψ_s + ⟨b, ∇ψ_s⟩ = 0` (**#5**, deferred — needs the
+  two-time flow `Φ_{s→t}`, a C3-open representation choice, P5), so `s ↦ ∫ ψ_s dμ_s` has zero
+  derivative on `Ioo 0 t` for both `μ = f` and `μ = g` (**#6**, deferred), hence is constant
+  (`transportedIntegral_const_On`, #7).
+* Constancy at the endpoints gives `∫ φ d(f t) = ∫ φ ∘ Φ_t d(f 0) = ∫ φ d(g t)` for every
+  `C_c^∞ φ`; `measure_eq_of_forall_Cc_integral_eq` (#9) upgrades this to `f t = g t`.
+
+The moment bound `M_ρ` and the flow-boundary data (`hinit`/`hcontIcc`/`hderivIco`) are the inputs
+`#1` and the differentiation-under-the-integral steps consume; `hT` is the window non-triviality. -/
+theorem weak_eq_frozenField_pushforward_On
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_cont : ∀ x, Continuous
+      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (hderivIco : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z))
+        (Set.Ici s) s) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) := by
+  sorry
+
 /-- **Weak ⟹ Lagrangian on `[0,T]`** (tex: thm:weak-lagrangian).
 
 Under `AssW2` (`W ∈ C²`) and a per-window smallness, every weak Vlasov solution on `[0,T]` with
@@ -495,6 +594,79 @@ theorem weak_isLagrangianVlasovSolutionOn
     (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (hTL_PL : LocalSmallness_PL_buffer L T) :
     IsLagrangianVlasovSolutionOn gradW f T := by
-  sorry
+  classical
+  -- Frozen field `ρ^f := spatialMarginal ∘ f`: discharge the flow-construction hypotheses of #2.
+  have hρ_prob : ∀ t ∈ Set.Icc (0 : ℝ) T, IsProbabilityMeasure (spatialMarginal (f t)) := by
+    intro t ht
+    haveI : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  have h_y_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f t)) := by
+    intro t ht
+    haveI : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+    unfold spatialMarginal
+    rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+    refine Integrable.mono' (hf_mom t ht).2
+      ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+      (Filter.Eventually.of_forall fun z => ?_)
+    change |‖z.1‖| ≤ ‖z‖
+    rw [abs_of_nonneg (norm_nonneg _)]; exact norm_fst_le z
+  have h_int : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f t)) := by
+    intro t ht x_pt
+    haveI : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+    haveI : IsProbabilityMeasure (spatialMarginal (f t)) :=
+      Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal (f t)) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal (f t)) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+          (spatialMarginal (f t)) := (h_y_int t ht).const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  have hρ_cont : ∀ x : PhysSpace d,
+      ContinuousOn (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x)
+        (Set.Icc (0 : ℝ) T) :=
+    fun x => (hf_cont x).continuousOn
+  -- #2: build the frozen-field characteristic flow on the window.
+  obtain ⟨charX, charV, hflow, hinit, hcontIcc, hderivIco⟩ :=
+    exists_frozenField_charFlow_On W gradW hgradW L hL (fun t => spatialMarginal (f t))
+      T hT hTL_PL hρ_prob h_int hρ_cont h_y_int M_ρ hM_ρ_nn hM_ρ
+  -- #8: `f` equals its frozen-field pushforward on the window (the dual-argument crux).
+  have hpush : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) :=
+    weak_eq_frozenField_pushforward_On W gradW hgradW L hL f T hT hf_weak hf_mom hf_cont
+      M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco
+  -- Assemble the localized Lagrangian witness.
+  refine ⟨hf_weak, charX, charV, hflow, hpush, ?_, hcontIcc⟩
+  -- AEMeasurability of the flow at each window time, from the pushforward identity: a
+  -- non-measurable map would force `Measure.map _ (f 0) = 0 ≠ f s` (the latter a probability).
+  intro s hs
+  haveI hfs_prob : IsProbabilityMeasure (f s) := (hf_mom s hs).1
+  by_contra hcon
+  have h0 : f s = 0 := by
+    rw [hpush s hs]; exact Measure.map_of_not_aemeasurable hcon
+  have hone : (f s) Set.univ = 1 := measure_univ
+  rw [h0] at hone
+  simp at hone
 
 end Vlasov
