@@ -855,6 +855,47 @@ lemma exists_fundamentalMatrix
   refine ⟨M, hM0, hMcont, fun t ht => ?_⟩
   simpa [ContinuousLinearMap.compL_apply] using hMderiv t ht
 
+/-- **C3 A-cont — the variational coefficient `A(s,z) = D_z b(s, Φ_s z)` is continuous in `s`.**
+`A(s,z)` is the F2 block CLM `(snd).prod(−(∫ fderiv gradW (charX s z − y) ∂ρ_s) ∘ fst)`; its only
+`s`-varying part is the convolution-derivative integral, continuous via `hρD_cont` composed with
+the flow.  The block CLM is reassembled with `inl∘snd + inr∘(·)` (Mathlib has no `clm_prod`
+continuity combinator).  This `ContinuousOn` is the coefficient input to `exists_fundamentalMatrix`
+that produces the fundamental matrix `M_t(z) = Dflow t z` for `#3`. -/
+lemma vlasovVariationalCoeff_continuousOn
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (z : PhaseSpace d)
+    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
+    ContinuousOn (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+      (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+          (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) (Set.Icc 0 T) := by
+  have hX : ContinuousOn (fun s => charX s z) (Set.Icc (0:ℝ) T) :=
+    continuous_fst.comp_continuousOn hcontIcc
+  have hpair : ContinuousOn (fun s => ((s, charX s z) : ℝ × PhysSpace d)) (Set.Icc (0:ℝ) T) :=
+    continuousOn_id.prodMk hX
+  have hmaps : Set.MapsTo (fun s => ((s, charX s z) : ℝ × PhysSpace d))
+      (Set.Icc (0:ℝ) T) (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
+    fun s hs => ⟨hs, Set.mem_univ _⟩
+  have hD : ContinuousOn (fun s => ∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)) (Set.Icc 0 T) :=
+    hρD_cont.comp hpair hmaps
+  have hDcomp : ContinuousOn (fun s => -((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+      (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))) (Set.Icc 0 T) :=
+    (hD.clm_comp continuousOn_const).neg
+  have heq : (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+        (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))))
+      = (fun s => (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)).comp
+            (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d))
+          + (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)).comp
+            (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
+                (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) := by
+    funext s; ext x <;> simp
+  rw [heq]
+  exact continuousOn_const.add (continuousOn_const.clm_comp hDcomp)
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
