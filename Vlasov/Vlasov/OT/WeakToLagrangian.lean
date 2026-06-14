@@ -697,6 +697,32 @@ lemma picardSum_continuousOn {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ
   exact (Filter.Eventually.of_forall
     (fun u => continuousOn_finset_sum u (fun n _ => (hcb n).1))).frequently
 
+/-- **C3 V1c-rec — finite Picard recurrence.**  The `(N+1)`-th partial Dyson sum equals
+`x₀ + ∫₀ᵗ 𝒜(s)(Sₙ(s)) ds`, where `Sₙ = ∑_{n<N} Iₙ`.  Only finite-sum swaps
+(`integral_finset_sum`, `map_sum`); no infinite interchange.  Passing `N → ∞` against the
+uniform convergence (`picardSum_continuousOn`'s M-test) yields the integral equation for `M`. -/
+lemma picardSum_finset_recurrence
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K)
+    (N : ℕ) (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    ∑ n ∈ Finset.range (N + 1), picardIter 𝒜 x₀ n t
+      = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
+  have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
+  have hint : ∀ n, IntervalIntegrable
+      (fun s => 𝒜 s (picardIter 𝒜 x₀ n s)) volume 0 t := by
+    intro n
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le ht.1]
+    exact (hcont𝒜.clm_apply (hcb n).1).mono (Set.Icc_subset_Icc_right ht.2)
+  rw [Finset.sum_range_succ', picardIter_zero]
+  simp only [picardIter_succ]
+  rw [add_comm]
+  congr 1
+  rw [← intervalIntegral.integral_finset_sum (fun i _ => hint i)]
+  refine intervalIntegral.integral_congr (fun s _ => ?_)
+  exact (map_sum (𝒜 s) (fun i => picardIter 𝒜 x₀ i s) (Finset.range N)).symm
+
 /-- **C3 V1c — existence for a linear ODE with continuous coefficients on a compact interval**
 (the fundamental solution of the variational equation; a Mathlib gap).
 
