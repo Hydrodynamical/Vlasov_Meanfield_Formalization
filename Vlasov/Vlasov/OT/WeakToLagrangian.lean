@@ -592,6 +592,85 @@ theorem convolveFunctionMeasure_fderiv_continuous
   · exact Filter.Eventually.of_forall (fun y =>
       hfderiv_cont.comp (continuous_id.sub continuous_const))
 
+/-- Picard iterates for the linear IVP `ẋ = 𝒜(t)x`, `x(0)=x₀` (the V1c engine):
+`I₀ ≡ x₀`, `I_{n+1}(t) = ∫₀ᵗ 𝒜(s)(Iₙ(s)) ds`. -/
+noncomputable def picardIter {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) : ℕ → ℝ → E
+  | 0, _ => x₀
+  | (n + 1), t => ∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)
+
+@[simp] lemma picardIter_zero {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (t : ℝ) : picardIter 𝒜 x₀ 0 t = x₀ := rfl
+
+lemma picardIter_succ {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (n : ℕ) (t : ℝ) :
+    picardIter 𝒜 x₀ (n + 1) t = ∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s) := rfl
+
+/-- **C3 V1c-engine — the Picard iterates are continuous and satisfy the geometric
+`(Kt)ⁿ/n!`-bound on `[0,T]`.**  Proved by simultaneous induction (continuity feeds
+integrability, which feeds the next bound).  This `Σ (KT)ⁿ/n! = e^{KT}`-summable bound is the
+convergence driver for the V1c fixed point. -/
+lemma picardIter_continuousOn_and_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E)
+    (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T))
+    (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K) :
+    ∀ n, ContinuousOn (picardIter 𝒜 x₀ n) (Set.Icc 0 T) ∧
+      ∀ t ∈ Set.Icc 0 T, ‖picardIter 𝒜 x₀ n t‖ ≤ (K * t) ^ n / n.factorial * ‖x₀‖ := by
+  intro n
+  induction n with
+  | zero =>
+    refine ⟨continuousOn_const, fun t ht => ?_⟩
+    simp
+  | succ n ih =>
+    obtain ⟨ih_cont, ih_bd⟩ := ih
+    have hg_cont : ContinuousOn (fun s => 𝒜 s (picardIter 𝒜 x₀ n s)) (Set.Icc 0 T) :=
+      hcont𝒜.clm_apply ih_cont
+    have hg_int : IntegrableOn (fun s => 𝒜 s (picardIter 𝒜 x₀ n s)) (Set.Icc 0 T) :=
+      hg_cont.integrableOn_Icc
+    refine ⟨?_, ?_⟩
+    · have hcp := intervalIntegral.continuousOn_primitive_interval (a := 0) (b := T) (μ := volume)
+        (f := fun s => 𝒜 s (picardIter 𝒜 x₀ n s)) (by rw [Set.uIcc_of_le hT]; exact hg_int)
+      rw [Set.uIcc_of_le hT] at hcp
+      exact hcp
+    · intro t ht
+      have ht0 : (0:ℝ) ≤ t := ht.1
+      have htT : t ≤ T := ht.2
+      have h_ptwise : ∀ s ∈ Set.Icc (0:ℝ) t,
+          ‖𝒜 s (picardIter 𝒜 x₀ n s)‖ ≤ K * (K * s) ^ n / n.factorial * ‖x₀‖ := by
+        intro s hs
+        have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨hs.1, le_trans hs.2 htT⟩
+        calc ‖𝒜 s (picardIter 𝒜 x₀ n s)‖
+            ≤ ‖𝒜 s‖ * ‖picardIter 𝒜 x₀ n s‖ := (𝒜 s).le_opNorm _
+          _ ≤ K * ((K * s) ^ n / n.factorial * ‖x₀‖) :=
+              mul_le_mul (hbound𝒜 s hsT) (ih_bd s hsT) (norm_nonneg _) hK
+          _ = K * (K * s) ^ n / n.factorial * ‖x₀‖ := by ring
+      have hRHS_int : IntervalIntegrable
+          (fun s => K * (K * s) ^ n / n.factorial * ‖x₀‖) volume 0 t :=
+        (Continuous.intervalIntegrable (by fun_prop) 0 t)
+      have hLHS_int : IntervalIntegrable
+          (fun s => ‖𝒜 s (picardIter 𝒜 x₀ n s)‖) volume 0 t := by
+        apply ContinuousOn.intervalIntegrable
+        rw [Set.uIcc_of_le ht0]
+        exact (hg_cont.mono (Set.Icc_subset_Icc_right htT)).norm
+      calc ‖picardIter 𝒜 x₀ (n + 1) t‖
+          = ‖∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)‖ := by rw [picardIter_succ]
+        _ ≤ ∫ s in (0:ℝ)..t, ‖𝒜 s (picardIter 𝒜 x₀ n s)‖ :=
+            intervalIntegral.norm_integral_le_integral_norm ht0
+        _ ≤ ∫ s in (0:ℝ)..t, K * (K * s) ^ n / n.factorial * ‖x₀‖ :=
+            intervalIntegral.integral_mono_on ht0 hLHS_int hRHS_int h_ptwise
+        _ = (K * t) ^ (n + 1) / (n + 1).factorial * ‖x₀‖ := by
+            have hpow : ∀ s : ℝ, K * (K * s) ^ n / n.factorial * ‖x₀‖
+                = (K ^ (n + 1) * ‖x₀‖ / n.factorial) * s ^ n := by
+              intro s; rw [mul_pow]; ring
+            simp_rw [hpow]
+            rw [intervalIntegral.integral_const_mul, integral_pow]
+            rw [Nat.factorial_succ]
+            push_cast
+            rw [mul_pow]
+            field_simp
+            ring
+
 /-- **C3 V1c — existence for a linear ODE with continuous coefficients on a compact interval**
 (the fundamental solution of the variational equation; a Mathlib gap).
 
