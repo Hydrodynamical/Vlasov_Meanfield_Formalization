@@ -497,6 +497,52 @@ in the new version before trusting green builds — a green build is consistent
 with a silently-vacuous statement (P10/P11).  Especially suspect any
 `∀ φ, [smoothness] φ → HasCompactSupport φ → …` weak-formulation test class.
 
+### L14. `choose` over `∀z ∃N` destroys parameter-regularity of the witness
+
+**Failure mode**: `choose f … using (h : ∀ z, ∃ N, P z N)` (i.e. AoC /
+`Classical.choice`) returns a section `f : Z → _` carrying ONLY the *fiberwise*
+facts `∀ z, P z (f z)`.  Those constrain `f z` separately per `z` and say nothing
+joint in `z`, so **any regularity of `z ↦ f z` — continuity, measurability,
+smoothness — is NOT entailed** and is generally unprovable from the `choose`
+output.  AoC gives a function, never a *nice* one.  This bites **even when the
+witness is unique** per `z` (so the bundle `{(z,N) : P z N}` is genuinely the
+graph of a regular function): `choose` discards canonicity — it returns *a*
+section of a graph, with no proof its value is *the* unique solution, and
+regularity is a property of the canonical map the `∃`-interface cannot expose.
+
+**Empirical confirmation** (C3 / V2, 2026-06-15): `#3`'s 2nd conjunct needs
+`Continuous (z ↦ M z t)` for the variational fundamental matrix `Ṁ=A(s,z)·M`,
+`M 0=I`.  The body did `choose M … using (λ z, exists_fundamentalMatrix (A(·,z)))`;
+the `choose`'d `M` carries only per-`z` `(M0/cont-in-s/ODE)`, so continuity in
+`z` is **not derivable** — V2 is unprovable as scaffolded, despite the solution
+being unique (linear ODE, continuous coefficients).
+
+**Fix — four routes to preserve continuity/measurability** (decision rule):
+* **A — explicit canonical construction** (preferred when a formula exists):
+  don't `choose`; define `f z := Φ z` regular-in-`z` by formula, prove `P z (Φ z)`
+  separately.  Continuity = uniform/loc-uniform limit with a **`z`-independent**
+  majorant (M-test) or finite composition; measurability = closure under
+  `tsum`/`∫`/`iSup`/limits.  *(V2: `M z = picardSum`; mirror the already-proven
+  `picardSum_continuousOn` M-test in the parameter `z` instead of time.)*
+* **B — uniqueness bridge** (witness opaque but unique): keep `choose`'s `f z`,
+  build explicit regular `g z` (Route A), prove `f z = g z` ∀z via uniqueness
+  (`ODE_solution_unique`), transport regularity.  Use when consumers already
+  depend on `f`.
+* **C — measurable selection** (no formula, no uniqueness): continuity may fail,
+  but measurability via Kuratowski–Ryll-Nardzewski / von Neumann selection
+  (thin Mathlib support — fallback).
+* **D — bake regularity into the `∃`** (you own the lemma): restate
+  `∀ z, ∃ N, P z N` → `∃ F, Regular F ∧ ∀ z, P z (F z)`; destructure once, no
+  `choose`-over-`z`.  *(`exists_fundamentalMatrix` → `…_family`.)*
+
+**Generalisation**: `∀z ∃N, P` and `∃F ∀z, P z (F z) ∧ Regular F` are **not
+interchangeable for regularity** — **the quantifier order is where
+parameter-regularity lives**.  `∀∃` discards it; `∃∀`-with-a-regularity-conjunct
+keeps it.  Same family as L13/P10/P11: a typechecking interface (here, a bare
+`∃`) can be silently too weak for the property a consumer needs — check what the
+*construction* exposes, not just what typechecks.  Full routing in the memory
+note `choose-destroys-parameter-regularity`.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
