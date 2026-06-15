@@ -1832,6 +1832,74 @@ theorem exists_global_c1_inverse_of_antilipschitz
 
 end Step2Inverse
 
+/-- **Step 2 (dual core) — the characteristic flow `Φ_t` is a `C¹` diffeomorphism on `(0,T)`.**
+Instantiates the generic global-inverse machinery at `Φ_t := (charX t, charV t)`: its derivative
+`e z` (= `#3`'s `Dflow t z`) is invertible, `Φ_t` is bijective, and the inverse `Ψ` is continuous
+with `HasFDerivAt Ψ (e (Ψ w))⁻¹ w`.  `hanti` comes from Step 1
+(`charFlow_antilipschitzInZ_via_gronwall_Ioo`), `hlip` from the existing upper Grönwall bound
+(`charFlow_lipschitzInZ_via_gronwall_Ioo`), the derivative family from `#3`. -/
+theorem exists_charFlow_inverse_On
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
+    ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      ∃ (Ψ : PhaseSpace d → PhaseSpace d)
+        (e : PhaseSpace d → (PhaseSpace d ≃L[ℝ] PhaseSpace d)),
+        (∀ z, HasFDerivAt (fun w => (charX t w, charV t w))
+          ((e z : PhaseSpace d →L[ℝ] PhaseSpace d)) z) ∧
+        Function.LeftInverse Ψ (fun z => (charX t z, charV t z)) ∧
+        Function.RightInverse Ψ (fun z => (charX t z, charV t z)) ∧
+        Continuous Ψ ∧
+        (∀ w, HasFDerivAt Ψ ((e (Ψ w)).symm : PhaseSpace d →L[ℝ] PhaseSpace d) w) := by
+  have h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
+    Prod.ext_iff.mpr (hflow.1 z (Set.mem_univ z))
+  have h_deriv2 : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) s := fun z s hs =>
+    HasDerivAt.prodMk (hflow.2.1 s hs z (Set.mem_univ z)) (hflow.2.2 s hs z (Set.mem_univ z))
+  have h_deriv_Ioo : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s := fun z s hs =>
+    (h_deriv2 z s hs).hasDerivWithinAt
+  obtain ⟨Dflow, hDeriv, hCont⟩ := charFlow_hasFDerivAt_in_initialPoint gradW hgradW_C1 L hL ρ
+    charX charV T hT hflow h_int hρD_cont hcontIcc
+  intro t ht
+  set K : ℝ := ((max 1 L : NNReal) : ℝ) with hK
+  have hCcoe : (((Real.exp (K * t)).toNNReal : NNReal) : ℝ) = Real.exp (K * t) :=
+    Real.coe_toNNReal _ (le_of_lt (Real.exp_pos _))
+  have hderiv : ∀ z, HasFDerivAt (fun z => (charX t z, charV t z)) (Dflow t z) z := fun z =>
+    hDeriv t ht z
+  have hM_cont : Continuous (Dflow t) := hCont t ht
+  have hanti : AntilipschitzWith (Real.exp (K * t)).toNNReal
+      (fun z => (charX t z, charV t z)) := by
+    refine AntilipschitzWith.of_le_mul_dist (fun z₁ z₂ => ?_)
+    have h1 := charFlow_antilipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T
+      h_init hcontIcc h_deriv2 t ht z₁ z₂
+    rw [sub_zero] at h1
+    rw [hCcoe, mul_comm]
+    exact h1
+  have hlip : LipschitzWith (Real.exp (K * t)).toNNReal
+      (fun z => (charX t z, charV t z)) := by
+    refine LipschitzWith.of_dist_le_mul (fun z₁ z₂ => ?_)
+    have h1 := charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT.le
+      h_init hcontIcc h_deriv_Ioo t (Set.Ioo_subset_Icc_self ht) z₁ z₂
+    rw [sub_zero] at h1
+    rw [hCcoe, mul_comm]
+    exact h1
+  obtain ⟨Ψ, e, he_coe, hLeft, hRight, hΨlip, hΨderiv⟩ :=
+    exists_global_c1_inverse_of_antilipschitz hderiv hM_cont hanti hlip
+  refine ⟨Ψ, e, ?_, hLeft, hRight, hΨlip.continuous, hΨderiv⟩
+  intro z; rw [he_coe z]; exact hderiv z
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
