@@ -1631,31 +1631,66 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     exact fundamentalMatrix_continuous_param A T hT.le ((max 1 L : NNReal) : ℝ) (by positivity)
       hA_contOn hA_bound t (Set.Ioo_subset_Icc_self ht)
 
-/-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window** (the dual
-transported-test-function assembly; this is where the crux is spent).
+/-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
-Given the frozen-field characteristic flow `(charX, charV)` for `ρ^f := spatialMarginal ∘ f` (as
-produced by `exists_frozenField_charFlow_On`, #2), the weak solution `f` coincides on `[0,T]` with
-its pushforward `g t := (charX t, charV t)_# (f 0)`.
+The genuine remaining crux: the dual transported-test-function argument showing the weak solution
+`f` transports along its frozen-field characteristics.  Fix a terminal `t ∈ [0,T]` and a `C_c^∞`
+test `φ`.  Let `Φ_{s→t}` be the two-time flow (forward from time `s` to time `t` along the
+frozen-field characteristics) and `ψ_s := φ ∘ Φ_{s→t}` the backward-transported test
+(so `ψ_t = φ` and `ψ_0 = φ ∘ Φ_t`).  Then:
+* The flow is `C¹` in the initial point (`charFlow_hasFDerivAt_in_initialPoint`, #3 — proven), so
+  with a `C¹` two-time flow `ψ_s` is `C¹_c`; the linear weak equation extends from the `C_c^∞`
+  test class to this `C¹_c` test (**#4**, deferred — shape pending the two-time-flow representation).
+* `ψ_s` satisfies the transport identity `∂_sψ_s + ⟨b, ∇ψ_s⟩ = 0` (**#5**, deferred — needs the
+  two-time flow `Φ_{s→t}`), so `s ↦ ∫ ψ_s d(f s)` has zero derivative on `Ioo 0 t` (**#6**,
+  deferred), hence is constant on `[0,t]` (`transportedIntegral_const_On`, #7 — proven).
+* Constancy at the endpoints gives `∫ φ d(f t) = ∫ ψ_t d(f t) = ∫ ψ_0 d(f 0) = ∫ φ∘Φ_t d(f 0)`.
 
-Proof plan (the dual transported test function `ψ_s(z) := φ(Φ_{s→t}(z))`), deferred to the C4
-assembly:
-* `g` solves the frozen *linear* weak equation `IsLinearVlasovSolutionOn gradW ρ^f g T`
-  (`vlasov_frozenField_pushforward_isLinearVlasovSolutionOn`, #1), and `f` does too via its own
-  marginal (`IsVlasovSolutionOn.toLinearSelf`); both share `μ_0 = f 0` (since `Φ_0 = id`, `hinit`).
-* The flow is `C¹` in `z` (`charFlow_hasFDerivAt_in_initialPoint`, #3), so for a `C_c^∞` terminal
-  test `φ` the transported `ψ_s = φ ∘ Φ_{s→t}` is `C¹_c`; the linear weak equation extends from
-  the `C_c^∞` test class to this `C¹_c` test (**#4**, deferred — signature pending the C3-open
-  mollification read, P5).
-* `ψ_s` carries the transport identity `∂_sψ_s + ⟨b, ∇ψ_s⟩ = 0` (**#5**, deferred — needs the
-  two-time flow `Φ_{s→t}`, a C3-open representation choice, P5), so `s ↦ ∫ ψ_s dμ_s` has zero
-  derivative on `Ioo 0 t` for both `μ = f` and `μ = g` (**#6**, deferred), hence is constant
-  (`transportedIntegral_const_On`, #7).
-* Constancy at the endpoints gives `∫ φ d(f t) = ∫ φ ∘ Φ_t d(f 0) = ∫ φ d(g t)` for every
-  `C_c^∞ φ`; `measure_eq_of_forall_Cc_integral_eq` (#9) upgrades this to `f t = g t`.
+The pushforward side is `integral_map` by definition, so the dual argument is needed only for `f`
+(the plan's `#1` pushforward-solves-linear lemma is not on this path).  `#4`/`#5`/`#6` are
+**deliberately not locked** as Lean signatures (P5): their shapes depend on the two-time-flow
+representation `Φ_{s→t}` (invertibility via Liouville `det M_s ≠ 0` + IFT, or a backward-flow
+construction) — a C3-open architectural choice to be fixed by atom-level reading at the grind.
 
-The moment bound `M_ρ` and the flow-boundary data (`hinit`/`hcontIcc`/`hderivIco`) are the inputs
-`#1` and the differentiation-under-the-integral steps consume; `hT` is the window non-triviality. -/
+This is the project's last remaining `sorry`.  Its signature is `#8`'s hypothesis list verbatim
+(the crux consumes essentially all of it). -/
+theorem weak_eq_frozenField_pushforward_dualCore
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_cont : ∀ x, Continuous
+      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (hderivIco : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z))
+        (Set.Ici s) s) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ φ : PhaseSpace d → ℝ,
+      ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+      ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
+  sorry
+
+/-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window.**
+
+`f t = (Φ_t)_# (f 0)` on `[0,T]`.  Skeleton: `measure_eq_of_forall_Cc_integral_eq` (#9) reduces
+this to per-`C_c^∞`-test integral equality, and `integral_map` turns the pushforward side into
+`∫ φ∘Φ_t d(f 0)` — leaving exactly the dual-transport core
+`weak_eq_frozenField_pushforward_dualCore`.  Flow measurability on the window (needed by
+`integral_map` and the probability-measure instances) comes from an L11 clamp of `ρ^f` into
+`[0,T]` + `charFlow_measurable_via_gronwall_Ioo`. -/
 theorem weak_eq_frozenField_pushforward_On
     (W : PhysSpace d → ℝ) [AssW2 W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -1682,7 +1717,98 @@ theorem weak_eq_frozenField_pushforward_On
         (Set.Ici s) s) :
     ∀ t ∈ Set.Icc (0 : ℝ) T,
       f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) := by
-  sorry
+  classical
+  -- L11 clamp `ρ^f := spatialMarginal ∘ f` into the window so the universal-instance
+  -- measurability lemma `charFlow_measurable_via_gronwall_Ioo` applies.
+  set clampT : ℝ → ℝ := fun t => max 0 (min t T) with hclampT_def
+  have hclampT_mem : ∀ t, clampT t ∈ Set.Icc (0 : ℝ) T := by
+    intro t; simp only [hclampT_def, Set.mem_Icc]
+    exact ⟨le_max_left _ _, max_le hT.le (min_le_right _ _)⟩
+  have hclampT_id : ∀ t ∈ Set.Icc (0 : ℝ) T, clampT t = t := by
+    intro t ht; simp only [hclampT_def, min_eq_left ht.2, max_eq_right ht.1]
+  -- Windowed first-moment integrability for `ρ^f`.
+  have h_y_int : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f t)) := by
+    intro t ht
+    haveI : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+    unfold spatialMarginal
+    rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+    refine Integrable.mono' (hf_mom t ht).2
+      ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+      (Filter.Eventually.of_forall fun z => ?_)
+    change |‖z.1‖| ≤ ‖z‖
+    rw [abs_of_nonneg (norm_nonneg _)]; exact norm_fst_le z
+  -- Windowed force integrability for `ρ^f`.
+  have h_int_window : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f t)) := by
+    intro t ht x_pt
+    haveI : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+    haveI : IsProbabilityMeasure (spatialMarginal (f t)) :=
+      Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal (f t)) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal (f t)) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+          (spatialMarginal (f t)) := (h_y_int t ht).const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  -- Clamped curve `ρ'` with the universal probability instance + force integrability.
+  set ρ' : ℝ → Measure (PhysSpace d) := fun t => spatialMarginal (f (clampT t)) with hρ'_def
+  haveI hρ'_prob : ∀ t, IsProbabilityMeasure (ρ' t) := by
+    intro t
+    haveI : IsProbabilityMeasure (f (clampT t)) := (hf_mom (clampT t) (hclampT_mem t)).1
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  have h_int' : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ' t) :=
+    fun t x => h_int_window (clampT t) (hclampT_mem t) x
+  -- `ρ'`-flavoured velocity ODE on `Ioo 0 T` (clamp = id there, so the field is unchanged).
+  have h_deriv_Ioo' : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ' s (charX s z, charV s z)) (Set.Ici s) s := by
+    intro z s hs
+    have h := hderivIco z s (Set.Ioo_subset_Ico_self hs)
+    have hρeq : ρ' s = spatialMarginal (f s) := by
+      simp only [hρ'_def, hclampT_id s (Set.Ioo_subset_Icc_self hs)]
+    have hfield : vlasovVectorField gradW ρ' s (charX s z, charV s z)
+        = vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z) := by
+      simp only [vlasovVectorField, hρeq]
+    rw [hfield]; exact h
+  -- Flow measurability on the window.
+  have hΦ_meas : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Measurable (fun z : PhaseSpace d => (charX t z, charV t z)) :=
+    charFlow_measurable_via_gronwall_Ioo gradW L hL ρ' h_int' charX charV T hT.le
+      hinit hcontIcc h_deriv_Ioo'
+  -- Main reduction: `#9` + `integral_map` ⟹ the dual-transport core.
+  intro t ht
+  haveI hft_prob : IsProbabilityMeasure (f t) := (hf_mom t ht).1
+  haveI hf0_prob : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
+  have hΦt_aem : AEMeasurable (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) :=
+    (hΦ_meas t ht).aemeasurable
+  haveI hmap_prob :
+      IsProbabilityMeasure (Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0)) :=
+    Measure.isProbabilityMeasure_map hΦt_aem
+  refine measure_eq_of_forall_Cc_integral_eq (fun φ hφ hφc => ?_)
+  rw [integral_map hΦt_aem hφ.continuous.aestronglyMeasurable]
+  exact weak_eq_frozenField_pushforward_dualCore W gradW hgradW L hL f T hT hf_weak hf_mom
+    hf_cont hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ht φ hφ hφc
 
 /-- **Weak ⟹ Lagrangian on `[0,T]`** (tex: thm:weak-lagrangian).
 
