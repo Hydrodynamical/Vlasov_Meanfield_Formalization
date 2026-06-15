@@ -2125,7 +2125,206 @@ theorem hasFDerivAt_of_continuous_partials
         add_le_add hAp (le_trans hBp (mul_le_mul_of_nonneg_left (norm_snd_le p) (by positivity)))
     _ = ε * ‖p‖ := by ring
 
+/-- **Step 3 gating lemma (LOCAL / open-set form)** — joint `HasFDerivAt` from continuous partial
+derivatives on an open set `U ⊆ ℝ × E`.  The open-set generalisation of
+`hasFDerivAt_of_continuous_partials` (which is the `U := univ` special case) that the PR-note above
+flagged: the `s`-partial is required only on `U`, and `Ds` only `ContinuousOn U`.  This is the form
+the Vlasov flow needs — its partials exist and are continuous only on the open window
+`Ioo 0 T ×ˢ univ`.  Proof = the global proof + ball-in-`U` bookkeeping (`B((s₀,z₀),r) ⊆ U`; the FTC
+segment points `(u, z₀+p.2)`, `u ∈ uIcc s₀ (s₀+p.1)`, lie within `‖p‖ < min δ (r/2)` of `(s₀,z₀)`,
+hence in `U` and within the continuity radius `δ`).
+
+NOTE (consolidation TODO): the global `hasFDerivAt_of_continuous_partials` above is the `univ`
+special case of this; a follow-up cleanup should rewrite it as the one-line corollary
+`hasFDerivAt_of_continuous_partials_open isOpen_univ (Set.mem_univ _) (fun p _ => hDs p)
+hDs_cont.continuousOn hDz₀` to drop the duplicated proof.  **PR-ABLE** (the more general statement). -/
+theorem hasFDerivAt_of_continuous_partials_open
+    {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    {f : ℝ × E → F} {Ds : ℝ × E → F} {Dz₀ : E →L[ℝ] F}
+    {U : Set (ℝ × E)} (hU : IsOpen U) {s₀ : ℝ} {z₀ : E} (hmem : (s₀, z₀) ∈ U)
+    (hDs : ∀ p ∈ U, HasDerivAt (fun s => f (s, p.2)) (Ds p) p.1)
+    (hDs_cont : ContinuousOn Ds U)
+    (hDz₀ : HasFDerivAt (fun z => f (s₀, z)) Dz₀ z₀) :
+    HasFDerivAt f
+      ((ContinuousLinearMap.fst ℝ ℝ E).smulRight (Ds (s₀, z₀))
+        + Dz₀.comp (ContinuousLinearMap.snd ℝ ℝ E)) (s₀, z₀) := by
+  set Ds₀ : F := Ds (s₀, z₀) with hDs₀
+  obtain ⟨r, hrpos, hrU⟩ := Metric.isOpen_iff.mp hU (s₀, z₀) hmem
+  rw [hasFDerivAt_iff_isLittleO_nhds_zero, isLittleO_iff]
+  intro ε hε
+  have hBz : ∀ᶠ k in 𝓝 (0 : E),
+      ‖f (s₀, z₀ + k) - f (s₀, z₀) - Dz₀ k‖ ≤ (ε / 2) * ‖k‖ := by
+    have hz := hDz₀
+    rw [hasFDerivAt_iff_isLittleO_nhds_zero, isLittleO_iff] at hz
+    exact hz (half_pos hε)
+  have hBz' : ∀ᶠ p : ℝ × E in 𝓝 0,
+      ‖f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2‖ ≤ (ε / 2) * ‖p.2‖ :=
+    (continuous_snd.tendsto (0 : ℝ × E)).eventually hBz
+  have hball : ∀ᶠ q in 𝓝 ((s₀, z₀) : ℝ × E), ‖Ds q - Ds₀‖ ≤ ε / 2 := by
+    have hc : Tendsto Ds (𝓝 (s₀, z₀)) (𝓝 Ds₀) := hDs_cont.continuousAt (hU.mem_nhds hmem)
+    have hsub : Tendsto (fun q => Ds q - Ds₀) (𝓝 (s₀, z₀)) (𝓝 (Ds₀ - Ds₀)) :=
+      hc.sub tendsto_const_nhds
+    rw [sub_self] at hsub
+    have h0 : Tendsto (fun q => ‖Ds q - Ds₀‖) (𝓝 (s₀, z₀)) (𝓝 0) := by
+      simpa using hsub.norm
+    exact h0.eventually (Iic_mem_nhds (half_pos hε))
+  obtain ⟨δ, hδpos, hδ⟩ := Metric.eventually_nhds_iff.mp hball
+  set ρr : ℝ := min δ (r / 2) with hρr
+  have hρrpos : 0 < ρr := lt_min hδpos (by positivity)
+  have hAs : ∀ᶠ p : ℝ × E in 𝓝 0,
+      ‖f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀‖ ≤ (ε / 2) * ‖p‖ := by
+    filter_upwards [Metric.ball_mem_nhds (0 : ℝ × E) hρrpos] with p hp
+    rw [mem_ball_zero_iff] at hp
+    have hdist : ∀ u ∈ Set.uIcc s₀ (s₀ + p.1),
+        dist ((u, z₀ + p.2) : ℝ × E) (s₀, z₀) ≤ ‖p‖ := by
+      intro u hu
+      have hple : |p.1| ≤ ‖p‖ := by rw [← Real.norm_eq_abs]; exact norm_fst_le p
+      have hp1 : |u - s₀| ≤ ‖p‖ := by
+        rcases Set.mem_uIcc.mp hu with ⟨ha, hb⟩ | ⟨ha, hb⟩
+        · rw [abs_of_nonneg (by linarith : (0 : ℝ) ≤ u - s₀)]
+          rw [abs_of_nonneg (by linarith : (0 : ℝ) ≤ p.1)] at hple; linarith
+        · rw [abs_of_nonpos (by linarith : u - s₀ ≤ 0)]
+          rw [abs_of_nonpos (by linarith : p.1 ≤ 0)] at hple; linarith
+      have hp2 : ‖p.2‖ ≤ ‖p‖ := norm_snd_le p
+      rw [Prod.dist_eq]
+      refine max_le ?_ ?_
+      · rw [dist_eq_norm]; simpa [Real.norm_eq_abs] using hp1
+      · rw [dist_eq_norm, add_sub_cancel_left]; exact hp2
+    have hmemU : ∀ u ∈ Set.uIcc s₀ (s₀ + p.1), ((u, z₀ + p.2) : ℝ × E) ∈ U := by
+      intro u hu
+      apply hrU
+      rw [Metric.mem_ball]
+      exact lt_of_le_of_lt (hdist u hu)
+        (lt_of_lt_of_le hp (le_trans (min_le_right _ _) (by linarith)))
+    have hcont_u : ContinuousOn (fun u => Ds (u, z₀ + p.2)) (Set.uIcc s₀ (s₀ + p.1)) := by
+      refine hDs_cont.comp (continuous_id.prodMk continuous_const).continuousOn ?_
+      exact fun u hu => hmemU u hu
+    have hg_deriv : ∀ u ∈ Set.uIcc s₀ (s₀ + p.1),
+        HasDerivAt (fun s => f (s, z₀ + p.2)) (Ds (u, z₀ + p.2)) u :=
+      fun u hu => hDs (u, z₀ + p.2) (hmemU u hu)
+    have hftc : ∫ u in s₀..(s₀ + p.1), Ds (u, z₀ + p.2)
+        = f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) := by
+      rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun u hu => hg_deriv u hu)
+        (hcont_u.intervalIntegrable)]
+    have hbound_u : ∀ u ∈ Set.uIoc s₀ (s₀ + p.1), ‖Ds (u, z₀ + p.2) - Ds₀‖ ≤ ε / 2 := by
+      intro u hu
+      refine @hδ (u, z₀ + p.2) ?_
+      have hmem' := hdist u (Set.uIoc_subset_uIcc hu)
+      exact lt_of_le_of_lt hmem' (lt_of_lt_of_le hp (min_le_left _ _))
+    have hA_eq : f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀
+        = ∫ u in s₀..(s₀ + p.1), (Ds (u, z₀ + p.2) - Ds₀) := by
+      rw [intervalIntegral.integral_sub (hcont_u.intervalIntegrable)
+          (intervalIntegrable_const), hftc, intervalIntegral.integral_const,
+          add_sub_cancel_left]
+    rw [hA_eq]
+    calc ‖∫ u in s₀..(s₀ + p.1), (Ds (u, z₀ + p.2) - Ds₀)‖
+        ≤ (ε / 2) * |(s₀ + p.1) - s₀| :=
+          intervalIntegral.norm_integral_le_of_norm_le_const hbound_u
+      _ = (ε / 2) * ‖p.1‖ := by rw [add_sub_cancel_left, Real.norm_eq_abs]
+      _ ≤ (ε / 2) * ‖p‖ := mul_le_mul_of_nonneg_left (norm_fst_le p) (by positivity)
+  filter_upwards [hAs, hBz'] with p hAp hBp
+  have hdecomp :
+      f ((s₀, z₀) + p) - f (s₀, z₀)
+        - ((ContinuousLinearMap.fst ℝ ℝ E).smulRight Ds₀
+            + Dz₀.comp (ContinuousLinearMap.snd ℝ ℝ E)) p
+      = (f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
+        + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2) := by
+    rw [show ((s₀, z₀) + p : ℝ × E) = (s₀ + p.1, z₀ + p.2) from rfl]
+    simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smulRight_apply,
+      ContinuousLinearMap.coe_fst', ContinuousLinearMap.comp_apply,
+      ContinuousLinearMap.coe_snd']
+    abel
+  rw [hdecomp]
+  calc ‖(f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
+          + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2)‖
+      ≤ ‖f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀‖
+        + ‖f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2‖ := norm_add_le _ _
+    _ ≤ (ε / 2) * ‖p‖ + (ε / 2) * ‖p‖ :=
+        add_le_add hAp (le_trans hBp (mul_le_mul_of_nonneg_left (norm_snd_le p) (by positivity)))
+    _ = ε * ‖p‖ := by ring
+
 end Step3Joint
+
+/-- **Step 3 — the forward flow `(s,z) ↦ Φ_s z` is jointly continuous** on `Icc 0 T ×ˢ univ`
+(`(s,z)`-order).  Gronwall Lipschitz-in-`z` (uniform over `[0,T]`) + per-`z` continuity-in-`s`, via
+the generic `continuousOn_prod_of_lipschitz_continuousOn`, then a prod-order swap.  Extracted from
+`#3`'s V2-branch pattern so the joint `C¹`-ness (Step 3 (iii)) can reuse it directly. -/
+lemma charFlow_continuousOn_joint
+    (gradW : PhysSpace d → PhysSpace d) (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (hT : 0 ≤ T)
+    (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (hcontIcc : ∀ z, ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
+    (hderiv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s) :
+    ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := by
+  have hgron := charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT
+    hinit hcontIcc hderiv
+  have hjoint_zs : ContinuousOn (fun p : PhaseSpace d × ℝ => (charX p.2 p.1, charV p.2 p.1))
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+    refine continuousOn_prod_of_lipschitz_continuousOn (fun z s => (charX s z, charV s z)) T
+      (Real.exp (((max 1 L : NNReal) : ℝ) * T)) (fun s hs z₁ z₂ => ?_) hcontIcc
+    calc dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+        ≤ dist z₁ z₂ * Real.exp (((max 1 L : NNReal) : ℝ) * (s - 0)) := hgron s hs z₁ z₂
+      _ = Real.exp (((max 1 L : NNReal) : ℝ) * (s - 0)) * dist z₁ z₂ := by ring
+      _ ≤ Real.exp (((max 1 L : NNReal) : ℝ) * T) * dist z₁ z₂ := by
+          refine mul_le_mul_of_nonneg_right (Real.exp_le_exp.mpr ?_) dist_nonneg
+          have hsT : s - 0 ≤ T := by simp only [sub_zero]; exact hs.2
+          exact mul_le_mul_of_nonneg_left hsT (by positivity)
+  have hswap : ContinuousOn (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
+  have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    fun p hp => ⟨Set.mem_univ _, hp.1⟩
+  exact hjoint_zs.comp hswap hmaps
+
+/-- **Step 3 (ii) — the field along the flow `(s,z) ↦ b_s(Φ_s z)` is jointly continuous** on
+`Icc 0 T ×ˢ univ`.  First component `charV` from flow joint continuity; second component
+`-(∇W ∗ ρ_s)(charX s z)` from `(s,x) ↦ (∇W∗ρ_s)(x)` jointly continuous (equi-Lipschitz-in-`x` from
+`convolveFunctionMeasure_lipschitz_in_x` + continuous-in-`s` from `hf_cont`) composed with the flow.
+This is the partial-`s`-derivative continuity input to the joint `C¹`-ness (Step 3 (iii)). -/
+lemma vlasovField_along_flow_continuousOn
+    (gradW : PhysSpace d → PhysSpace d) (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hf_cont : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ s) x))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ)
+    (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ)) :
+    ContinuousOn (fun p : ℝ × PhaseSpace d =>
+        vlasovVectorField gradW ρ p.1 (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := by
+  have hcomp1 : ContinuousOn (fun p : ℝ × PhaseSpace d => charV p.1 p.2)
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := continuous_snd.comp_continuousOn hflowjoint
+  have hcharX : ContinuousOn (fun p : ℝ × PhaseSpace d => charX p.1 p.2)
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := continuous_fst.comp_continuousOn hflowjoint
+  have hconv_joint : ContinuousOn
+      (fun p : PhysSpace d × ℝ => convolveFunctionMeasure gradW (ρ p.2) p.1)
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    continuousOn_prod_of_lipschitz_continuousOn
+      (fun (x : PhysSpace d) (s : ℝ) => convolveFunctionMeasure gradW (ρ s) x) T (L:ℝ)
+      (fun s _ x₁ x₂ =>
+        (convolveFunctionMeasure_lipschitz_in_x gradW L hL (ρ s) (h_int s)).dist_le_mul x₁ x₂)
+      (fun x => (hf_cont x).continuousOn)
+  have hg2 : ContinuousOn (fun p : ℝ × PhaseSpace d => ((charX p.1 p.2, p.1) : PhysSpace d × ℝ))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := hcharX.prodMk continuousOn_fst
+  have hg2maps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((charX p.1 p.2, p.1) : PhysSpace d × ℝ))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    fun p hp => ⟨Set.mem_univ _, hp.1⟩
+  have hconv_along : ContinuousOn
+      (fun p : ℝ × PhaseSpace d => convolveFunctionMeasure gradW (ρ p.1) (charX p.1 p.2))
+      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := hconv_joint.comp hg2 hg2maps
+  have heq : (fun p : ℝ × PhaseSpace d =>
+        vlasovVectorField gradW ρ p.1 (charX p.1 p.2, charV p.1 p.2))
+      = fun p => ((charV p.1 p.2),
+          -(convolveFunctionMeasure gradW (ρ p.1) (charX p.1 p.2))) := by
+    funext p; rfl
+  rw [heq]
+  exact hcomp1.prodMk hconv_along.neg
 
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
