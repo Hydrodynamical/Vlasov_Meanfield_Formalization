@@ -1900,6 +1900,114 @@ theorem exists_charFlow_inverse_On
   refine ⟨Ψ, e, ?_, hLeft, hRight, hΨlip.continuous, hΨderiv⟩
   intro z; rw [he_coe z]; exact hderiv z
 
+section Step3Joint
+open Filter Topology Asymptotics
+
+/-- **Step 3 gating lemma (generic) — joint `C¹` from continuous partial derivatives** on a
+`ℝ × E` domain (Mathlib-absent).  A partial `s`-derivative `Ds p` at every point (`Ds` continuous)
+plus a partial `z`-derivative `Dz₀` at the base point ⇒ `f` is Fréchet-differentiable at `(s₀,z₀)`
+with total derivative `(h,k) ↦ h•Ds(s₀,z₀) + Dz₀ k`.  Proof: split the increment into an
+`s`-part (FTC `∫₀ʰ Ds(s₀+u,z₀+k)du ≈ h•Ds₀` by continuity of `Ds`) and a `z`-part (`= Dz₀ k + o(k)`).
+This is the keystone for the joint `(s,w)` regularity of the two-time flow `Φ_{s→t}`: the flow's
+partials are `M_s z` (jointly continuous, V2) in `z` and `b_s(Φ_s z)` in `s`.
+
+**PR-ABLE (Mathlib upstream candidate).**  This is a general real-analysis result with no Vlasov
+content — "a function on `ℝ × E` with a continuous partial derivative in the `ℝ` factor and a
+Fréchet partial derivative in the `E` factor is Fréchet-differentiable" — filling a genuine gap in
+`Mathlib/Analysis/Calculus`.  Generalisation worth doing before a PR: replace the `ℝ` factor by an
+arbitrary first factor with an analogous "integrate the partial along segments" hypothesis, and
+weaken `Continuous Ds` to `ContinuousAt Ds` at the base point (the proof only uses a neighbourhood
+of `(s₀,z₀)`). -/
+theorem hasFDerivAt_of_continuous_partials
+    {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    {f : ℝ × E → F} {Ds : ℝ × E → F} {Dz₀ : E →L[ℝ] F} (s₀ : ℝ) (z₀ : E)
+    (hDs : ∀ p : ℝ × E, HasDerivAt (fun s => f (s, p.2)) (Ds p) p.1)
+    (hDs_cont : Continuous Ds)
+    (hDz₀ : HasFDerivAt (fun z => f (s₀, z)) Dz₀ z₀) :
+    HasFDerivAt f
+      ((ContinuousLinearMap.fst ℝ ℝ E).smulRight (Ds (s₀, z₀))
+        + Dz₀.comp (ContinuousLinearMap.snd ℝ ℝ E)) (s₀, z₀) := by
+  set Ds₀ : F := Ds (s₀, z₀) with hDs₀
+  rw [hasFDerivAt_iff_isLittleO_nhds_zero, isLittleO_iff]
+  intro ε hε
+  have hBz : ∀ᶠ k in 𝓝 (0 : E),
+      ‖f (s₀, z₀ + k) - f (s₀, z₀) - Dz₀ k‖ ≤ (ε / 2) * ‖k‖ := by
+    have hz := hDz₀
+    rw [hasFDerivAt_iff_isLittleO_nhds_zero, isLittleO_iff] at hz
+    exact hz (half_pos hε)
+  have hBz' : ∀ᶠ p : ℝ × E in 𝓝 0,
+      ‖f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2‖ ≤ (ε / 2) * ‖p.2‖ :=
+    (continuous_snd.tendsto (0 : ℝ × E)).eventually hBz
+  have hball : ∀ᶠ q in 𝓝 ((s₀, z₀) : ℝ × E), ‖Ds q - Ds₀‖ ≤ ε / 2 := by
+    have hc : Tendsto Ds (𝓝 (s₀, z₀)) (𝓝 Ds₀) := hDs_cont.continuousAt
+    have hsub : Tendsto (fun q => Ds q - Ds₀) (𝓝 (s₀, z₀)) (𝓝 (Ds₀ - Ds₀)) :=
+      hc.sub tendsto_const_nhds
+    rw [sub_self] at hsub
+    have h0 : Tendsto (fun q => ‖Ds q - Ds₀‖) (𝓝 (s₀, z₀)) (𝓝 0) := by
+      simpa using hsub.norm
+    exact h0.eventually (Iic_mem_nhds (half_pos hε))
+  obtain ⟨δ, hδpos, hδ⟩ := Metric.eventually_nhds_iff.mp hball
+  have hAs : ∀ᶠ p : ℝ × E in 𝓝 0,
+      ‖f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀‖ ≤ (ε / 2) * ‖p‖ := by
+    filter_upwards [Metric.ball_mem_nhds (0 : ℝ × E) hδpos] with p hp
+    rw [mem_ball_zero_iff] at hp
+    have hcont_u : Continuous (fun u => Ds (u, z₀ + p.2)) :=
+      hDs_cont.comp (continuous_id.prodMk continuous_const)
+    have hg_deriv : ∀ u : ℝ, HasDerivAt (fun s => f (s, z₀ + p.2)) (Ds (u, z₀ + p.2)) u :=
+      fun u => hDs (u, z₀ + p.2)
+    have hftc : ∫ u in s₀..(s₀ + p.1), Ds (u, z₀ + p.2)
+        = f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) := by
+      rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun u _ => hg_deriv u)
+        (hcont_u.intervalIntegrable _ _)]
+    have hbound_u : ∀ u ∈ Set.uIoc s₀ (s₀ + p.1), ‖Ds (u, z₀ + p.2) - Ds₀‖ ≤ ε / 2 := by
+      intro u hu
+      refine @hδ (u, z₀ + p.2) ?_
+      have hple : |p.1| ≤ ‖p‖ := by rw [← Real.norm_eq_abs]; exact norm_fst_le p
+      have hp1 : |u - s₀| ≤ ‖p‖ := by
+        rcases Set.mem_uIcc.mp (Set.uIoc_subset_uIcc hu) with ⟨ha, hb⟩ | ⟨ha, hb⟩
+        · rw [abs_of_nonneg (by linarith : (0 : ℝ) ≤ u - s₀)]
+          rw [abs_of_nonneg (by linarith : (0 : ℝ) ≤ p.1)] at hple; linarith
+        · rw [abs_of_nonpos (by linarith : u - s₀ ≤ 0)]
+          rw [abs_of_nonpos (by linarith : p.1 ≤ 0)] at hple; linarith
+      have hp2 : ‖p.2‖ ≤ ‖p‖ := norm_snd_le p
+      rw [Prod.dist_eq]
+      simp only [dist_eq_norm, add_sub_cancel_left, Real.norm_eq_abs]
+      exact lt_of_le_of_lt (max_le hp1 hp2) hp
+    have hA_eq : f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀
+        = ∫ u in s₀..(s₀ + p.1), (Ds (u, z₀ + p.2) - Ds₀) := by
+      rw [intervalIntegral.integral_sub (hcont_u.intervalIntegrable _ _)
+          (intervalIntegrable_const), hftc, intervalIntegral.integral_const,
+          add_sub_cancel_left]
+    rw [hA_eq]
+    calc ‖∫ u in s₀..(s₀ + p.1), (Ds (u, z₀ + p.2) - Ds₀)‖
+        ≤ (ε / 2) * |(s₀ + p.1) - s₀| :=
+          intervalIntegral.norm_integral_le_of_norm_le_const hbound_u
+      _ = (ε / 2) * ‖p.1‖ := by rw [add_sub_cancel_left, Real.norm_eq_abs]
+      _ ≤ (ε / 2) * ‖p‖ := mul_le_mul_of_nonneg_left (norm_fst_le p) (by positivity)
+  filter_upwards [hAs, hBz'] with p hAp hBp
+  have hdecomp :
+      f ((s₀, z₀) + p) - f (s₀, z₀)
+        - ((ContinuousLinearMap.fst ℝ ℝ E).smulRight Ds₀
+            + Dz₀.comp (ContinuousLinearMap.snd ℝ ℝ E)) p
+      = (f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
+        + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2) := by
+    rw [show ((s₀, z₀) + p : ℝ × E) = (s₀ + p.1, z₀ + p.2) from rfl]
+    simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smulRight_apply,
+      ContinuousLinearMap.coe_fst', ContinuousLinearMap.comp_apply,
+      ContinuousLinearMap.coe_snd']
+    abel
+  rw [hdecomp]
+  calc ‖(f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
+          + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2)‖
+      ≤ ‖f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀‖
+        + ‖f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2‖ := norm_add_le _ _
+    _ ≤ (ε / 2) * ‖p‖ + (ε / 2) * ‖p‖ :=
+        add_le_add hAp (le_trans hBp (mul_le_mul_of_nonneg_left (norm_snd_le p) (by positivity)))
+    _ = ε * ‖p‖ := by ring
+
+end Step3Joint
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
