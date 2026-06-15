@@ -1740,6 +1740,98 @@ theorem charFlow_antilipschitzInZ_via_gronwall_Ioo
   exact le_of_tendsto_of_tendsto h_tendsto_lhs h_tendsto_rhs
     (eventually_nhdsWithin_of_forall h_perS0)
 
+section Step2Inverse
+open Filter Topology
+
+/-- **Step 2a (dual core, generic) — antilipschitz map ⇒ antilipschitz derivative.**
+If `f` is antilipschitz and Fréchet-differentiable at `x`, its derivative `f'` is antilipschitz
+(hence injective) with the same constant.  `f' u` is the limit of slopes `n•(f(x+n⁻¹•u)−f x)`, each
+of norm `≥ ‖u‖/C` by antilipschitz; pass to the limit.  (Mathlib lacks this producer.) -/
+theorem antilipschitzWith_fderiv_of_antilipschitz
+    {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F]
+    {f : E → F} {f' : E →L[ℝ] F} {x : E} {C : NNReal}
+    (hf : AntilipschitzWith C f) (hf' : HasFDerivAt f f' x) :
+    AntilipschitzWith C f' := by
+  refine AntilipschitzWith.of_le_mul_dist (fun v w => ?_)
+  rw [dist_eq_norm, dist_eq_norm, ← map_sub]
+  set u := v - w with hu
+  have hc : Tendsto (fun n : ℕ => ‖((n : ℝ))‖) atTop atTop := by
+    simpa [Real.norm_natCast] using tendsto_natCast_atTop_atTop (R := ℝ)
+  have hlim := hf'.lim u hc
+  have hbd : ∀ᶠ n : ℕ in atTop,
+      ‖u‖ ≤ (C : ℝ) * ‖(n : ℝ) • (f (x + ((n : ℝ))⁻¹ • u) - f x)‖ := by
+    filter_upwards [eventually_gt_atTop 0] with n hn
+    have hn0 : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn
+    have hd := hf.le_mul_dist (x + ((n : ℝ))⁻¹ • u) x
+    rw [dist_eq_norm, dist_eq_norm, add_sub_cancel_left, norm_smul, norm_inv,
+      Real.norm_natCast] at hd
+    rw [norm_smul, Real.norm_natCast]
+    calc ‖u‖ = (n : ℝ) * ((n : ℝ)⁻¹ * ‖u‖) := by
+              rw [← mul_assoc, mul_inv_cancel₀ (ne_of_gt hn0), one_mul]
+      _ ≤ (n : ℝ) * ((C : ℝ) * ‖f (x + ((n : ℝ))⁻¹ • u) - f x‖) :=
+              mul_le_mul_of_nonneg_left hd (le_of_lt hn0)
+      _ = (C : ℝ) * ((n : ℝ) * ‖f (x + ((n : ℝ))⁻¹ • u) - f x‖) := by ring
+  have hlim2 : Tendsto (fun n : ℕ => (C : ℝ) * ‖(n : ℝ) • (f (x + ((n : ℝ))⁻¹ • u) - f x)‖)
+      atTop (𝓝 ((C : ℝ) * ‖f' u‖)) := hlim.norm.const_mul (C : ℝ)
+  exact ge_of_tendsto hlim2 hbd
+
+/-- **Step 2 (dual core, generic) — global `C¹` inverse of an antilipschitz `C¹` self-map.**
+If `Φ : E → E` (finite-dim) is `C¹` (derivative `M z` at `z`), antilipschitz, and Lipschitz, then
+each `M z` is invertible, `Φ` is bijective, and the global inverse `Ψ` is Lipschitz with
+`HasFDerivAt Ψ (M (Ψ w))⁻¹ w`.  No Liouville/Hadamard: open range
+(`isOpenMap_of_hasStrictFDerivAt_equiv`) + closed range (`AntilipschitzWith.isClosed_range`) ⇒
+clopen ⇒ surjective; inverse derivative from `HasStrictFDerivAt.to_local_left_inverse`. -/
+theorem exists_global_c1_inverse_of_antilipschitz
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+    {Φ : E → E} {M : E → (E →L[ℝ] E)} {Ca Cl : NNReal}
+    (hderiv : ∀ z, HasFDerivAt Φ (M z) z)
+    (hM_cont : Continuous M)
+    (hanti : AntilipschitzWith Ca Φ)
+    (hlip : LipschitzWith Cl Φ) :
+    ∃ (Ψ : E → E) (e : ∀ z, E ≃L[ℝ] E),
+      (∀ z, ((e z : E →L[ℝ] E)) = M z) ∧
+      Function.LeftInverse Ψ Φ ∧ Function.RightInverse Ψ Φ ∧
+      LipschitzWith Ca Ψ ∧
+      (∀ w, HasFDerivAt Ψ ((e (Ψ w)).symm : E →L[ℝ] E) w) := by
+  classical
+  have hMz_anti : ∀ z, AntilipschitzWith Ca (M z) := fun z =>
+    antilipschitzWith_fderiv_of_antilipschitz hanti (hderiv z)
+  have hker : ∀ z, LinearMap.ker (M z : E →ₗ[ℝ] E) = ⊥ := fun z =>
+    LinearMap.ker_eq_bot.mpr (hMz_anti z).injective
+  have hsurj_lin : ∀ z, LinearMap.range (M z : E →ₗ[ℝ] E) = ⊤ := fun z =>
+    LinearMap.range_eq_top.mpr (LinearMap.injective_iff_surjective.mp (hMz_anti z).injective)
+  set e : ∀ z, E ≃L[ℝ] E := fun z =>
+    ContinuousLinearEquiv.ofBijective (M z) (hker z) (hsurj_lin z) with he_def
+  have he_coe : ∀ z, ((e z : E →L[ℝ] E)) = M z := fun _ => rfl
+  have hC1 : ContDiff ℝ 1 Φ := contDiff_one_iff_hasFDerivAt.mpr ⟨M, hM_cont, hderiv⟩
+  have hstrict : ∀ z, HasStrictFDerivAt Φ ((e z : E →L[ℝ] E)) z := fun z => by
+    rw [he_coe z]; exact hC1.contDiffAt.hasStrictFDerivAt' (hderiv z) (by norm_num)
+  have hopen : IsOpenMap Φ := isOpenMap_of_hasStrictFDerivAt_equiv hstrict
+  have hrange_open : IsOpen (Set.range Φ) := hopen.isOpen_range
+  have hrange_closed : IsClosed (Set.range Φ) := hanti.isClosed_range hlip.uniformContinuous
+  have hrange_univ : Set.range Φ = Set.univ :=
+    IsClopen.eq_univ ⟨hrange_closed, hrange_open⟩ ⟨Φ 0, Set.mem_range_self 0⟩
+  have hsurj : Function.Surjective Φ := Set.range_eq_univ.mp hrange_univ
+  have hinj : Function.Injective Φ := hanti.injective
+  set Ψ : E → E := Function.invFun Φ with hΨ_def
+  have hLeft : Function.LeftInverse Ψ Φ := Function.leftInverse_invFun hinj
+  have hRight : Function.RightInverse Ψ Φ := Function.rightInverse_invFun hsurj
+  have hΨ_lip : LipschitzWith Ca Ψ := by
+    refine LipschitzWith.of_dist_le_mul (fun w₁ w₂ => ?_)
+    have h := hanti.le_mul_dist (Ψ w₁) (Ψ w₂)
+    rwa [hRight w₁, hRight w₂] at h
+  have hΨ_deriv : ∀ w, HasFDerivAt Ψ ((e (Ψ w)).symm : E →L[ℝ] E) w := by
+    intro w
+    have hz : Φ (Ψ w) = w := hRight w
+    have hev : ∀ᶠ x in 𝓝 (Ψ w), Ψ (Φ x) = x := Filter.Eventually.of_forall hLeft
+    have hsymm := (hstrict (Ψ w)).to_local_left_inverse hev
+    rw [hz] at hsymm
+    exact hsymm.hasFDerivAt
+  exact ⟨Ψ, e, he_coe, hLeft, hRight, hΨ_lip, hΨ_deriv⟩
+
+end Step2Inverse
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
