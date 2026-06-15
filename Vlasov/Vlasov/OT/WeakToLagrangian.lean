@@ -1283,6 +1283,68 @@ lemma fundamentalMatrix_continuous_param
   exact picardSum_continuous_param_Icc (fun z s => ContinuousLinearMap.compL ℝ F F F (A z s))
     (ContinuousLinearMap.id ℝ F) T hT K hK h𝒜_contOn h𝒜_bound t ht
 
+section CharFlowDeriv
+open Filter Topology
+
+/-- Generic Grönwall difference-quotient bound (open-interval ODE + `s₀→0⁺` limit).  Two curves
+`uh, mh` that approximately solve the same linear ODE `ẇ = vlin·w` on `Ioo 0 T` from the same datum
+(`uh 0 = mh 0`), with `mh` exact and `uh`'s defect uniformly `≤ εf`, satisfy
+`dist (uh t) (mh t) ≤ gronwallBound 0 K εf t`.  `vlin` is abstract (kept opaque to avoid unfolding
+the heavy `vlasovFieldJacobian` integral in the Grönwall application). -/
+lemma gronwall_diffQuotient_bound
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (vlin : ℝ → (E →L[ℝ] E)) (K : NNReal) (hvlin_lip : ∀ s, LipschitzWith K (vlin s))
+    (uh mh Fuh : ℝ → E) (εf : ℝ) (T t : ℝ) (ht : t ∈ Set.Ioo (0:ℝ) T)
+    (huh_cont : ContinuousOn uh (Set.Icc 0 T)) (hmh_cont : ContinuousOn mh (Set.Icc 0 T))
+    (huh_deriv : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt uh (Fuh s) s)
+    (hmh_deriv : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s)
+    (hdefect : ∀ s ∈ Set.Ioo (0:ℝ) T, dist (Fuh s) (vlin s (uh s)) ≤ εf)
+    (h0 : uh 0 = mh 0) :
+    dist (uh t) (mh t) ≤ gronwallBound 0 (K:ℝ) εf t := by
+  have hbound_s0 : ∀ s₀ ∈ Set.Ioo (0:ℝ) t,
+      dist (uh t) (mh t) ≤ gronwallBound (dist (uh s₀) (mh s₀)) (K:ℝ) εf (t - s₀) := by
+    intro s₀ hs₀
+    have hIco_sub : Set.Ico s₀ t ⊆ Set.Ioo 0 T := fun s hs =>
+      ⟨lt_of_lt_of_le hs₀.1 hs.1, hs.2.trans ht.2⟩
+    have hIcc_sub : Set.Icc s₀ t ⊆ Set.Icc 0 T := fun s hs =>
+      ⟨le_trans hs₀.1.le hs.1, le_trans hs.2 ht.2.le⟩
+    have key := dist_le_of_approx_trajectories_ODE (K := K)
+      (εf := εf) (εg := 0) (δ := dist (uh s₀) (mh s₀))
+      hvlin_lip (huh_cont.mono hIcc_sub)
+      (fun s hs => (huh_deriv s (hIco_sub hs)).hasDerivWithinAt)
+      (fun s hs => hdefect s (hIco_sub hs))
+      (hmh_cont.mono hIcc_sub)
+      (fun s hs => (hmh_deriv s (hIco_sub hs)).hasDerivWithinAt)
+      (fun s _ => le_of_eq (dist_self _)) (le_refl _)
+    have hkey := key t ⟨hs₀.2.le, le_refl t⟩
+    simpa only [add_zero] using hkey
+  haveI : (𝓝[Set.Ioo 0 t] (0:ℝ)).NeBot := left_nhdsWithin_Ioo_neBot ht.1
+  have hT0 : (0:ℝ) ≤ T := le_trans ht.1.le ht.2.le
+  have hsub_Icc : Set.Ioo (0:ℝ) t ⊆ Set.Icc 0 T := fun s hs => ⟨hs.1.le, le_trans hs.2.le ht.2.le⟩
+  have htend_uh : Tendsto uh (𝓝[Set.Ioo 0 t] 0) (𝓝 (uh 0)) :=
+    (huh_cont 0 ⟨le_refl 0, hT0⟩).tendsto.mono_left (nhdsWithin_mono 0 hsub_Icc)
+  have htend_mh : Tendsto mh (𝓝[Set.Ioo 0 t] 0) (𝓝 (mh 0)) :=
+    (hmh_cont 0 ⟨le_refl 0, hT0⟩).tendsto.mono_left (nhdsWithin_mono 0 hsub_Icc)
+  have htend_δ : Tendsto (fun s₀ => dist (uh s₀) (mh s₀)) (𝓝[Set.Ioo 0 t] 0) (𝓝 0) := by
+    have := htend_uh.dist htend_mh
+    rwa [h0, dist_self] at this
+  have htend_x : Tendsto (fun s₀ : ℝ => t - s₀) (𝓝[Set.Ioo 0 t] 0) (𝓝 t) := by
+    have h0' : Tendsto (fun s₀ : ℝ => t - s₀) (𝓝 0) (𝓝 (t - 0)) :=
+      (continuous_const.sub continuous_id).tendsto 0
+    rw [sub_zero] at h0'; exact h0'.mono_left nhdsWithin_le_nhds
+  have hgb_cont : Continuous (fun p : ℝ × ℝ => gronwallBound p.1 (K:ℝ) εf p.2) := by
+    by_cases hK : (K:ℝ) = 0
+    · simp only [hK, gronwallBound_K0]; fun_prop
+    · have heq : (fun p : ℝ × ℝ => gronwallBound p.1 (K:ℝ) εf p.2)
+          = fun p => p.1 * Real.exp ((K:ℝ) * p.2) + εf / (K:ℝ) * (Real.exp ((K:ℝ) * p.2) - 1) := by
+        funext p; rw [gronwallBound_of_K_ne_0 hK]
+      rw [heq]; fun_prop
+  have htend_gb : Tendsto (fun s₀ => gronwallBound (dist (uh s₀) (mh s₀)) (K:ℝ) εf (t - s₀))
+      (𝓝[Set.Ioo 0 t] 0) (𝓝 (gronwallBound 0 (K:ℝ) εf t)) :=
+    (hgb_cont.tendsto (0, t)).comp (htend_δ.prodMk_nhds htend_x)
+  exact ge_of_tendsto htend_gb (eventually_nhdsWithin_of_forall (fun s₀ hs₀ => hbound_s0 s₀ hs₀))
+
+set_option maxHeartbeats 800000 in
 /-- **C3 D1 — the difference-quotient heart of the variational equation.**
 
 Given the fundamental matrix `Mz` of the linear variational ODE `Ṁ = A(s, Φ_s z)·M`, `M 0 = id`
@@ -1308,7 +1370,8 @@ The frozen field's two-sided ODE holds only on `Ioo 0 T`, so apply
 `dist_le_of_approx_trajectories_ODE` on `[s₀, t]` (`s₀ ∈ Ioo 0 t`) and take `s₀ → 0⁺` (the initial
 defect `dist(u_h s₀, m_h s₀) → 0` by continuity), giving `‖u_h t − m_h t‖ ≤ gronwallBound 0 K εf t =
 εf·(exp(K t)−1)/K`.  Since `η` is arbitrary this is `o(‖h‖)`.  `K := max 1 L` is the uniform field
-Lipschitz constant; `‖A(s,·)‖ ≤ K` via `norm_fderiv_le_of_lipschitz`. -/
+Lipschitz constant; `‖A(s,·)‖ ≤ K` via `norm_fderiv_le_of_lipschitz`.  (`hcontIcc` is universal in
+the initial point because the `s₀→0⁺` limit needs continuity of `Φ_·(z+h)`, M2.) -/
 theorem charFlow_hasFDerivAt_of_fundamentalMatrix
     (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -1321,7 +1384,8 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (z : PhaseSpace d)
-    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (hcontIcc : ∀ z' : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z', charV s z')) (Set.Icc (0 : ℝ) T))
     (Mz : ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d))
     (hMz0 : Mz 0 = ContinuousLinearMap.id ℝ (PhaseSpace d))
     (hMzcont : ContinuousOn Mz (Set.Icc 0 T))
@@ -1330,7 +1394,126 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
         ((vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z))).comp (Mz s))
         (Set.Icc 0 T) s) :
     ∀ t ∈ Set.Ioo (0 : ℝ) T, HasFDerivAt (fun w => (charX t w, charV t w)) (Mz t) z := by
-  sorry
+  intro t ht
+  set Kr : ℝ := ((max 1 L : NNReal) : ℝ) with hKr
+  have hKr1 : (1:ℝ) ≤ Kr := by rw [hKr]; exact_mod_cast le_max_left 1 L
+  have hKrpos : (0:ℝ) < Kr := lt_of_lt_of_le one_pos hKr1
+  set Φ : ℝ → PhaseSpace d := fun s => (charX s z, charV s z) with hΦ
+  have hF2 : ∀ s (w : PhaseSpace d),
+      HasFDerivAt (vlasovVectorField gradW ρ s) (vlasovFieldJacobian gradW ρ (s, w)) w :=
+    fun s w => vlasovVectorField_hasFDerivAt_in_z gradW hgradW_C1 L hL ρ h_int s w
+  have hVF_lip : ∀ s, LipschitzWith (max 1 L) (vlasovVectorField gradW ρ s) := fun s =>
+    vlasovVectorField_lipschitzWith gradW L hL ρ h_int s
+  set vlin : ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d) := fun s => vlasovFieldJacobian gradW ρ (s, Φ s)
+    with hvlin
+  have hvlin_norm : ∀ s, ‖vlin s‖ ≤ Kr := by
+    intro s
+    show ‖vlasovFieldJacobian gradW ρ (s, Φ s)‖ ≤ Kr
+    rw [← (hF2 s (Φ s)).fderiv]
+    exact norm_fderiv_le_of_lipschitz ℝ (hVF_lip s)
+  have hvlin_lip : ∀ s, LipschitzWith (max 1 L) (vlin s) := by
+    intro s
+    refine LipschitzWith.of_dist_le_mul (fun x y => ?_)
+    rw [dist_eq_norm, dist_eq_norm, ← map_sub]
+    calc ‖vlin s (x - y)‖ ≤ ‖vlin s‖ * ‖x - y‖ := (vlin s).le_opNorm _
+      _ ≤ Kr * ‖x - y‖ := by gcongr; exact hvlin_norm s
+  clear_value vlin
+  have h_init : ∀ z' : PhaseSpace d, (charX 0 z', charV 0 z') = z' := fun z' =>
+    Prod.ext_iff.mpr ⟨(hflow.1 z' (Set.mem_univ z')).1, (hflow.1 z' (Set.mem_univ z')).2⟩
+  have h_derivAt : ∀ z', ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivAt (fun s => (charX s z', charV s z'))
+        (vlasovVectorField gradW ρ s (charX s z', charV s z')) s := fun z' s hs =>
+    HasDerivAt.prodMk (hflow.2.1 s hs z' (Set.mem_univ z')) (hflow.2.2 s hs z' (Set.mem_univ z'))
+  have hgron := charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT.le
+    h_init hcontIcc (fun z' s hs => (h_derivAt z' s hs).hasDerivWithinAt)
+  rw [hasFDerivAt_iff_isLittleO_nhds_zero, Asymptotics.isLittleO_iff]
+  intro c hc
+  set Cexp : ℝ := Real.exp (Kr * T) with hCexp
+  have hCexp_pos : 0 < Cexp := Real.exp_pos _
+  set Cgron : ℝ := (Real.exp (Kr * t) - 1) / Kr with hCgron
+  have hCgron_nonneg : 0 ≤ Cgron := by
+    rw [hCgron]; apply div_nonneg _ hKrpos.le
+    simp only [sub_nonneg]; exact Real.one_le_exp (mul_nonneg hKrpos.le ht.1.le)
+  set G : ℝ := Cexp * Cgron with hG
+  have hG_nonneg : 0 ≤ G := mul_nonneg hCexp_pos.le hCgron_nonneg
+  set η : ℝ := c / (G + 1) with hη
+  have hη_pos : 0 < η := by rw [hη]; positivity
+  obtain ⟨δη, hδη_pos, hδη⟩ := vlasovField_taylorRemainder_uniform gradW hgradW_C1 L hL ρ h_int
+    charX charV T z (hcontIcc z) hρD_cont η hη_pos
+  refine Metric.eventually_nhds_iff.mpr
+    ⟨δη / (Cexp + 1), div_pos hδη_pos (by linarith [hCexp_pos]), ?_⟩
+  intro h hh
+  rw [dist_zero_right] at hh
+  have hCexph : Cexp * ‖h‖ ≤ δη := by
+    have hle : ‖h‖ * (Cexp + 1) ≤ δη := by rw [← le_div_iff₀ (by linarith [hCexp_pos])]; exact hh.le
+    nlinarith [norm_nonneg h, hCexp_pos, hle]
+  set uh : ℝ → PhaseSpace d := fun s => (charX s (z + h), charV s (z + h)) - (charX s z, charV s z)
+    with huh
+  set mh : ℝ → PhaseSpace d := fun s => (Mz s) h with hmh
+  set εf : ℝ := η * Cexp * ‖h‖ with hεf
+  have huh_cont : ContinuousOn uh (Set.Icc 0 T) := (hcontIcc (z + h)).sub (hcontIcc z)
+  have hmh_cont : ContinuousOn mh (Set.Icc 0 T) := hMzcont.clm_apply continuousOn_const
+  have huh_bound : ∀ s ∈ Set.Icc (0:ℝ) T, ‖uh s‖ ≤ Cexp * ‖h‖ := by
+    intro s hs
+    show ‖(charX s (z + h), charV s (z + h)) - (charX s z, charV s z)‖ ≤ Cexp * ‖h‖
+    rw [← dist_eq_norm]
+    calc dist ((charX s (z + h), charV s (z + h)) : PhaseSpace d) (charX s z, charV s z)
+        ≤ dist (z + h) z * Real.exp (Kr * (s - 0)) := hgron s hs (z + h) z
+      _ = ‖h‖ * Real.exp (Kr * s) := by rw [dist_eq_norm, add_sub_cancel_left, sub_zero]
+      _ ≤ ‖h‖ * Cexp := by
+          refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg h)
+          rw [hCexp]; exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hs.2 hKrpos.le)
+      _ = Cexp * ‖h‖ := mul_comm _ _
+  have huh_derivAt : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt uh
+      (vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
+        - vlasovVectorField gradW ρ s (charX s z, charV s z)) s := fun s hs =>
+    (h_derivAt (z + h) s hs).sub (h_derivAt z s hs)
+  have hmh_derivAt : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s := by
+    intro s hs
+    have hMz_at : HasDerivAt Mz ((vlin s).comp (Mz s)) s := by
+      simp only [hvlin]
+      exact (hMzderiv s (Set.Ioo_subset_Icc_self hs)).hasDerivAt (Icc_mem_nhds hs.1 hs.2)
+    have hck := hMz_at.clm_apply (hasDerivAt_const s h)
+    simpa only [ContinuousLinearMap.comp_apply, map_zero, add_zero] using hck
+  have hdefect : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      dist (vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
+        - vlasovVectorField gradW ρ s (charX s z, charV s z)) (vlin s (uh s)) ≤ εf := by
+    intro s hs
+    have hsIcc : s ∈ Set.Icc (0:ℝ) T := Set.Ioo_subset_Icc_self hs
+    have huhs_le : ‖uh s‖ ≤ δη := le_trans (huh_bound s hsIcc) hCexph
+    have hR := hδη s hsIcc (charX s (z + h), charV s (z + h)) huhs_le
+    rw [dist_eq_norm]; simp only [hvlin]
+    calc ‖vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
+            - vlasovVectorField gradW ρ s (charX s z, charV s z)
+            - vlasovFieldJacobian gradW ρ (s, Φ s) (uh s)‖
+        ≤ η * ‖uh s‖ := hR
+      _ ≤ η * (Cexp * ‖h‖) := mul_le_mul_of_nonneg_left (huh_bound s hsIcc) hη_pos.le
+      _ = εf := by rw [hεf]; ring
+  have huh0 : uh 0 = h := by
+    show (charX 0 (z + h), charV 0 (z + h)) - (charX 0 z, charV 0 z) = h
+    rw [h_init (z + h), h_init z, add_sub_cancel_left]
+  have hmh0 : mh 0 = h := by show (Mz 0) h = h; rw [hMz0]; rfl
+  have hlim : dist (uh t) (mh t) ≤ gronwallBound 0 Kr εf t := by
+    have := gronwall_diffQuotient_bound vlin (max 1 L) hvlin_lip uh mh
+      (fun s => vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
+        - vlasovVectorField gradW ρ s (charX s z, charV s z)) εf T t ht
+      huh_cont hmh_cont huh_derivAt hmh_derivAt hdefect (huh0.trans hmh0.symm)
+    rwa [← hKr] at this
+  have hgb_val : gronwallBound 0 Kr εf t = εf * Cgron := by
+    rw [gronwallBound_of_K_ne_0 hKrpos.ne']; simp only [zero_mul, zero_add]; rw [hCgron]; ring
+  have hηG : η * G ≤ c := by
+    rw [hη]; rw [div_mul_eq_mul_div, div_le_iff₀ (by linarith [hG_nonneg] : (0:ℝ) < G + 1)]
+    nlinarith [hG_nonneg, hc.le]
+  show ‖(charX t (z + h), charV t (z + h)) - (charX t z, charV t z) - (Mz t) h‖ ≤ c * ‖h‖
+  rw [show (charX t (z + h), charV t (z + h)) - (charX t z, charV t z) - (Mz t) h
+      = uh t - mh t from rfl, ← dist_eq_norm]
+  calc dist (uh t) (mh t)
+      ≤ gronwallBound 0 Kr εf t := hlim
+    _ = εf * Cgron := hgb_val
+    _ = η * G * ‖h‖ := by rw [hεf, hG]; ring
+    _ ≤ c * ‖h‖ := mul_le_mul_of_nonneg_right hηG (norm_nonneg h)
+
+end CharFlowDeriv
 
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
@@ -1401,7 +1584,7 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     intro t ht z
     obtain ⟨h0, hcont, hderiv⟩ := fundamentalMatrix_spec (A z) T hT.le (hAcont z)
     exact charFlow_hasFDerivAt_of_fundamentalMatrix gradW hgradW_C1 L hL ρ charX charV T hT hflow
-      h_int hρD_cont z (hcontIcc z) (fundamentalMatrix (A z)) h0 hcont hderiv t ht
+      h_int hρD_cont z hcontIcc (fundamentalMatrix (A z)) h0 hcont hderiv t ht
   · -- **V2** — `fundamentalMatrix_continuous_param`: flow joint continuity ⇒ `A` jointly continuous
     -- ⇒ `z ↦ M z t` continuous.
     intro t ht
