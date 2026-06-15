@@ -1135,6 +1135,154 @@ lemma vlasovField_taylorRemainder_uniform
     rw [map_sub]; abel
   simpa only [hReq] using hmv
 
+/-- **C3 (shared) — joint continuity of the Jacobian** on `Icc 0 T ×ˢ univ` (used by V2's
+`hA_contOn`).  The block CLM `vlasovFieldJacobian` is reassembled `inl∘snd + inr∘(·)` and its
+varying part is continuous via `hρD_cont`. -/
+lemma vlasovFieldJacobian_continuousOn
+    (gradW : PhysSpace d → PhysSpace d) (ρ : ℝ → Measure (PhysSpace d)) (T : ℝ)
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
+    ContinuousOn (fun p : ℝ × PhaseSpace d => vlasovFieldJacobian gradW ρ p)
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) := by
+  have hg_cont : Continuous (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d)) :=
+    continuous_fst.prodMk (continuous_fst.comp continuous_snd)
+  have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
+    fun p hp => ⟨hp.1, Set.mem_univ _⟩
+  have hD2 : ContinuousOn
+      (fun p : ℝ × PhaseSpace d => ∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ Set.univ) :=
+    hρD_cont.comp hg_cont.continuousOn hmaps
+  have hDcomp : ContinuousOn
+      (fun p : ℝ × PhaseSpace d => -((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
+        (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))) (Set.Icc 0 T ×ˢ Set.univ) :=
+    (hD2.clm_comp continuousOn_const).neg
+  have heq : (fun p : ℝ × PhaseSpace d => vlasovFieldJacobian gradW ρ p) = fun p =>
+        (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)).comp
+          (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d))
+        + (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)).comp
+          (-((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
+              (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))) := by
+    funext p; ext x <;> simp [vlasovFieldJacobian]
+  rw [heq]; exact continuousOn_const.add (continuousOn_const.clm_comp hDcomp)
+
+/-- **C3 (shared) — Lipschitz-in-parameter + ContinuousOn-in-time ⇒ jointly ContinuousOn.**
+A generic upgrade: if `G z ·` is `ContinuousOn (Icc 0 T)` for each `z` and `z ↦ G z s` is
+`C`-Lipschitz uniformly over `s ∈ [0,T]`, then `(z,s) ↦ G z s` is jointly continuous on
+`univ ×ˢ Icc 0 T`.  Used to derive flow joint continuity `(z,s) ↦ Φ_s z` from
+`charFlow_lipschitzInZ_via_gronwall_Ioo` (Lipschitz-in-`z`) + per-`z` continuity in `s`. -/
+lemma continuousOn_prod_of_lipschitz_continuousOn
+    {Z E : Type*} [PseudoMetricSpace Z] [PseudoMetricSpace E]
+    (G : Z → ℝ → E) (T C : ℝ)
+    (hlip : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ z₁ z₂, dist (G z₁ s) (G z₂ s) ≤ C * dist z₁ z₂)
+    (hcont : ∀ z, ContinuousOn (fun s => G z s) (Set.Icc (0:ℝ) T)) :
+    ContinuousOn (fun p : Z × ℝ => G p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+  rw [Metric.continuousOn_iff]
+  rintro ⟨z₀, s₀⟩ ⟨_, hs₀⟩ ε hε
+  obtain ⟨δ₁, hδ₁, hcs⟩ :=
+    (Metric.continuousWithinAt_iff).mp (hcont z₀ s₀ hs₀) (ε/2) (by positivity)
+  have hC1 : (0:ℝ) < |C| + 1 := by positivity
+  refine ⟨min δ₁ (ε / (2 * (|C| + 1))), by positivity, ?_⟩
+  rintro ⟨z, s⟩ ⟨_, hs⟩ hd
+  rw [Prod.dist_eq, max_lt_iff] at hd
+  obtain ⟨hdz, hds⟩ := hd
+  have hterm1 : dist (G z s) (G z₀ s) < ε/2 := by
+    calc dist (G z s) (G z₀ s)
+        ≤ C * dist z z₀ := hlip s hs z z₀
+      _ ≤ (|C| + 1) * dist z z₀ :=
+          mul_le_mul_of_nonneg_right (by linarith [le_abs_self C]) dist_nonneg
+      _ < (|C| + 1) * (ε / (2 * (|C| + 1))) :=
+          mul_lt_mul_of_pos_left (lt_of_lt_of_le hdz (min_le_right _ _)) hC1
+      _ = ε/2 := by field_simp
+  have hterm2 : dist (G z₀ s) (G z₀ s₀) < ε/2 :=
+    hcs hs (lt_of_lt_of_le hds (min_le_left _ _))
+  calc dist (G z s) (G z₀ s₀)
+      ≤ dist (G z s) (G z₀ s) + dist (G z₀ s) (G z₀ s₀) := dist_triangle _ _ _
+    _ < ε/2 + ε/2 := add_lt_add hterm1 hterm2
+    _ = ε := by ring
+
+/-- **C3 V2 — the explicit fundamental matrix** (Route A, lesson L14): the canonical Dyson-series
+solution of `Ṁ = A(t)·M`, `M 0 = id`, as a *function* (not a `choose`-d witness), so its
+parameter-regularity is accessible. -/
+noncomputable def fundamentalMatrix {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    [CompleteSpace F] (A : ℝ → (F →L[ℝ] F)) : ℝ → (F →L[ℝ] F) :=
+  fun t => ∑' n, picardIter (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
+    (ContinuousLinearMap.id ℝ F) n t
+
+/-- `fundamentalMatrix A` solves the fundamental-matrix IVP on `[0,T]` (the non-existential form of
+`exists_fundamentalMatrix`; same proof through the picardSum lemmas). -/
+lemma fundamentalMatrix_spec {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    (A : ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (hA : ContinuousOn A (Set.Icc 0 T)) :
+    fundamentalMatrix A 0 = ContinuousLinearMap.id ℝ F ∧
+      ContinuousOn (fundamentalMatrix A) (Set.Icc 0 T) ∧
+      ∀ t ∈ Set.Icc 0 T, HasDerivWithinAt (fundamentalMatrix A)
+        ((A t).comp (fundamentalMatrix A t)) (Set.Icc 0 T) t := by
+  have h𝒜cont : ContinuousOn (fun s => ContinuousLinearMap.compL ℝ F F F (A s)) (Set.Icc 0 T) :=
+    (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA
+  obtain ⟨KA, hKA⟩ :=
+    (isCompact_Icc (a := (0:ℝ)) (b := T)).exists_bound_of_continuousOn hA
+  have hK'0 : (0:ℝ) ≤ max KA 0 := le_max_right _ _
+  have hbound : ∀ t ∈ Set.Icc (0:ℝ) T, ‖ContinuousLinearMap.compL ℝ F F F (A t)‖ ≤ max KA 0 := by
+    intro t ht
+    have h1 : ‖ContinuousLinearMap.compL ℝ F F F (A t)‖ ≤ ‖A t‖ := by
+      refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) (fun g => ?_)
+      rw [ContinuousLinearMap.compL_apply]; exact (A t).opNorm_comp_le g
+    exact le_trans (le_trans h1 (hKA t ht)) (le_max_left KA 0)
+  have hMcont : ContinuousOn (fundamentalMatrix A) (Set.Icc 0 T) :=
+    picardSum_continuousOn (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
+      (ContinuousLinearMap.id ℝ F) T hT (max KA 0) hK'0 h𝒜cont hbound
+  have hMeq : ∀ t ∈ Set.Icc (0:ℝ) T, fundamentalMatrix A t = ContinuousLinearMap.id ℝ F
+      + ∫ s in (0:ℝ)..t, ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s) :=
+    fun t ht => picardSum_solves_integralEq (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
+      (ContinuousLinearMap.id ℝ F) T hT (max KA 0) hK'0 h𝒜cont hbound t ht
+  have hg_cont : ContinuousOn
+      (fun s => ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s)) (Set.Icc 0 T) :=
+    h𝒜cont.clm_apply hMcont
+  refine ⟨?_, hMcont, fun t ht => ?_⟩
+  · rw [hMeq 0 ⟨le_refl 0, hT⟩, intervalIntegral.integral_same, add_zero]
+  · haveI : Fact (t ∈ Set.Icc (0:ℝ) T) := ⟨ht⟩
+    have hg_int : IntervalIntegrable
+        (fun s => ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s)) volume 0 t := by
+      apply ContinuousOn.intervalIntegrable
+      rw [Set.uIcc_of_le ht.1]; exact hg_cont.mono (Set.Icc_subset_Icc_right ht.2)
+    have hg_meas : StronglyMeasurableAtFilter
+        (fun s => ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s))
+        (nhdsWithin t (Set.Icc 0 T)) :=
+      ⟨Set.Icc 0 T, self_mem_nhdsWithin, hg_cont.aestronglyMeasurable measurableSet_Icc⟩
+    have hFTC : HasDerivWithinAt
+        (fun u => ∫ s in (0:ℝ)..u, ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s))
+        (ContinuousLinearMap.compL ℝ F F F (A t) (fundamentalMatrix A t)) (Set.Icc 0 T) t :=
+      intervalIntegral.integral_hasDerivWithinAt_right hg_int hg_meas (hg_cont t ht)
+    have hHD := (hFTC.const_add (ContinuousLinearMap.id ℝ F)).congr
+      (fun y hy => hMeq y hy) (hMeq t ht)
+    rwa [ContinuousLinearMap.compL_apply] at hHD
+
+/-- **C3 V2 — the fundamental matrix is continuous in a PARAMETER** (closes V2 via Route A).
+Specialises `picardSum_continuous_param_Icc` to `𝒜 := compL∘A`, `x₀ := id`; the `compL` factor is
+`1`-bounded so the `K`-bound transfers from `A`. -/
+lemma fundamentalMatrix_continuous_param
+    {Z F : Type*} [TopologicalSpace Z] [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    (A : Z → ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
+    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ K)
+    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    Continuous (fun z => fundamentalMatrix (A z) t) := by
+  have h𝒜_contOn : ContinuousOn
+      (fun p : Z × ℝ => ContinuousLinearMap.compL ℝ F F F (A p.1 p.2))
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA_contOn
+  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T,
+      ‖ContinuousLinearMap.compL ℝ F F F (A z s)‖ ≤ K := by
+    intro z s hs
+    refine le_trans ?_ (hA_bound z s hs)
+    refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) (fun g => ?_)
+    rw [ContinuousLinearMap.compL_apply]
+    exact (A z s).opNorm_comp_le g
+  exact picardSum_continuous_param_Icc (fun z s => ContinuousLinearMap.compL ℝ F F F (A z s))
+    (ContinuousLinearMap.id ℝ F) T hT K hK h𝒜_contOn h𝒜_bound t ht
+
 /-- **C3 D1 — the difference-quotient heart of the variational equation.**
 
 Given the fundamental matrix `Mz` of the linear variational ODE `Ṁ = A(s, Φ_s z)·M`, `M 0 = id`
@@ -1239,34 +1387,66 @@ theorem charFlow_hasFDerivAt_in_initialPoint
       (∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z : PhaseSpace d,
         HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
       (∀ t ∈ Set.Ioo (0 : ℝ) T, Continuous (Dflow t)) := by
-  -- **Reduction (banked).**  The fundamental matrix `M z` of the variational ODE `Ṁ = A(s,z)·M`,
-  -- `M 0 = id`, exists (`exists_fundamentalMatrix`) because `A(·,z)` is continuous on `[0,T]`
-  -- (`vlasovVariationalCoeff_continuousOn`, needing `hcontIcc` + `hρD_cont`); set
-  -- `Dflow t z := M z t`.  This reduces #3 to two INDEPENDENT hard cores, D1 and V2.
-  -- (`hcontIcc` is the closed-interval flow continuity — supplied by `exists_frozenField_charFlow_On`
-  -- at the #8 call site — that the `Ioo`-only `hflow` lacks.)
-  have hAcont : ∀ z : PhaseSpace d, ContinuousOn
-      (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
-        (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
-            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) (Set.Icc 0 T) :=
-    fun z => vlasovVariationalCoeff_continuousOn gradW ρ charX charV T z (hcontIcc z) hρD_cont
-  choose M hM0 hMcont hMderiv using
-    fun z : PhaseSpace d => exists_fundamentalMatrix
-      (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
-        (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
-            (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) T hT.le (hAcont z)
-  refine ⟨fun t z => M z t, ?_, ?_⟩
-  · -- **D1 — the difference-quotient heart** (`charFlow_hasFDerivAt_of_fundamentalMatrix`): the
-    -- flow is `HasFDerivAt` at each `z` with derivative the fundamental matrix `M z t`.  Threads the
-    -- matrix `M z` and its ODE/continuity data explicitly into the standalone Grönwall lemma.
+  -- **Reduction (Route A — explicit fundamental matrix, lesson L14).**  `M z := fundamentalMatrix
+  -- (A z)` with `A z s := vlasovFieldJacobian gradW ρ (s, Φ_s z)`; its ODE/continuity data come from
+  -- `fundamentalMatrix_spec` (feeds D1), and `z ↦ M z t` continuity (V2) from
+  -- `fundamentalMatrix_continuous_param` — the parameter-regularity an existential `choose` could not
+  -- supply.  `Dflow t z := fundamentalMatrix (A z) t`.
+  set A : PhaseSpace d → ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
+    fun z s => vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z)) with hA_def
+  have hAcont : ∀ z : PhaseSpace d, ContinuousOn (A z) (Set.Icc 0 T) := fun z =>
+    vlasovVariationalCoeff_continuousOn gradW ρ charX charV T z (hcontIcc z) hρD_cont
+  refine ⟨fun t z => fundamentalMatrix (A z) t, ?_, ?_⟩
+  · -- **D1** — `charFlow_hasFDerivAt_of_fundamentalMatrix` fed by `fundamentalMatrix_spec`.
     intro t ht z
+    obtain ⟨h0, hcont, hderiv⟩ := fundamentalMatrix_spec (A z) T hT.le (hAcont z)
     exact charFlow_hasFDerivAt_of_fundamentalMatrix gradW hgradW_C1 L hL ρ charX charV T hT hflow
-      h_int hρD_cont z (hcontIcc z) (M z) (hM0 z) (hMcont z) (hMderiv z) t ht
-  · -- **V2 — continuity of the fundamental matrix `z ↦ M z t`**: `A(s,z)` is continuous in `z`
-    -- (flow continuity-in-`z` + F1c), and continuity propagates through the V1c Dyson-series
-    -- construction (each iterate continuous in `z`; uniform M-test limit).
+      h_int hρD_cont z (hcontIcc z) (fundamentalMatrix (A z)) h0 hcont hderiv t ht
+  · -- **V2** — `fundamentalMatrix_continuous_param`: flow joint continuity ⇒ `A` jointly continuous
+    -- ⇒ `z ↦ M z t` continuous.
     intro t ht
-    sorry
+    -- Flow joint continuity `(z,s) ↦ Φ_s z` on `univ ×ˢ Icc 0 T` (Grönwall Lipschitz-in-`z` from
+    -- `hflow` + per-`z` continuity in `s`).
+    have h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
+      Prod.ext_iff.mpr ⟨(hflow.1 z (Set.mem_univ z)).1, (hflow.1 z (Set.mem_univ z)).2⟩
+    have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+        HasDerivWithinAt (fun s => (charX s z, charV s z))
+          (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s := fun z s hs =>
+      (HasDerivAt.prodMk (hflow.2.1 s hs z (Set.mem_univ z))
+        (hflow.2.2 s hs z (Set.mem_univ z))).hasDerivWithinAt
+    have hgron := charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT.le
+      h_init hcontIcc h_deriv
+    have hflowjoint : ContinuousOn
+        (fun p : PhaseSpace d × ℝ => (charX p.2 p.1, charV p.2 p.1)) (Set.univ ×ˢ Set.Icc 0 T) := by
+      refine continuousOn_prod_of_lipschitz_continuousOn (fun z s => (charX s z, charV s z)) T
+        (Real.exp (((max 1 L : NNReal) : ℝ) * T)) (fun s hs z₁ z₂ => ?_) hcontIcc
+      calc dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+          ≤ dist z₁ z₂ * Real.exp (((max 1 L : NNReal) : ℝ) * (s - 0)) := hgron s hs z₁ z₂
+        _ = Real.exp (((max 1 L : NNReal) : ℝ) * (s - 0)) * dist z₁ z₂ := by ring
+        _ ≤ Real.exp (((max 1 L : NNReal) : ℝ) * T) * dist z₁ z₂ := by
+            refine mul_le_mul_of_nonneg_right (Real.exp_le_exp.mpr ?_) dist_nonneg
+            have hsT : s - 0 ≤ T := by simp only [sub_zero]; exact hs.2
+            exact mul_le_mul_of_nonneg_left hsT (by positivity)
+    -- `A` jointly continuous (Jacobian along the flow) and uniformly bounded by `max 1 L`.
+    have hg : ContinuousOn
+        (fun p : PhaseSpace d × ℝ => ((p.2, (charX p.2 p.1, charV p.2 p.1)) : ℝ × PhaseSpace d))
+        (Set.univ ×ˢ Set.Icc 0 T) := continuousOn_snd.prodMk hflowjoint
+    have hmapsg : Set.MapsTo
+        (fun p : PhaseSpace d × ℝ => ((p.2, (charX p.2 p.1, charV p.2 p.1)) : ℝ × PhaseSpace d))
+        (Set.univ ×ˢ Set.Icc 0 T) (Set.Icc 0 T ×ˢ Set.univ) := fun p hp => ⟨hp.2, Set.mem_univ _⟩
+    have hA_contOn : ContinuousOn (fun p : PhaseSpace d × ℝ => A p.1 p.2)
+        (Set.univ ×ˢ Set.Icc 0 T) :=
+      (vlasovFieldJacobian_continuousOn gradW ρ T hρD_cont).comp hg hmapsg
+    have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
+      intro z s _
+      have heq : A z s = fderiv ℝ (vlasovVectorField gradW ρ s) (charX s z, charV s z) := by
+        simp only [hA_def]
+        exact (vlasovVectorField_hasFDerivAt_in_z gradW hgradW_C1 L hL ρ h_int s
+          (charX s z, charV s z)).fderiv.symm
+      rw [heq]
+      exact norm_fderiv_le_of_lipschitz ℝ (vlasovVectorField_lipschitzWith gradW L hL ρ h_int s)
+    exact fundamentalMatrix_continuous_param A T hT.le ((max 1 L : NNReal) : ℝ) (by positivity)
+      hA_contOn hA_bound t (Set.Ioo_subset_Icc_self ht)
 
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window** (the dual
 transported-test-function assembly; this is where the crux is spent).
