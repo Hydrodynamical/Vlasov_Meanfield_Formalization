@@ -1283,6 +1283,125 @@ lemma fundamentalMatrix_continuous_param
   exact picardSum_continuous_param_Icc (fun z s => ContinuousLinearMap.compL ℝ F F F (A z s))
     (ContinuousLinearMap.id ℝ F) T hT K hK h𝒜_contOn h𝒜_bound t ht
 
+/-- **Step 3 (i) — joint `(z,s)` continuity of the Dyson sum** (global-hypothesis form).
+Mirror of `picardSum_continuous_param`, concluding JOINT `ContinuousOn` on `univ ×ˢ Icc 0 T`
+instead of per-`t` continuity in `z`.  The proof reuses the same joint iterate continuity
+(`hiter_cont` on `Z × ℝ`) and the same `(z,s)`-independent M-test majorant `(KT)ⁿ/n!·‖x₀‖`; only
+the final `tendstoUniformlyOn` ranges over `univ ×ˢ Icc 0 T`.  Used to make the variational
+fundamental matrix `(z,s) ↦ M z s` jointly continuous (the partial-derivative continuity the
+two-time-flow joint `C¹`-ness needs). -/
+lemma picardSum_continuous_param_joint
+    {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (h𝒜_cont : Continuous (fun p : Z × ℝ => 𝒜 p.1 p.2))
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K) :
+    ContinuousOn (fun p : Z × ℝ => ∑' n, picardIter (𝒜 p.1) x₀ n p.2)
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+  have hiter_cont : ∀ n, Continuous (fun p : Z × ℝ => picardIter (𝒜 p.1) x₀ n p.2) := by
+    intro n
+    induction n with
+    | zero =>
+      simp only [picardIter_zero]
+      exact continuous_const
+    | succ n ih =>
+      have hg : Continuous (Function.uncurry fun z v => 𝒜 z v (picardIter (𝒜 z) x₀ n v)) :=
+        h𝒜_cont.clm_apply ih
+      have hpp := intervalIntegral.continuous_parametric_primitive_of_continuous
+        (μ := volume) (a₀ := (0:ℝ)) hg
+      simp only [picardIter_succ]
+      exact hpp
+  have h𝒜cont_z : ∀ z, ContinuousOn (𝒜 z) (Set.Icc (0:ℝ) T) := fun z =>
+    (h𝒜_cont.comp (continuous_const.prodMk continuous_id)).continuousOn
+  have hbd : ∀ (n : ℕ) (p : Z × ℝ), p ∈ Set.univ ×ˢ Set.Icc (0:ℝ) T →
+      ‖picardIter (𝒜 p.1) x₀ n p.2‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
+    intro n p hp
+    have hps : p.2 ∈ Set.Icc (0:ℝ) T := hp.2
+    have hb := (picardIter_continuousOn_and_bound (𝒜 p.1) x₀ T hT K hK (h𝒜cont_z p.1)
+      (h𝒜_bound p.1) n).2 p.2 hps
+    refine le_trans hb ?_
+    have hKt : (0:ℝ) ≤ K * p.2 := mul_nonneg hK hps.1
+    have hle : K * p.2 ≤ K * T := mul_le_mul_of_nonneg_left hps.2 hK
+    gcongr
+  have hsum : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
+    (Real.summable_pow_div_factorial (K * T)).mul_right ‖x₀‖
+  have hunif : TendstoUniformlyOn
+      (fun (u : Finset ℕ) (p : Z × ℝ) => ∑ n ∈ u, picardIter (𝒜 p.1) x₀ n p.2)
+      (fun p => ∑' n, picardIter (𝒜 p.1) x₀ n p.2) Filter.atTop
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    tendstoUniformlyOn_tsum hsum hbd
+  refine hunif.continuousOn ?_
+  exact (Filter.Eventually.of_forall
+    (fun u => continuousOn_finset_sum u (fun n _ => (hiter_cont n).continuousOn))).frequently
+
+/-- **Step 3 (i) — joint `(z,s)` continuity of the Dyson sum** (window / `ContinuousOn`-hypothesis
+form).  Mirror of `picardSum_continuous_param_Icc`: clamp `s` into `[0,T]` (`projIcc`, L11) so the
+global form applies, then transfer back by iterate-agreement on `[0,T]`. -/
+lemma picardSum_continuous_param_Icc_joint
+    {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (h𝒜_contOn : ContinuousOn (fun p : Z × ℝ => 𝒜 p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K) :
+    ContinuousOn (fun p : Z × ℝ => ∑' n, picardIter (𝒜 p.1) x₀ n p.2)
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+  set cl : ℝ → ℝ := fun s => ↑(Set.projIcc 0 T hT s) with hcl
+  have hcl_cont : Continuous cl := continuous_subtype_val.comp continuous_projIcc
+  have hcl_mem : ∀ s, cl s ∈ Set.Icc (0:ℝ) T := fun s => (Set.projIcc 0 T hT s).2
+  have hcl_eq : ∀ s ∈ Set.Icc (0:ℝ) T, cl s = s := by
+    intro s hs; show (↑(Set.projIcc 0 T hT s) : ℝ) = s; rw [Set.projIcc_of_mem hT hs]
+  set 𝒜c : Z → ℝ → (E →L[ℝ] E) := fun z s => 𝒜 z (cl s) with h𝒜c
+  have h𝒜c_cont : Continuous (fun p : Z × ℝ => 𝒜c p.1 p.2) := by
+    have hmap : Continuous (fun p : Z × ℝ => ((p.1, cl p.2) : Z × ℝ)) :=
+      continuous_fst.prodMk (hcl_cont.comp continuous_snd)
+    have hmem : ∀ p : Z × ℝ, ((p.1, cl p.2) : Z × ℝ) ∈ Set.univ ×ˢ Set.Icc (0:ℝ) T :=
+      fun p => ⟨Set.mem_univ _, hcl_mem p.2⟩
+    exact h𝒜_contOn.comp_continuous hmap hmem
+  have h𝒜c_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜c z s‖ ≤ K :=
+    fun z s _ => h𝒜_bound z (cl s) (hcl_mem s)
+  have hagree : ∀ (n : ℕ) (z : Z), ∀ s ∈ Set.Icc (0:ℝ) T,
+      picardIter (𝒜c z) x₀ n s = picardIter (𝒜 z) x₀ n s := by
+    intro n
+    induction n with
+    | zero => intro z s _; simp
+    | succ n ih =>
+      intro z s hs
+      simp only [picardIter_succ]
+      refine intervalIntegral.integral_congr (fun u hu => ?_)
+      have huIcc : u ∈ Set.Icc (0:ℝ) T := by
+        rw [Set.uIcc_of_le hs.1] at hu; exact ⟨hu.1, le_trans hu.2 hs.2⟩
+      have e1 : 𝒜c z u = 𝒜 z u := by simp only [h𝒜c, hcl_eq u huIcc]
+      rw [e1, ih z u huIcc]
+  have key := picardSum_continuous_param_joint 𝒜c x₀ T hT K hK h𝒜c_cont h𝒜c_bound
+  refine key.congr ?_
+  rintro ⟨z, s⟩ ⟨_, hs⟩
+  simp only
+  congr 1; funext n; exact (hagree n z s hs).symm
+
+/-- **Step 3 (i) — the fundamental matrix is jointly `(z,s)`-continuous.**  Joint companion of
+`fundamentalMatrix_continuous_param`; specialises `picardSum_continuous_param_Icc_joint` to
+`𝒜 := compL∘A`, `x₀ := id`.  This is the partial-`z`-derivative continuity input to the joint
+`C¹`-ness of the forward flow `(s,z) ↦ Φ_s z` (Step 3 (iii)). -/
+lemma fundamentalMatrix_continuous_param_joint
+    {Z F : Type*} [TopologicalSpace Z] [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    (A : Z → ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
+    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
+    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ K) :
+    ContinuousOn (fun p : Z × ℝ => fundamentalMatrix (A p.1) p.2)
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+  have h𝒜_contOn : ContinuousOn
+      (fun p : Z × ℝ => ContinuousLinearMap.compL ℝ F F F (A p.1 p.2))
+      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+    (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA_contOn
+  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T,
+      ‖ContinuousLinearMap.compL ℝ F F F (A z s)‖ ≤ K := by
+    intro z s hs
+    refine le_trans ?_ (hA_bound z s hs)
+    refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) (fun g => ?_)
+    rw [ContinuousLinearMap.compL_apply]
+    exact (A z s).opNorm_comp_le g
+  exact picardSum_continuous_param_Icc_joint
+    (fun z s => ContinuousLinearMap.compL ℝ F F F (A z s))
+    (ContinuousLinearMap.id ℝ F) T hT K hK h𝒜_contOn h𝒜_bound
+
 section CharFlowDeriv
 open Filter Topology
 
