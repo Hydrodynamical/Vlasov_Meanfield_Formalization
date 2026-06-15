@@ -1631,6 +1631,115 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     exact fundamentalMatrix_continuous_param A T hT.le ((max 1 L : NNReal) : ℝ) (by positivity)
       hA_contOn hA_bound t (Set.Ioo_subset_Icc_self ht)
 
+open Filter Topology in
+/-- **Step 1 (dual core) — lower Grönwall / anti-Lipschitz bound on the characteristic flow.**
+For `t ∈ (0,T)`, the flow `Φ_t : z ↦ (charX t z, charV t z)` satisfies
+`dist z₁ z₂ ≤ dist (Φ_t z₁) (Φ_t z₂) · exp(K t)` (K = max 1 L), i.e. `Φ_t` is `AntilipschitzWith`.
+This is the keystone of the two-time-flow inverse construction (Step 2): bi-Lipschitz makes `Φ_t`
+injective with closed range and `M_t = DΦ_t` invertible (no Liouville needed).
+
+Proof: time-reverse the two trajectories on each `[s₀,t] ⊆ (0,T)` (so they solve
+`w' = −b_{s₀+t−r}(w)`, still K-Lipschitz) and apply the existing forward
+`dist_le_of_trajectories_ODE`; take `s₀→0⁺`.  `h_deriv2` is the two-sided `HasDerivAt` on the open
+interval, supplied by `IsCharacteristicFlowOn`. -/
+theorem charFlow_antilipschitzInZ_via_gronwall_Ioo
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ)
+    (h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (h_cont_Icc : ∀ z, ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (h_deriv2 : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) s) :
+    ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist z₁ z₂ ≤
+        dist ((charX t z₁, charV t z₁) : PhaseSpace d) (charX t z₂, charV t z₂)
+          * Real.exp (((max 1 L : NNReal) : ℝ) * (t - 0)) := by
+  intro t ht z₁ z₂
+  set K : NNReal := max 1 L with hK_def
+  have h_vf_lip : ∀ s, LipschitzWith K (vlasovVectorField gradW ρ s) := fun s =>
+    vlasovVectorField_lipschitzWith gradW L hL ρ h_int s
+  set F : ℝ → PhaseSpace d := fun s => (charX s z₁, charV s z₁) with hF_def
+  set G : ℝ → PhaseSpace d := fun s => (charX s z₂, charV s z₂) with hG_def
+  -- Per-`s₀` antilipschitz bound on `[s₀, t]`.
+  have h_perS0 : ∀ s₀ ∈ Set.Ioo (0 : ℝ) t,
+      dist (F s₀) (G s₀) ≤ dist (F t) (G t) * Real.exp ((K : ℝ) * (t - s₀)) := by
+    intro s₀ hs₀
+    have hsub_Ioo : Set.Icc s₀ t ⊆ Set.Ioo (0 : ℝ) T := fun r hr =>
+      ⟨lt_of_lt_of_le hs₀.1 hr.1, lt_of_le_of_lt hr.2 ht.2⟩
+    have hsub_Icc : Set.Icc s₀ t ⊆ Set.Icc (0 : ℝ) T := fun r hr =>
+      ⟨le_of_lt (lt_of_lt_of_le hs₀.1 hr.1), le_of_lt (lt_of_le_of_lt hr.2 ht.2)⟩
+    have hrefl_mem : ∀ r ∈ Set.Icc s₀ t, s₀ + t - r ∈ Set.Icc s₀ t := by
+      intro r hr; exact ⟨by linarith [hr.2], by linarith [hr.1]⟩
+    have hrefl_cont : ContinuousOn (fun r : ℝ => s₀ + t - r) (Set.Icc s₀ t) :=
+      (continuous_const.sub continuous_id).continuousOn
+    set vr : ℝ → PhaseSpace d → PhaseSpace d :=
+      fun r w => -(vlasovVectorField gradW ρ (s₀ + t - r) w) with hvr_def
+    have hvr_lip : ∀ r, LipschitzWith K (vr r) := fun r => (h_vf_lip (s₀ + t - r)).neg
+    have hFr_cont : ContinuousOn (fun r => F (s₀ + t - r)) (Set.Icc s₀ t) :=
+      (h_cont_Icc z₁).comp hrefl_cont (fun r hr => hsub_Icc (hrefl_mem r hr))
+    have hGr_cont : ContinuousOn (fun r => G (s₀ + t - r)) (Set.Icc s₀ t) :=
+      (h_cont_Icc z₂).comp hrefl_cont (fun r hr => hsub_Icc (hrefl_mem r hr))
+    have hFr' : ∀ r ∈ Set.Ico s₀ t,
+        HasDerivWithinAt (fun r => F (s₀ + t - r)) (vr r (F (s₀ + t - r))) (Set.Ici r) r := by
+      intro r hr
+      have hrIoo : s₀ + t - r ∈ Set.Ioo (0 : ℝ) T :=
+        hsub_Ioo ⟨by linarith [hr.2], by linarith [hr.1]⟩
+      have hlin : HasDerivAt (fun r : ℝ => s₀ + t - r) (-1) r := by
+        simpa using (hasDerivAt_id r).const_sub (s₀ + t)
+      have key : HasDerivAt (fun r => F (s₀ + t - r))
+          ((-1 : ℝ) • vlasovVectorField gradW ρ (s₀ + t - r) (F (s₀ + t - r))) r :=
+        HasDerivAt.scomp_of_eq r (h_deriv2 z₁ (s₀ + t - r) hrIoo) hlin rfl
+      simp only [neg_one_smul] at key
+      exact key.hasDerivWithinAt
+    have hGr' : ∀ r ∈ Set.Ico s₀ t,
+        HasDerivWithinAt (fun r => G (s₀ + t - r)) (vr r (G (s₀ + t - r))) (Set.Ici r) r := by
+      intro r hr
+      have hrIoo : s₀ + t - r ∈ Set.Ioo (0 : ℝ) T :=
+        hsub_Ioo ⟨by linarith [hr.2], by linarith [hr.1]⟩
+      have hlin : HasDerivAt (fun r : ℝ => s₀ + t - r) (-1) r := by
+        simpa using (hasDerivAt_id r).const_sub (s₀ + t)
+      have key : HasDerivAt (fun r => G (s₀ + t - r))
+          ((-1 : ℝ) • vlasovVectorField gradW ρ (s₀ + t - r) (G (s₀ + t - r))) r :=
+        HasDerivAt.scomp_of_eq r (h_deriv2 z₂ (s₀ + t - r) hrIoo) hlin rfl
+      simp only [neg_one_smul] at key
+      exact key.hasDerivWithinAt
+    have hgron := dist_le_of_trajectories_ODE hvr_lip hFr_cont hFr' hGr_cont hGr'
+      (le_refl (dist (F (s₀ + t - s₀)) (G (s₀ + t - s₀)))) t ⟨hs₀.2.le, le_refl t⟩
+    simp only [show s₀ + t - t = s₀ from by ring, show s₀ + t - s₀ = t from by ring] at hgron
+    exact hgron
+  -- `s₀ → 0⁺` limit.
+  have hfilt : (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)).NeBot := left_nhdsWithin_Ioo_neBot ht.1
+  have hIoo_sub_Icc : Set.Ioo (0 : ℝ) t ⊆ Set.Icc (0 : ℝ) T := fun s hs =>
+    ⟨hs.1.le, le_of_lt (lt_trans hs.2 ht.2)⟩
+  have h_tendsto_F : Tendsto F (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)) (nhds z₁) := by
+    have hcw : ContinuousWithinAt F (Set.Icc (0 : ℝ) T) 0 :=
+      (h_cont_Icc z₁) 0 ⟨le_refl 0, le_of_lt (lt_trans ht.1 ht.2)⟩
+    have h0 : Tendsto F (nhdsWithin (0 : ℝ) (Set.Icc 0 T)) (nhds (F 0)) := hcw
+    rw [show F 0 = z₁ from h_init z₁] at h0
+    exact h0.mono_left (nhdsWithin_mono 0 hIoo_sub_Icc)
+  have h_tendsto_G : Tendsto G (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)) (nhds z₂) := by
+    have hcw : ContinuousWithinAt G (Set.Icc (0 : ℝ) T) 0 :=
+      (h_cont_Icc z₂) 0 ⟨le_refl 0, le_of_lt (lt_trans ht.1 ht.2)⟩
+    have h0 : Tendsto G (nhdsWithin (0 : ℝ) (Set.Icc 0 T)) (nhds (G 0)) := hcw
+    rw [show G 0 = z₂ from h_init z₂] at h0
+    exact h0.mono_left (nhdsWithin_mono 0 hIoo_sub_Icc)
+  have h_tendsto_lhs : Tendsto (fun s₀ => dist (F s₀) (G s₀))
+      (nhdsWithin (0 : ℝ) (Set.Ioo 0 t)) (nhds (dist z₁ z₂)) :=
+    h_tendsto_F.dist h_tendsto_G
+  have h_tendsto_rhs : Tendsto (fun s₀ => dist (F t) (G t) * Real.exp ((K : ℝ) * (t - s₀)))
+      (nhdsWithin (0 : ℝ) (Set.Ioo 0 t))
+      (nhds (dist (F t) (G t) * Real.exp ((K : ℝ) * (t - 0)))) := by
+    have hcont : Continuous (fun s₀ : ℝ => dist (F t) (G t) * Real.exp ((K : ℝ) * (t - s₀))) := by
+      fun_prop
+    exact (hcont.tendsto 0).mono_left nhdsWithin_le_nhds
+  exact le_of_tendsto_of_tendsto h_tendsto_lhs h_tendsto_rhs
+    (eventually_nhdsWithin_of_forall h_perS0)
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
