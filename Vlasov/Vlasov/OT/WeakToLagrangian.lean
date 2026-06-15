@@ -896,6 +896,193 @@ lemma vlasovVariationalCoeff_continuousOn
   rw [heq]
   exact continuousOn_const.add (continuousOn_const.clm_comp hDcomp)
 
+/-- **C3 D1 (Jacobian).**  The phase-space Jacobian `A(s, p) = D_w b(s, p)` of the frozen Vlasov
+field at the base point `p`: the block continuous-linear map `δ ↦ (δ.2, −(D_x conv ρ_s)(p.1)·δ.1)`,
+where `D_x conv ρ_s (p.1) = ∫ y, fderiv ℝ gradW (p.1 − y) ∂ρ_s` (F1).  This is the coefficient of
+the linear variational ODE `Ṁ = A(s, Φ_s z)·M`; `vlasovVectorField_hasFDerivAt_in_z` (F2) says it
+is the Fréchet derivative of `vlasovVectorField gradW ρ s` at `p.2`. -/
+noncomputable def vlasovFieldJacobian (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d)) (p : ℝ × PhaseSpace d) : PhaseSpace d →L[ℝ] PhaseSpace d :=
+  (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
+    (-((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
+        (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))
+
+/-- **C3 D1a — the uniform-over-compact first-order Taylor remainder of the Vlasov field.**
+
+For a fixed initial point `z`, the first-order remainder of the frozen field `b(s,·)` at the moving
+base point `Φ_s z := (charX s z, charV s z)`,
+`R(s,w) = b(s,w) − b(s,Φ_s z) − A(s,Φ_s z)·(w − Φ_s z)`, is `o(‖w − Φ_s z‖)` **uniformly in
+`s ∈ [0,T]`**: for every `η > 0` there is a single `δ > 0` (independent of `s`) with
+`‖R(s,w)‖ ≤ η·‖w − Φ_s z‖` whenever `‖w − Φ_s z‖ ≤ δ`.
+
+This uniformity is the load-bearing analytic core of D1 (the variational-equation difference
+quotient): it is what lets Grönwall bound `Φ_t(z+h) − Φ_t(z) − M_t(z)·h` by `o(‖h‖)` *uniformly
+along the trajectory*.  Proof: the flow image `{Φ_s z : s ∈ [0,T]}` is compact (continuous image of
+`[0,T]`), `A = D_w b` is jointly `(s,w)`-continuous (from `hρD_cont`), so `A` is **uniformly**
+continuous on the compact tube `Γ = {(s, Φ_s z + e) : s ∈ [0,T], ‖e‖ ≤ 1}` (Heine–Cantor); the
+mean-value inequality on `closedBall (Φ_s z) δ` then converts the modulus into the remainder
+bound. -/
+lemma vlasovField_taylorRemainder_uniform
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (z : PhaseSpace d)
+    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
+    ∀ η : ℝ, 0 < η → ∃ δ : ℝ, 0 < δ ∧ ∀ s ∈ Set.Icc (0:ℝ) T, ∀ w : PhaseSpace d,
+      ‖w - (charX s z, charV s z)‖ ≤ δ →
+      ‖vlasovVectorField gradW ρ s w - vlasovVectorField gradW ρ s (charX s z, charV s z)
+        - (vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z))) (w - (charX s z, charV s z))‖
+        ≤ η * ‖w - (charX s z, charV s z)‖ := by
+  set Φ : ℝ → PhaseSpace d := fun s => (charX s z, charV s z) with hΦ
+  -- F2: the field is differentiable in the phase variable with derivative `vlasovFieldJacobian`.
+  have hF2 : ∀ s (w : PhaseSpace d),
+      HasFDerivAt (vlasovVectorField gradW ρ s) (vlasovFieldJacobian gradW ρ (s, w)) w :=
+    fun s w => vlasovVectorField_hasFDerivAt_in_z gradW hgradW_C1 L hL ρ h_int s w
+  -- Joint continuity of the Jacobian on `Icc 0 T ×ˢ Set.univ` (from `hρD_cont`).
+  have hg_cont : Continuous (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d)) :=
+    continuous_fst.prodMk (continuous_fst.comp continuous_snd)
+  have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
+    fun p hp => ⟨hp.1, Set.mem_univ _⟩
+  have hD2 : ContinuousOn
+      (fun p : ℝ × PhaseSpace d => ∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ Set.univ) :=
+    hρD_cont.comp hg_cont.continuousOn hmaps
+  have hDcomp : ContinuousOn
+      (fun p : ℝ × PhaseSpace d => -((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
+        (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))) (Set.Icc 0 T ×ˢ Set.univ) :=
+    (hD2.clm_comp continuousOn_const).neg
+  have heq : (fun p : ℝ × PhaseSpace d => vlasovFieldJacobian gradW ρ p) = fun p =>
+        (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d)).comp
+          (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d))
+        + (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d)).comp
+          (-((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
+              (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d)))) := by
+    funext p; ext x <;> simp [vlasovFieldJacobian]
+  have hAj_cont : ContinuousOn (fun p : ℝ × PhaseSpace d => vlasovFieldJacobian gradW ρ p)
+      (Set.Icc 0 T ×ˢ Set.univ) := by
+    rw [heq]; exact continuousOn_const.add (continuousOn_const.clm_comp hDcomp)
+  -- The compact tube `Γ = {(s, Φ s + e) : s ∈ [0,T], ‖e‖ ≤ 1}`.
+  set ball1 : Set (PhaseSpace d) := Metric.closedBall 0 1 with hball1
+  have hmap : ContinuousOn (fun q : ℝ × PhaseSpace d => ((q.1, Φ q.1 + q.2) : ℝ × PhaseSpace d))
+      (Set.Icc 0 T ×ˢ ball1) :=
+    continuousOn_fst.prodMk ((hcontIcc.comp continuousOn_fst (fun q hq => hq.1)).add continuousOn_snd)
+  set Γ : Set (ℝ × PhaseSpace d) :=
+    (fun q : ℝ × PhaseSpace d => ((q.1, Φ q.1 + q.2) : ℝ × PhaseSpace d)) '' (Set.Icc 0 T ×ˢ ball1)
+    with hΓ
+  have hΓcompact : IsCompact Γ :=
+    (isCompact_Icc.prod (isCompact_closedBall 0 1)).image_of_continuousOn hmap
+  have hΓsub : Γ ⊆ Set.Icc 0 T ×ˢ Set.univ := by
+    rintro _ ⟨q, hq, rfl⟩; exact ⟨hq.1, Set.mem_univ _⟩
+  have hUC : UniformContinuousOn (fun p => vlasovFieldJacobian gradW ρ p) Γ :=
+    hΓcompact.uniformContinuousOn_of_continuous (hAj_cont.mono hΓsub)
+  have hmemΓ : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ e : PhaseSpace d, ‖e‖ ≤ 1 →
+      ((s, Φ s + e) : ℝ × PhaseSpace d) ∈ Γ := by
+    intro s hs e he
+    exact ⟨(s, e), ⟨hs, by simpa [hball1, Metric.mem_closedBall, dist_eq_norm] using he⟩, rfl⟩
+  -- Extract the uniform-continuity modulus.
+  intro η hη
+  obtain ⟨δ₀, hδ₀, H⟩ := Metric.uniformContinuousOn_iff_le.mp hUC η hη
+  refine ⟨min δ₀ 1, lt_min hδ₀ one_pos, ?_⟩
+  intro s hs w hw
+  -- Mean value on the convex ball `C = closedBall (Φ s) (min δ₀ 1)`.
+  set C : Set (PhaseSpace d) := Metric.closedBall (Φ s) (min δ₀ 1) with hC
+  have hΦmem : Φ s ∈ C := Metric.mem_closedBall_self (le_min hδ₀.le zero_le_one)
+  have hwmem : w ∈ C := by
+    rw [hC, Metric.mem_closedBall, dist_eq_norm]; exact hw
+  -- The fderiv bound on `C` from uniform continuity.
+  have hbound : ∀ w' ∈ C,
+      ‖vlasovFieldJacobian gradW ρ (s, w') - vlasovFieldJacobian gradW ρ (s, Φ s)‖ ≤ η := by
+    intro w' hw'
+    have hw'norm : ‖w' - Φ s‖ ≤ min δ₀ 1 := by
+      rw [← dist_eq_norm]; rw [hC, Metric.mem_closedBall] at hw'; exact hw'
+    have hw'le1 : ‖w' - Φ s‖ ≤ 1 := hw'norm.trans (min_le_right _ _)
+    have hmem1 : ((s, w') : ℝ × PhaseSpace d) ∈ Γ := by
+      have := hmemΓ s hs (w' - Φ s) hw'le1
+      rwa [add_sub_cancel] at this
+    have hmem2 : ((s, Φ s) : ℝ × PhaseSpace d) ∈ Γ := by
+      have := hmemΓ s hs 0 (by simp)
+      rwa [add_zero] at this
+    have hdist : dist ((s, w') : ℝ × PhaseSpace d) (s, Φ s) ≤ δ₀ := by
+      rw [Prod.dist_eq]
+      simp only [dist_self, max_le_iff]
+      refine ⟨hδ₀.le, ?_⟩
+      rw [dist_eq_norm]; exact hw'norm.trans (min_le_left _ _)
+    have := H _ hmem1 _ hmem2 hdist
+    rwa [dist_eq_norm] at this
+  -- Apply the mean value inequality to `g u = b(s,u) − A(s,Φ s)·u`.
+  have hg : ∀ w' ∈ C, HasFDerivWithinAt
+      (fun u => vlasovVectorField gradW ρ s u - vlasovFieldJacobian gradW ρ (s, Φ s) u)
+      (vlasovFieldJacobian gradW ρ (s, w') - vlasovFieldJacobian gradW ρ (s, Φ s)) C w' := by
+    intro w' _
+    have h1 := hF2 s w'
+    have h2 : HasFDerivAt (fun u => vlasovFieldJacobian gradW ρ (s, Φ s) u)
+        (vlasovFieldJacobian gradW ρ (s, Φ s)) w' :=
+      (vlasovFieldJacobian gradW ρ (s, Φ s)).hasFDerivAt
+    exact (h1.sub h2).hasFDerivWithinAt
+  have hmv := (convex_closedBall (Φ s) (min δ₀ 1)).norm_image_sub_le_of_norm_hasFDerivWithin_le
+    hg hbound hΦmem hwmem
+  -- Rewrite `g w − g (Φ s)` as the remainder.
+  have hReq : (vlasovVectorField gradW ρ s w - vlasovFieldJacobian gradW ρ (s, Φ s) w)
+        - (vlasovVectorField gradW ρ s (Φ s) - vlasovFieldJacobian gradW ρ (s, Φ s) (Φ s))
+      = vlasovVectorField gradW ρ s w - vlasovVectorField gradW ρ s (Φ s)
+        - vlasovFieldJacobian gradW ρ (s, Φ s) (w - Φ s) := by
+    rw [map_sub]; abel
+  simpa only [hReq] using hmv
+
+/-- **C3 D1 — the difference-quotient heart of the variational equation.**
+
+Given the fundamental matrix `Mz` of the linear variational ODE `Ṁ = A(s, Φ_s z)·M`, `M 0 = id`
+(coefficient `A = vlasovFieldJacobian`), the time-`t` flow map `w ↦ (charX t w, charV t w)` is
+Fréchet-differentiable **at the fixed point `z`** with derivative exactly `Mz t`.
+
+This is the load-bearing difference-quotient estimate `Φ_t(z+h) − Φ_t(z) − Mz t·h = o(‖h‖)`.
+The matrix is threaded as an explicit hypothesis (rather than `choose`-d) so the proof can use its
+ODE/continuity data directly.
+
+**Proof plan (route b — Grönwall on the linearisation remainder).**  Reduce via
+`hasFDerivAt_iff_isLittleO_nhds_zero` + `Asymptotics.isLittleO_iff` to: `∀ c>0, ∀ᶠ h, ‖Φ_t(z+h) −
+Φ_t(z) − Mz t·h‖ ≤ c‖h‖`.  For fixed small `h`, the two curves `u_h(s) := Φ_s(z+h) − Φ_s(z)`
+(approximate) and `m_h(s) := Mz s·h` (exact) both solve `ẇ = A(s, Φ_s z)·w` from the same datum
+`h` (`Φ_0 = id`, `Mz 0 = id`):
+* `m_h` is exact — its defect is `0` (its derivative `(A·Mz)(s)·h = A(s)·m_h(s)` by `hMzderiv` +
+  `HasDerivWithinAt.clm_apply`).
+* `u_h`'s defect is the Taylor remainder `R(s, Φ_s(z+h))`, bounded by `η·‖u_h(s)‖` (D1a,
+  `vlasovField_taylorRemainder_uniform`) once `‖u_h(s)‖ ≤ δ(η)`, which holds with
+  `‖u_h(s)‖ ≤ exp(K T)·‖h‖` (flow Lipschitz-in-`z`, `charFlow_lipschitzInZ_via_gronwall_Ioo`) for
+  `‖h‖` small.  So `εf = η·exp(K T)·‖h‖`, uniform in `s`.
+The frozen field's two-sided ODE holds only on `Ioo 0 T`, so apply
+`dist_le_of_approx_trajectories_ODE` on `[s₀, t]` (`s₀ ∈ Ioo 0 t`) and take `s₀ → 0⁺` (the initial
+defect `dist(u_h s₀, m_h s₀) → 0` by continuity), giving `‖u_h t − m_h t‖ ≤ gronwallBound 0 K εf t =
+εf·(exp(K t)−1)/K`.  Since `η` is arbitrary this is `o(‖h‖)`.  `K := max 1 L` is the uniform field
+Lipschitz constant; `‖A(s,·)‖ ≤ K` via `norm_fderiv_le_of_lipschitz`. -/
+theorem charFlow_hasFDerivAt_of_fundamentalMatrix
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (z : PhaseSpace d)
+    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (Mz : ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d))
+    (hMz0 : Mz 0 = ContinuousLinearMap.id ℝ (PhaseSpace d))
+    (hMzcont : ContinuousOn Mz (Set.Icc 0 T))
+    (hMzderiv : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      HasDerivWithinAt Mz
+        ((vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z))).comp (Mz s))
+        (Set.Icc 0 T) s) :
+    ∀ t ∈ Set.Ioo (0 : ℝ) T, HasFDerivAt (fun w => (charX t w, charV t w)) (Mz t) z := by
+  sorry
+
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
@@ -968,13 +1155,12 @@ theorem charFlow_hasFDerivAt_in_initialPoint
         (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
             (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) T hT.le (hAcont z)
   refine ⟨fun t z => M z t, ?_, ?_⟩
-  · -- **D1 — the difference-quotient heart**: `Φ_t(z+h) − Φ_t(z) − M_t(z)·h = o(‖h‖)`, via
-    -- Gronwall (`dist_le_of_approx_trajectories_ODE`) with the `C¹` Taylor remainder of `b` along
-    -- the flow as the `o(‖h‖)` defect (uses `hgradW_C1`/F2), and the flow Lipschitz-in-`z` bound
-    -- (`charFlow_lipschitzInZ_via_gronwall_Ioo`).  The uniform-in-`s` Taylor remainder over the
-    -- compact flow image is the load-bearing analytic core.
+  · -- **D1 — the difference-quotient heart** (`charFlow_hasFDerivAt_of_fundamentalMatrix`): the
+    -- flow is `HasFDerivAt` at each `z` with derivative the fundamental matrix `M z t`.  Threads the
+    -- matrix `M z` and its ODE/continuity data explicitly into the standalone Grönwall lemma.
     intro t ht z
-    sorry
+    exact charFlow_hasFDerivAt_of_fundamentalMatrix gradW hgradW_C1 L hL ρ charX charV T hT hflow
+      h_int hρD_cont z (hcontIcc z) (M z) (hM0 z) (hMcont z) (hMderiv z) t ht
   · -- **V2 — continuity of the fundamental matrix `z ↦ M z t`**: `A(s,z)` is continuous in `z`
     -- (flow continuity-in-`z` + F1c), and continuity propagates through the V1c Dyson-series
     -- construction (each iterate continuous in `z`; uniform M-test limit).
