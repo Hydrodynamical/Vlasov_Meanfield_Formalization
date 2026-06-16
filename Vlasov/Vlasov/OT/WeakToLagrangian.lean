@@ -2453,12 +2453,46 @@ theorem charFlow_hasFDerivAt_joint
         (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
     exact hT1.add hT2
 
+/-- **Step 3 (iv-A) — the forward flow `(s,z) ↦ Φ_s z` is `ContDiffAt ℝ 1`** at each point of the
+open window (the chart-IFT input for item (iv)).  Lifts item (iii)'s `HasFDerivAt`-everywhere +
+`ContinuousOn`-derivative to `ContDiffAt` via `contDiffAt_succ_iff_hasFDerivAt`. -/
+lemma charFlow_contDiffAt_joint
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hf_cont : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ s) x))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+    ∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+      ContDiffAt ℝ 1 (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) p := by
+  obtain ⟨DΦ, hFDeriv, hDΦ_cont⟩ := charFlow_hasFDerivAt_joint gradW hgradW_C1 L hL ρ charX charV T hT
+    hflow h_int hf_cont hρD_cont hcontIcc
+  have hU_open : IsOpen (Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+    isOpen_Ioo.prod isOpen_univ
+  intro p hp
+  have hmain : ContDiffAt ℝ ((0:ℕ) + 1)
+      (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) p := by
+    rw [contDiffAt_succ_iff_hasFDerivAt]
+    refine ⟨DΦ, ⟨Set.Ioo (0:ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, fun y hy => hFDeriv y hy⟩, ?_⟩
+    exact contDiffAt_zero.mpr ⟨Set.Ioo (0:ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, hDΦ_cont⟩
+  simpa using hmain
+
+open Filter Topology in
 /-- **Step 3 (iv) — the per-slice inverse `Ψ_s := Φ_s⁻¹` is jointly `C¹`** on `Ioo 0 T ×ˢ univ`,
 the keystone of the two-time flow `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹`.
 
-**[API-LOCKED — P4: signature + IFT proof plan committed; body `sorry`'d.  The two-time-flow
-construction is `#3`-sized (chart inverse-function theorem + global patching); this lock banks the
-interface so the dual core's `ψ_s = φ∘Φ_{s→t}` Steps 4–6 can compose against it.]**
+**PROVEN (axiom-clean)** via the space-time chart inverse-function theorem — see the proof plan
+below, realized exactly as scouted: `charFlow_contDiffAt_joint` (iv-A) for the chart `ContDiffAt`,
+the block-triangular `≃L` (invertibility from Step 2's `e z₀` via `HasFDerivAt.unique` +
+`ofBijective`), `ContDiffAt.to_localInverse`, and the global patch via `localInverse_unique` (the
+global per-slice inverse is a local left inverse of the chart, by injectivity on the window).
 
 Per slice `s ∈ Ioo 0 T`, Step 2 (`exists_charFlow_inverse_On`) already gives the inverse `Ψ_s` and
 its invertible derivative family `e` (`= M_s z`, `#3`/D1c); here we upgrade to JOINT `(s,w)`
@@ -2507,7 +2541,101 @@ theorem charFlow_inverse_contDiffOn_joint
       (∀ s ∈ Set.Ioo (0:ℝ) T,
         Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
       ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) := by
-  sorry
+  classical
+  obtain ⟨DΦ, hFDeriv, -⟩ := charFlow_hasFDerivAt_joint gradW hgradW_C1 L hL ρ charX charV T hT
+    hflow h_int hf_cont hρD_cont hcontIcc
+  have hΦ_cda := charFlow_contDiffAt_joint gradW hgradW_C1 L hL ρ charX charV T hT
+    hflow h_int hf_cont hρD_cont hcontIcc
+  have hstep2 := exists_charFlow_inverse_On gradW hgradW_C1 L hL ρ charX charV T hT
+    hflow h_int hρD_cont hcontIcc
+  have hbij : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      Function.Bijective (fun z => ((charX s z, charV s z) : PhaseSpace d)) := by
+    intro s hs
+    obtain ⟨Ψ', e, _, hL', hR', _, _⟩ := hstep2 s hs
+    exact ⟨hL'.injective, hR'.surjective⟩
+  set Ψ : ℝ → PhaseSpace d → PhaseSpace d :=
+    fun s => Function.invFun (fun z => (charX s z, charV s z)) with hΨ_def
+  have hLeft : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)) :=
+    fun s hs => Function.leftInverse_invFun (hbij s hs).1
+  have hRight : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)) :=
+    fun s hs => Function.rightInverse_invFun (hbij s hs).2
+  refine ⟨Ψ, hLeft, hRight, ?_⟩
+  set Ξ : ℝ × PhaseSpace d → ℝ × PhaseSpace d :=
+    fun x => (x.1, (charX x.1 x.2, charV x.1 x.2)) with hΞ_def
+  intro pt hpt
+  obtain ⟨hs₀, -⟩ := hpt
+  obtain ⟨Ψ', e, he_deriv, -, -, -, -⟩ := hstep2 pt.1 hs₀
+  set z₀ : PhaseSpace d := Ψ pt.1 pt.2 with hz₀_def
+  have hΦz₀ : (charX pt.1 z₀, charV pt.1 z₀) = pt.2 := hRight pt.1 hs₀ pt.2
+  have hΞ_cda : ContDiffAt ℝ 1 Ξ (pt.1, z₀) :=
+    contDiffAt_fst.prodMk (hΦ_cda (pt.1, z₀) ⟨hs₀, Set.mem_univ _⟩)
+  set DΞ : (ℝ × PhaseSpace d) →L[ℝ] (ℝ × PhaseSpace d) :=
+    (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).prod (DΦ (pt.1, z₀)) with hDΞ_def
+  have hΞ_hd : HasFDerivAt Ξ DΞ (pt.1, z₀) :=
+    (hasFDerivAt_fst).prodMk (hFDeriv (pt.1, z₀) ⟨hs₀, Set.mem_univ _⟩)
+  have hincl : HasFDerivAt (fun z : PhaseSpace d => ((pt.1, z) : ℝ × PhaseSpace d))
+      ((0 : PhaseSpace d →L[ℝ] ℝ).prod (ContinuousLinearMap.id ℝ (PhaseSpace d))) z₀ :=
+    (hasFDerivAt_const (pt.1 : ℝ) z₀).prodMk (hasFDerivAt_id z₀)
+  have hslice : HasFDerivAt (fun z => (charX pt.1 z, charV pt.1 z))
+      ((DΦ (pt.1, z₀)).comp
+        ((0 : PhaseSpace d →L[ℝ] ℝ).prod (ContinuousLinearMap.id ℝ (PhaseSpace d)))) z₀ :=
+    (hFDeriv (pt.1, z₀) ⟨hs₀, Set.mem_univ _⟩).comp z₀ hincl
+  have hcomp_eq : (DΦ (pt.1, z₀)).comp
+      ((0 : PhaseSpace d →L[ℝ] ℝ).prod (ContinuousLinearMap.id ℝ (PhaseSpace d)))
+      = (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) :=
+    hslice.unique (he_deriv z₀)
+  have hslice_app : ∀ k : PhaseSpace d,
+      DΦ (pt.1, z₀) ((0:ℝ), k) = (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) k := by
+    intro k
+    have h1 : ((0 : PhaseSpace d →L[ℝ] ℝ).prod (ContinuousLinearMap.id ℝ (PhaseSpace d))) k
+        = ((0:ℝ), k) := by simp
+    rw [← h1, ← ContinuousLinearMap.comp_apply, hcomp_eq]
+  have hker : LinearMap.ker (DΞ : (ℝ × PhaseSpace d) →ₗ[ℝ] (ℝ × PhaseSpace d)) = ⊥ := by
+    refine LinearMap.ker_eq_bot'.mpr (fun x hx => ?_)
+    have hxapp : (x.1, DΦ (pt.1, z₀) x) = ((0:ℝ), (0 : PhaseSpace d)) := by
+      have : DΞ x = ((0:ℝ), (0 : PhaseSpace d)) := hx
+      simpa [hDΞ_def, ContinuousLinearMap.prod_apply] using this
+    have hx1 : x.1 = 0 := (Prod.ext_iff.mp hxapp).1
+    have hx2 : DΦ (pt.1, z₀) x = 0 := (Prod.ext_iff.mp hxapp).2
+    have hxz : x = ((0:ℝ), x.2) := Prod.ext hx1 rfl
+    have hez : (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) x.2 = 0 := by
+      rw [← hslice_app x.2, ← hxz]; exact hx2
+    have : x.2 = 0 := by
+      have hinj := (e z₀).injective
+      have : (e z₀) x.2 = (e z₀) 0 := by rw [map_zero]; exact_mod_cast hez
+      exact hinj this
+    exact Prod.ext hx1 this
+  have hrange : LinearMap.range (DΞ : (ℝ × PhaseSpace d) →ₗ[ℝ] (ℝ × PhaseSpace d)) = ⊤ :=
+    LinearMap.range_eq_top.mpr
+      (LinearMap.injective_iff_surjective.mp (LinearMap.ker_eq_bot.mp hker))
+  set eΞ : (ℝ × PhaseSpace d) ≃L[ℝ] (ℝ × PhaseSpace d) :=
+    ContinuousLinearEquiv.ofBijective DΞ hker hrange with heΞ_def
+  have hΞ_hd' : HasFDerivAt Ξ (eΞ : (ℝ × PhaseSpace d) →L[ℝ] (ℝ × PhaseSpace d)) (pt.1, z₀) :=
+    hΞ_hd
+  have hlocinv : ContDiffAt ℝ 1 (hΞ_cda.localInverse hΞ_hd' one_ne_zero) (Ξ (pt.1, z₀)) :=
+    hΞ_cda.to_localInverse hΞ_hd' one_ne_zero
+  have hstrict := hΞ_cda.hasStrictFDerivAt' hΞ_hd' (one_ne_zero)
+  have hloc : ∀ᶠ x in 𝓝 ((pt.1, z₀) : ℝ × PhaseSpace d),
+      ((fun y : ℝ × PhaseSpace d => ((y.1, Ψ y.1 y.2) : ℝ × PhaseSpace d)) (Ξ x)) = x := by
+    have hIoo : ∀ᶠ x in 𝓝 ((pt.1, z₀) : ℝ × PhaseSpace d), x.1 ∈ Set.Ioo (0:ℝ) T :=
+      continuous_fst.continuousAt.eventually_mem (isOpen_Ioo.mem_nhds hs₀)
+    filter_upwards [hIoo] with x hx
+    have hL2 : Ψ x.1 (charX x.1 x.2, charV x.1 x.2) = x.2 := hLeft x.1 hx x.2
+    simp only [hΞ_def]
+    rw [hL2]
+  have huniq : ∀ᶠ y in 𝓝 (Ξ (pt.1, z₀)),
+      ((y.1, Ψ y.1 y.2) : ℝ × PhaseSpace d) = (hΞ_cda.localInverse hΞ_hd' one_ne_zero) y :=
+    hstrict.localInverse_unique hloc
+  have hΞeq : Ξ (pt.1, z₀) = (pt.1, pt.2) := by rw [hΞ_def]; exact Prod.ext rfl hΦz₀
+  have hG_cda : ContDiffAt ℝ 1
+      (fun y : ℝ × PhaseSpace d => ((y.1, Ψ y.1 y.2) : ℝ × PhaseSpace d)) (pt.1, pt.2) := by
+    rw [← hΞeq]
+    exact hlocinv.congr_of_eventuallyEq huniq
+  have hpt_eq : pt = (pt.1, pt.2) := rfl
+  rw [hpt_eq]
+  exact (hG_cda.snd).contDiffWithinAt
 
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
