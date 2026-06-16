@@ -2326,6 +2326,133 @@ lemma vlasovField_along_flow_continuousOn
   rw [heq]
   exact hcomp1.prodMk hconv_along.neg
 
+/-- **Step 3 (iii) — the forward flow `(s,z) ↦ Φ_s z` is jointly `C¹`** on `U := Ioo 0 T ×ˢ univ`:
+Fréchet-differentiable at every point with a jointly-continuous total derivative `DΦ`.  Built by
+composing the open-set gating theorem (`hasFDerivAt_of_continuous_partials_open`) — fed the
+`s`-partial `b_s(Φ_s z)` (flow ODE, jointly continuous by item (ii)) and the `z`-partial `M_s z`
+(the fundamental matrix, via D1c, jointly continuous by item (i)).  Per L14 the matrix is rebuilt
+concretely (`fundamentalMatrix (A z) s`), NOT routed through `#3`'s existential.
+
+The field `bfun` and matrix `Mfun` are made opaque locals (`clear_value`, the D1c lesson) so the
+gating unification stays syntactic and never unfolds the `vlasovVectorField`/`vlasovFieldJacobian`
+integrals — the per-point derivative facts are established in terms of them *before* clearing.
+`A` is kept transparent through the D1c call (whose coefficient is `vlasovFieldJacobian`) and cleared
+only afterwards (before the projection-reduction defeqs).  No `maxHeartbeats` bump needed. -/
+theorem charFlow_hasFDerivAt_joint
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hf_cont : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ s) x))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+    ∃ DΦ : ℝ × PhaseSpace d → (ℝ × PhaseSpace d →L[ℝ] PhaseSpace d),
+      (∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+        HasFDerivAt (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) (DΦ p) p) ∧
+      ContinuousOn DΦ (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+  set A : PhaseSpace d → ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
+    fun z s => vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z)) with hA_def
+  have hAcont : ∀ z, ContinuousOn (A z) (Set.Icc 0 T) := fun z =>
+    vlasovVariationalCoeff_continuousOn gradW ρ charX charV T z (hcontIcc z) hρD_cont
+  have h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
+    Prod.ext_iff.mpr ⟨(hflow.1 z (Set.mem_univ z)).1, (hflow.1 z (Set.mem_univ z)).2⟩
+  have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivWithinAt (fun s => (charX s z, charV s z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s := fun z s hs =>
+    (HasDerivAt.prodMk (hflow.2.1 s hs z (Set.mem_univ z))
+      (hflow.2.2 s hs z (Set.mem_univ z))).hasDerivWithinAt
+  have hflowjoint_sz : ContinuousOn (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2))
+      (Set.Icc 0 T ×ˢ Set.univ) :=
+    charFlow_continuousOn_joint gradW L hL ρ h_int charX charV T hT.le h_init hcontIcc h_deriv
+  -- field as an opaque local
+  set bfun : ℝ × PhaseSpace d → PhaseSpace d :=
+    fun q => vlasovVectorField gradW ρ q.1 (charX q.1 q.2, charV q.1 q.2) with hbfun_def
+  have hb_cont : ContinuousOn bfun (Set.Icc 0 T ×ˢ Set.univ) :=
+    vlasovField_along_flow_continuousOn gradW L hL ρ h_int hf_cont charX charV T hflowjoint_sz
+  -- `A` jointly continuous + bounded ⇒ `M` jointly continuous (item (i))
+  have hflowjoint_zs : ContinuousOn (fun p : PhaseSpace d × ℝ => (charX p.2 p.1, charV p.2 p.1))
+      (Set.univ ×ˢ Set.Icc 0 T) := by
+    have hswap : ContinuousOn (fun p : PhaseSpace d × ℝ => ((p.2, p.1) : ℝ × PhaseSpace d))
+        (Set.univ ×ˢ Set.Icc 0 T) := (continuous_snd.prodMk continuous_fst).continuousOn
+    have hmaps : Set.MapsTo (fun p : PhaseSpace d × ℝ => ((p.2, p.1) : ℝ × PhaseSpace d))
+        (Set.univ ×ˢ Set.Icc 0 T) (Set.Icc 0 T ×ˢ Set.univ) := fun p hp => ⟨hp.2, Set.mem_univ _⟩
+    exact hflowjoint_sz.comp hswap hmaps
+  have hg : ContinuousOn
+      (fun p : PhaseSpace d × ℝ => ((p.2, (charX p.2 p.1, charV p.2 p.1)) : ℝ × PhaseSpace d))
+      (Set.univ ×ˢ Set.Icc 0 T) := continuousOn_snd.prodMk hflowjoint_zs
+  have hmapsg : Set.MapsTo
+      (fun p : PhaseSpace d × ℝ => ((p.2, (charX p.2 p.1, charV p.2 p.1)) : ℝ × PhaseSpace d))
+      (Set.univ ×ˢ Set.Icc 0 T) (Set.Icc 0 T ×ˢ Set.univ) := fun p hp => ⟨hp.2, Set.mem_univ _⟩
+  have hA_contOn : ContinuousOn (fun p : PhaseSpace d × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc 0 T) :=
+    (vlasovFieldJacobian_continuousOn gradW ρ T hρD_cont).comp hg hmapsg
+  have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
+    intro z s _
+    have heq : A z s = fderiv ℝ (vlasovVectorField gradW ρ s) (charX s z, charV s z) := by
+      simp only [hA_def]
+      exact (vlasovVectorField_hasFDerivAt_in_z gradW hgradW_C1 L hL ρ h_int s
+        (charX s z, charV s z)).fderiv.symm
+    rw [heq]
+    exact norm_fderiv_le_of_lipschitz ℝ (vlasovVectorField_lipschitzWith gradW L hL ρ h_int s)
+  have hM_zs : ContinuousOn (fun p : PhaseSpace d × ℝ => fundamentalMatrix (A p.1) p.2)
+      (Set.univ ×ˢ Set.Icc 0 T) :=
+    fundamentalMatrix_continuous_param_joint A T hT.le ((max 1 L : NNReal) : ℝ) (by positivity)
+      hA_contOn hA_bound
+  have hU_open : IsOpen (Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+    isOpen_Ioo.prod isOpen_univ
+  have hU_sub : Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ⊆ Set.Icc 0 T ×ˢ Set.univ :=
+    Set.prod_mono Set.Ioo_subset_Icc_self (subset_refl _)
+  -- matrix as a local (kept transparent for the D1c call, which needs `A`'s coefficient)
+  set Mfun : ℝ × PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
+    fun p => fundamentalMatrix (A p.2) p.1 with hMfun_def
+  -- z-partial at base via D1c — needs `A` TRANSPARENT (its coefficient is `vlasovFieldJacobian`).
+  have hDz_all : ∀ s₀ ∈ Set.Ioo (0:ℝ) T, ∀ z₀ : PhaseSpace d,
+      HasFDerivAt (fun z => (charX s₀ z, charV s₀ z)) (Mfun (s₀, z₀)) z₀ := by
+    intro s₀ hs₀ z₀
+    obtain ⟨h0, hMcont, hMderiv⟩ := fundamentalMatrix_spec (A z₀) T hT.le (hAcont z₀)
+    exact charFlow_hasFDerivAt_of_fundamentalMatrix gradW hgradW_C1 L hL ρ charX charV T hT hflow
+      h_int hρD_cont z₀ hcontIcc (fundamentalMatrix (A z₀)) h0 hMcont hMderiv s₀ hs₀
+  have hDs_all : ∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+      HasDerivAt (fun s => ((charX s p.2, charV s p.2) : PhaseSpace d)) (bfun p) p.1 := by
+    intro p hp'
+    exact HasDerivAt.prodMk (hflow.2.1 p.1 hp'.1 p.2 (Set.mem_univ _))
+      (hflow.2.2 p.1 hp'.1 p.2 (Set.mem_univ _))
+  -- NOW make `A`/field/matrix opaque so the projection-reduction defeqs below never unfold the
+  -- heavy `vlasovFieldJacobian`/`vlasovVectorField` integrals (D1c lesson).
+  clear_value A bfun Mfun
+  have hM_sz : ContinuousOn Mfun (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+    rw [hMfun_def]
+    have hswap : ContinuousOn (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
+        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
+    have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
+        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc 0 T) :=
+      fun p hp => ⟨Set.mem_univ _, Set.Ioo_subset_Icc_self hp.1⟩
+    exact hM_zs.comp hswap hmaps
+  refine ⟨fun p => (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight (bfun p)
+      + (Mfun p).comp (ContinuousLinearMap.snd ℝ ℝ (PhaseSpace d)), ?_, ?_⟩
+  · rintro ⟨s₀, z₀⟩ hp
+    obtain ⟨hs₀, _⟩ := hp
+    exact hasFDerivAt_of_continuous_partials_open
+      (f := fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) (Ds := bfun)
+      hU_open ⟨hs₀, Set.mem_univ _⟩ hDs_all (hb_cont.mono hU_sub) (hDz_all s₀ hs₀ z₀)
+  · have hT1 : ContinuousOn (fun p : ℝ × PhaseSpace d =>
+        (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight (bfun p))
+        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+      have hc : Continuous (fun v : PhaseSpace d =>
+          (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight v) :=
+        (ContinuousLinearMap.smulRightL ℝ (ℝ × PhaseSpace d) (PhaseSpace d)
+          (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d))).continuous
+      exact hc.comp_continuousOn (hb_cont.mono hU_sub)
+    have hT2 : ContinuousOn (fun p : ℝ × PhaseSpace d =>
+        (Mfun p).comp (ContinuousLinearMap.snd ℝ ℝ (PhaseSpace d)))
+        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
+    exact hT1.add hT2
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
