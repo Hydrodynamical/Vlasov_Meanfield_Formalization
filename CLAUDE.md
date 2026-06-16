@@ -543,6 +543,53 @@ keeps it.  Same family as L13/P10/P11: a typechecking interface (here, a bare
 *construction* exposes, not just what typechecks.  Full routing in the memory
 note `choose-destroys-parameter-regularity`.
 
+### L15. A `whnf`/`isDefEq` heartbeat timeout that SCALES BUT NEVER CLOSES is a heavy-def unfolding in defeq — fix with `clear_value`, NOT `maxHeartbeats`
+
+**Failure mode**: a proof step (a `.comp`/`exact` against an expected type, a lemma
+application, a `set`-folded goal) triggers a `(deterministic) timeout at whnf` or
+`at isDefEq`.  The instinct is to raise `maxHeartbeats`.  But when the underlying
+cost is the elaborator *unfolding a heavy definition during unification* — a def
+that bottoms out in a Bochner integral (`convolveFunctionMeasure`, `vlasovFieldJacobian`,
+`vlasovVectorField`), a `tsum` (`fundamentalMatrix`/`picardIter`), or similar — the
+cost is effectively unbounded: raising the ceiling just lets it burn longer and still
+fail.  The tell is **monotone-but-non-converging**: 200k fails, 1.6M (8×) still fails
+at the *same* site.  More heartbeats is the wrong axis.
+
+**Empirical confirmation** (item (iii) `charFlow_hasFDerivAt_joint`, 2026-06-16, and
+the prior D1c `charFlow_hasFDerivAt_of_fundamentalMatrix`): the open-set gating
+`exact` and the `hM_sz` swap-composition both made `isDefEq` whnf the
+`vlasovVectorField`/`vlasovFieldJacobian` *integrals* even though the two sides were
+syntactically equal at the relevant heads.  200k → 1.6M heartbeats both timed out at
+the same line.  `clear_value` on the field/matrix locals removed the blowup entirely;
+the proof then compiled at the **default 200k** — proving the bump was never the fix.
+
+**Fix — structural, via `clear_value`**: introduce the heavy quantity as a `set`-local
+(`set bfun := … with hbfun_def`), prove every fact that genuinely needs its *value* up
+front, then `clear_value bfun` to make it an opaque hypothesis.  After clearing, defeq
+treats `bfun p` as atomic and never unfolds the integral — syntactic matches stay
+syntactic.
+
+**Two load-bearing sub-rules** (both bit at item (iii)):
+1. **Ordering**: a local can only be cleared *after* the last step that needs it
+   transparent.  Here `A := vlasovFieldJacobian …` had to stay transparent through the
+   D1c call (D1c's stated coefficient is literally `vlasovFieldJacobian …`, so the
+   hypothesis must defeq-match by unfolding `A` *once*), then `clear_value A` BEFORE the
+   projection-reduction defeqs (`hM_sz`, the gating `exact`).  Clear too early → an
+   "Application type mismatch" because the opaque `A z s` no longer matches
+   `vlasovFieldJacobian …`.  Clear too late → the whnf blowup.
+2. **`set`-folded goal vs. explicit head**: even pre-`clear_value`, matching a
+   composition `g ∘ f` against a `set`-let goal (`ContinuousOn Mfun …`) can drive the
+   unfolding; `rw [hMfun_def]` first to expose the explicit `fundamentalMatrix (A …) …`
+   head so isDefEq compares head-to-head.  (Necessary but not sufficient on its own —
+   `clear_value A` was still required.)
+
+**Generalisation**: the diagnostic is the *shape of the failure*, not the line.  A
+heartbeat timeout that closes when you raise the ceiling was genuinely under-budget;
+one that moves the wall without removing it is a heavy-def-in-defeq, and the lever is
+opacity (`clear_value`), reducibility attributes, or restating so the heads match —
+never a bigger number.  Pairs with L12 (scratch-leaf iteration) and the D1c
+`clear_value vlin` precedent.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
