@@ -590,6 +590,41 @@ opacity (`clear_value`), reducibility attributes, or restating so the heads matc
 never a bigger number.  Pairs with L12 (scratch-leaf iteration) and the D1c
 `clear_value vlin` precedent.
 
+### L16. A name CLASH with the imported module makes Lean SKIP the body — a "clean" scratch can be a false positive
+
+**Failure mode**: developing a proof in an importing scratch leaf (L12), you give the
+scratch declaration the SAME name it will have in the target (so the port is a
+copy-paste).  But the scratch `import`s the target module, which ALREADY contains that
+name (e.g. an API-locked `sorry`'d version, P4).  Lean reports `'foo' has already been
+declared` — and **stops elaborating the body** (it cannot add a duplicate to the
+environment, so it short-circuits).  The build shows exactly ONE error (the clash) and
+NOTHING about the body.  Read as "only the name clash, so the body is clean" — WRONG.
+The body was never checked.  Porting it then surfaces the real errors only at the
+expensive host rebuild.
+
+**Empirical confirmation** (item (iv) `charFlow_inverse_contDiffOn_joint`, 2026-06-16):
+the ~100-line chart-IFT proof built in a scratch whose theorem name matched the host's
+API-lock.  Build: 1 error, the clash.  Inferred "body clean", ported to the host →
+the host (no clash, body actually elaborated) revealed 5 errors: `.prod`→`.prodMk` ×3
+(the FDeriv/ContDiff product rename), `congr 1` and a final `rw` leaving
+`(0,0)=0`/`Ξ(..)=(..)` unclosed (defeq but not syntactic `rfl` → `Prod.ext`).  All
+trivial, but each cost a slow host rebuild because the scratch had hidden them.
+
+**Fix**: in an importing scratch, give the in-development declaration a NAME THAT DOES
+NOT CLASH with the imported module — append `_dev`/`_scratch`/a prime.  Then the body
+elaborates and the scratch actually validates it.  Confirm the dodge worked by checking
+the build elaborated the body (e.g. a deliberate `sorry` in the body should warn
+`declaration uses 'sorry'`; if even that warning is absent, the body was skipped).
+Rename back only at port time.
+
+**Generalisation**: an error that *halts elaboration* (duplicate name, parse error,
+`unknown identifier` in the signature) masks everything downstream — a one-error build
+is "clean body" ONLY if that one error is downstream of the body, not upstream of it.
+Same family as P11 (a green check against a failed build is stale): the instrument
+(here, the error count) means nothing until you confirm WHAT it actually checked.  Pairs
+with L12 (scratch-leaf development) — this is the failure mode that makes a scratch leaf
+silently stop validating.
+
 ## P-series — Process discipline
 
 ### P1. Atom-level signature reading before drafting helper signatures
