@@ -2453,6 +2453,62 @@ theorem charFlow_hasFDerivAt_joint
         (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
     exact hT1.add hT2
 
+/-- **Step 3 (iv) — the per-slice inverse `Ψ_s := Φ_s⁻¹` is jointly `C¹`** on `Ioo 0 T ×ˢ univ`,
+the keystone of the two-time flow `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹`.
+
+**[API-LOCKED — P4: signature + IFT proof plan committed; body `sorry`'d.  The two-time-flow
+construction is `#3`-sized (chart inverse-function theorem + global patching); this lock banks the
+interface so the dual core's `ψ_s = φ∘Φ_{s→t}` Steps 4–6 can compose against it.]**
+
+Per slice `s ∈ Ioo 0 T`, Step 2 (`exists_charFlow_inverse_On`) already gives the inverse `Ψ_s` and
+its invertible derivative family `e` (`= M_s z`, `#3`/D1c); here we upgrade to JOINT `(s,w)`
+regularity via the space-time chart.
+
+**Proof plan (atoms scouted + verified, 2026-06-16):**
+1. **Forward chart `Ξ : (s,z) ↦ (s, Φ_s z)` is `ContDiffAt ℝ 1` at each `(s₀,z₀) ∈ Ioo 0 T ×ˢ univ`.**
+   `Φ := (charX·, charV·)` is jointly `C¹` (`charFlow_hasFDerivAt_joint`, item (iii) — `∃ DΦ`,
+   `HasFDerivAt`-everywhere + `ContinuousOn DΦ`); lift to `ContDiffAt ℝ 1 Φ` via
+   `contDiffAt_succ_iff_hasFDerivAt` (`Mathlib/.../ContDiff/Defs.lean:994`, `n := 0`: feed `DΦ`, the
+   open nbhd `U ∈ 𝓝`, `HasFDerivAt`-on-`U`, and `ContDiffAt 0 DΦ` from `contDiffAt_zero` +
+   `ContinuousOn DΦ U`).  `Ξ = (fst, Φ)` so `ContDiffAt ℝ 1 Ξ` via `ContDiffAt.prod` with
+   `contDiffAt_fst`.
+2. **`DΞ(s₀,z₀)` is an invertible `≃L`.**  Block-lower-triangular `(h,k) ↦ (h, h•b + M·k)` with
+   `b := b_{s₀}(Φ_{s₀}z₀)`, `M := M_{s₀}z₀` invertible (Step 2's `e₀ z₀`).  Build the `ℝ×E ≃L ℝ×E`
+   via `ContinuousLinearEquiv.ofBijective` (inject: `(h,k)↦0 ⇒ h=0`, then `M k=0 ⇒ k=0`; finite-dim
+   `LinearMap.injective_iff_surjective`).  `HasStrictFDerivAt Ξ (this ≃L) (s₀,z₀)` via
+   `ContDiffAt.hasStrictFDerivAt'`.
+3. **Local `C¹` inverse + patch.**  `ContDiffAt.to_localInverse`
+   (`Mathlib/.../InverseFunctionTheorem/ContDiff.lean:66`) ⇒ `Ξ.localInverse` is `ContDiffAt ℝ 1` at
+   `Ξ(s₀,z₀) = (s₀, Φ_{s₀}z₀)`.  The global `(s,w)↦(s, Ψ_s w)` agrees with `Ξ.localInverse` on a nbhd
+   (both left-inverses; `Ξ` injective on `Ioo 0 T ×ˢ univ` since `s` is preserved + each `Φ_s`
+   injective per Step 2) ⇒ `ContDiffAt.congr` ⇒ `(s,w)↦(s,Ψ_s w)` is `ContDiffAt ℝ 1` at each point
+   ⇒ `ContDiffOn ℝ 1` (projecting off the `s` component, `ContDiffAt.snd`).
+4. **Bijectivity** is the per-slice `LeftInverse`/`RightInverse` from `exists_charFlow_inverse_On`,
+   packaged into the `s`-indexed `Ψ`.
+The two-time flow `Φ_{s→t} = Φ_t ∘ Ψ_s` is then jointly `C¹` by composing with `Φ_t` (`C¹` in its
+argument, `#3`), and the dual core's transport identity differentiates it. -/
+theorem charFlow_inverse_contDiffOn_joint
+    (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (T : ℝ) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
+    (hf_cont : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ s) x))
+    (hρD_cont : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+    ∃ Ψ : ℝ → PhaseSpace d → PhaseSpace d,
+      (∀ s ∈ Set.Ioo (0:ℝ) T,
+        Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
+      (∀ s ∈ Set.Ioo (0:ℝ) T,
+        Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
+      ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) := by
+  sorry
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
