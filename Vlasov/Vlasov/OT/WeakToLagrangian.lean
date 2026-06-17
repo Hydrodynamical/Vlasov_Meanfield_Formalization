@@ -2637,6 +2637,156 @@ theorem charFlow_inverse_contDiffOn_joint
   rw [hpt_eq]
   exact (hG_cda.snd).contDiffWithinAt
 
+/-! ### Step 4 — the transported test function and the transport identity
+
+The dual core's `s ↦ ∫ ψ_s d(f s)` argument rests on the backward-transported test
+`ψ_s := φ ∘ Φ_{s→t}` where `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹` is the two-time flow (Step 3 gave it jointly
+`C¹`).  Two deliverables, both taking the *outputs* of Step 3 (the inverse `Ψ` + the `C¹` terminal
+map `Φ_t`) as hypotheses rather than re-deriving them from the flow-construction data: -/
+
+/-- **Step 4 (4a) — the two-time flow `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹` is jointly `C¹`** on
+`Ioo 0 T ×ˢ univ`.
+
+The two-time flow `(s,w) ↦ (charX t (Ψ_s w), charV t (Ψ_s w))` is the composition of the terminal
+map `Φ_t = (charX t ·, charV t ·)` (`C¹` in its argument — `hΦt_C1`, from Step 2 / item (iii) at the
+fixed time `t`) with the jointly-`C¹` inverse family `(s,w) ↦ Ψ_s w` (`hΨ_C1`, item (iv)).  Proof:
+`ContDiff.comp_contDiffOn`. -/
+theorem twoTimeFlow_contDiffOn_joint
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T t : ℝ)
+    (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
+    (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.univ))
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z))) :
+    ContDiffOn ℝ 1
+      (fun p : ℝ × PhaseSpace d => ((charX t (Ψ p.1 p.2), charV t (Ψ p.1 p.2)) : PhaseSpace d))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) :=
+  hΦt_C1.comp_contDiffOn hΨ_C1
+
+/-- **Step 4 (4b) — the transport identity `∂_s ψ_s + Dψ_s · b_s = 0`.**
+
+For the backward-transported test `ψ_s(w) := φ(Φ_t(Ψ_s w)) = φ(Φ_{s→t} w)`, the partial
+`s`-derivative cancels the spatial directional derivative along the field:
+`∂_s ψ_s(w) = -(Dψ_s(w))(b_s(w))`, where `b_s = vlasovVectorField gradW ρ s` and
+`Dψ_s(w) = fderiv ℝ (ψ s) w`.  This is the dual of `vlasov_traj_chain_rule` (the pushforward
+direction) and the engine that makes `s ↦ ∫ ψ_s d(f s)` constant in Step 6.
+
+Proof:
+* `ψ` is jointly `C¹` on `Ioo 0 T ×ˢ univ` (4a + `φ` smooth), so `HasFDerivAt (uncurry ψ) Dψ (s,w)`
+  at the interior point `(s,w)`, with `Dψ` the joint Fréchet derivative.
+* Constancy curve: set `z₀ := Ψ_s w`, so `w = Φ_s z₀` (`hΨ_right`).  The composite
+  `s' ↦ ψ_{s'}(Φ_{s'} z₀) = φ(Φ_t(Ψ_{s'}(Φ_{s'} z₀))) = φ(Φ_t z₀)` is **constant** in `s'`
+  (`hΨ_left`: `Ψ_{s'} ∘ Φ_{s'} = id`), hence has zero `s'`-derivative.
+* The curve `c(s') := (s', Φ_{s'} z₀)` has `HasDerivAt c (1, b_s w) s` (`hflow_ode` + `id`), with
+  `c(s) = (s, w)`.  Chain rule: `0 = Dψ(s,w)(1, b_s w) = Dψ(s,w)(1,0) + Dψ(s,w)(0, b_s w)`.
+* `Dψ(s,w)(1,0) = ∂_s ψ_s(w)` (compose `uncurry ψ` with `s' ↦ (s', w)`) and
+  `Dψ(s,w)(0,k) = (fderiv ℝ (ψ s) w) k` (compose with `w' ↦ (s, w')`).  Surjectivity (`hΨ_right`)
+  covers every `w`.  Rearrange to the claimed `HasDerivAt`. -/
+theorem transportedTest_transport_identity
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T t : ℝ)
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
+    (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
+    (hΨ_left : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_right : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.univ))
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)))
+    (hflow_ode : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      HasDerivAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ s (charX s z, charV s z)) s)
+    (s : ℝ) (hs : s ∈ Set.Ioo (0 : ℝ) T) (w : PhaseSpace d) :
+    HasDerivAt (fun s' => φ (charX t (Ψ s' w), charV t (Ψ s' w)))
+      (-(fderiv ℝ (fun w' : PhaseSpace d => φ (charX t (Ψ s w'), charV t (Ψ s w'))) w
+          (vlasovVectorField gradW ρ s w))) s := by
+  classical
+  -- uncurried two-time flow and transported test
+  set G2 : ℝ × PhaseSpace d → PhaseSpace d :=
+    fun p => (charX t (Ψ p.1 p.2), charV t (Ψ p.1 p.2)) with hG2_def
+  set g : ℝ × PhaseSpace d → ℝ := fun p => φ (G2 p) with hg_def
+  have hopen : IsOpen (Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+    isOpen_Ioo.prod isOpen_univ
+  have hmem : ((s, w) : ℝ × PhaseSpace d) ∈ Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) :=
+    ⟨hs, Set.mem_univ _⟩
+  -- right-inverse identity: Φ_s (Ψ_s w) = w
+  have hw : (charX s (Ψ s w), charV s (Ψ s w)) = w := hΨ_right s hs w
+  -- g is jointly C¹, hence HasFDerivAt at the interior point (s,w)
+  have hG2_cd : ContDiffOn ℝ 1 G2 (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) :=
+    twoTimeFlow_contDiffOn_joint charX charV T t Ψ hΨ_C1 hΦt_C1
+  have hG2_diff : DifferentiableAt ℝ G2 (s, w) :=
+    hG2_cd.differentiableOn_one.differentiableAt (hopen.mem_nhds hmem)
+  have hφ_diff : DifferentiableAt ℝ φ (G2 (s, w)) := hφ.differentiable (by simp) _
+  have hg_fderiv : HasFDerivAt g (fderiv ℝ g (s, w)) (s, w) :=
+    (hφ_diff.comp (s, w) hG2_diff).hasFDerivAt
+  set G := fderiv ℝ g (s, w) with hG_def
+  -- (A) spatial slice w' ↦ g (s, w') : fderiv = G ∘ inr
+  have hslice_fderiv : HasFDerivAt (fun w' : PhaseSpace d => g (s, w'))
+      (G.comp (ContinuousLinearMap.inr ℝ ℝ (PhaseSpace d))) w := by
+    have := hg_fderiv.comp w (hasFDerivAt_prodMk_right s w)
+    simpa only [Function.comp_def] using this
+  -- (B) ∂_s slice s' ↦ g (s', w) : HasDerivAt with value G (1, 0)
+  have hscurve : HasDerivAt (fun s' => ((s', w) : ℝ × PhaseSpace d))
+      ((1 : ℝ), (0 : PhaseSpace d)) s :=
+    (hasDerivAt_id s).prodMk (hasDerivAt_const s w)
+  have hs_slice : HasDerivAt (fun s' => g (s', w)) (G ((1 : ℝ), (0 : PhaseSpace d))) s := by
+    have := hg_fderiv.comp_hasDerivAt s hscurve
+    simpa only [Function.comp_def] using this
+  -- (C) constancy curve c(s') = (s', Φ_{s'} (Ψ_s w)); chain rule gives G(1, b)
+  have hccurve : HasDerivAt
+      (fun s' => ((s', (charX s' (Ψ s w), charV s' (Ψ s w))) : ℝ × PhaseSpace d))
+      ((1 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w))) s :=
+    (hasDerivAt_id s).prodMk (hflow_ode (Ψ s w) s hs)
+  have hcs : ((s, (charX s (Ψ s w), charV s (Ψ s w))) : ℝ × PhaseSpace d) = (s, w) := by rw [hw]
+  have hgc : HasDerivAt (fun s' => g (s', (charX s' (Ψ s w), charV s' (Ψ s w))))
+      (G ((1 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w)))) s := by
+    have hF := hg_fderiv
+    rw [← hcs] at hF
+    have := hF.comp_hasDerivAt s hccurve
+    simpa only [Function.comp_def] using this
+  -- (D) the composite is eventually constant near s, so its derivative is 0
+  have hconst : (fun s' => g (s', (charX s' (Ψ s w), charV s' (Ψ s w)))) =ᶠ[nhds s]
+      (fun _ => φ (charX t (Ψ s w), charV t (Ψ s w))) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hs] with s' hs'
+    simp only [hg_def, hG2_def]
+    rw [hΨ_left s' hs' (Ψ s w)]
+  have hgc0 : HasDerivAt (fun s' => g (s', (charX s' (Ψ s w), charV s' (Ψ s w)))) 0 s :=
+    (hasDerivAt_const s (φ (charX t (Ψ s w), charV t (Ψ s w)))).congr_of_eventuallyEq hconst
+  -- (E) uniqueness: G (1, b) = 0
+  have hGzero : G ((1 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w))) = 0 :=
+    hgc.unique hgc0
+  -- (F) split G(1,b) = G(1,0) + G(0,b); identify G(0,b) with the target fderiv applied to b
+  have hsplit : ((1 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w)))
+      = ((1 : ℝ), (0 : PhaseSpace d))
+        + ((0 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w))) := by
+    ext <;> simp
+  have hb_eq : vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w))
+      = vlasovVectorField gradW ρ s w := by rw [hw]
+  have hG0b : G ((0 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w)))
+      = (fderiv ℝ (fun w' : PhaseSpace d => φ (charX t (Ψ s w'), charV t (Ψ s w'))) w)
+          (vlasovVectorField gradW ρ s w) := by
+    have hfd : fderiv ℝ (fun w' : PhaseSpace d => g (s, w')) w
+        = G.comp (ContinuousLinearMap.inr ℝ ℝ (PhaseSpace d)) := hslice_fderiv.fderiv
+    have hfun : (fun w' : PhaseSpace d => g (s, w'))
+        = (fun w' : PhaseSpace d => φ (charX t (Ψ s w'), charV t (Ψ s w'))) := rfl
+    rw [hfun] at hfd
+    rw [hfd, ContinuousLinearMap.comp_apply, ContinuousLinearMap.inr_apply, hb_eq]
+  -- (G) G(1,0) = -(target fderiv)(b)
+  have hval : G ((1 : ℝ), (0 : PhaseSpace d))
+      = -(fderiv ℝ (fun w' : PhaseSpace d => φ (charX t (Ψ s w'), charV t (Ψ s w'))) w)
+          (vlasovVectorField gradW ρ s w) := by
+    have hsum : G ((1 : ℝ), (0 : PhaseSpace d))
+        + G ((0 : ℝ), vlasovVectorField gradW ρ s (charX s (Ψ s w), charV s (Ψ s w))) = 0 := by
+      rw [← map_add, ← hsplit]; exact hGzero
+    rw [hG0b] at hsum
+    linarith [hsum]
+  -- (H) conclude
+  have hgoalfun : (fun s' => φ (charX t (Ψ s' w), charV t (Ψ s' w)))
+      = (fun s' => g (s', w)) := rfl
+  rw [hgoalfun, ← hval]
+  exact hs_slice
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
