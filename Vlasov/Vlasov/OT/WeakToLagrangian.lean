@@ -2787,6 +2787,199 @@ theorem transportedTest_transport_identity
   rw [hgoalfun, ← hval]
   exact hs_slice
 
+
+-- #4 (Step 5 interface): the weak evolution equation extended to C¹_c test functions.
+theorem weakEvolution_test_C1c_On
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (χ : PhaseSpace d → ℝ) (hχ_C1 : ContDiff ℝ 1 χ) (hχc : HasCompactSupport χ)
+    (gradXχ gradVχ : PhaseSpace d → PhysSpace d)
+    (hgradXχ : ∀ z, gradXχ z = gradient (fun x => χ (x, z.2)) z.1)
+    (hgradVχ : ∀ z, gradVχ z = gradient (fun v => χ (z.1, v)) z.2)
+    (s : ℝ) (hs : s ∈ Set.Ioo (0 : ℝ) T) :
+    HasDerivAt (fun σ => ∫ z, χ z ∂(f σ))
+      (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXχ z)
+             - @inner ℝ (PhysSpace d) _
+                (convolveFunctionMeasure gradW (spatialMarginal (f s)) z.1) (gradVχ z)) ∂(f s)) s := by
+  sorry
+
+-- NC (consumption form): integral of a jointly-continuous, uniformly-compactly-supported
+-- family against the weak-solution measure curve is continuous in time.
+theorem vlasovSolutionOn_integral_continuousOn
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (G : ℝ → PhaseSpace d → ℝ)
+    (hG_cont : Continuous (fun p : ℝ × PhaseSpace d => G p.1 p.2))
+    (K : Set (PhaseSpace d)) (hK : IsCompact K)
+    (hG_supp : ∀ s, ∀ z ∉ K, G s z = 0) :
+    ContinuousOn (fun s => ∫ z, G s z ∂(f s)) (Set.Icc (0 : ℝ) T) := by
+  sorry
+
+-- #6a: the transported integral has zero derivative on the open interval.
+theorem transportedIntegral_hasDerivAt_zero
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
+    (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
+    (hΨ_left : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_right : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+      (Set.Ioo 0 T ×ˢ Set.univ))
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)))
+    (s : ℝ) (hs : s ∈ Set.Ioo (0 : ℝ) t) :
+    HasDerivAt (fun σ => ∫ z, φ (charX t (Ψ σ z), charV t (Ψ σ z)) ∂(f σ)) 0 s := by
+  sorry
+
+-- #6b: the transported integral (with the s=0 endpoint patched to the RHS value) is
+-- continuous on the closed interval [0,t].
+theorem transportedIntegral_continuousOn
+    (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
+    (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
+    (hΨ_left : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_right : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+      (Set.Ioo 0 T ×ˢ Set.univ))
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z))) :
+    ContinuousOn (fun s => if s = 0 then ∫ z, φ (charX t z, charV t z) ∂(f 0)
+        else ∫ z, φ (charX t (Ψ s z), charV t (Ψ s z)) ∂(f s)) (Set.Icc (0 : ℝ) t) := by
+  sorry
+
+-- dualCore_main: the dual core for 0 < t ≤ T (subsumes the t = T terminal via the same
+-- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +
+-- transportedIntegral_const_On + the endpoint identities.
+theorem dualCore_main
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_cont : ∀ x, Continuous
+      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (hderivIco : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z))
+        (Set.Ici s) s)
+    (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
+    (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
+    (hΨ_left : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_right : ∀ s ∈ Set.Ioo (0 : ℝ) T,
+      Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
+    (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+      (Set.Ioo 0 T ×ˢ Set.univ))
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z))) :
+    ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
+  -- the if-patched transported integral
+  set I : ℝ → ℝ := fun s => if s = 0 then ∫ z, φ (charX t z, charV t z) ∂(f 0)
+      else ∫ z, φ (charX t (Ψ s z), charV t (Ψ s z)) ∂(f s) with hI_def
+  -- endpoint values
+  have hI0 : I 0 = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by simp [hI_def]
+  have htne : t ≠ 0 := ne_of_gt ht.1
+  have hIt : I t = ∫ z, φ z ∂(f t) := by
+    simp only [hI_def, if_neg htne]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
+    show φ (charX t (Ψ t z), charV t (Ψ t z)) = φ z
+    have hri : (charX t (Ψ t z), charV t (Ψ t z)) = z := hΨ_right t ht z
+    rw [hri]
+  -- zero derivative on Ioo 0 t (the un-patched form agrees with I near interior s)
+  have hderiv : ∀ s ∈ Set.Ioo (0 : ℝ) t, HasDerivAt I 0 s := by
+    intro s hs
+    have hbase := transportedIntegral_hasDerivAt_zero gradW f T hf_weak hf_mom charX charV
+      hflow t ht φ hφ hφc Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 s hs
+    refine hbase.congr_of_eventuallyEq ?_
+    filter_upwards [isOpen_Ioo.mem_nhds hs] with s' hs' using by
+      simp only [hI_def, if_neg (ne_of_gt hs'.1)]
+  -- continuity on Icc 0 t
+  have hcont : ContinuousOn I (Set.Icc (0 : ℝ) t) :=
+    transportedIntegral_continuousOn gradW f T hf_weak hf_mom charX charV hflow t ht φ hφ hφc
+      Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1
+  -- constancy: I 0 = I t
+  have hconst : I 0 = I t := transportedIntegral_const_On ht.1 hcont hderiv
+  rw [hI0, hIt] at hconst
+  exact hconst.symm
+
+-- frozenFlow_inverse_On: the item-(iv) discharge — produces the jointly-C¹ inverse Ψ + the
+-- four facts dualCore_main consumes, from the raw dual core hypotheses (L11 clamp for the
+-- universal probability instance, h_int from hL + moments, etc.).
+theorem frozenFlow_inverse_On
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_cont : ∀ x, Continuous
+      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ Ψ : ℝ → PhaseSpace d → PhaseSpace d,
+      (∀ s ∈ Set.Ioo (0 : ℝ) T,
+        Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
+      (∀ s ∈ Set.Ioo (0 : ℝ) T,
+        Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
+      ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) ∧
+      ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+  sorry
+
+-- dualCore_terminal: the t = T endpoint, by a t → T⁻ limit of the Ioo result (LHS continuous
+-- in t via narrow continuity, RHS via continuity of Φ_t in t).
+theorem dualCore_terminal
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (hcontIcc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ) :
+    ∫ z, φ z ∂(f T) = ∫ z, φ (charX T z, charV T z) ∂(f 0) := by
+  sorry
+
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The genuine remaining crux: the dual transported-test-function argument showing the weak solution
@@ -2794,22 +2987,32 @@ The genuine remaining crux: the dual transported-test-function argument showing 
 test `φ`.  Let `Φ_{s→t}` be the two-time flow (forward from time `s` to time `t` along the
 frozen-field characteristics) and `ψ_s := φ ∘ Φ_{s→t}` the backward-transported test
 (so `ψ_t = φ` and `ψ_0 = φ ∘ Φ_t`).  Then:
-* The flow is `C¹` in the initial point (`charFlow_hasFDerivAt_in_initialPoint`, #3 — proven), so
-  with a `C¹` two-time flow `ψ_s` is `C¹_c`; the linear weak equation extends from the `C_c^∞`
-  test class to this `C¹_c` test (**#4**, deferred — shape pending the two-time-flow representation).
-* `ψ_s` satisfies the transport identity `∂_sψ_s + ⟨b, ∇ψ_s⟩ = 0` (**#5**, deferred — needs the
-  two-time flow `Φ_{s→t}`), so `s ↦ ∫ ψ_s d(f s)` has zero derivative on `Ioo 0 t` (**#6**,
-  deferred), hence is constant on `[0,t]` (`transportedIntegral_const_On`, #7 — proven).
-* Constancy at the endpoints gives `∫ φ d(f t) = ∫ ψ_t d(f t) = ∫ ψ_0 d(f 0) = ∫ φ∘Φ_t d(f 0)`.
+**Now WIRED** (this body composes locked leaves — no direct `sorry`).  The two-time flow
+`Φ_{s→t} = Φ_t ∘ Φ_s⁻¹` is jointly `C¹` (Steps 1–4, proven: `charFlow_inverse_contDiffOn_joint` +
+`transportedTest_transport_identity`).  The constancy of `I(s) := ∫ ψ_s d(f s)` on `[0,t]` is
+assembled by `dualCore_main` (sorry-free): the `if`-patched `I` (the left endpoint `s = 0`, where
+item-(iv) `Ψ_s` is junk, is set directly to `∫ φ∘Φ_t d(f 0)`), endpoint identities
+`I 0 = ∫ φ∘Φ_t d(f 0)` and `I t = ∫ φ d(f t)` (via the right-inverse `Ψ_t`), then
+`transportedIntegral_const_On` (#7).  `t = 0` is trivial (`Φ_0 = id`); `t = T` goes through
+`dualCore_terminal` (a `t → T⁻` limit).
+
+The constancy rests on six locked leaves (the remaining analytic grind):
+* **`weakEvolution_test_C1c_On`** (#4 = **Step 5**) — the linear weak equation extended from the
+  `C_c^∞` test class to `C¹_c` (so it can be tested against the only-`C¹` `ψ_r`).
+* **`vlasovSolutionOn_integral_continuousOn`** (NC) — `s ↦ ∫ G s · d(f s)` is continuous for a
+  jointly-continuous, uniformly-compactly-supported family `G` (narrow continuity of the weak
+  solution, consumption form; derivable from the weak eq + moments).
+* **`transportedIntegral_hasDerivAt_zero`** (#6a) — `HasDerivAt I 0` on `Ioo 0 t`, the diagonal
+  chain rule: `∂_σ` via #4 + `∂_r` via differentiation-under-the-integral against `f s` + the
+  transport-identity cancellation; assembles via the Step-3 continuous-partials gating theorem.
+* **`transportedIntegral_continuousOn`** (#6b) — `ContinuousOn I (Icc 0 t)`, via NC + Step-4 joint
+  continuity (the `s → 0⁺` endpoint is the load-bearing case).
+* **`frozenFlow_inverse_On`** — the item-(iv) discharge producing `Ψ` + its four facts (L11 clamp
+  for the universal probability instance).
+* **`dualCore_terminal`** — the `t = T` endpoint.
 
 The pushforward side is `integral_map` by definition, so the dual argument is needed only for `f`
-(the plan's `#1` pushforward-solves-linear lemma is not on this path).  `#4`/`#5`/`#6` are
-**deliberately not locked** as Lean signatures (P5): their shapes depend on the two-time-flow
-representation `Φ_{s→t}` (invertibility via Liouville `det M_s ≠ 0` + IFT, or a backward-flow
-construction) — a C3-open architectural choice to be fixed by atom-level reading at the grind.
-
-This is the project's last remaining `sorry`.  Its signature is `#8`'s hypothesis list verbatim
-(the crux consumes essentially all of it). -/
+(the plan's `#1` pushforward-solves-linear lemma is not on this path). -/
 theorem weak_eq_frozenField_pushforward_dualCore
     (W : PhysSpace d → ℝ) [AssW2 W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -2837,7 +3040,22 @@ theorem weak_eq_frozenField_pushforward_dualCore
     ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ φ : PhaseSpace d → ℝ,
       ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
       ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
-  sorry
+  intro t ht φ hφ hφc
+  rcases eq_or_lt_of_le ht.1 with h0 | h0
+  · -- t = 0 : trivial, `Φ_0 = id` (hinit)
+    rw [← h0]
+    simp only [hinit]
+  · rcases eq_or_lt_of_le ht.2 with hTe | hlt
+    · -- t = T : terminal endpoint via the `t → T⁻` limit
+      rw [hTe]
+      exact dualCore_terminal W gradW hgradW L hL f T hT hf_weak hf_mom charX charV hflow
+        hcontIcc φ hφ hφc
+    · -- t ∈ Ioo 0 T : obtain the inverse `Ψ`, then the constancy assembly
+      obtain ⟨Ψ, hl, hr, hc, hΦ⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
+        hf_cont hf_cont_deriv charX charV hflow hcontIcc t ⟨h0, hlt⟩
+      exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_cont hf_cont_deriv
+        M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ⟨h0, hlt⟩ φ hφ hφc
+        Ψ hl hr hc hΦ
 
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window.**
 
