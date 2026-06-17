@@ -2819,7 +2819,71 @@ theorem vlasovSolutionOn_integral_continuousOn
     (K : Set (PhaseSpace d)) (hK : IsCompact K)
     (hG_supp : ∀ s, ∀ z ∉ K, G s z = 0) :
     ContinuousOn (fun s => ∫ z, G s z ∂(f s)) (Set.Icc (0 : ℝ) T) := by
-  sorry
+  -- Each slice G a is continuous, supported in K, hence integrable wrt the probability f b.
+  have hGs_cont : ∀ a : ℝ, Continuous (fun z => G a z) := fun a =>
+    hG_cont.comp (Continuous.prodMk_right a)
+  have hGs_cs : ∀ a : ℝ, HasCompactSupport (fun z => G a z) := by
+    intro a
+    have hsub : tsupport (fun z => G a z) ⊆ K :=
+      closure_minimal (fun z hz => by by_contra hzK; exact hz (hG_supp a z hzK)) hK.isClosed
+    exact IsCompact.of_isClosed_subset hK (isClosed_tsupport _) hsub
+  have hGint : ∀ (a b : ℝ), b ∈ Set.Icc (0:ℝ) T → Integrable (fun z => G a z) (f b) := by
+    intro a b hb
+    haveI := (hf_mom b hb).1
+    exact (hGs_cont a).integrable_of_hasCompactSupport (hGs_cs a)
+  -- Uniform continuity of the uncurried G on the compact Icc 0 T ×ˢ K.
+  have hC : IsCompact (Set.Icc (0:ℝ) T ×ˢ K) := isCompact_Icc.prod hK
+  have hG_uc : UniformContinuousOn (fun p : ℝ × PhaseSpace d => G p.1 p.2)
+      (Set.Icc (0:ℝ) T ×ˢ K) :=
+    hC.uniformContinuousOn_of_continuous hG_cont.continuousOn
+  rw [Metric.uniformContinuousOn_iff] at hG_uc
+  -- Main ε–δ.
+  rw [Metric.continuousOn_iff]
+  intro s₀ hs₀ ε hε
+  obtain ⟨δ₁, hδ₁, hδ₁_prop⟩ := hG_uc (ε/2) (by positivity)
+  -- term2: narrow continuity of f tested against the frozen g := G s₀.
+  have hterm2 : ContinuousWithinAt (fun s => ∫ z, G s₀ z ∂(f s)) (Set.Icc 0 T) s₀ :=
+    (hf_narrow (fun z => G s₀ z) (hGs_cont s₀) (hGs_cs s₀)) s₀ hs₀
+  rw [Metric.continuousWithinAt_iff] at hterm2
+  obtain ⟨δ₂, hδ₂, hδ₂_prop⟩ := hterm2 (ε/2) (by positivity)
+  refine ⟨min δ₁ δ₂, lt_min hδ₁ hδ₂, fun s hs hsd => ?_⟩
+  haveI hp_s : IsProbabilityMeasure (f s) := (hf_mom s hs).1
+  have hsd1 : dist s s₀ < δ₁ := lt_of_lt_of_le hsd (min_le_left _ _)
+  have hsd2 : dist s s₀ < δ₂ := lt_of_lt_of_le hsd (min_le_right _ _)
+  -- pointwise: |G s z - G s₀ z| ≤ ε/2 (uniform continuity on K; both zero off K)
+  have hpoint : ∀ z, |G s z - G s₀ z| ≤ ε/2 := by
+    intro z
+    by_cases hzK : z ∈ K
+    · have hp : ((s, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0:ℝ) T ×ˢ K := ⟨hs, hzK⟩
+      have hq : ((s₀, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0:ℝ) T ×ˢ K := ⟨hs₀, hzK⟩
+      have hdpq : dist ((s, z) : ℝ × PhaseSpace d) (s₀, z) < δ₁ := by
+        rw [Prod.dist_eq]
+        exact max_lt hsd1 (by rw [dist_self]; exact hδ₁)
+      have hlt := hδ₁_prop _ hp _ hq hdpq
+      rw [Real.dist_eq] at hlt
+      exact le_of_lt hlt
+    · rw [hG_supp s z hzK, hG_supp s₀ z hzK, sub_zero, abs_zero]; positivity
+  -- split the s-integral
+  have key : ∫ z, G s z ∂(f s) - ∫ z, G s₀ z ∂(f s)
+      = ∫ z, (G s z - G s₀ z) ∂(f s) :=
+    (integral_sub (hGint s s hs) (hGint s₀ s hs)).symm
+  have hfirst : dist (∫ z, G s z ∂(f s)) (∫ z, G s₀ z ∂(f s)) ≤ ε/2 := by
+    rw [Real.dist_eq, key]
+    calc |∫ z, (G s z - G s₀ z) ∂(f s)|
+        ≤ ∫ z, |G s z - G s₀ z| ∂(f s) := by
+            have h := norm_integral_le_integral_norm (μ := f s) (fun z => G s z - G s₀ z)
+            simpa only [Real.norm_eq_abs] using h
+      _ ≤ ∫ _z, (ε/2) ∂(f s) :=
+            integral_mono (((hGint s s hs).sub (hGint s₀ s hs)).abs)
+              (integrable_const _) hpoint
+      _ = ε/2 := by simp
+  have hsecond : dist (∫ z, G s₀ z ∂(f s)) (∫ z, G s₀ z ∂(f s₀)) < ε/2 :=
+    hδ₂_prop hs hsd2
+  calc dist (∫ z, G s z ∂(f s)) (∫ z, G s₀ z ∂(f s₀))
+      ≤ dist (∫ z, G s z ∂(f s)) (∫ z, G s₀ z ∂(f s))
+        + dist (∫ z, G s₀ z ∂(f s)) (∫ z, G s₀ z ∂(f s₀)) := dist_triangle _ _ _
+    _ < ε/2 + ε/2 := add_lt_add_of_le_of_lt hfirst hsecond
+    _ = ε := by ring
 
 -- #6a: the transported integral has zero derivative on the open interval.
 theorem transportedIntegral_hasDerivAt_zero
