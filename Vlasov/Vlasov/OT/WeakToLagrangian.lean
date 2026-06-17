@@ -2812,6 +2812,8 @@ theorem vlasovSolutionOn_integral_continuousOn
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (G : ℝ → PhaseSpace d → ℝ)
     (hG_cont : Continuous (fun p : ℝ × PhaseSpace d => G p.1 p.2))
     (K : Set (PhaseSpace d)) (hK : IsCompact K)
@@ -2825,6 +2827,8 @@ theorem transportedIntegral_hasDerivAt_zero
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
       (Set.Ioo 0 T) Set.univ)
@@ -2849,6 +2853,8 @@ theorem transportedIntegral_continuousOn
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
       (Set.Ioo 0 T) Set.univ)
@@ -2876,6 +2882,8 @@ theorem dualCore_main
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
     (hf_cont_deriv : ContinuousOn
@@ -2919,14 +2927,14 @@ theorem dualCore_main
   -- zero derivative on Ioo 0 t (the un-patched form agrees with I near interior s)
   have hderiv : ∀ s ∈ Set.Ioo (0 : ℝ) t, HasDerivAt I 0 s := by
     intro s hs
-    have hbase := transportedIntegral_hasDerivAt_zero gradW f T hf_weak hf_mom charX charV
+    have hbase := transportedIntegral_hasDerivAt_zero gradW f T hf_weak hf_mom hf_narrow charX charV
       hflow t ht φ hφ hφc Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 s hs
     refine hbase.congr_of_eventuallyEq ?_
     filter_upwards [isOpen_Ioo.mem_nhds hs] with s' hs' using by
       simp only [hI_def, if_neg (ne_of_gt hs'.1)]
   -- continuity on Icc 0 t
   have hcont : ContinuousOn I (Set.Icc (0 : ℝ) t) :=
-    transportedIntegral_continuousOn gradW f T hf_weak hf_mom charX charV hflow t ht φ hφ hφc
+    transportedIntegral_continuousOn gradW f T hf_weak hf_mom hf_narrow charX charV hflow t ht φ hφ hφc
       Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1
   -- constancy: I 0 = I t
   have hconst : I 0 = I t := transportedIntegral_const_On ht.1 hcont hderiv
@@ -2971,6 +2979,8 @@ theorem dualCore_terminal
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
       (Set.Ioo 0 T) Set.univ)
@@ -3020,6 +3030,8 @@ theorem weak_eq_frozenField_pushforward_dualCore
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
     (hf_cont_deriv : ContinuousOn
@@ -3048,12 +3060,12 @@ theorem weak_eq_frozenField_pushforward_dualCore
   · rcases eq_or_lt_of_le ht.2 with hTe | hlt
     · -- t = T : terminal endpoint via the `t → T⁻` limit
       rw [hTe]
-      exact dualCore_terminal W gradW hgradW L hL f T hT hf_weak hf_mom charX charV hflow
+      exact dualCore_terminal W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow charX charV hflow
         hcontIcc φ hφ hφc
     · -- t ∈ Ioo 0 T : obtain the inverse `Ψ`, then the constancy assembly
       obtain ⟨Ψ, hl, hr, hc, hΦ⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
         hf_cont hf_cont_deriv charX charV hflow hcontIcc t ⟨h0, hlt⟩
-      exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_cont hf_cont_deriv
+      exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
         M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ⟨h0, hlt⟩ φ hφ hφc
         Ψ hl hr hc hΦ
 
@@ -3072,6 +3084,8 @@ theorem weak_eq_frozenField_pushforward_On
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
     (hf_cont_deriv : ContinuousOn
@@ -3181,7 +3195,7 @@ theorem weak_eq_frozenField_pushforward_On
     Measure.isProbabilityMeasure_map hΦt_aem
   refine measure_eq_of_forall_Cc_integral_eq (fun φ hφ hφc => ?_)
   rw [integral_map hΦt_aem hφ.continuous.aestronglyMeasurable]
-  exact weak_eq_frozenField_pushforward_dualCore W gradW hgradW L hL f T hT hf_weak hf_mom
+  exact weak_eq_frozenField_pushforward_dualCore W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow
     hf_cont hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ht φ hφ hφc
 
 /-- **Weak ⟹ Lagrangian on `[0,T]`** (tex: thm:weak-lagrangian).
@@ -3212,6 +3226,8 @@ theorem weak_isLagrangianVlasovSolutionOn
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (hf_cont : ∀ x, Continuous
       (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
     (hf_cont_deriv : ContinuousOn
@@ -3281,7 +3297,7 @@ theorem weak_isLagrangianVlasovSolutionOn
   -- #8: `f` equals its frozen-field pushforward on the window (the dual-argument crux).
   have hpush : ∀ t ∈ Set.Icc (0 : ℝ) T,
       f t = Measure.map (fun z : PhaseSpace d => (charX t z, charV t z)) (f 0) :=
-    weak_eq_frozenField_pushforward_On W gradW hgradW L hL f T hT hf_weak hf_mom hf_cont
+    weak_eq_frozenField_pushforward_On W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont
       hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco
   -- Assemble the localized Lagrangian witness.
   refine ⟨hf_weak, charX, charV, hflow, hpush, ?_, hcontIcc⟩
