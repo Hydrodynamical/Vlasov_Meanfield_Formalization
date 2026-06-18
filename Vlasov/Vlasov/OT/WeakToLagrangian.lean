@@ -3032,7 +3032,94 @@ theorem frozenFlow_inverse_On
         Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
       ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) ∧
       ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)) := by
-  sorry
+  classical
+  have hgradW_C1 : ContDiff ℝ 1 gradW := assW2_contDiff_gradW W gradW hgradW
+  -- window force-integrability from finite moment + Lipschitz (h_int_helper template)
+  have h_int_win : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f s)) := by
+    intro s hs x_pt
+    haveI : IsProbabilityMeasure (f s) := (hf_mom s hs).1
+    haveI : IsProbabilityMeasure (spatialMarginal (f s)) :=
+      Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+    have h_aesm : AEStronglyMeasurable (fun y : PhysSpace d => gradW (x_pt - y))
+        (spatialMarginal (f s)) :=
+      (hL.continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable
+    have h_y_int : Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f s)) := by
+      unfold spatialMarginal
+      rw [integrable_map_measure
+        (by exact (continuous_norm.measurable).aestronglyMeasurable)
+        measurable_fst.aemeasurable]
+      refine Integrable.mono' (hf_mom s hs).2
+        ((continuous_norm.comp continuous_fst).aestronglyMeasurable)
+        (Filter.Eventually.of_forall fun z => ?_)
+      change |‖z.1‖| ≤ ‖z‖
+      rw [abs_of_nonneg (norm_nonneg _)]; exact norm_fst_le z
+    have h_dom : ∀ y : PhysSpace d, ‖gradW (x_pt - y)‖ ≤
+        ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖ := by
+      intro y
+      have hd := hL.dist_le_mul (x_pt - y) 0
+      simp only [dist_eq_norm, sub_zero] at hd
+      have h_tri : ‖gradW (x_pt - y)‖ ≤ ‖gradW 0‖ + ‖gradW (x_pt - y) - gradW 0‖ := by
+        have := norm_add_le (gradW (x_pt - y) - gradW 0) (gradW 0)
+        simp only [sub_add_cancel] at this; linarith
+      have h_sub_le : ‖x_pt - y‖ ≤ ‖x_pt‖ + ‖y‖ := norm_sub_le x_pt y
+      have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
+      linarith
+    have h_dom_int : Integrable
+        (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖)
+        (spatialMarginal (f s)) := by
+      have h_norm : Integrable (fun y : PhysSpace d => (L : ℝ) * ‖y‖)
+          (spatialMarginal (f s)) := h_y_int.const_mul (L : ℝ)
+      have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L : ℝ) * ‖x_pt‖ + (L : ℝ) * ‖y‖) =
+                  fun y => (‖gradW 0‖ + (L : ℝ) * ‖x_pt‖) + (L : ℝ) * ‖y‖ := by
+        funext y; ring
+      rw [h_eq]; exact (integrable_const _).add h_norm
+    exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
+  -- L11 clamp into [0,T]
+  set clampT : ℝ → ℝ := fun s => max 0 (min s T) with hclampT_def
+  have hclampT_mem : ∀ s, clampT s ∈ Set.Icc (0 : ℝ) T := by
+    intro s; simp only [hclampT_def, Set.mem_Icc]
+    exact ⟨le_max_left _ _, max_le hT.le (min_le_right _ _)⟩
+  have hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s := by
+    intro s hs; simp only [hclampT_def, min_eq_left hs.2, max_eq_right hs.1]
+  have hclampT_cont : Continuous clampT := by
+    simp only [hclampT_def]; exact continuous_const.max (continuous_id.min continuous_const)
+  set ρ' : ℝ → Measure (PhysSpace d) := fun s => spatialMarginal (f (clampT s)) with hρ'_def
+  haveI hρ'_prob : ∀ s, IsProbabilityMeasure (ρ' s) := by
+    intro s
+    haveI : IsProbabilityMeasure (f (clampT s)) := (hf_mom (clampT s) (hclampT_mem s)).1
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  have h_int' : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ' s) :=
+    fun s x => h_int_win (clampT s) (hclampT_mem s) x
+  have hf_cont' : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ' s) x) :=
+    fun x => (hf_cont x).comp hclampT_cont
+  have hρD_cont' : ContinuousOn
+      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ' p.1))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) := by
+    refine hf_cont_deriv.congr (fun p hp => ?_)
+    simp only [hρ'_def, hclampT_id p.1 hp.1]
+  have hflow' : IsCharacteristicFlowOn gradW ρ' charX charV (Set.Ioo 0 T) Set.univ := by
+    refine ⟨hflow.1, hflow.2.1, fun s hs z hz => ?_⟩
+    have h := hflow.2.2 s hs z hz
+    have hρeq : ρ' s = spatialMarginal (f s) := by
+      simp only [hρ'_def, hclampT_id s (Set.Ioo_subset_Icc_self hs)]
+    rw [hρeq]; exact h
+  -- the per-slice inverse + joint C¹ (Step 3 item iv), ρ-free conclusion
+  obtain ⟨Ψ, hLeft, hRight, hC1⟩ := charFlow_inverse_contDiffOn_joint gradW hgradW_C1 L hL ρ'
+    charX charV T hT hflow' h_int' hf_cont' hρD_cont' hcontIcc
+  -- hΦt_C1: the t-slice ContDiff from joint ContDiffAt
+  have hcdaj := charFlow_contDiffAt_joint gradW hgradW_C1 L hL ρ' charX charV T hT
+    hflow' h_int' hf_cont' hρD_cont' hcontIcc
+  have hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+    rw [contDiff_iff_contDiffAt]
+    intro z
+    have hjoint : ContDiffAt ℝ 1
+        (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) (t, z) :=
+      hcdaj (t, z) ⟨ht, Set.mem_univ _⟩
+    have hinner : ContDiffAt ℝ 1 (fun z' : PhaseSpace d => ((t : ℝ), z')) z :=
+      (contDiffAt_const).prodMk contDiffAt_id
+    exact hjoint.comp z hinner
+  exact ⟨Ψ, hLeft, hRight, hC1, hΦt_C1⟩
 
 -- dualCore_terminal: the t = T endpoint, by a t → T⁻ limit of the Ioo result (LHS continuous
 -- in t via narrow continuity, RHS via continuity of Φ_t in t).
