@@ -3366,25 +3366,64 @@ theorem frozenFlow_inverse_On
     simpa using this
   exact ⟨Ψ, hLeft, hRight, hC1, hΦt_C1, hflowjoint, hanti⟩
 
--- dualCore_terminal: the t = T endpoint, by a t → T⁻ limit of the Ioo result (LHS continuous
--- in t via narrow continuity, RHS via continuity of Φ_t in t).
+-- dualCore_terminal: the t = T endpoint, by a t → T⁻ limit of the Ioo dual core `hIoo`.
+-- LHS continuity at T via narrow continuity (hf_narrow); RHS via filter-DCT against the fixed
+-- measure f 0 (joint flow continuity for measurability + per-z continuity for the pointwise limit).
+open Filter Topology in
 theorem dualCore_terminal
-    (W : PhysSpace d → ℝ) [AssW2 W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
       ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
-    (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
-      (Set.Ioo 0 T) Set.univ)
     (hcontIcc : ∀ z : PhaseSpace d,
       ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
-    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ) :
+    (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))))
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
+    (hIoo : ∀ t ∈ Set.Ioo (0:ℝ) T,
+      ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0)) :
     ∫ z, φ z ∂(f T) = ∫ z, φ (charX T z, charV T z) ∂(f 0) := by
-  sorry
+  classical
+  haveI : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
+  -- the limit filter, nonempty since T is a left limit point of Ioo 0 T
+  haveI hl_neBot : (𝓝[Set.Ioo (0:ℝ) T] T).NeBot := by
+    apply mem_closure_iff_nhdsWithin_neBot.mp
+    rw [closure_Ioo (ne_of_lt hT)]
+    exact ⟨hT.le, le_refl T⟩
+  -- (1) LHS continuity at T (narrow continuity of f against φ)
+  have hClaim1 : Tendsto (fun t => ∫ z, φ z ∂(f t)) (𝓝[Set.Ioo (0:ℝ) T] T)
+      (𝓝 (∫ z, φ z ∂(f T))) := by
+    have hcwa : ContinuousWithinAt (fun s => ∫ z, φ z ∂(f s)) (Set.Icc 0 T) T :=
+      (hf_narrow φ hφ.continuous hφc) T ⟨hT.le, le_refl T⟩
+    exact hcwa.tendsto.mono_left (nhdsWithin_mono T Set.Ioo_subset_Icc_self)
+  -- (2) RHS continuity at T against the fixed measure f 0 (filter DCT)
+  obtain ⟨C, hC⟩ : ∃ C, ∀ z, ‖φ z‖ ≤ C := by
+    obtain ⟨C, hC⟩ := (hφ.continuous.norm).bddAbove_range_of_hasCompactSupport hφc.norm
+    exact ⟨C, fun z => hC ⟨z, rfl⟩⟩
+  have hClaim2 : Tendsto (fun t => ∫ z, φ (charX t z, charV t z) ∂(f 0))
+      (𝓝[Set.Ioo (0:ℝ) T] T) (𝓝 (∫ z, φ (charX T z, charV T z) ∂(f 0))) := by
+    refine tendsto_integral_filter_of_dominated_convergence (fun _ => C) ?_ ?_ ?_ ?_
+    · -- AEStronglyMeasurable eventually
+      filter_upwards [self_mem_nhdsWithin] with t ht
+      have htIcc : t ∈ Set.Icc (0:ℝ) T := Set.Ioo_subset_Icc_self ht
+      have hslice : Continuous (fun z => (charX t z, charV t z)) :=
+        hflowjoint.comp_continuous (continuous_const.prodMk continuous_id)
+          (fun z => ⟨htIcc, Set.mem_univ _⟩)
+      exact (hφ.continuous.comp hslice).aestronglyMeasurable
+    · exact Eventually.of_forall (fun t => Eventually.of_forall (fun z => hC _))
+    · exact integrable_const C
+    · refine Eventually.of_forall (fun z => ?_)
+      have hzcwa : ContinuousWithinAt (fun s => (charX s z, charV s z)) (Set.Icc 0 T) T :=
+        (hcontIcc z) T ⟨hT.le, le_refl T⟩
+      have hcomp : ContinuousWithinAt (fun s => φ (charX s z, charV s z)) (Set.Icc 0 T) T :=
+        hφ.continuous.continuousAt.comp_continuousWithinAt hzcwa
+      exact hcomp.tendsto.mono_left (nhdsWithin_mono T Set.Ioo_subset_Icc_self)
+  -- (3) the two limits agree via hIoo, so the targets are equal
+  have hEqOn : (fun t => ∫ z, φ z ∂(f t)) =ᶠ[𝓝[Set.Ioo (0:ℝ) T] T]
+      (fun t => ∫ z, φ (charX t z, charV t z) ∂(f 0)) := by
+    filter_upwards [self_mem_nhdsWithin] with t ht using hIoo t ht
+  exact tendsto_nhds_unique (hClaim1.congr' hEqOn) hClaim2
 
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
@@ -3449,6 +3488,21 @@ theorem weak_eq_frozenField_pushforward_dualCore
       ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
       ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
   intro t ht φ hφ hφc
+  -- the Ioo dual core (this φ): frozenFlow inverse + dualCore_main per interior point
+  have hIoo : ∀ τ ∈ Set.Ioo (0:ℝ) T,
+      ∫ z, φ z ∂(f τ) = ∫ z, φ (charX τ z, charV τ z) ∂(f 0) := by
+    intro τ hτ
+    obtain ⟨Ψ, hl, hr, hc, hΦ, hfj, ha⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
+      hf_cont hf_cont_deriv charX charV hflow hcontIcc τ hτ
+    exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
+      M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco τ hτ φ hφ hφc
+      Ψ hl hr hc hΦ hfj ha
+  -- joint flow continuity (τ-independent; extract from one interior frozenFlow call)
+  have hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) := by
+    obtain ⟨_, _, _, _, _, hfj, _⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
+      hf_cont hf_cont_deriv charX charV hflow hcontIcc (T/2) ⟨by linarith, by linarith⟩
+    exact hfj
   rcases eq_or_lt_of_le ht.1 with h0 | h0
   · -- t = 0 : trivial, `Φ_0 = id` (hinit)
     rw [← h0]
@@ -3456,14 +3510,9 @@ theorem weak_eq_frozenField_pushforward_dualCore
   · rcases eq_or_lt_of_le ht.2 with hTe | hlt
     · -- t = T : terminal endpoint via the `t → T⁻` limit
       rw [hTe]
-      exact dualCore_terminal W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow charX charV hflow
-        hcontIcc φ hφ hφc
-    · -- t ∈ Ioo 0 T : obtain the inverse `Ψ`, then the constancy assembly
-      obtain ⟨Ψ, hl, hr, hc, hΦ, hfj, ha⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
-        hf_cont hf_cont_deriv charX charV hflow hcontIcc t ⟨h0, hlt⟩
-      exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
-        M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ⟨h0, hlt⟩ φ hφ hφc
-        Ψ hl hr hc hΦ hfj ha
+      exact dualCore_terminal f T hT hf_mom hf_narrow charX charV hcontIcc hflowjoint φ hφ hφc hIoo
+    · -- t ∈ Ioo 0 T
+      exact hIoo t ⟨h0, hlt⟩
 
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window.**
 
