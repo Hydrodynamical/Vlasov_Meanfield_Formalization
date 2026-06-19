@@ -2912,6 +2912,7 @@ theorem transportedIntegral_hasDerivAt_zero
 
 -- #6b: the transported integral (with the s=0 endpoint patched to the RHS value) is
 -- continuous on the closed interval [0,t].
+open Filter Topology in
 theorem transportedIntegral_continuousOn
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
@@ -2931,10 +2932,226 @@ theorem transportedIntegral_continuousOn
       Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
     (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
       (Set.Ioo 0 T ×ˢ Set.univ))
-    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z))) :
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)))
+    (L : NNReal)
+    (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))))
+    (hanti : ∀ s ∈ Set.Ioo (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist z₁ z₂ ≤ dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+        * Real.exp (((max 1 L : NNReal) : ℝ) * s)) :
     ContinuousOn (fun s => if s = 0 then ∫ z, φ (charX t z, charV t z) ∂(f 0)
         else ∫ z, φ (charX t (Ψ s z), charV t (Ψ s z)) ∂(f s)) (Set.Icc (0 : ℝ) t) := by
-  sorry
+  classical
+  have hT0 : (0:ℝ) < T := lt_trans ht.1 ht.2
+  -- the terminal map and the transported integrand g = φ ∘ Φ_t
+  have hΦt_cont : Continuous (fun z : PhaseSpace d => (charX t z, charV t z)) := hΦt_C1.continuous
+  set g : PhaseSpace d → ℝ := fun z => φ (charX t z, charV t z) with hg_def
+  have hg_cont : Continuous g := hφ.continuous.comp hΦt_cont
+  -- Ψ_t continuous (t-slice of the joint C¹ inverse) and the support set S := Ψ_t '' (tsupport φ)
+  have htIoo : t ∈ Set.Ioo (0:ℝ) T := ht
+  have hΨt_cont : Continuous (fun z => Ψ t z) := by
+    have hcont_on : ContinuousOn (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+        (Set.Ioo 0 T ×ˢ Set.univ) := hΨ_C1.continuousOn
+    have : Continuous (fun z : PhaseSpace d => (t, z)) := continuous_const.prodMk continuous_id
+    refine (hcont_on.comp_continuous this (fun z => ?_))
+    exact ⟨ht, Set.mem_univ _⟩
+  set S : Set (PhaseSpace d) := (fun z => Ψ t z) '' (tsupport φ) with hS_def
+  have hS_compact : IsCompact S := hφc.image hΨt_cont
+  -- g is supported in S, hence has compact support
+  have hg_supp_S : ∀ z ∉ S, g z = 0 := by
+    intro z hz
+    by_contra hgz
+    -- g z ≠ 0 ⟹ (charX t z, charV t z) ∈ support φ ⊆ tsupport φ ⟹ z = Ψ_t(Φ_t z) ∈ S
+    have hφne : φ (charX t z, charV t z) ≠ 0 := hgz
+    have hmem : (charX t z, charV t z) ∈ tsupport φ :=
+      subset_tsupport _ (by simpa [Function.mem_support] using hφne)
+    have hzeq : Ψ t (charX t z, charV t z) = z := hΨ_left t ht z
+    exact hz ⟨(charX t z, charV t z), hmem, hzeq⟩
+  have hg_csupp : HasCompactSupport g := by
+    have hsub : tsupport g ⊆ S :=
+      closure_minimal (fun z hz => by
+        by_contra hzS; exact hz (hg_supp_S z hzS)) hS_compact.isClosed
+    exact hS_compact.of_isClosed_subset (isClosed_tsupport _) hsub
+  have hg_unif : UniformContinuous g := hg_csupp.uniformContinuous_of_continuous hg_cont
+  -- the initial condition Φ_0 = id (from hflow.1)
+  have hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
+    Prod.ext (hflow.1 z (Set.mem_univ z)).1 (hflow.1 z (Set.mem_univ z)).2
+  -- clamp u : ℝ → ℝ into [0,t]
+  set u : ℝ → ℝ := fun s => max 0 (min s t) with hu_def
+  have hu_cont : Continuous u := continuous_const.max (continuous_id.min continuous_const)
+  have hu0 : u 0 = 0 := by simp [hu_def, min_eq_left ht.1.le]
+  have hu_lb : ∀ s, 0 ≤ u s := fun s => le_max_left _ _
+  have hu_ub : ∀ s, u s ≤ T := fun s =>
+    max_le hT0.le (le_trans (min_le_right _ _) ht.2.le)
+  have hu_pos_of_pos : ∀ s, 0 < s → u s = min s t := by
+    intro s hs
+    have : 0 ≤ min s t := le_min hs.le ht.1.le
+    simp [hu_def, max_eq_right this]
+  -- the globally-continuous, uniformly-compactly-supported integrand Ĝ
+  set Ĝ : ℝ → PhaseSpace d → ℝ := fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hĜ_def
+  -- (A) joint flow tendsto used at the s=0 seam: (p ↦ Φ_{u p.1} p.2) → z₀
+  have hΦu_tendsto : ∀ z₀ : PhaseSpace d,
+      Tendsto (fun p : ℝ × PhaseSpace d => (charX (u p.1) p.2, charV (u p.1) p.2))
+        (𝓝 (0, z₀)) (𝓝 z₀) := by
+    intro z₀
+    have hcwa : ContinuousWithinAt (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2))
+        (Set.Icc 0 T ×ˢ Set.univ) (0, z₀) :=
+      hflowjoint (0, z₀) ⟨⟨le_refl 0, hT0.le⟩, Set.mem_univ _⟩
+    have hval : (charX 0 z₀, charV 0 z₀) = z₀ := hinit z₀
+    have hinner : Tendsto (fun p : ℝ × PhaseSpace d => (u p.1, p.2))
+        (𝓝 (0, z₀)) (𝓝[Set.Icc 0 T ×ˢ Set.univ] (0, z₀)) := by
+      rw [tendsto_nhdsWithin_iff]
+      refine ⟨?_, Eventually.of_forall (fun p => ⟨⟨hu_lb p.1, hu_ub p.1⟩, Set.mem_univ _⟩)⟩
+      have hc : Continuous (fun p : ℝ × PhaseSpace d => (u p.1, p.2)) :=
+        (hu_cont.comp continuous_fst).prodMk continuous_snd
+      exact hc.tendsto' (0, z₀) (0, z₀) (by simp [hu0])
+    have hcomp := (hval ▸ hcwa.tendsto).comp hinner
+    simpa using hcomp
+  -- (B) Ĝ is globally continuous
+  have hĜ_cont : Continuous (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) := by
+    rw [continuous_iff_continuousAt]
+    rintro ⟨s₀, z₀⟩
+    rcases lt_trichotomy s₀ 0 with hs₀ | hs₀ | hs₀
+    · -- s₀ < 0: locally Ĝ = g ∘ snd
+      have heq : (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+          (fun p => g p.2) := by
+        have hmem : {p : ℝ × PhaseSpace d | p.1 < 0} ∈ 𝓝 (s₀, z₀) :=
+          (isOpen_lt continuous_fst continuous_const).mem_nhds hs₀
+        filter_upwards [hmem] with p hp
+        simp only [hĜ_def, if_pos hp.le]
+      exact (hg_cont.comp continuous_snd).continuousAt.congr heq.symm
+    · -- s₀ = 0: the confinement seam
+      subst hs₀
+      rw [ContinuousAt]
+      have hval0 : Ĝ (0:ℝ) z₀ = g z₀ := by simp [hĜ_def]
+      show Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0:ℝ), z₀)) (𝓝 (Ĝ (0:ℝ) z₀))
+      rw [hval0, Metric.tendsto_nhds]
+      intro ε hε
+      obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
+      -- eventually: dist(p.2, z₀) < δ/2  and  exp(K u p.1)·dist(p.2, Φ_{u p.1} p.2) < δ/2
+      have hKpos : (0:ℝ) < δ/2 := by positivity
+      have hfact1 : ∀ᶠ p : ℝ × PhaseSpace d in 𝓝 (0, z₀), dist p.2 z₀ < δ/2 := by
+        have : Tendsto (fun p : ℝ × PhaseSpace d => p.2) (𝓝 (0, z₀)) (𝓝 z₀) :=
+          continuous_snd.continuousAt
+        exact (Metric.tendsto_nhds.mp this) (δ/2) hKpos
+      have hfact2 : ∀ᶠ p : ℝ × PhaseSpace d in 𝓝 (0, z₀),
+          Real.exp (((max 1 L : NNReal) : ℝ) * u p.1) * dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)
+            < δ/2 := by
+        have hd : Tendsto (fun p : ℝ × PhaseSpace d =>
+            Real.exp (((max 1 L : NNReal) : ℝ) * u p.1)
+              * dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)) (𝓝 (0, z₀)) (𝓝 0) := by
+          have hexp : Tendsto (fun p : ℝ × PhaseSpace d =>
+              Real.exp (((max 1 L : NNReal) : ℝ) * u p.1)) (𝓝 (0, z₀))
+              (𝓝 (Real.exp (((max 1 L : NNReal) : ℝ) * u 0))) :=
+            ((Real.continuous_exp.comp (continuous_const.mul (hu_cont.comp continuous_fst))))
+              |>.continuousAt.tendsto
+          have hdist : Tendsto (fun p : ℝ × PhaseSpace d =>
+              dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)) (𝓝 (0, z₀)) (𝓝 0) := by
+            have h2 : Tendsto (fun p : ℝ × PhaseSpace d => p.2) (𝓝 (0, z₀)) (𝓝 z₀) :=
+              continuous_snd.continuousAt
+            have := (h2.dist (hΦu_tendsto z₀))
+            simpa using this
+          have := hexp.mul hdist
+          simpa [hu0] using this
+        filter_upwards [(Metric.tendsto_nhds.mp hd) (δ/2) hKpos] with p hp
+        rwa [Real.dist_eq, sub_zero, abs_of_nonneg (by positivity)] at hp
+      filter_upwards [hfact1, hfact2] with p hp1 hp2
+      by_cases hps : p.1 ≤ 0
+      · -- branch g p.2
+        simp only [hĜ_def, if_pos hps]
+        exact hδg (lt_of_lt_of_le hp1 (by linarith))
+      · -- branch g (Ψ (min p.1 t) p.2)
+        rw [not_le] at hps
+        have humin : u p.1 = min p.1 t := hu_pos_of_pos p.1 hps
+        have hminIoo : min p.1 t ∈ Set.Ioo (0:ℝ) T :=
+          ⟨lt_min hps ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
+        simp only [hĜ_def, if_neg (not_le.mpr hps)]
+        apply hδg
+        -- dist (Ψ (min p.1 t) p.2) z₀ < δ
+        have hright : (charX (min p.1 t) (Ψ (min p.1 t) p.2),
+            charV (min p.1 t) (Ψ (min p.1 t) p.2)) = p.2 := hΨ_right (min p.1 t) hminIoo p.2
+        have hbound : dist (Ψ (min p.1 t) p.2) p.2
+            ≤ dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)
+              * Real.exp (((max 1 L : NNReal) : ℝ) * (min p.1 t)) := by
+          have hkey := hanti (min p.1 t) hminIoo (Ψ (min p.1 t) p.2) p.2
+          rw [hright] at hkey
+          rw [humin]
+          exact hkey
+        calc dist (Ψ (min p.1 t) p.2) z₀
+            ≤ dist (Ψ (min p.1 t) p.2) p.2 + dist p.2 z₀ := dist_triangle _ _ _
+          _ < δ/2 + δ/2 := by
+              refine add_lt_add_of_le_of_lt ?_ hp1
+              refine le_of_lt (lt_of_le_of_lt hbound ?_)
+              rw [humin] at hp2 ⊢
+              rw [mul_comm] at hp2
+              exact hp2
+          _ = δ := by ring
+    · -- s₀ > 0: locally Ĝ = g (Ψ (min · t) ·)
+      have heq : (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+          (fun p => g (Ψ (min p.1 t) p.2)) := by
+        have hmem : {p : ℝ × PhaseSpace d | 0 < p.1} ∈ 𝓝 (s₀, z₀) :=
+          (isOpen_lt continuous_const continuous_fst).mem_nhds hs₀
+        filter_upwards [hmem] with p hp
+        simp only [hĜ_def, if_neg (not_le.mpr hp)]
+      refine ContinuousAt.congr ?_ heq.symm
+      -- continuity of g (Ψ (min p.1 t) p.2) at (s₀, z₀), s₀ > 0
+      have hmin_s₀ : min s₀ t ∈ Set.Ioo (0:ℝ) T :=
+        ⟨lt_min hs₀ ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
+      have hΨcont_at : ContinuousAt (fun p : ℝ × PhaseSpace d => Ψ (min p.1 t) p.2) (s₀, z₀) := by
+        have hcont_on : ContinuousOn (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
+            (Set.Ioo 0 T ×ˢ Set.univ) := hΨ_C1.continuousOn
+        have hmapcont : Continuous (fun p : ℝ × PhaseSpace d => (min p.1 t, p.2)) :=
+          ((continuous_fst.min continuous_const)).prodMk continuous_snd
+        have hopen : Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ∈
+            𝓝 ((min s₀ t, z₀) : ℝ × PhaseSpace d) :=
+          (isOpen_Ioo.prod isOpen_univ).mem_nhds ⟨hmin_s₀, Set.mem_univ _⟩
+        have hca : ContinuousAt (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (min s₀ t, z₀) :=
+          hcont_on.continuousAt hopen
+        exact hca.comp_of_eq hmapcont.continuousAt rfl
+      exact hg_cont.continuousAt.comp hΨcont_at
+  -- (C) the fixed compact K_total containing all supports of Ĝ
+  set Ktot : Set (PhaseSpace d) :=
+    (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S) with hKtot_def
+  have hKtot_compact : IsCompact Ktot :=
+    (isCompact_Icc.prod hS_compact).image_of_continuousOn
+      (hflowjoint.mono (Set.prod_mono (Set.Icc_subset_Icc_right ht.2.le) (Set.subset_univ S)))
+  have hS_sub_Ktot : S ⊆ Ktot := by
+    intro p hp
+    refine ⟨(0, p), ⟨⟨le_refl 0, ht.1.le⟩, hp⟩, ?_⟩
+    simp [hinit p]
+  have hĜ_supp : ∀ s, ∀ z ∉ Ktot, Ĝ s z = 0 := by
+    intro s z hz
+    simp only [hĜ_def]
+    split_ifs with hs
+    · -- s ≤ 0: Ĝ = g z; z ∉ Ktot ⟹ z ∉ S ⟹ g z = 0
+      exact hg_supp_S z (fun hzS => hz (hS_sub_Ktot hzS))
+    · -- s > 0: Ĝ = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
+      by_contra hgz
+      rw [not_le] at hs
+      have hminIoo : min s t ∈ Set.Ioo (0:ℝ) T :=
+        ⟨lt_min hs ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
+      have hΨz_S : Ψ (min s t) z ∈ S := by
+        by_contra hΨz
+        exact hgz (hg_supp_S _ hΨz)
+      have hright : (charX (min s t) (Ψ (min s t) z), charV (min s t) (Ψ (min s t) z)) = z :=
+        hΨ_right (min s t) hminIoo z
+      exact hz ⟨(min s t, Ψ (min s t) z),
+        ⟨⟨(lt_min hs ht.1).le, min_le_right _ _⟩, hΨz_S⟩, hright⟩
+  -- (D) apply NC and transfer to I on Icc 0 t
+  have hNC := vlasovSolutionOn_integral_continuousOn gradW f T hf_weak hf_mom hf_narrow Ĝ
+    hĜ_cont Ktot hKtot_compact hĜ_supp
+  refine (hNC.mono (Set.Icc_subset_Icc_right ht.2.le)).congr ?_
+  intro s hs
+  rcases eq_or_lt_of_le hs.1 with h0 | h0
+  · -- s = 0
+    subst h0
+    simp only [if_true]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
+    simp only [hĜ_def, if_pos (le_refl (0:ℝ)), hg_def]
+  · -- s > 0
+    have hsne : s ≠ 0 := ne_of_gt h0
+    have hsle : s ≤ t := hs.2
+    simp only [if_neg hsne, hĜ_def, if_neg (not_le.mpr h0), min_eq_left hsle, hg_def]
 
 -- dualCore_main: the dual core for 0 < t ≤ T (subsumes the t = T terminal via the same
 -- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +
@@ -2974,7 +3191,12 @@ theorem dualCore_main
       Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)))
     (hΨ_C1 : ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
       (Set.Ioo 0 T ×ˢ Set.univ))
-    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z))) :
+    (hΦt_C1 : ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)))
+    (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))))
+    (hanti : ∀ s ∈ Set.Ioo (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist z₁ z₂ ≤ dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+        * Real.exp (((max 1 L : NNReal) : ℝ) * s)) :
     ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
   -- the if-patched transported integral
   set I : ℝ → ℝ := fun s => if s = 0 then ∫ z, φ (charX t z, charV t z) ∂(f 0)
@@ -2999,7 +3221,7 @@ theorem dualCore_main
   -- continuity on Icc 0 t
   have hcont : ContinuousOn I (Set.Icc (0 : ℝ) t) :=
     transportedIntegral_continuousOn gradW f T hf_weak hf_mom hf_narrow charX charV hflow t ht φ hφ hφc
-      Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1
+      Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 L hflowjoint hanti
   -- constancy: I 0 = I t
   have hconst : I 0 = I t := transportedIntegral_const_On ht.1 hcont hderiv
   rw [hI0, hIt] at hconst
@@ -3031,7 +3253,12 @@ theorem frozenFlow_inverse_On
       (∀ s ∈ Set.Ioo (0 : ℝ) T,
         Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
       ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) ∧
-      ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)) := by
+      ContDiff ℝ 1 (fun z : PhaseSpace d => (charX t z, charV t z)) ∧
+      ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+        (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) ∧
+      (∀ s ∈ Set.Ioo (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+        dist z₁ z₂ ≤ dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+          * Real.exp (((max 1 L : NNReal) : ℝ) * s)) := by
   classical
   have hgradW_C1 : ContDiff ℝ 1 gradW := assW2_contDiff_gradW W gradW hgradW
   -- window force-integrability from finite moment + Lipschitz (h_int_helper template)
@@ -3119,7 +3346,25 @@ theorem frozenFlow_inverse_On
     have hinner : ContDiffAt ℝ 1 (fun z' : PhaseSpace d => ((t : ℝ), z')) z :=
       (contDiffAt_const).prodMk contDiffAt_id
     exact hjoint.comp z hinner
-  exact ⟨Ψ, hLeft, hRight, hC1, hΦt_C1⟩
+  -- joint flow continuity + antilipschitz (enrichment for #6b's s=0 endpoint)
+  have hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
+    Prod.ext (hflow'.1 z (Set.mem_univ z)).1 (hflow'.1 z (Set.mem_univ z)).2
+  have h_deriv2 : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+      HasDerivAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW ρ' s (charX s z, charV s z)) s :=
+    fun z s hs => (hflow'.2.1 s hs z (Set.mem_univ z)).prodMk (hflow'.2.2 s hs z (Set.mem_univ z))
+  have hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+    charFlow_continuousOn_joint gradW L hL ρ' h_int' charX charV T hT.le hinit hcontIcc
+      (fun z s hs => (h_deriv2 z s hs).hasDerivWithinAt)
+  have hanti : ∀ s ∈ Set.Ioo (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
+      dist z₁ z₂ ≤ dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
+        * Real.exp (((max 1 L : NNReal) : ℝ) * s) := by
+    intro s hs z₁ z₂
+    have := charFlow_antilipschitzInZ_via_gronwall_Ioo gradW L hL ρ' h_int' charX charV T
+      hinit hcontIcc h_deriv2 s hs z₁ z₂
+    simpa using this
+  exact ⟨Ψ, hLeft, hRight, hC1, hΦt_C1, hflowjoint, hanti⟩
 
 -- dualCore_terminal: the t = T endpoint, by a t → T⁻ limit of the Ioo result (LHS continuous
 -- in t via narrow continuity, RHS via continuity of Φ_t in t).
@@ -3214,11 +3459,11 @@ theorem weak_eq_frozenField_pushforward_dualCore
       exact dualCore_terminal W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow charX charV hflow
         hcontIcc φ hφ hφc
     · -- t ∈ Ioo 0 T : obtain the inverse `Ψ`, then the constancy assembly
-      obtain ⟨Ψ, hl, hr, hc, hΦ⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
+      obtain ⟨Ψ, hl, hr, hc, hΦ, hfj, ha⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
         hf_cont hf_cont_deriv charX charV hflow hcontIcc t ⟨h0, hlt⟩
       exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
         M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ⟨h0, hlt⟩ φ hφ hφc
-        Ψ hl hr hc hΦ
+        Ψ hl hr hc hΦ hfj ha
 
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window.**
 
