@@ -2788,12 +2788,95 @@ theorem transportedTest_transport_identity
   exact hs_slice
 
 
+open Filter Topology Metric in
+open scoped Convolution in
+/-- Helper 1 — uniform mollification of a continuous, compactly-supported function.
+The mollified family `ρ_n ⋆ g` converges to `g` **uniformly** (not just pointwise), the
+load-bearing analytic input the `C¹_c` test-class enlargement (#4) needs.  Proof: uniform
+continuity of `g` (compact support) gives a single `δ`; once `rOut_n < δ`, the pointwise bump
+estimate `dist_normed_convolution_le` fires at *every* base point simultaneously. -/
+theorem mollifier_tendstoUniformly {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (g : PhaseSpace d → E) (hg_cont : Continuous g) (hg_cs : HasCompactSupport g)
+    (φ : ℕ → ContDiffBump (0 : PhaseSpace d))
+    (hφ : Tendsto (fun n => (φ n).rOut) atTop (𝓝 0)) :
+    TendstoUniformly
+      (fun n x => ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] g) x) g atTop := by
+  haveI hHaar : (volume : Measure (PhaseSpace d)).IsAddHaarMeasure := by
+    rw [show (volume : Measure (PhaseSpace d)) = (volume : Measure (PhysSpace d)).prod volume from
+      Measure.volume_eq_prod _ _]
+    infer_instance
+  have hg_uc : UniformContinuous g := hg_cs.uniformContinuous_of_continuous hg_cont
+  rw [Metric.uniformContinuous_iff] at hg_uc
+  rw [Metric.tendstoUniformly_iff]
+  intro ε hε
+  obtain ⟨δ, hδ, hδ_prop⟩ := hg_uc (ε / 2) (by positivity)
+  have hev : ∀ᶠ n in atTop, (φ n).rOut < δ := hφ.eventually (Iio_mem_nhds hδ)
+  filter_upwards [hev] with n hn
+  intro x₀
+  rw [dist_comm]
+  have hball : ∀ x ∈ ball x₀ (φ n).rOut, dist (g x) (g x₀) ≤ ε / 2 := by
+    intro x hx
+    exact le_of_lt (hδ_prop (lt_trans (mem_ball.mp hx) hn))
+  have hbump := ContDiffBump.dist_normed_convolution_le (μ := volume) (φ := φ n) (g := g)
+    hg_cont.aestronglyMeasurable hball
+  exact lt_of_le_of_lt hbump (half_lt_self hε)
+
+open Filter Topology Metric in
+open scoped Convolution in
+/-- Helper 2 — the mollified Fréchet derivative converges uniformly.
+`fderiv (ρ_n ⋆ χ) = ρ_n ⋆ (fderiv χ)` (convolution commutes onto the `C¹` factor via
+`HasCompactSupport.hasFDerivAt_convolution_right`, with `precompR` reconciled to `lsmul` on the
+operator codomain), and the right-hand side converges uniformly to `fderiv χ` by Helper 1 applied
+to the continuous, compactly-supported `fderiv χ`. -/
+theorem mollifiedFDeriv_tendstoUniformly
+    (χ : PhaseSpace d → ℝ) (hχ_C1 : ContDiff ℝ 1 χ) (hχc : HasCompactSupport χ)
+    (φ : ℕ → ContDiffBump (0 : PhaseSpace d))
+    (hφ : Tendsto (fun n => (φ n).rOut) atTop (𝓝 0)) :
+    TendstoUniformly
+      (fun n z => fderiv ℝ ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] χ) z)
+      (fderiv ℝ χ) atTop := by
+  haveI hHaar : (volume : Measure (PhaseSpace d)).IsAddHaarMeasure := by
+    rw [show (volume : Measure (PhaseSpace d)) = (volume : Measure (PhysSpace d)).prod volume from
+      Measure.volume_eq_prod _ _]
+    infer_instance
+  have hdf_cont : Continuous (fderiv ℝ χ) := hχ_C1.continuous_fderiv one_ne_zero
+  have hdf_cs : HasCompactSupport (fderiv ℝ χ) := hχc.fderiv ℝ
+  -- the `precompR` bilinear map coincides with `lsmul` on the operator codomain
+  have hbridge : (ContinuousLinearMap.lsmul ℝ ℝ).precompR (PhaseSpace d)
+      = (ContinuousLinearMap.lsmul ℝ ℝ :
+          ℝ →L[ℝ] (PhaseSpace d →L[ℝ] ℝ) →L[ℝ] (PhaseSpace d →L[ℝ] ℝ)) := by
+    refine ContinuousLinearMap.ext fun u => ?_
+    refine ContinuousLinearMap.ext fun v => ?_
+    refine ContinuousLinearMap.ext fun x => ?_
+    simp [ContinuousLinearMap.precompR_apply, ContinuousLinearMap.lsmul_apply,
+      ContinuousLinearMap.smul_apply]
+  have hfd : ∀ n, (fun z => fderiv ℝ
+        ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] χ) z)
+      = (fun z => ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] fderiv ℝ χ) z) := by
+    intro n
+    funext z
+    rw [(hχc.hasFDerivAt_convolution_right (L := ContinuousLinearMap.lsmul ℝ ℝ)
+      ((φ n).continuous_normed.locallyIntegrable) hχ_C1 z).fderiv, hbridge]
+  have hgoal_eq :
+      (fun n z => fderiv ℝ ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] χ) z)
+      = (fun n z => ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] fderiv ℝ χ) z) := by
+    funext n; exact hfd n
+  rw [hgoal_eq]
+  exact mollifier_tendstoUniformly (fderiv ℝ χ) hdf_cont hdf_cs φ hφ
+
 -- #4 (Step 5 interface): the weak evolution equation extended to C¹_c test functions.
 theorem weakEvolution_test_C1c_On
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    -- B2 enrichment (mollification proof): the velocity-term needs a uniform-in-σ bound on the
+    -- frozen field `‖∇W∗ρ_σ‖` over the fixed compact support of the test, supplied by the
+    -- Lipschitz growth of `gradW` (`hL`) and the uniform first-moment bound `hM_ρ`.
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (χ : PhaseSpace d → ℝ) (hχ_C1 : ContDiff ℝ 1 χ) (hχc : HasCompactSupport χ)
     (gradXχ gradVχ : PhaseSpace d → PhysSpace d)
     (hgradXχ : ∀ z, gradXχ z = gradient (fun x => χ (x, z.2)) z.1)
@@ -2893,6 +2976,11 @@ theorem transportedIntegral_hasDerivAt_zero
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
       ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
+    -- B2 enrichment: threaded through to `weakEvolution_test_C1c_On` (#4), whose mollification
+    -- proof needs the uniform field bound (`hL` + `hM_ρ`).
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
       (Set.Ioo 0 T) Set.univ)
@@ -3213,7 +3301,8 @@ theorem dualCore_main
   -- zero derivative on Ioo 0 t (the un-patched form agrees with I near interior s)
   have hderiv : ∀ s ∈ Set.Ioo (0 : ℝ) t, HasDerivAt I 0 s := by
     intro s hs
-    have hbase := transportedIntegral_hasDerivAt_zero gradW f T hf_weak hf_mom hf_narrow charX charV
+    have hbase := transportedIntegral_hasDerivAt_zero gradW f T hf_weak hf_mom hf_narrow
+      L hL M_ρ hM_ρ_nn hM_ρ charX charV
       hflow t ht φ hφ hφc Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 s hs
     refine hbase.congr_of_eventuallyEq ?_
     filter_upwards [isOpen_Ioo.mem_nhds hs] with s' hs' using by
