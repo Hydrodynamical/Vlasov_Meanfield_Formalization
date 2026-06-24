@@ -469,18 +469,17 @@ lemma assW2_contDiff_gradW (W : PhysSpace d → ℝ) [AssW2 W]
 
 /-! ## Crux layer (C3): the variational equation and the dual-transport assembly
 
-The two interfaces below are the load-bearing locks for the bridge.  `#3` is the genuine research
-gap (C¹ dependence of an ODE flow on its initial point — absent from Mathlib); `#8` is the
+The two interfaces below were the load-bearing pieces of the bridge — both now proven and
+axiom-clean.  `#3` was the genuine research gap (C¹ dependence of an ODE flow on its initial point
+— absent from Mathlib), closed via route (b) (difference-quotient + Gronwall); `#8` is the
 bridge-specific dual-transported-test-function assembly that consumes it.  `#10` (the public
-theorem) composes the proven reuse layer (`exists_frozenField_charFlow_On`, #2) with `#8`.
+theorem) composes the reuse layer (`exists_frozenField_charFlow_On`, #2) with `#8`.
 
 The dual-argument *internals* `#4`/`#5`/`#6` (test-class enlargement `C_c^∞ → C¹_c`, the
 transported test function `ψ_s = φ ∘ Φ_{s→t}` and its transport identity, and the zero-derivative
-of `s ↦ ∫ ψ_s dμ_s`) are **deliberately not locked as Lean signatures here** (P5): their exact
-shapes depend on the two-time-flow representation `Φ_{s→t}` and the mollification regularity, both
-C3-open design choices to be fixed by atom-level reading at the grind.  They are documented in
-`#8`'s proof plan; only `#3` (route-independent conclusion) and `#8` (stable predicates) are
-locked. -/
+of `s ↦ ∫ ψ_s dμ_s`) are realized against the two-time-flow representation `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹`
+and proven below (`weakEvolution_test_C1c_On`, `transportedTest_transport_identity`,
+`transportedIntegral_hasDerivAt_zero`). -/
 
 /-- **C3 F1 — the convolution force field is `C¹` in space (Fréchet derivative under the
 integral).**  For `gradW ∈ C¹` (and `L`-Lipschitz, a probability measure `ρ` with the kernel
@@ -1642,14 +1641,15 @@ consumer via `assW2_contDiff_gradW`), the time-`t` characteristic map
 `Dflow t z` that is continuous in `z` (so the flow map is `C¹` in `z`).  The derivative solves the
 linear matrix variational ODE `Ṁ = (D_z b(t, Φ_t z)) · M`, `M_0 = id`.
 
-**This is the load-bearing research gap** — Mathlib has no C¹-dependence-of-an-ODE-flow-on-its-
-initial-condition lemma.  Intended route (b), to be ground out in the C3 grind session
+**This was the load-bearing research gap** — Mathlib has no C¹-dependence-of-an-ODE-flow-on-its-
+initial-condition lemma — now proven (axiom-clean) via route (b)
 (`charFlow_lipschitzInZ_via_gronwall_Ioo`, `CharacteristicFlow.lean`, is the Lipschitz-in-`z`
 scaffold; Mathlib Gronwall + the vendored `IsPicardLindelof` confinement are the analytic inputs):
-3.1 existence/uniqueness of the continuous matrix solution `M_t(z)` of the variational ODE;
-3.2 joint `(t,z)` continuity of `M`; 3.3 the difference-quotient estimate
-`Φ_t(z+h) − Φ_t(z) − M_t(z)·h = o(‖h‖)` uniformly on compacts (Gronwall on the linearization
-remainder, using `gradW ∈ C¹`); 3.4 assemble into `HasFDerivAt`.
+3.1 existence/uniqueness of the continuous matrix solution `M_t(z)` of the variational ODE
+(`fundamentalMatrix`); 3.2 joint `(t,z)` continuity of `M` (`fundamentalMatrix_continuous_param`);
+3.3 the difference-quotient estimate `Φ_t(z+h) − Φ_t(z) − M_t(z)·h = o(‖h‖)` uniformly on compacts
+(Gronwall on the linearization remainder, using `gradW ∈ C¹`,
+`charFlow_hasFDerivAt_of_fundamentalMatrix`); 3.4 assembled into `HasFDerivAt`.
 
 The `HasFDerivAt`/continuity *conclusion* is route-independent, so this interface is stable; the
 universal-`t` probability instance + force-integrability `h_int` are the field-regularity inputs
@@ -3406,8 +3406,28 @@ theorem vlasovSolutionOn_integral_continuousOn
     _ < ε/2 + ε/2 := add_lt_add_of_le_of_lt hfirst hsecond
     _ = ε := by ring
 
--- #6a: the transported integral has zero derivative on the open interval.
 open Filter Topology Asymptotics in
+/-- **#6a (Step 6, the diagonal chain rule) — `s ↦ ∫ ψ_s d(f s)` has zero `σ`-derivative.**
+
+The analytic heart of the dual core: for the backward-transported test
+`ψ_σ(w) := φ(Φ_t(Ψ_σ w))`, the diagonal map `I(σ) := ∫ ψ_σ d(f σ)` (both the integrand *and* the
+measure move with `σ`) has `HasDerivAt I 0` on `Ioo 0 t`.  The two `σ`-dependencies cancel.
+
+Strategy (the measure `f` is a bare weak solution, so there is no joint Fréchet structure to lean
+on — the two partials are combined by hand):
+* Split `I = Bint + q` with `Bint σ := ∫ ψ_s d(f σ)` (integrand frozen at `s`) and
+  `q σ := ∫ (ψ_σ − ψ_s) d(f σ)`.
+* `HasDerivAt Bint Vb s` via the `C¹_c`-extended weak equation `weakEvolution_test_C1c_On` (#4)
+  tested against the fixed `C¹_c` function `ψ_s` (this is why #4 had to land first).
+* `HasDerivAt q (−Vb) s` via the little-o definition: writing
+  `DQ_r z := ∂_r ψ_r(z)`, the remainder splits as `T1 + T2` where
+  `T1 = ∫ (ψ_σ − ψ_s − (σ−s)·DQ_s) d(f σ)` is `o(σ−s)` by **uniform differentiability of `r ↦ ψ_r`
+  over a fixed compact `K`** (FTC + Heine–Cantor; `K` is the flow image of `[a,b] × Ψ_t(tsupport φ)`
+  — this is what `hflowjoint` is for: bounding the *moving* support of `ψ_r`), and
+  `T2 = (σ−s)·(∫ DQ_s d(f σ) − ∫ DQ_s d(f s))` is `o(σ−s)` by narrow continuity (`hf_narrow`).
+* The cancellation `Vb = −∫ DQ_s d(f s)` comes from the Step-4 transport identity
+  (`transportedTest_transport_identity`, giving `DQ_s = −(fderiv ψ_s)·b_s`) composed with the
+  gradient↔fderiv partial decomposition (matching #4's RHS). -/
 theorem transportedIntegral_hasDerivAt_zero
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
@@ -3460,8 +3480,6 @@ theorem transportedIntegral_hasDerivAt_zero
       ⟨by linarith [hsIoo.1], by linarith [hsIoo.2]⟩, fun r hr => ⟨?_, ?_⟩⟩
     · linarith [hsIoo.1, hr.1]
     · linarith [hsIoo.2, hr.2]
-  have hsub_abuniv : Set.Icc a b ×ˢ (Set.univ : Set (PhaseSpace d)) ⊆
-      Set.Ioo (0:ℝ) T ×ˢ Set.univ := fun p hp => ⟨hab_sub hp.1, Set.mem_univ _⟩
   ---------------------------------------------------------------------------
   -- Ψ_t continuous, support set C, fixed compact K
   have hΨt_cont : Continuous (fun w : PhaseSpace d => Ψ t w) := by
@@ -3880,7 +3898,7 @@ theorem transportedIntegral_continuousOn
       subst hs₀
       rw [ContinuousAt]
       have hval0 : Ĝ (0:ℝ) z₀ = g z₀ := by simp [hĜ_def]
-      show Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0:ℝ), z₀)) (𝓝 (Ĝ (0:ℝ) z₀))
+      change Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0:ℝ), z₀)) (𝓝 (Ĝ (0:ℝ) z₀))
       rw [hval0, Metric.tendsto_nhds]
       intro ε hε
       obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
@@ -4063,7 +4081,7 @@ theorem dualCore_main
   have hIt : I t = ∫ z, φ z ∂(f t) := by
     simp only [hI_def, if_neg htne]
     refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
-    show φ (charX t (Ψ t z), charV t (Ψ t z)) = φ z
+    change φ (charX t (Ψ t z), charV t (Ψ t z)) = φ z
     have hri : (charX t (Ψ t z), charV t (Ψ t z)) = z := hΨ_right t ht z
     rw [hri]
   -- zero derivative on Ioo 0 t (the un-patched form agrees with I near interior s)
@@ -4284,12 +4302,11 @@ theorem dualCore_terminal
 
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
-The genuine remaining crux: the dual transported-test-function argument showing the weak solution
-`f` transports along its frozen-field characteristics.  Fix a terminal `t ∈ [0,T]` and a `C_c^∞`
-test `φ`.  Let `Φ_{s→t}` be the two-time flow (forward from time `s` to time `t` along the
-frozen-field characteristics) and `ψ_s := φ ∘ Φ_{s→t}` the backward-transported test
-(so `ψ_t = φ` and `ψ_0 = φ ∘ Φ_t`).  Then:
-**Now WIRED** (this body composes locked leaves — no direct `sorry`).  The two-time flow
+The dual transported-test-function argument showing the weak solution `f` transports along its
+frozen-field characteristics.  Fix a terminal `t ∈ [0,T]` and a `C_c^∞` test `φ`.  Let `Φ_{s→t}`
+be the two-time flow (forward from time `s` to time `t` along the frozen-field characteristics)
+and `ψ_s := φ ∘ Φ_{s→t}` the backward-transported test (so `ψ_t = φ` and `ψ_0 = φ ∘ Φ_t`).  Then:
+**Proven, axiom-clean** (this body composes the six leaves below).  The two-time flow
 `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹` is jointly `C¹` (Steps 1–4, proven: `charFlow_inverse_contDiffOn_joint` +
 `transportedTest_transport_identity`).  The constancy of `I(s) := ∫ ψ_s d(f s)` on `[0,t]` is
 assembled by `dualCore_main` (sorry-free): the `if`-patched `I` (the left endpoint `s = 0`, where
@@ -4298,7 +4315,7 @@ item-(iv) `Ψ_s` is junk, is set directly to `∫ φ∘Φ_t d(f 0)`), endpoint i
 `transportedIntegral_const_On` (#7).  `t = 0` is trivial (`Φ_0 = id`); `t = T` goes through
 `dualCore_terminal` (a `t → T⁻` limit).
 
-The constancy rests on six locked leaves (the remaining analytic grind):
+The constancy rests on six leaves (all proven, axiom-clean):
 * **`weakEvolution_test_C1c_On`** (#4 = **Step 5**) — the linear weak equation extended from the
   `C_c^∞` test class to `C¹_c` (so it can be tested against the only-`C¹` `ψ_r`).
 * **`vlasovSolutionOn_integral_continuousOn`** (NC) — `s ↦ ∫ G s · d(f s)` is continuous for a
@@ -4517,7 +4534,7 @@ like `hf_cont` it is *assumed* at the bridge boundary (**Option A**).  In the co
 derivable from `hf_weak` + `hf_mom` (tightness) via a narrow-continuity upgrade — the **Option-B**
 extension that would let the bridge assume only the weak solution + moments; see `#3`'s docstring.
 
-Proof (API-locked; body built over C1–C4 per the roadmap above):
+Proof (complete, axiom-clean; built over C1–C4 per the roadmap above):
 freeze the field at `ρ^f`, build its flow `Φ` (#2) and the pushforward `g := (Φ_t)_# (f 0)` which
 solves the frozen linear weak eq (#1); show `f = g` by the dual-transported-test-function
 uniqueness (#3–#9, the variational-equation crux); conclude `f` is Lagrangian (#10). -/
