@@ -1,0 +1,18 @@
+# Lean build artifacts
+/.lake/
+
+# Rendered blueprint output (regenerate with `lake build :blueprint` + `leanblueprint web/pdf`)
+/blueprint/web/
+/blueprint/print/
+/blueprint/lean_decls
+
+# plasTeX / LaTeX aux
+*.paux
+*.pauxl
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.synctex(busy)

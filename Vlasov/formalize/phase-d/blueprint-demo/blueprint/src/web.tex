@@ -1,0 +1,23 @@
+% This file makes a web version of the blueprint.
+
+\documentclass{report}
+
+\usepackage{amssymb, amsthm, amsmath}
+\usepackage{hyperref}
+\usepackage[dep_graph]{blueprint}
+
+
+\input{macros/common}
+\input{macros/web}
+
+\home{https://github.com/Hydrodynamical/Vlasov}
+\github{https://github.com/Hydrodynamical/Vlasov}
+\dochome{https://github.com/Hydrodynamical/Vlasov}
+
+\title{The Vlasov mean-field derivation: a Lean blueprint}
+\author{J. K. Miller}
+
+\begin{document}
+\maketitle
+\input{content}
+\end{document}

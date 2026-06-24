@@ -1,0 +1,81 @@
+% Content of the Vlasov blueprint.
+% The LeanArchitect-extracted nodes are defined in the aggregate library file below
+% (it provides \newleannode/\inputleannode and the per-node \input{...} bodies).
+% We then arrange the nodes into a narrative with \inputleannode.
+
+\input{../../.lake/build/blueprint/library/BlueprintDemo}
+
+\chapter{Standing assumptions and basic objects}
+
+The interaction potential $W$ governs the mean-field force.  Two standing assumptions are
+used: $\mathrm{AssW}$ ($C^{1,1}$) for the marquee well-posedness and stability results, and the
+strengthened $\mathrm{AssW2}$ ($C^2$) for the weak $\Rightarrow$ Lagrangian bridge.
+
+\inputleannode{ass:W}
+\inputleannode{ass:W2}
+\inputleannode{def:convolve}
+\inputleannode{def:char-flow}
+\inputleannode{def:vlasov-sol}
+\inputleannode{def:lagrangian-sol}
+
+\chapter[The Kantorovich--Rubinstein W1 distance]{The Kantorovich--Rubinstein $W_1$ distance}
+
+The Wasserstein-$1$ distance is defined via its Kantorovich--Rubinstein dual sup-formula.  This
+makes the easy (non-expansion) direction immediate and provides the metric in which Dobrushin
+stability and Picard iteration are run.  Kantorovich--Rubinstein duality (\cref{ot:w1-eq-coupling})
+identifies it with the optimal coupling cost.
+
+\inputleannode{ot:wcost}
+\inputleannode{ot:wcost-self}
+\inputleannode{ot:wcost-comm}
+\inputleannode{ot:wcost-tri}
+\inputleannode{ot:wcost-lip}
+\inputleannode{ot:w1}
+\inputleannode{ot:w1-self}
+\inputleannode{ot:w1-comm}
+\inputleannode{ot:w1-tri}
+\inputleannode{ot:w1-lip}
+\inputleannode{ot:w1-fin}
+\inputleannode{ot:coupling}
+\inputleannode{ot:wcost-coupling}
+\inputleannode{ot:w1-coupling}
+\inputleannode{ot:w1-le-coupling}
+\inputleannode{ot:coupling-le-dual}
+\inputleannode{ot:w1-eq-coupling}
+
+\chapter{The characteristic flow and the Vlasov equation}
+
+The phase-space velocity field $b$ generates the characteristic flow.  Localized ($\_\mathrm{On}$)
+predicates on a window $[0,T]$ carry the analysis through the Picard construction and the
+weak $\Rightarrow$ Lagrangian bridge.
+
+\inputleannode{def:vlasov-field}
+\inputleannode{def:vlasov-sol-on}
+\inputleannode{def:lagrangian-sol-on}
+
+\chapter{Well-posedness and Dobrushin stability}
+
+The two marquee results: forward well-posedness for the nonlinear Vlasov equation, and
+Dobrushin's exponential $W_1$-stability estimate.  Both are axiom-clean
+($[\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]$).
+
+\inputleannode{thm:vlasov-wp}
+\inputleannode{thm:dobrushin}
+
+\chapter[The superposition principle: weak implies Lagrangian]{The superposition principle: weak $\Rightarrow$ Lagrangian}
+
+Under $\mathrm{AssW2}$, every weak solution is Lagrangian.  The argument freezes the field at
+$\rho^f$, establishes the $C^1$ dependence of the flow on its initial point via the variational
+(fundamental-matrix) equation, enlarges the test class to $C^1_c$, and closes by a diagonal
+chain-rule / dual-transport argument culminating in the apex
+\cref{thm:weak-lagrangian}.
+
+\inputleannode{def:fundamental-matrix}
+\inputleannode{thm:charflow-fderiv-fundamental}
+\inputleannode{thm:variational-eq}
+\inputleannode{thm:charflow-inverse-joint}
+\inputleannode{thm:test-c1c}
+\inputleannode{thm:transport-identity}
+\inputleannode{thm:diagonal-chain-rule}
+\inputleannode{thm:dual-core}
+\inputleannode{thm:weak-lagrangian}

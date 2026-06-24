@@ -1,0 +1,24 @@
+% This file makes a printable version of the blueprint.
+
+\documentclass[a4paper]{report}
+
+\usepackage{geometry}
+
+\usepackage{expl3}
+
+\usepackage{amssymb, amsthm, mathtools}
+\usepackage[unicode,colorlinks=true,linkcolor=blue,urlcolor=magenta, citecolor=blue]{hyperref}
+\usepackage{cleveref}
+
+\usepackage[warnings-off={mathtools-colon,mathtools-overbracket}]{unicode-math}
+
+\input{macros/common}
+\input{macros/print}
+
+\title{The Vlasov mean-field derivation: a Lean blueprint}
+\author{J. K. Miller}
+
+\begin{document}
+\maketitle
+\input{content}
+\end{document}

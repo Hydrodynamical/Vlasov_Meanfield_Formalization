@@ -1,0 +1,14 @@
+name = "BlueprintDemo"
+defaultTargets = ["BlueprintDemo"]
+
+[[require]]
+name = "Vlasov"
+path = "../../.."
+
+[[require]]
+name = "LeanArchitect"
+git = "https://github.com/hanwenzhu/LeanArchitect.git"
+rev = "v4.29.1"
+
+[[lean_lib]]
+name = "BlueprintDemo"
