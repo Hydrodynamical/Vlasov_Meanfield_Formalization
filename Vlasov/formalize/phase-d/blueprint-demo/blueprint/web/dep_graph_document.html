@@ -1,0 +1,1230 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dependency graph</title>
+  <meta name="generator" content="plasTeX" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles/theme-white.css" />
+  <link rel="stylesheet" href="styles/dep_graph.css" />
+  
+  <script type="text/x-mathjax-config">
+  
+    MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+  
+  </script>
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">  </script>
+
+
+<link rel="stylesheet" href="styles/extra_styles.css" />
+
+</head>
+
+<body>
+<header>
+  <a class="toc" href="index.html">Home</a>
+  <h1 id="doc_title">Dependencies</h1>
+</header>
+<div class="wrapper">
+<div class="content">
+  <div id="Legend">
+    <span id="legend_title" class="title">Legend
+    <div class="btn">
+       <div class="bar"></div>
+       <div class="bar"></div>
+       <div class="bar"></div>
+    </div></span> 
+    <dl class="legend">
+      
+      <dt>Boxes</dt><dd>definitions</dd>
+      
+      <dt>Ellipses</dt><dd>theorems and lemmas</dd>
+      
+      <dt>Blue border</dt><dd>the <em>statement</em> of this result is ready to be formalized; all prerequisites are done</dd>
+      
+      <dt>Orange border</dt><dd>the <em>statement</em> of this result is not ready to be formalized; the blueprint needs more work</dd>
+      
+      <dt>Blue background</dt><dd>the <em>proof</em> of this result is ready to be formalized; all prerequisites are done</dd>
+      
+      <dt>Green border</dt><dd>the <em>statement</em> of this result is formalized</dd>
+      
+      <dt>Green background</dt><dd>the <em>proof</em> of this result is formalized</dd>
+      
+      <dt>Dark green background</dt><dd>the <em>proof</em> of this result and all its ancestors are formalized</dd>
+      
+      <dt>Dark green border</dt><dd>this is in Mathlib</dd>
+      
+    </dl>
+  </div>
+    <div id="graph"></div>
+<div id="statements">
+
+    
+    <div class="dep-modal-container" id="ass:W_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ass:W" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">1</span><span class="definition_thmtitle">Standing assumption \(\mathrm{AssW}\)</span></div>
+    <div class="thm_thmcontent"><p>   The interaction potential \(W : \mathbb {R}^d \to \mathbb {R}\) is in \(C^{1,1}\): continuously differentiable, even (\(W(-x) = W(x)\)), with globally Lipschitz gradient \(\nabla W\) (Lipschitz constant \(L := \mathrm{Lip}(\nabla W) {\lt} \infty \)). </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#ass:W">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.AssW">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ass:W2_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ass:W2" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">2</span><span class="definition_thmtitle">Strengthened assumption \(\mathrm{AssW2}\)</span></div>
+    <div class="thm_thmcontent"><p>    \(\mathrm{AssW}\) together with \(\nabla W \in C^1\) (so \(W \in C^2\), Hessian bounded). This is what makes the phase-space field \(C^1\) in space, which the variational equation for the flow’s dependence on its initial point requires. Only the weak \(\Rightarrow \) Lagrangian bridge carries \(\mathrm{AssW2}\). </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#ass:W2">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.AssW2">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:char-flow_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:char-flow" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">4</span></div>
+    <div class="thm_thmcontent"><p>   A characteristic flow \(\Phi \) for the field driven by \(\rho \): \(\dot X = V\), \(\dot V = -(\nabla W * \rho _t)(X)\), the mean-field ODE along which mass is transported. </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#def:char-flow">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsCharacteristicFlow">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:convolve_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:convolve" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">3</span></div>
+    <div class="thm_thmcontent"><p>  The convolution of a vector field \(k : \mathbb {R}^d \to \mathbb {R}^d\) with a finite measure \(\rho \): \((k * \rho )(x) := \int k(x - y)\, \mathrm{d}\rho (y)\). The Vlasov force is \(\nabla W * \rho _t\). </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#def:convolve">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.convolveFunctionMeasure">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:fundamental-matrix_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:fundamental-matrix" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">29</span></div>
+    <div class="thm_thmcontent"><p>  The canonical Dyson-series solution \(M(t)\) of the matrix variational equation \(\dot M = A(s)\, M\), \(M(0) = I\); continuous in both time and the parameter, providing the derivative of the flow with respect to its initial point. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#def:fundamental-matrix">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.fundamentalMatrix">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:lagrangian-sol_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:lagrangian-sol" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">6</span></div>
+    <div class="thm_thmcontent"><p>   A Lagrangian Vlasov solution: a weak solution that admits a characteristic flow representation, i.e. \(f_t = (\Phi _t)_\#  f_0\) for a flow \(\Phi \) driven by \(\rho ^f\). </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#def:lagrangian-sol">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsLagrangianVlasovSolution">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:lagrangian-sol-on_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:lagrangian-sol-on" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">26</span></div>
+    <div class="thm_thmcontent"><p>   The window-localized Lagrangian solution predicate on \([0,T]\): a weak solution on the window together with a characteristic-flow witness. </p>
+</div>
+
+    <a class="latex_link" href="sect0003.html#def:lagrangian-sol-on">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsLagrangianVlasovSolutionOn">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:vlasov-field_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:vlasov-field" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">24</span></div>
+    <div class="thm_thmcontent"><p>   The phase-space velocity field \(b(t,x,v) = (v,\, -(\nabla W * \rho _t)(x))\) generating the characteristic flow. </p>
+</div>
+
+    <a class="latex_link" href="sect0003.html#def:vlasov-field">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.vlasovVectorField">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:vlasov-sol_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:vlasov-sol" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">5</span></div>
+    <div class="thm_thmcontent"><p>   A weak (Eulerian) Vlasov solution: a narrowly continuous curve of probability measures \(f_t\) satisfying the distributional PDE \(\partial _t f + v \cdot \nabla _x f - (\nabla W * \rho _t) \cdot \nabla _v f = 0\) tested against \(C_c^\infty \) functions. </p>
+</div>
+
+    <a class="latex_link" href="sect0001.html#def:vlasov-sol">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsVlasovSolution">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="def:vlasov-sol-on_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="def:vlasov-sol-on" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">25</span></div>
+    <div class="thm_thmcontent"><p>   The window-localized weak Vlasov solution predicate on \([0,T]\): the distributional PDE holds on the open time interval, with narrow continuity up to the boundary. </p>
+</div>
+
+    <a class="latex_link" href="sect0003.html#def:vlasov-sol-on">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsVlasovSolutionOn">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:coupling_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:coupling" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">18</span></div>
+    <div class="thm_thmcontent"><p>  A coupling \(\pi \) of \(\mu \) and \(\nu \): a measure on the product with the correct marginals. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:coupling">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.IsCoupling">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:coupling-le-dual_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:coupling-le-dual" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">22</span></div>
+    <div class="thm_thmcontent"><p>   The hard KR direction: the optimal coupling cost is at most the dual value. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:coupling-le-dual">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_coupling_le_dual">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">12</span></div>
+    <div class="thm_thmcontent"><p>   The Kantorovich–Rubinstein \(W_1\) distance, defined via the dual sup-formula \(W_1(\mu ,\nu ) = \sup \{ \int \varphi \, \mathrm{d}\mu - \int \varphi \, \mathrm{d}\nu : \mathrm{Lip}(\varphi ) \le 1\} \). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-comm_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-comm" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">14</span></div>
+    <div class="thm_thmcontent"><p>   Symmetry of \(W_1\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-comm">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_comm">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-coupling_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-coupling" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">20</span></div>
+    <div class="thm_thmcontent"><p>   \(W_1\) expressed via the infimum over couplings. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-coupling">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_coupling">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-eq-coupling_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-eq-coupling" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">23</span></div>
+    <div class="thm_thmcontent"><p>   Kantorovich–Rubinstein duality: \(W_1\) equals the optimal coupling cost (both directions unified). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-eq-coupling">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_eq_coupling">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-fin_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-fin" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">17</span></div>
+    <div class="thm_thmcontent"><p>   Finiteness: a measure with finite first moment has \(W_1(\mu ,\nu ) {\lt} \infty \). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-fin">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_lt_top_of_finite_moment">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-le-coupling_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-le-coupling" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">21</span></div>
+    <div class="thm_thmcontent"><p>   Dual \(\le \) coupling: the KR-dual \(W_1\) is at most any coupling cost. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-le-coupling">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_le_wasserstein1_coupling">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-lip_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-lip" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">16</span></div>
+    <div class="thm_thmcontent"><p>   \(W_1\) non-expansion under a \(1\)-Lipschitz pushforward (the easy KR direction at the metric level). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-lip">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_le_of_lipschitz_map">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-self_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-self" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">13</span></div>
+    <div class="thm_thmcontent"><p>   \(W_1(\mu ,\mu ) = 0\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-self">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_self">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:w1-tri_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:w1-tri" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">15</span></div>
+    <div class="thm_thmcontent"><p>   Triangle inequality for \(W_1\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:w1-tri">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wasserstein1_triangle">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">7</span></div>
+    <div class="thm_thmcontent"><p>  The cost-generic Wasserstein functional \(W_c(\mu ,\nu ) := \sup \{ \int \varphi \, \mathrm{d}\mu - \int \psi \, \mathrm{d}\nu \} \) over the \(c\)-admissible dual pairs. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost-comm_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost-comm" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">9</span></div>
+    <div class="thm_thmcontent"><p>   Symmetry: \(W_c(\mu ,\nu ) = W_c(\nu ,\mu )\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost-comm">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_comm">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost-coupling_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost-coupling" style="display: none">
+    <div class="thm_thmheading">
+      <span class="definition_thmcaption">
+      Definition
+      </span>
+      <span class="definition_thmlabel">19</span></div>
+    <div class="thm_thmcontent"><p>   The Monge–Kantorovich (coupling) cost \(\int \mathrm{dist}\, \mathrm{d}\pi \) over couplings \(\pi \). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost-coupling">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_coupling">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost-lip_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost-lip" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">11</span></div>
+    <div class="thm_thmcontent"><p>   Non-expansion of \(W_c\) under a \(1\)-Lipschitz pushforward. </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost-lip">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_le_of_lipschitz_map">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost-self_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost-self" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">8</span></div>
+    <div class="thm_thmcontent"><p>   \(W_c(\mu ,\mu ) = 0\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost-self">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_self">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="ot:wcost-tri_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="ot:wcost-tri" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">10</span></div>
+    <div class="thm_thmcontent"><p>   Triangle inequality for \(W_c\). </p>
+</div>
+
+    <a class="latex_link" href="sect0002.html#ot:wcost-tri">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.wassersteinCost_triangle">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:charflow-fderiv-fundamental_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:charflow-fderiv-fundamental" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">30</span></div>
+    <div class="thm_thmcontent"><p>   The flow’s Fréchet derivative in its initial point is assembled from the Dyson-series fundamental matrix \(M(t)\). </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:charflow-fderiv-fundamental">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_hasFDerivAt_of_fundamentalMatrix">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:charflow-inverse-joint_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:charflow-inverse-joint" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">32</span></div>
+    <div class="thm_thmcontent"><p>   The two-time flow \((s,z) \mapsto \Phi _{s \to t}(z)\) and its inverse are jointly \(C^1\) on the window, supplying the jointly-smooth inverse map used to transport test functions. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:charflow-inverse-joint">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_inverse_contDiffOn_joint">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:diagonal-chain-rule_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:diagonal-chain-rule" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">35</span><span class="theorem_thmtitle">Diagonal chain rule (#6a)</span></div>
+    <div class="thm_thmcontent"><p>    The diagonal chain rule: \(\frac{\mathrm{d}}{\mathrm{d}s} \int \psi _s\, \mathrm{d}f_s = 0\) for \(s \in (0,T)\), combining the transport identity with the weak PDE on the enlarged \(C^1_c\) test class. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:diagonal-chain-rule">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.transportedIntegral_hasDerivAt_zero">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:dobrushin_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:dobrushin" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">28</span><span class="theorem_thmtitle">Dobrushin stability (1979)</span></div>
+    <div class="thm_thmcontent"><p>    <b class="bfseries">Dobrushin’s theorem.</b> Under \(\mathrm{AssW}\), any two Lagrangian Vlasov solutions obey the exponential \(W_1\)-stability estimate \(W_1(f_t, g_t) \le e^{Ct}\,  W_1(f_0, g_0)\) for all \(t \ge 0\), where \(C\) depends on \(\mathrm{Lip}(\nabla W)\). Proved via the optimal-coupling Gronwall argument. Axiom-clean. </p>
+</div>
+
+    <a class="latex_link" href="sect0004.html#thm:dobrushin">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.dobrushin">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:dual-core_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:dual-core" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">36</span><span class="theorem_thmtitle">Dual core</span></div>
+    <div class="thm_thmcontent"><p>    The dual core: \(\int \varphi \, \mathrm{d}f_T = \int \varphi \, \mathrm{d}g_T\) for all \(C_c^\infty \) test functions \(\varphi \), where \(g = (\Phi )_\#  f_0\) is the frozen-field pushforward. Hence \(f_T = g_T\) by measure extensionality. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:dual-core">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weak_eq_frozenField_pushforward_dualCore">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:test-c1c_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:test-c1c" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">33</span><span class="theorem_thmtitle">Test-class enlargement (#4)</span></div>
+    <div class="thm_thmcontent"><p>    The weak-solution test class is enlarged from \(C_c^\infty \) to \(C^1_c\) by mollification and a uniform dominated-convergence argument. Needed because the transported test \(\psi _s = \varphi \circ \Phi _{s \to t}\) is only \(C^1_c\). </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:test-c1c">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weakEvolution_test_C1c_On">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:transport-identity_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:transport-identity" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">34</span></div>
+    <div class="thm_thmcontent"><p>   The dual transport identity: the transported test satisfies \(\partial _s \psi _s + D\psi _s \cdot b_s = 0\) along the flow. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:transport-identity">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.transportedTest_transport_identity">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:variational-eq_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:variational-eq" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">31</span><span class="theorem_thmtitle">Variational equation (#3)</span></div>
+    <div class="thm_thmcontent"><p>    <b class="bfseries">Variational equation.</b> The map \(z \mapsto \Phi _t(z)\) is Fréchet differentiable in the initial point \(z\), with derivative solving the linearized equation \(\dot M = (D_z b)\, M\). The research-grade core of the bridge, closed via a Gronwall difference-quotient estimate. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:variational-eq">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_hasFDerivAt_in_initialPoint">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:vlasov-wp_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:vlasov-wp" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">27</span><span class="theorem_thmtitle">Vlasov well-posedness</span></div>
+    <div class="thm_thmcontent"><p>    <b class="bfseries">Forward well-posedness.</b> Under \(\mathrm{AssW}\), for any finite-first-moment probability datum \(f_0\) there exists a unique forward-in-time Lagrangian Vlasov solution with initial datum \(f_0\). Existence is by Banach fixed point on the \(W_1\)-sup metric (Picard iteration), extended to arbitrary \(T\) by window gluing; uniqueness is per-window. Axiom-clean: \([\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]\). </p>
+</div>
+
+    <a class="latex_link" href="sect0004.html#thm:vlasov-wp">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.vlasovWellPosedness">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+
+
+    
+    <div class="dep-modal-container" id="thm:weak-lagrangian_modal">
+      <div class="dep-modal-content">
+          <button class="dep-closebtn">
+<svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        
+  <div class="thm" id="thm:weak-lagrangian" style="display: none">
+    <div class="thm_thmheading">
+      <span class="theorem_thmcaption">
+      Theorem
+      </span>
+      <span class="theorem_thmlabel">37</span><span class="theorem_thmtitle">Superposition principle</span></div>
+    <div class="thm_thmcontent"><p>    <b class="bfseries">Weak \(\Rightarrow \) Lagrangian.</b> Under \(\mathrm{AssW2}\), every weak Vlasov solution on a window is Lagrangian: it coincides with the pushforward of its initial datum along the characteristic flow it generates. The apex of the bridge. </p>
+</div>
+
+    <a class="latex_link" href="sect0005.html#thm:weak-lagrangian">LaTeX</a>
+    
+    
+  <a class="lean_link lean_decl" href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weak_isLagrangianVlasovSolutionOn">Lean</a>
+    
+    
+  
+    
+  </div>
+    
+      </div>
+    </div>
+</div>
+</div> <!-- content -->
+</div> <!-- wrapper -->
+<script src="js/jquery.min.js" type="text/javascript"></script>
+
+<script src="js/d3.min.js"></script>
+<script src="js/hpcc.min.js"></script>
+<script src="js/d3-graphviz.js"></script>
+
+<script type="text/javascript">
+const graphContainer = d3.select("#graph");
+const width = graphContainer.node().clientWidth;
+const height = graphContainer.node().clientHeight;
+
+
+graphContainer.graphviz({useWorker: true})
+    .width(width)
+    .height(height)
+    .fit(true)
+    .renderDot(`strict digraph "" {	graph [bgcolor=transparent];	node [label="\N",		penwidth=1.8	];	edge [arrowhead=vee];	"ot:wcost-coupling"	[color=green,		fillcolor="#B0ECA3",		label="wcost-coupling",		shape=box,		style=filled];	"ot:coupling-le-dual"	[color=green,		fillcolor="#1CAC78",		label="coupling-le-dual",		shape=ellipse,		style=filled];	"ot:wcost-coupling" -> "ot:coupling-le-dual"	[style=dashed];	"ot:w1-eq-coupling"	[color=green,		fillcolor="#1CAC78",		label="w1-eq-coupling",		shape=ellipse,		style=filled];	"ot:coupling-le-dual" -> "ot:w1-eq-coupling";	"thm:dobrushin"	[color=green,		fillcolor="#1CAC78",		label=dobrushin,		shape=ellipse,		style=filled];	"ot:w1-eq-coupling" -> "thm:dobrushin";	"ot:w1-coupling"	[color=green,		fillcolor="#B0ECA3",		label="w1-coupling",		shape=box,		style=filled];	"ot:w1-le-coupling"	[color=green,		fillcolor="#1CAC78",		label="w1-le-coupling",		shape=ellipse,		style=filled];	"ot:w1-coupling" -> "ot:w1-le-coupling"	[style=dashed];	"ot:w1-le-coupling" -> "ot:w1-eq-coupling";	"def:vlasov-sol-on"	[color=green,		fillcolor="#B0ECA3",		label="vlasov-sol-on",		shape=box,		style=filled];	"def:lagrangian-sol-on"	[color=green,		fillcolor="#B0ECA3",		label="lagrangian-sol-on",		shape=box,		style=filled];	"def:vlasov-sol-on" -> "def:lagrangian-sol-on"	[style=dashed];	"thm:test-c1c"	[color=green,		fillcolor="#1CAC78",		label="test-c1c",		shape=ellipse,		style=filled];	"def:vlasov-sol-on" -> "thm:test-c1c"	[style=dashed];	"def:lagrangian-sol-on" -> "thm:dobrushin";	"thm:weak-lagrangian"	[color=green,		fillcolor="#1CAC78",		label="weak-lagrangian",		shape=ellipse,		style=filled];	"def:lagrangian-sol-on" -> "thm:weak-lagrangian"	[style=dashed];	"thm:vlasov-wp"	[color=green,		fillcolor="#1CAC78",		label="vlasov-wp",		shape=ellipse,		style=filled];	"def:lagrangian-sol-on" -> "thm:vlasov-wp"	[style=dashed];	"thm:diagonal-chain-rule"	[color=green,		fillcolor="#1CAC78",		label="diagonal-chain-rule",		shape=ellipse,		style=filled];	"thm:test-c1c" -> "thm:diagonal-chain-rule";	"thm:dual-core"	[color=green,		fillcolor="#1CAC78",		label="dual-core",		shape=ellipse,		style=filled];	"thm:dual-core" -> "thm:weak-lagrangian";	"thm:diagonal-chain-rule" -> "thm:dual-core";	"ot:wcost-self"	[color=green,		fillcolor="#1CAC78",		label="wcost-self",		shape=ellipse,		style=filled];	"ot:w1-self"	[color=green,		fillcolor="#1CAC78",		label="w1-self",		shape=ellipse,		style=filled];	"ot:wcost-self" -> "ot:w1-self";	"ot:w1-self" -> "thm:vlasov-wp";	"thm:charflow-inverse-joint"	[color=green,		fillcolor="#1CAC78",		label="charflow-inverse-joint",		shape=ellipse,		style=filled];	"thm:charflow-inverse-joint" -> "thm:dual-core";	"ot:wcost-lip"	[color=green,		fillcolor="#1CAC78",		label="wcost-lip",		shape=ellipse,		style=filled];	"ot:w1-lip"	[color=green,		fillcolor="#1CAC78",		label="w1-lip",		shape=ellipse,		style=filled];	"ot:wcost-lip" -> "ot:w1-lip";	"def:char-flow"	[color=green,		fillcolor="#B0ECA3",		label="char-flow",		shape=box,		style=filled];	"def:lagrangian-sol"	[color=green,		fillcolor="#B0ECA3",		label="lagrangian-sol",		shape=box,		style=filled];	"def:char-flow" -> "def:lagrangian-sol"	[style=dashed];	"def:lagrangian-sol" -> "thm:dobrushin"	[style=dashed];	"def:lagrangian-sol" -> "thm:vlasov-wp";	"ot:coupling"	[color=green,		fillcolor="#B0ECA3",		label=coupling,		shape=box,		style=filled];	"ot:coupling" -> "ot:wcost-coupling"	[style=dashed];	"ot:coupling" -> "ot:w1-coupling"	[style=dashed];	"ot:w1-fin"	[color=green,		fillcolor="#1CAC78",		label="w1-fin",		shape=ellipse,		style=filled];	"ot:w1-fin" -> "thm:vlasov-wp";	"ot:w1-comm"	[color=green,		fillcolor="#1CAC78",		label="w1-comm",		shape=ellipse,		style=filled];	"ot:w1-comm" -> "thm:vlasov-wp";	"thm:charflow-fderiv-fundamental"	[color=green,		fillcolor="#1CAC78",		label="charflow-fderiv-fundamental",		shape=ellipse,		style=filled];	"thm:variational-eq"	[color=green,		fillcolor="#1CAC78",		label="variational-eq",		shape=ellipse,		style=filled];	"thm:charflow-fderiv-fundamental" -> "thm:variational-eq";	"thm:variational-eq" -> "thm:charflow-inverse-joint";	"def:convolve"	[color=green,		fillcolor="#B0ECA3",		label=convolve,		shape=box,		style=filled];	"def:convolve" -> "def:vlasov-sol-on"	[style=dashed];	"def:convolve" -> "def:char-flow"	[style=dashed];	"def:vlasov-sol"	[color=green,		fillcolor="#B0ECA3",		label="vlasov-sol",		shape=box,		style=filled];	"def:convolve" -> "def:vlasov-sol"	[style=dashed];	"def:vlasov-field"	[color=green,		fillcolor="#B0ECA3",		label="vlasov-field",		shape=box,		style=filled];	"def:convolve" -> "def:vlasov-field"	[style=dashed];	"def:vlasov-sol" -> "def:lagrangian-sol"	[style=dashed];	"def:vlasov-field" -> "thm:dobrushin";	"def:vlasov-field" -> "thm:vlasov-wp";	"def:vlasov-field" -> "thm:charflow-fderiv-fundamental";	"thm:transport-identity"	[color=green,		fillcolor="#1CAC78",		label="transport-identity",		shape=ellipse,		style=filled];	"def:vlasov-field" -> "thm:transport-identity"	[style=dashed];	"thm:transport-identity" -> "thm:diagonal-chain-rule";	"ot:wcost-tri"	[color=green,		fillcolor="#1CAC78",		label="wcost-tri",		shape=ellipse,		style=filled];	"ot:wcost-tri" -> "ot:coupling-le-dual";	"ot:w1-tri"	[color=green,		fillcolor="#1CAC78",		label="w1-tri",		shape=ellipse,		style=filled];	"ot:wcost-tri" -> "ot:w1-tri";	"ot:w1-tri" -> "thm:vlasov-wp";	"ot:wcost-comm"	[color=green,		fillcolor="#1CAC78",		label="wcost-comm",		shape=ellipse,		style=filled];	"ot:wcost-comm" -> "ot:coupling-le-dual";	"ot:wcost-comm" -> "ot:w1-comm";	"ass:W2"	[color=green,		fillcolor="#B0ECA3",		label=W2,		shape=box,		style=filled];	"ass:W2" -> "thm:dual-core"	[style=dashed];	"ot:wcost"	[color=green,		fillcolor="#B0ECA3",		label=wcost,		shape=box,		style=filled];	"ot:wcost" -> "ot:wcost-self"	[style=dashed];	"ot:wcost" -> "ot:wcost-lip"	[style=dashed];	"ot:wcost" -> "ot:wcost-tri"	[style=dashed];	"ot:wcost" -> "ot:wcost-comm"	[style=dashed];	"ot:w1"	[color=green,		fillcolor="#B0ECA3",		label=w1,		shape=box,		style=filled];	"ot:wcost" -> "ot:w1"	[style=dashed];	"ot:w1" -> "ot:w1-le-coupling"	[style=dashed];	"ot:w1" -> "ot:w1-self"	[style=dashed];	"ot:w1" -> "ot:w1-lip"	[style=dashed];	"ot:w1" -> "ot:w1-fin"	[style=dashed];	"ot:w1" -> "ot:w1-comm"	[style=dashed];	"ot:w1" -> "ot:w1-tri"	[style=dashed];	"def:fundamental-matrix"	[color=green,		fillcolor="#B0ECA3",		label="fundamental-matrix",		shape=box,		style=filled];	"def:fundamental-matrix" -> "thm:variational-eq";	"ass:W"	[color=green,		fillcolor="#B0ECA3",		label=W,		shape=box,		style=filled];	"ass:W" -> "thm:dobrushin"	[style=dashed];	"ass:W" -> "thm:vlasov-wp"	[style=dashed];	"ass:W" -> "ass:W2"	[style=dashed];}`)
+    .on("end", interactive);
+
+latexLabelEscaper = function(label) {
+  return label.replace(/\./g, '\\.').replace(/:/g, '\\:')
+}
+
+clickNode = function() {
+  $("#statements div").hide()
+  var node_id = $('text', this).text();
+  $('.thm').hide();
+  $('#'+latexLabelEscaper(node_id)).show().children().show();
+}
+function interactive() {
+    $("span#legend_title").on("click", function () {
+           $(this).siblings('dl').toggle();
+        })
+
+    d3.selectAll('.node')
+        .attr('pointer-events', 'fill')
+        .on('click', function () {
+           var title = d3.select(this).selectAll('title').text().trim();
+           $('#statements > div').hide()
+           $('.thm').hide();
+           $('#'+latexLabelEscaper(title)+'_modal').show().children().show().children().show();
+           $('#statements').show()
+        });
+
+    d3.selectAll('.dep-closebtn').on('click', function() {
+        var modal =
+            d3.select(this).node().parentNode.parentNode.parentNode ;
+        d3.select(modal).style('display', 'none');
+    });
+}
+
+</script>
+
+</body>
+</html>

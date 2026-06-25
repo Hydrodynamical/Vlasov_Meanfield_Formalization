@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  MathJax = { 
+    tex: {
+		    inlineMath: [['$','$'], ['\\(','\\)']]
+	} }
+</script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+<meta name="generator" content="plasTeX" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The superposition principle: weak \(\Rightarrow \) Lagrangian</title>
+<link rel="prev" href="sect0004.html" title="Well-posedness and Dobrushin stability" />
+<link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
+<link rel="stylesheet" href="styles/theme-white.css" />
+<link rel="stylesheet" href="styles/amsthm.css" />
+<link rel="stylesheet" href="styles/blueprint.css" />
+<link rel="stylesheet" href="styles/extra_styles.css" />
+</head>
+
+<body>
+<header>
+<svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="index.html">The Vlasov mean-field derivation: a Lean blueprint</a></h1>
+</header>
+
+<div class="wrapper">
+<nav class="toc">
+<ul class="sub-toc-0">
+<li class="">
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+ </li>
+<li class="">
+  <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
+ </li>
+<li class="">
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+ </li>
+<li class="">
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+ </li>
+<li class=" active current">
+  <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
+ </li>
+<li ><a href="dep_graph_document.html">Dependency graph</a></li>
+</ul>
+</nav>
+
+<div class="content">
+<div class="content-wrapper">
+
+
+<div class="main-text">
+<h1 id="a0000000006">5 The superposition principle: weak \(\Rightarrow \) Lagrangian</h1>
+<p>Under \(\mathrm{AssW2}\), every weak solution is Lagrangian. The argument freezes the field at \(\rho ^f\), establishes the \(C^1\) dependence of the flow on its initial point via the variational (fundamental-matrix) equation, enlarges the test class to \(C^1_c\), and closes by a diagonal chain-rule / dual-transport argument culminating in the apex theorem (the superposition principle). </p>
+<div class="definition_thmwrapper theorem-style-definition" id="def:fundamental-matrix">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">29</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#def:fundamental-matrix">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.fundamentalMatrix" class="lean_decl">Vlasov.fundamentalMatrix</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  The canonical Dyson-series solution \(M(t)\) of the matrix variational equation \(\dot M = A(s)\, M\), \(M(0) = I\); continuous in both time and the parameter, providing the derivative of the flow with respect to its initial point. </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:charflow-fderiv-fundamental">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">30</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:charflow-fderiv-fundamental">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000021"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_hasFDerivAt_of_fundamentalMatrix" class="lean_decl">Vlasov.charFlow_hasFDerivAt_of_fundamentalMatrix</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>   The flow’s Fréchet derivative in its initial point is assembled from the Dyson-series fundamental matrix \(M(t)\). </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000021">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Both the trajectory difference \(u_h(s)=\Phi _s(z+h)-\Phi _s(z)\) and its linearization \(M(s)h\) solve the linear ODE \(\dot w=A(s)w\) with the same initial value \(h\); a Gronwall estimate on approximate trajectories bounds their gap by the first-order Taylor remainder of \(b\), which is \(o(\| h\| )\) uniformly over the compact flow image. Hence \(\Phi _t(z+h)-\Phi _t(z)-M(t)h=o(\| h\| )\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:variational-eq">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">31</span>
+    <span class="theorem_thmtitle">Variational equation (#3)</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:variational-eq">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000022"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_hasFDerivAt_in_initialPoint" class="lean_decl">Vlasov.charFlow_hasFDerivAt_in_initialPoint</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    <b class="bfseries">Variational equation.</b> The map \(z \mapsto \Phi _t(z)\) is Fréchet differentiable in the initial point \(z\), with derivative solving the linearized equation \(\dot M = (D_z b)\, M\). The research-grade core of the bridge, closed via a Gronwall difference-quotient estimate. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000022">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Construct \(M\) as the Dyson series the fundamental matrix \(M\) and prove its joint \((t,z)\)-continuity by a parameter Weierstrass \(M\)-test; the difference-quotient bound the difference-quotient Gronwall bound then identifies \(M(t)\) as the Fréchet derivative of \(z\mapsto \Phi _t(z)\), depending continuously on \(z\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:charflow-inverse-joint">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">32</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:charflow-inverse-joint">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000023"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          
+          <li><a href="sect0005.html#thm:variational-eq">Theorem 31</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.charFlow_inverse_contDiffOn_joint" class="lean_decl">Vlasov.charFlow_inverse_contDiffOn_joint</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>   The two-time flow \((s,z) \mapsto \Phi _{s \to t}(z)\) and its inverse are jointly \(C^1\) on the window, supplying the jointly-smooth inverse map used to transport test functions. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000023">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> A lower Gronwall bound makes \(\Phi _t\) antilipschitz, hence injective with closed range; the inverse function theorem gives open range, so by connectedness \(\Phi _t\) is a \(C^1\) diffeomorphism. Applying the IFT to the space-time chart \((s,z)\mapsto (s,\Phi _s z)\) (block-triangular, invertible derivative) makes the inverse jointly \(C^1\), hence so is \(\Phi _{s\to t}=\Phi _t\circ \Phi _s^{-1}\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:test-c1c">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">33</span>
+    <span class="theorem_thmtitle">Test-class enlargement (#4)</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:test-c1c">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000024"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weakEvolution_test_C1c_On" class="lean_decl">Vlasov.weakEvolution_test_C1c_On</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    The weak-solution test class is enlarged from \(C_c^\infty \) to \(C^1_c\) by mollification and a uniform dominated-convergence argument. Needed because the transported test \(\psi _s = \varphi \circ \Phi _{s \to t}\) is only \(C^1_c\). </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000024">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p>Mollify the \(C^1_c\) test \(\chi \) by a shrinking \(C^\infty \) bump \(\chi _n=\rho _n\star \chi \) and apply the \(C^\infty _c\) weak equation to each. Pass to the limit using \(\chi _n\to \chi \) and the <em>uniform</em> convergence \(\nabla \chi _n\to \nabla \chi \) (the analytic core), with the field bound providing a uniform dominating function. </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:transport-identity">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">34</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:transport-identity">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000025"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.transportedTest_transport_identity" class="lean_decl">Vlasov.transportedTest_transport_identity</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>   The dual transport identity: the transported test satisfies \(\partial _s \psi _s + D\psi _s \cdot b_s = 0\) along the flow. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000025">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p>Set \(z_0=\Psi _s w\), so \(w=\Phi _s z_0\). Then \(\psi _{s'}(\Phi _{s'}z_0)=\varphi (\Phi _t z_0)\) is constant in \(s'\); differentiating this composite at \(s'=s\) and applying the chain rule splits as \(\partial _s\psi _s(w)+(D\psi _s(w))\, b_s(w)=0\). This is the dual of the pushforward chain rule. </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:diagonal-chain-rule">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">35</span>
+    <span class="theorem_thmtitle">Diagonal chain rule (#6a)</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:diagonal-chain-rule">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000026"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+          <li><a href="sect0005.html#thm:transport-identity">Theorem 34</a></li>
+          
+          <li><a href="sect0005.html#thm:test-c1c">Theorem 33</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.transportedIntegral_hasDerivAt_zero" class="lean_decl">Vlasov.transportedIntegral_hasDerivAt_zero</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    The diagonal chain rule: \(\frac{\mathrm{d}}{\mathrm{d}s} \int \psi _s\, \mathrm{d}f_s = 0\) for \(s \in (0,T)\), combining the transport identity with the weak PDE on the enlarged \(C^1_c\) test class. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000026">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Split \(I(\sigma )=\int \psi _\sigma \, \mathrm{d}f_\sigma =B(\sigma )+q(\sigma )\) with \(B\) the fixed-integrand part (derivative \(V_b\) from the \(C^1_c\) weak equation the \(C^1_c\)-extended weak equation) and \(q(\sigma )=\int (\psi _\sigma -\psi _s)\, \mathrm{d}f_\sigma \). A little-o argument gives \(q'(s)=-V_b\): the remainder splits into a uniform-differentiability term (Heine–Cantor over the fixed compact carrying the moving supports) and a narrow-continuity term. The transport identity the transport identity forces \(V_b=-\int \partial _s\psi _s\, \mathrm{d}f_s\), so the two cancel and \(I'(s)=0\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:dual-core">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">36</span>
+    <span class="theorem_thmtitle">Dual core</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:dual-core">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000027"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0001.html#ass:W2">Definition 2</a></li>
+          
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          
+          <li><a href="sect0005.html#thm:charflow-inverse-joint">Theorem 32</a></li>
+          
+          <li><a href="sect0005.html#thm:diagonal-chain-rule">Theorem 35</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weak_eq_frozenField_pushforward_dualCore" class="lean_decl">Vlasov.weak_eq_frozenField_pushforward_dualCore</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    The dual core: \(\int \varphi \, \mathrm{d}f_T = \int \varphi \, \mathrm{d}g_T\) for all \(C_c^\infty \) test functions \(\varphi \), where \(g = (\Phi )_\#  f_0\) is the frozen-field pushforward. Hence \(f_T = g_T\) by measure extensionality. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000027">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> By the diagonal chain rule the map \(s\mapsto \int \psi _s\, \mathrm{d}f_s\) has zero derivative on \((0,T)\), hence is constant. Evaluating at the endpoints (\(\psi _t=\varphi \), \(\psi _0=\varphi \circ \Phi _t\)) gives \(\int \varphi \, \mathrm{d}f_T=\int \varphi \circ \Phi _t\, \mathrm{d}f_0=\int \varphi \, \mathrm{d}g_T\) for the pushforward \(g=(\Phi _t)_\# f_0\). Ranging over \(\varphi \in C_c^\infty \) and measure extensionality give \(f_T=g_T\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:weak-lagrangian">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">37</span>
+    <span class="theorem_thmtitle">Superposition principle</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#thm:weak-lagrangian">#</a>
+    
+    <a class="icon proof" href="sect0005.html#a0000000028"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 26</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          
+          <li><a href="sect0001.html#ass:W2">Definition 2</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+          <li><a href="sect0005.html#thm:dual-core">Theorem 36</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://github.com/Hydrodynamical/Vlasov/find/#doc/Vlasov.weak_isLagrangianVlasovSolutionOn" class="lean_decl">Vlasov.weak_isLagrangianVlasovSolutionOn</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    <b class="bfseries">Weak \(\Rightarrow \) Lagrangian.</b> Under \(\mathrm{AssW2}\), every weak Vlasov solution on a window is Lagrangian: it coincides with the pushforward of its initial datum along the characteristic flow it generates. The apex of the bridge. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000028">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Freeze the field at \(\rho ^f\) and build its characteristic flow \(\Phi \); the pushforward \(g=(\Phi _t)_\# f_0\) is Lagrangian by construction and solves the same frozen linear equation. The dual core the dual core shows \(f_T=g_T\), so \(f\) coincides with its own characteristic pushforward and is therefore Lagrangian. </p>
+
+  </div>
+</div>
+
+</div> <!--main-text -->
+</div> <!-- content-wrapper -->
+</div> <!-- content -->
+</div> <!-- wrapper -->
+
+<nav class="prev_up_next">
+  <a href="sect0004.html" title="Well-posedness and Dobrushin stability"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+</nav>
+
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/plastex.js"></script>
+<script type="text/javascript" src="js/svgxuse.js"></script>
+</body>
+</html>
