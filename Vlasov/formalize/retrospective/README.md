@@ -58,6 +58,19 @@ Headline: **~1 in 7 commits is pure meta-knowledge capture** (discipline /
 lessons) — a quantified measure of the explicit-learning loop, distinct from the
 72% spent on the proof itself.
 
+## 4. Blueprint dependency graph (paper Figure 1)
+`blueprint_depgraph.pdf` / `.png` / `.dot`, extracted by [`depgraph.py`](depgraph.py)
+
+The faithful dependency graph the LeanArchitect/leanblueprint pipeline renders —
+edges read directly from the elaborated Lean proof terms. The web output draws it
+client-side (d3-graphviz from a DOT string in
+`blueprint-demo/blueprint/web/dep_graph_document.html`); `depgraph.py` pulls that
+exact DOT out, swaps the transparent background for white, and renders a static
+vector PDF (+ PNG preview) with graphviz `dot`. 37 nodes, 57 edges. Box = def /
+assumption, ellipse = theorem; dashed edge = statement-level use, solid =
+proof-level use; green = formalized (`leanok`). Included in `PAPER.tex` as the
+human-auditable cross-check of the OT-layer / kinetic-content separation.
+
 ## Method notes (for honesty in the paper)
 - "Live sorry" = `\bsorry\b` after stripping Lean line (`--`) and nested block
   (`/- -/`, `/-- -/`) comments. The word "sorry" appears constantly in prose, so
