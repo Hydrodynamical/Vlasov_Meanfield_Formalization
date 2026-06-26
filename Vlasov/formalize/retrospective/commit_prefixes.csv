@@ -1,0 +1,148 @@
+raw_prefix,commits
+ot,113
+doc,30
+basic,19
+notes,14
+phase b,7
+notes+discipline,6
+step 3,6
+ot/basic,4
+phase d,4
+dual core,4
+discipline,3
+phase b #1,3
+project memory,3
+blueprint,3
+sorry-prover,2
+formalize,2
+formalize/logs,2
+basic+ot,2
+refresh brief,2
+phase b #2,2
+phase c,2
+phase d rename,2
+tier-2,2
+step 2,2
+initial commit,1
+add sorry-decomposer agent + sidecar plan-file ipc + plan-aware prover/verifier,1
+fix diagonalcorrection_bound unprovability,1
+log,1
+prove helper 2; scaffold convolve unfolding; tighten selection rules,1
+prove convolvefunctionmeasure helper + diagonalcorrection_eq; institutionalize sketch fast-path,1
+add sketch-author agent + three-lessons patterns catalogue + namespace-preservation fix,1
+prove diagonalcorrection_bound; sorry count 5 → 4,1
+prove hasderivat_empiricalintegral_sum; sorry count 4 → 3,1
+prove weakevolutionempiricalmeasure residual glue; cascade complete,1
+patterns catalogue,1
+decomposer,1
+gap-mode decompose dobrushin + harness safety-net fix + axiom-target spec,1
+axiom-decompose wassersteingronwallcoupling,1
+prove wassersteingronwallcoupling_ennreal_mul_comm via sketch fast path,1
+refactor,1
+decompose convolvelipschitzestimate via dual-formula proof,1
+hand-prove 9 sorries,1
+close convolvelipschitz_inner_lipschitz + document remaining structural gaps,1
+thread wasserstein1 finiteness hypothesis through convolve+gronwall cascades,1
+prove wasserstein1_lt_top_of_finite_moment by hand,1
+document agent-tuning lessons l2-l4; record two-run empirical cycle,1
+"2x-timeout prover run on inner_bound; iteration-bound, not time-bound; l5 added",1
+prove convolvelipschitz_inner_bound by hand; sorries 4 → 3,1
+decompose w1conton via lsc + usc strategy,1
+prove w1conton_lt_top via sorry-prover,1
+cycle 5,1
+formalize.sh,1
+hand-prove w1conton_torealconton,1
+hand-prove w1conton_integralcontat,1
+ot infrastructure,1
+"revert ""basic",1
+coupling,1
+"revert ""coupling",1
+docs,1
+stage 4 — placeholder reformulation,1
+ot/claude,1
+add integrated_coupling_gronwall_bound,1
+generalize _le_of_lipschitz_map to cost-generic,1
+lift remaining property lemmas to cost-generic,1
+define wassersteinbar,1
+re-route dobrushin_uniqueness_on through integrated coupling core; retire #8,1
+dissolve the m3 knot via moment-free lipschitz-in-z dominator; 13 -> 8,1
+factor dobrushin_integrated_flow_bound_on core; re-point uniqueness,1
+mean-field dobrushin via integrated core; retire #5/#6,1
+add next-session brief,1
+correct next-session brief,1
+resolve meanfieldlimit flag in brief,1
+delete orphaned #3/#4 + dead w1conton/lscnarrow helper cluster,1
+settle #7 fork,1
+orphan + delete #7 via marquee l=0 producer-switch,1
+refresh brief to 3-sorry state,1
+close #1,1
+refresh brief to 2-sorry state,1
+correct brief,1
+bank static narrow-lsc of w₁,1
+close #2,1
+refresh brief to 1-sorry terminal map,1
+lock goal,1
+correct locked goal to option 3 after soundness leaf-read,1
+b-free coupling core for dobrushin stability; b isolated to one bridge,1
+b-free mean-field limit,1
+phase a.0,1
+phase b design,1
+phase b skeleton,1
+plan doc,1
+agent spec,1
+phase b #3,1
+phase b #3 ingredient 4,1
+phase b de-risk,1
+phase b complete,1
+phase c scoping,1
+phase c cleanup,1
+phase d diagnostic,1
+phase d move 1,1
+phase d move 2,1
+phase d move 3,1
+phase d mop-up,1
+phase d kinetic split,1
+phase d tooling,1
+tier-0 cleanup,1
+tier-1 formatting,1
+tier-1 linter cleanup,1
+add mathlib-style copyright headers,1
+add apache-2.0 license; credit upstream authors on vendored picardlindelof,1
+add agent-edit-guard.sh,1
+refresh kinetic 7-file split plan,1
+vlasov.tex,1
+c0,1
+c1,1
+foundation fix,1
+claude.md,1
+c2,1
+c3 prep,1
+c3 api-lock,1
+c3 f1,1
+c3 f2,1
+c3 f1c,1
+c3 v1c api-lock,1
+c3 v1c-engine,1
+c3 v1c-conv,1
+c3 v1c-rec,1
+c3 v1c complete,1
+c3 v1c→matrix,1
+c3 option a,1
+c3 a-cont,1
+c3 #3 reduction,1
+c3 d1a,1
+lesson l14,1
+c3 v2-core,1
+c3 v2 closed,1
+c3 d1c closed,1
+c4 #8 skeleton proven,1
+step 1,1
+claude.md l15,1
+claude.md l16,1
+step 4,1
+step 6,1
+bridge soundness fix,1
+bridge #4,1
+bridge #4 closed,1
+bridge #6a closed,1
+cleanup,1
