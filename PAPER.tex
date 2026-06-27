@@ -649,35 +649,109 @@ rather than papered over.}
 \label{fig:transcript}
 \end{figure}
 
-\subsection{Setting and key definitions}
+\subsection{From Newton to an exact weak solution}\label{ssec:newton-to-weak}
 
-Phase space for a single particle in spatial dimension $d$ is
-$\mathbb{X} := \R^d \times \R^d$ (position and velocity). The pair potential
-$W : \R^d \to \R$ satisfies a standing assumption (in the development, the type
-class \lean{AssW}): $W$ is continuously differentiable, even, and has a globally
-Lipschitz gradient with constant $L := \mathrm{Lip}(\nabla W)$.
-
-\begin{definition}[Wasserstein-1 distance]
-For probability measures $\mu,\nu$ with finite first moment on a metric space,
-$\Wone(\mu,\nu)$ is the optimal-transport cost for the ground cost
-$c = \mathrm{dist}$. The development carries two faces of this object: the
-\emph{dual} form (a supremum over $1$-Lipschitz test functions) and the
-\emph{primal} form (an infimum over couplings). It also carries the truncated
-variant $\Wbar$ with ground cost $\min(\mathrm{dist},1)$, used in the analysis of
-the global-in-time argument.
-\end{definition}
-
-\begin{definition}[Newton and Vlasov dynamics]
-The $N$-particle mean-field Newton system is
+The derivation opens with $N$ identical particles in $\R^d$ under the mean-field
+scaling, governed by the Newton equations
 \[
-\dot{x}_i = v_i, \qquad
-\dot{v}_i = -\tfrac{1}{N}\sum_{j\neq i} \nabla W(x_i - x_j),
-\qquad i = 1,\dots,N,
+  \dot{x}_i = v_i, \qquad
+  \dot{v}_i = -\tfrac1N\textstyle\sum_{j\neq i}\nabla W(x_i-x_j),
+  \qquad i=1,\dots,N,
 \]
-and the Vlasov equation is the kinetic mean-field limit, whose characteristic
-flow transports a measure $\rho_t$ along the self-consistent force field
-$-(\nabla W * \rho_t)$.
-\end{definition}
+where the pair potential $W:\R^d\to\R$ is the section's standing assumption (the
+type class \lean{AssW}): continuously differentiable, even, with globally Lipschitz
+gradient of constant $L:=\mathrm{Lip}(\nabla W)$. The $1/N$ coupling holds the
+kinetic and interaction energies at the same order as $N\to\infty$, and the bridge
+to the kinetic picture is the \emph{empirical measure}
+$\mu^N := \tfrac1N\sum_i\delta_{(x_i,v_i)}$, a probability measure on phase space
+$\mathbb{X}=\R^d\times\R^d$ (the Lean \lean{PhaseSpace d}):
+\begin{leancode}
+noncomputable def empiricalMeasure (N : ℕ) (X V : Fin N → PhysSpace d) :
+    Measure (PhaseSpace d)            -- μᴺ = (1/N) Σᵢ δ_(Xᵢ, Vᵢ)
+\end{leancode}
+
+\paragraph{The diagonal-removal trick, and exactness.}
+Getting the solution concept right is the opening's whole task, and the empirical
+measure rewards it with an exactness an informal account would miss. Differentiating
+$\langle\mu^N_t,\varphi\rangle=\tfrac1N\sum_i\varphi(x_i,v_i)$ along the Newton flow
+gives two terms,
+\[
+  \tfrac1N\sum_i v_i\cdot\nabla_x\varphi(x_i,v_i)
+   \;-\; \tfrac1{N^2}\sum_i\sum_{j\neq i}\nabla W(x_i-x_j)\cdot\nabla_v\varphi(x_i,v_i),
+\]
+the first being $\langle\mu^N_t,\,v\cdot\nabla_x\varphi\rangle$. In the second,
+\emph{adding and subtracting the diagonal} $i=j$ completes the inner sum to
+$\sum_j\nabla W(x_i-x_j)=N\,(\nabla W*\rho^N_t)(x_i)$ --- the convolution against the
+spatial marginal $\rho^N_t$, i.e.\ $\langle\mu^N_t,\,(\nabla W*\rho^N_t)\cdot
+\nabla_v\varphi\rangle$ --- and leaves behind exactly the diagonal
+\[
+  R_N=\tfrac1{N^2}\sum_i\nabla W(0)\cdot\nabla_v\varphi(x_i,v_i),
+  \qquad |R_N|\le\tfrac1N\,\|\nabla W\|_\infty\,\|\nabla_v\varphi\|_\infty.
+\]
+The evenness of $W$ (part of \lean{AssW}) forces $\nabla W(0)=0$, so $R_N\equiv0$:
+the empirical measure solves the Vlasov weak equation \emph{exactly}, not merely to
+$O(1/N)$. The formalization is what makes this honest. Where an informal derivation
+may drop the diagonal as negligible, the win condition forbids discarding a
+remainder silently, so the statement is forced to \emph{return} $R_N$ explicitly ---
+as an $r$ whose value is the diagonal term and whose bound is the displayed estimate
+--- and only then does evenness collapse it:
+\begin{leancode}
+theorem weakEvolutionEmpiricalMeasure (N) [NeZero N] (W) [AssW W] (gradW …)
+    (X V : ℝ → Fin N → PhysSpace d) (hSol : IsNewtonSolution N gradW X V)
+    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
+    … (t : ℝ) :
+    ∃ r : ℝ,
+      r = (1 / N^2) * ∑ i, inner (gradW 0) (gradVφ (X t i, V t i)) ∧
+      HasDerivAt (fun s => ∫ z, φ z ∂(empiricalMeasureCurve N X V s))
+        (∫ z, ( inner z.2 (gradXφ z)
+                - inner (convolveFunctionMeasure gradW (ρ t) z.1) (gradVφ z) )
+              ∂(empiricalMeasureCurve N X V t)  +  r) t ∧
+      |r| ≤ (1 / N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)
+\end{leancode}
+\noindent That $R_N\equiv0$ under \lean{AssW} is the corollary
+\lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
+distributional Vlasov solution. (The test functions are the $C^\infty$ compactly
+supported $\varphi$ --- pinning that class down, against a library change that had
+silently widened \lean{ContDiff ℝ ⊤} to mean \emph{real-analytic} and so would have
+emptied it, was itself an opening definitional fix.)
+
+\paragraph{Wasserstein-1, in two faces.}
+The distance that organizes everything to follow is the Wasserstein-1 metric
+$\Wone$, the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
+development carries it in two faces with a bridge between them: the \emph{dual} face
+is a supremum over $1$-Lipschitz tests, the \emph{primal} face an infimum over
+couplings, and Kantorovich--Rubinstein duality equates them.
+\begin{leancode}
+def wassersteinCost (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=   -- DUAL
+  ⨆ (f : α → ℝ) (_ : ∀ x y, |f x - f y| ≤ c x y),
+    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
+def wasserstein1 (μ ν : Measure α) : ENNReal :=
+  wassersteinCost (fun x y => dist x y) μ ν
+def wasserstein1_coupling (μ ν : Measure α) : ENNReal :=            -- PRIMAL
+  ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν), ∫⁻ z, edist z.1 z.2 ∂π
+theorem wasserstein1_eq_coupling … :                               -- KR duality
+    wasserstein1 μ ν = wasserstein1_coupling μ ν
+\end{leancode}
+Two opening choices about these definitions paid off later. First, the cost is
+defined \emph{generically} over $c$, with the metric facts (symmetry, the triangle
+inequality) proved once at that level and \emph{instantiated} at $c=\mathrm{dist}$
+for $\Wone$ and at $c=\min(\mathrm{dist},1)$ for the truncated variant $\Wbar$ the
+global-in-time argument needs; a development that hard-coded $\mathrm{dist}$ would
+have paid for it in the endgame. Second --- a sharper instance of the same
+discipline (Strategy~\ref{strat:B3}) --- a coupling-cost bound must take its moment
+hypothesis against the ground cost $c$, not against $\mathrm{dist}$: the two
+coincide \emph{definitionally} at $c=\mathrm{dist}$, so stating it the wrong way
+leaves the marquee instantiation looking fine while making the general lemma
+unprovable. Reading both the consumer's need and every producer's capacity before
+freezing that hypothesis is what caught it --- the subtlety the worked exchange of
+Figure~\ref{fig:transcript} surfaced in vivo.
+
+\medskip\noindent
+Establishing the two faces and the bridge is all the opening needs from $\Wone$.
+\emph{Which} face to prove a theorem in --- and why routing the stability estimate
+through the primal lets the whole derivation sidestep an optimal-coupling attainment
+theorem the library lacks --- is a decomposition choice, and the subject of
+Section~\ref{ssec:dynamical-core}.
 
 \subsection{The target theorems}
 
@@ -720,57 +794,22 @@ Theorem~\ref{thm:wp} holds at arbitrary $L$ --- the small-$L$ restriction presen
 in a naive formalization of Dobrushin's argument is removed
 (Section~\ref{ssec:endgame-lemmas}).
 
-\subsection{Early-game lemmas: getting the definitions right}
-
-The early game's substance was definitional, and one example shows why it
-matters. The Wasserstein cost is defined generically over the ground cost $c$;
-the development carries cost-generic property lemmas (symmetry, triangle
-inequality) and then instantiates them at $c = \mathrm{dist}$ (for $\Wone$) and
-$c = \min(\mathrm{dist},1)$ (for $\Wbar$). Locking this cost-generic interface
-\emph{first} --- before proving any analytic content --- meant that the later
-introduction of $\Wbar$ for the global-in-time argument was an instantiation,
-not a re-derivation. A development that hard-coded $\mathrm{dist}$ into the
-Wasserstein definitions would have paid for it in the endgame.
-
-A subtler early-game point (an instance of Strategy~\ref{strat:B3}): a coupling
-cost bound needs a moment hypothesis stated against the \emph{ground cost} $c$,
-not against $\mathrm{dist}$; at the instantiation $c=\mathrm{dist}$ the two
-coincide definitionally, but stating the lemma against the wrong one makes its
-proof impossible while leaving the marquee instantiation looking fine. Reading
-both the consumer's need and every producer's capacity --- before freezing the
-hypothesis --- is what caught this.
-
-\subsection{Mid-game lemmas: decomposition choices}
+\subsection{Mid-game lemmas: decomposition choices}\label{ssec:dynamical-core}
 
 \paragraph{The dual/primal split (the decisive decomposition).}
-The mean-field stability estimate (Theorem~\ref{thm:dob}) is naturally stated in
-the dual $\Wone$. Proved directly, it appears to require an \emph{optimal
-coupling} --- an attainment theorem the library does not have. The decomposition
-that unlocked the proof was to state the stability core in the \emph{primal}
-coupling cost and discharge it by an infimum-over-couplings inequality (``the
-infimum is below \emph{any} particular coupling's cost''), which needs no
-attainment. The dual-form headline is then recovered as a one-line corollary
-through a single bridge lemma identifying the two faces of $\Wone$. This
-relocated the only genuine optimal-transport dependency to one labeled line, and
-left the entire dynamical content --- existence, uniqueness, the stability core,
-the mean-field limit --- provably independent of it. The two faces, and the single
-bridge lemma that identifies them, are visible in the Lean: the dual is a supremum
-over $1$-Lipschitz tests (the \lean{⨆} in the code below), the primal an infimum
-over couplings (the \lean{⨅}), and Kantorovich--Rubinstein duality is their
-equality.
-\begin{leancode}
-def wassersteinCost (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=   -- DUAL
-  ⨆ (f : α → ℝ) (_ : ∀ x y, |f x - f y| ≤ c x y),
-    ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
-def wasserstein1 (μ ν : Measure α) : ENNReal :=
-  wassersteinCost (fun x y => dist x y) μ ν
-
-def wasserstein1_coupling (μ ν : Measure α) : ENNReal :=            -- PRIMAL
-  ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν), ∫⁻ z, edist z.1 z.2 ∂π
-
-theorem wasserstein1_eq_coupling … :                               -- KR duality
-    wasserstein1 μ ν = wasserstein1_coupling μ ν
-\end{leancode}
+With both faces of $\Wone$ in hand (Section~\ref{ssec:newton-to-weak}), the mid
+game's decisive move is choosing \emph{which} to state the stability estimate in.
+The mean-field estimate (Theorem~\ref{thm:dob}) reads most naturally in the dual
+$\Wone$; proved there directly, it appears to require an \emph{optimal coupling}
+--- an attainment theorem the library does not have. The decomposition that
+unlocked the proof was to state the stability core in the \emph{primal} coupling
+cost and discharge it by an infimum-over-couplings inequality (``the infimum is
+below \emph{any} particular coupling's cost''), which needs no attainment; the
+dual-form headline is then recovered in one line through the bridge lemma
+\lean{wasserstein1\_eq\_coupling}. This relocated the only genuine optimal-transport
+dependency to a single labeled line and left the entire dynamical content ---
+existence, uniqueness, the stability core, the mean-field limit --- provably
+independent of attainment.
 
 \paragraph{The coupling triangle inequality (a disintegration gluing).}
 The primal coupling cost satisfies a triangle inequality, and its proof is a
