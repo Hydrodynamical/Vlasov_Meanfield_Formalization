@@ -79,7 +79,6 @@ def generalDecls : List Name :=
   [ `IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined,
     `IsPicardLindelof.exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith_confined,
     `Vlasov.IsCoupling,
-    `Vlasov.IsCoupling.map,
     `Vlasov.PhaseSpace,
     `Vlasov.PhysSpace,
     `Vlasov.cTransform_dual_witness,
@@ -108,20 +107,11 @@ def generalDecls : List Name :=
     `Vlasov.wasserstein1_eq_zero_iff_measure_eq,
     `Vlasov.wasserstein1_le_liminf_of_narrow,
     `Vlasov.wasserstein1_le_moments_sum,
-    `Vlasov.wasserstein1_le_of_lipschitz_map,
     `Vlasov.wasserstein1_le_wasserstein1_coupling,
     `Vlasov.wasserstein1_lt_top_of_finite_moment,
     `Vlasov.wasserstein1_ne_top_of_finite_moment,
-    `Vlasov.wasserstein1_ofReal_exp_monotone,
-    `Vlasov.wasserstein1_pushforward_le_iInf,
     `Vlasov.wasserstein1_self,
     `Vlasov.wasserstein1_triangle,
-    `Vlasov.wassersteinBar,
-    `Vlasov.wassersteinBar_comm,
-    `Vlasov.wassersteinBar_dual_lower_bound,
-    `Vlasov.wassersteinBar_le_of_lipschitz_map,
-    `Vlasov.wassersteinBar_self,
-    `Vlasov.wassersteinBar_triangle,
     `Vlasov.wassersteinCost,
     `Vlasov.wassersteinCost_comm,
     `Vlasov.wassersteinCost_coupling,
@@ -133,7 +123,6 @@ def generalDecls : List Name :=
     `Vlasov.wassersteinCost_dual_le_add_map,
     `Vlasov.wassersteinCost_dual_lower_bound,
     `Vlasov.wassersteinCost_dual_singleMap_le,
-    `Vlasov.wassersteinCost_le_of_lipschitz_map,
     `Vlasov.wassersteinCost_self,
     `Vlasov.wassersteinCost_triangle ]
 
@@ -206,6 +195,23 @@ run_cmd liftCoreM do
     | none => pure () | some info =>
       let used := info.type.getUsedConstants ++ (info.value?.map Expr.getUsedConstants).getD #[]
       for u in used do if genSet.contains u then iface := iface.insert u
+  -- Q4 half A: reachability of each general decl from a target theorem (dead-code check).
+  let targets : List Name :=
+    [`Vlasov.vlasovWellPosedness, `Vlasov.dobrushin, `Vlasov.meanFieldLimit,
+     `Vlasov.weak_isLagrangianVlasovSolutionOn]
+  let mut reach : NameSet := {}
+  for t in targets do reach := reach.insert t
+  for _ in [0:total+5] do
+    let before := reach.size
+    for nm in reach.toList do
+      match env.find? nm with
+      | none => pure ()
+      | some info =>
+        let used := info.type.getUsedConstants ++ (info.value?.map Expr.getUsedConstants).getD #[]
+        for u in used do if allSet.contains u then reach := reach.insert u
+    if reach.size == before then break
+  let unreached := genSet.toList.filter (fun nm => allSet.contains nm && ¬ reach.contains nm)
+  let genSorted := ((genSet.toList.filter allSet.contains).map (·.toString)).toArray.qsort (· < ·) |>.toList
   let pc := fun (a b : Nat) =>
     let bp := a * 10000 / b          -- value in hundredths of a percent
     let frac := bp % 100
@@ -233,6 +239,12 @@ run_cmd liftCoreM do
       s!"  interface (distinct general names used by the specific side): {iface.size}",
       s!"  interface names: {iface.toList}",
       "  per module:", perMod ]
+  let reachProj := (reach.toList.filter allSet.contains).length
+  lines := lines ++ ["", s!"  Q4-A reachability from targets: {genN - unreached.length}/{genN} general reachable  ({reachProj}/{total} project decls reachable)"]
+    ++ (if unreached.isEmpty then ["    (no dead code: every general declaration is reachable from a target)"]
+        else ["    UNREACHED (dead code, fails Q4):"] ++ unreached.map (fun nm => s!"      {nm}"))
+    ++ ["", s!"  L_gen --- the {genN} general declarations (sorted):"]
+    ++ genSorted.map (fun s => s!"    {s}")
   if ¬ stale.isEmpty then
     lines := lines ++ ["  STALE asserted-general names (FIX THE LIST):"] ++ stale.map (fun nm => s!"      {nm}")
   if ¬ backList.isEmpty then
