@@ -1,7 +1,7 @@
 import Vlasov
 open Lean Elab.Command
 
-/-! Reusability score (PAPER.tex Def. 3.4) — a MEASUREMENT UNDER AN ASSERTED PARTITION,
+/-! Self-contained layer (PAPER.tex Def. 3.2) — a MEASUREMENT UNDER AN ASSERTED PARTITION,
 with the partition's structural consequences machine-checked.
 
 The reusability score is NOT a number the tool infers from declaration names — that would
@@ -53,7 +53,8 @@ namespace ReuseScore
 
 def projectModules : List Name :=
   [`Vlasov.Base.Geometry, `Vlasov.OT.Wasserstein, `Vlasov.OT.Coupling,
-   `Vlasov.Basic, `Vlasov.OT.CharacteristicFlow, `Vlasov.Mathlib.ODE.PicardLindelof]
+   `Vlasov.Basic, `Vlasov.OT.CharacteristicFlow, `Vlasov.OT.WeakToLagrangian,
+   `Vlasov.Mathlib.ODE.PicardLindelof]
 
 /-- Skip auto-generated / internal constants. -/
 def isReal (nm : Name) : Bool :=
@@ -222,7 +223,7 @@ run_cmd liftCoreM do
     perModLines := perModLines.push s!"    {m}: {ds.size} decls ({g} general) [{tag}]"
   let perMod := String.intercalate "\n" perModLines.toList
   let mut lines : List String :=
-    [ "REUSABILITY SCORE (PAPER Def. 3.4) — measurement under an asserted partition",
+    [ "SELF-CONTAINED LAYER (PAPER Def. 3.2) — measurement under an asserted partition",
       s!"  asserted general declarations: {generalDecls.length} (distinct {genSet.size})",
       s!"  (W) partition well-formed:  {wf}   [stale asserted names: {stale.length}; duplicates: {dupCount}]",
       s!"  (D) down-closed (S2 back-edges general→specific, must be 0):  {dn}   [{backEdges}]",
@@ -230,6 +231,7 @@ run_cmd liftCoreM do
       s!"  POTENTIAL (general fraction, under partition):    {genN}/{total} = {pc genN total}",
       s!"  REALIZED  (self-contained general modules):       {realizedN}/{total} = {pc realizedN total}",
       s!"  interface (distinct general names used by the specific side): {iface.size}",
+      s!"  interface names: {iface.toList}",
       "  per module:", perMod ]
   if ¬ stale.isEmpty then
     lines := lines ++ ["  STALE asserted-general names (FIX THE LIST):"] ++ stale.map (fun nm => s!"      {nm}")

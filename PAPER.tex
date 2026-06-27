@@ -75,13 +75,10 @@ Lagrangian --- at \emph{arbitrary} interaction-Lipschitz constant.
 The target theorems depend only on Lean's three foundational axioms; the
 optimal-transport machinery built along the way (a finite Kantorovich duality, a
 transport-polytope compactness theory, a coupling-gluing construction) is
-dependency-isolated behind a four-name interface to the kinetic-theory content,
-with no reverse dependency --- a candidate self-contained layer
-(Definition~\ref{def:selfcontained}), roughly a fifth of the development's
-declarations.
-% TODO(verify-at-HEAD): once ot-standalone re-sync + lake build + runLinter pass
-% at HEAD, upgrade ``candidate self-contained layer'' to ``self-contained layer''
-% (standalone-compiled against Mathlib, linter-clean).
+separated into a self-contained layer (Definition~\ref{def:selfcontained}) that
+builds against Mathlib alone and passes its linter suite --- roughly a fifth of
+the development's declarations, reached through a $17$-declaration interface, with
+no reverse dependency.
 We report the methodology candidly, including the
 mode in which ``about a week'' is the honest figure: a human mathematician
 acting as strategic director over an AI execution engine, with a verification
@@ -310,10 +307,10 @@ own elaboration environment, (Q2) compiles that isolation into a standalone buil
 and (Q3) is the ambient library's own linter applied unchanged. Only (A1) is a
 human judgment. In the case study (Section~\ref{sec:casestudy}) the
 self-contained layer is the optimal-transport machinery: the kinetic-theory
-content reaches it through an interface of exactly four names, with no edge in the
+content reaches it through a $17$-declaration interface, with no edge in the
 reverse direction. We report the layer's \emph{size} descriptively, against more
 than one denominator, rather than as the grade itself --- and we flag under (A1)
-the concision editing that an upstream submission would still require.
+the minimal-imports cleanup that an upstream submission would still require.
 
 \subsection{Why ``game'' is the right metaphor}
 
@@ -761,7 +758,7 @@ theorems' axiom footprint was already clean of it.
 \paragraph{Finite Kantorovich duality from Farkas (the genuine gap, built).}
 The one genuine optimal-transport external --- the hard direction of the
 Kantorovich--Rubinstein duality, on finitely-supported measures --- has no
-packaged form in the library. We built it. The route had a fork the library
+packaged form in the Mathlib version we build against (v4.29.1). We built it. The route had a fork the library
 forced: the natural map-form of the duality lives on a Hilbert space and ran into
 systemic friction between the proof assistant's inner-product instances on its
 Euclidean space type; pivoting to the geometric separation on the plain product
@@ -800,64 +797,58 @@ no smallness hypothesis.
 \subsection{The reusability outcome}
 
 The headline of the extraction is a machine-checkable \emph{zero}. After the game
-was won, we reorganized the optimal-transport machinery into a candidate
-self-contained layer (Definition~\ref{def:selfcontained}) and read the
-declaration-level dependency graph off the proof assistant's elaboration
-environment. The cut is one-directional: the kinetic-theory content reaches the
-optimal-transport layer through an interface of width $w = 4$ (four names), and
-the number of edges running the other way --- any optimal-transport declaration
-depending on a kinetic-theory one --- is exactly $0$ (check Q1). Directionality
-and interface width, not the size of the layer, are what make it upstreamable;
-the $0$ is the hard fact a referee can re-derive from the graph.
-% TODO(reuse-rerun): regenerate w, the reverse-edge count, and the declaration
-% counts below by re-running formalize/phase-d/reuse-score.lean with the
-% WeakToLagrangian bridge module in scope (the last run predated the bridge); do
-% not hand-edit these numbers.
+was won, we reorganized the optimal-transport machinery into a self-contained
+layer (Definition~\ref{def:selfcontained}). The cut, read off the
+declaration-level dependency graph in the proof assistant's elaboration
+environment, is one-directional: the kinetic-theory content reaches the
+optimal-transport layer through a $17$-declaration interface --- the
+Wasserstein-1 metric API, the coupling predicate \lean{IsCoupling}, and the two
+phase-space types --- and \emph{zero} edges run the other way. Directionality and
+interface width, not the size of the layer, are what make it upstreamable; the
+$0$ is the hard fact a referee re-derives from the graph.
 
-(These ``four names'' count the interface \emph{declarations} the kinetic content
-imports from the optimal-transport layer; the number is unrelated to the four
-\emph{conjuncts} of the \lean{IsLagrangianVlasovSolution} predicate displayed in
-Appendix~\ref{app:arc}, which a reader meeting both might otherwise conflate.)
-
-\paragraph{Toward a compiled certificate.}
-Check (Q1) is an audit of a graph we extract; checks (Q2) and (Q3) are designed to
-turn that audit into artifacts a referee re-runs, and we have not yet run them at
-the current revision. The intended (Q2) certificate packages the layer as a Lake
-project declaring the ambient library as its only dependency, with zero
-kinetic-theory files in its import graph, so that a successful build \emph{would}
-itself prove isolation --- the build cannot succeed if a hidden reverse edge
-exists; (Q3) is the ambient library's own linter suite, the automated gate its
-maintainers apply before any merge. We state these as the checks the grade
-\emph{requires} rather than as ones already compiled; until they pass at the
-current revision, the extracted machinery is a \emph{candidate} self-contained
-layer.
-% TODO(verify-at-HEAD): the standalone package was last built against an earlier
-% snapshot of the layer and has since drifted (~240 lines); the linter has not yet
-% been run at all. Re-sync ot-standalone to HEAD, ``lake build'' it against current
-% Mathlib, and run runLinter, THEN state the (Q2)/(Q3) results here as achieved
-% facts. Until then, do NOT assert standalone compilation or linter-cleanliness.
+\paragraph{A compiled certificate.}
+Checks (Q2) and (Q3) turn that graph audit into artifacts a referee re-runs, and
+both pass at \textsc{head}. Packaged as a standalone Lake project declaring the
+ambient library as its only dependency --- zero kinetic-theory files in its
+import graph --- the layer builds against Mathlib alone (Q2), and passes Mathlib's
+environment-linter suite ($16$ linters) with zero warnings (Q3). That Q3 pass is
+annotated honestly: seven declarations carry disclosed
+\lean{@[nolint unusedArguments]} for interface arguments deliberately retained for
+caller uniformity, and eighteen genuinely-unused instance arguments were removed.
+The whole grade is one re-runnable block:
+\begin{center}\small
+\begin{tabular}{ll}
+\hline
+(Q1) reverse edges, general $\to$ specific & $0$ \\
+(Q2) standalone build against Mathlib alone & exit $0$ \\
+(Q3) environment linters / warnings & $16$ / $0$ \\
+axiom footprint of the target theorems & \cleanfootprint{} \\
+size: general / total declarations & $60/299 \approx 20\%$ \\
+interface width $w$ & $17$ \\
+\hline
+\end{tabular}
+\end{center}
 
 \paragraph{Size, reported descriptively.}
-The layer's size is a descriptive statistic, not the grade. By declaration count
-it is $56$ of the development's $272$ top-level declarations --- roughly one in
-five. Other denominators move the figure: a layer can be a small fraction of the
-declarations yet a large fraction of the hard-won proof effort, or the reverse.
-That is exactly why size is reported as an aside rather than as the certificate ---
-the grade is the pass on (Q1)--(Q4), and the fraction only indicates whether a
-layer is large enough to be worth extracting at all.
+The size row above is a descriptive statistic, not the grade. Other denominators
+move it --- a layer can be a small fraction of the declarations yet a large
+fraction of the hard-won proof effort, or the reverse --- so the grade is the pass
+on (Q1)--(Q4), and the fraction only says whether a layer is large enough to be
+worth extracting at all.
 
 \paragraph{What is asserted rather than compiled.}
-The one judgment we do not compile is (A1): the layer's declarations are in the
-ambient library's conventional shape and free of project-specific jargon, but we
-do not claim they meet its concision and idiom standards as written. Bringing them
-to that bar is editing work we have not done, so the layer is a \emph{candidate}
-upstream contribution --- a finite Kantorovich duality, a transport-polytope
-compactness theory, a coupling-gluing construction, and the $\Wone/\Wbar$ and
-coupling API, dependency-isolated and independent of the kinetic-theory
-application that motivated it --- not a finished one. The extraction itself was
-performed move by move, with the axiom footprint re-verified after each move to
-confirm the reorganization changed only \emph{where} declarations live, never
-\emph{what} the target theorems depend on.
+The one judgment we do not compile is (A1), and it is now narrow. The layer is
+linter-clean, so the honest residual is specific: the files import Mathlib
+wholesale rather than the minimal set each declaration needs --- the one cleanup
+Mathlib's import discipline would require before merge. Modulo that, the layer ---
+a finite Kantorovich duality, a transport-polytope compactness theory, a
+coupling-gluing construction, and the $\Wone/\Wbar$ and coupling API,
+dependency-isolated and independent of the kinetic-theory application that
+motivated it --- is a candidate for upstreaming. The extraction itself was
+performed move by move, the axiom footprint re-verified after each move to confirm
+it changed only \emph{where} declarations live, never \emph{what} the target
+theorems depend on.
 
 \paragraph{A human-auditable cross-check.}
 Independently of the declaration-level graph used to check isolation (Q1), the
@@ -1090,9 +1081,10 @@ The reusability grade (Definition~\ref{def:selfcontained}) is a pass/fail
 certificate rather than a number, and we have applied it to a single development;
 the open question is not whether a fraction generalizes but whether its four
 checks (Q1)--(Q4) transfer cleanly to other projects. As (A1) records, even in
-this case the extracted layer is dependency-isolated but not yet brought to the
-ambient library's concision standard, so it remains a candidate for upstreaming
-rather than a completed contribution. The
+this case the extracted layer --- though dependency-isolated, standalone-compiling,
+and linter-clean --- still imports Mathlib wholesale rather than the minimal files
+each declaration needs, so it remains a candidate for upstreaming rather than a
+completed contribution. The
 ``about a week'' figure is a single observation, not a controlled measurement,
 and depends on the human director's prior fluency in both the mathematics and the
 proof assistant. The strategy taxonomy was earned on one project and may be
@@ -1118,8 +1110,8 @@ triage, and to accumulate strategic experience as standing guidance the agent
 internalizes. We demonstrated the method by winning a substantial game --- a
 complete, axiom-clean formalization of Vlasov well-posedness at arbitrary
 interaction strength, with the mean-field stability and limit --- and by
-extracting a candidate self-contained optimal-transport layer
-(Definition~\ref{def:selfcontained}). The certification is
+extracting a self-contained optimal-transport layer that compiles against Mathlib
+alone and is linter-clean (Definition~\ref{def:selfcontained}). The certification is
 the part that does not ask for trust: the target theorems depend on Lean's three
 foundational axioms and nothing else, and the claim is checkable in seconds. We
 believe the mathematician-in-the-loop framing, and the strategy taxonomy that
