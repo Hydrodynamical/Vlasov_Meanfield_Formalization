@@ -824,6 +824,114 @@ bound is the easy half. (This is why the coupling triangle inequality requires a
 ground-cost triangle hypothesis that the dual-side triangle inequality does
 not.)
 
+\subsection{The superposition principle, and why $C^2$}\label{ssec:superposition}
+
+The construction of Section~\ref{ssec:dynamical-core} produces a solution of a
+special form --- a pushforward of the datum along the characteristic flow ---
+whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all}
+distributional solutions. Reconciling the two is the \emph{superposition
+principle}, the development's deepest theorem, and the place the game's recurring
+lesson returns at full depth: the hardest-won move is once again getting a
+\emph{definition} exactly right, and the definition that decides everything here
+is the regularity class of the potential. Stating the principle needs two notions
+of solution made precise; throughout, $\rho_t$ is the spatial marginal of $f_t$.
+
+A \emph{weak} (Eulerian) solution is a narrowly continuous
+$f:[0,\infty)\to\mathcal{P}_1(\mathbb{X})$ with datum $f_0$ such that for every
+$\varphi\in C_c^\infty(\mathbb{X})$ the map $t\mapsto\langle f_t,\varphi\rangle$ is
+differentiable with $\frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\,
+v\cdot\nabla_x\varphi-(\nabla W*\rho_t)\cdot\nabla_v\varphi\rangle$ (the predicate
+\lean{IsVlasovSolution}). A \emph{Lagrangian} solution is a weak solution that, in
+addition, is transported by its own characteristic flow --- and the Lean predicate
+says exactly that, the flow witness sitting beside the weak-PDE conjunct:
+\begin{leancode}
+def IsLagrangianVlasovSolution (gradW) (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  IsVlasovSolution gradW f ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
+    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
+\end{leancode}
+A Lagrangian solution is weak by its first conjunct; the substantive direction is
+the converse, and that converse is the superposition principle.
+
+\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]
+\label{thm:superposition}
+Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
+Lagrangian: it is transported by the characteristic flow it generates. Hence the
+weak and Lagrangian notions coincide, and the unique solution of
+Theorem~\ref{thm:wp} is a pushforward of its datum along its flow.
+\end{theorem}
+\begin{leancode}
+theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
+    : IsLagrangianVlasovSolutionOn gradW f T
+\end{leancode}
+The converse costs exactly one degree of regularity beyond \lean{AssW} --- the
+development's second standing assumption, which makes its only appearance here:
+\begin{leancode}
+class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
+\end{leancode}
+
+\paragraph{Why $C^2$ --- the typeclass distinction \emph{is} the theorem.}
+This is the one subsection where the Lean is not confirmation standing beside the
+mathematics but the mathematical content itself, because what the superposition
+principle asserts is inseparable from \emph{which} regularity hypothesis it runs on,
+and the two candidate hypotheses are two type classes a single line apart. The
+proof reduces uniqueness for the nonlinear equation to uniqueness for the
+\emph{linear} continuity equation
+$\partial_t f + \mathrm{div}_{(x,v)}(b_f\,f)=0$ with the frozen field
+$b_f(t,x,v)=(v,-(\nabla W*\rho_t)(x))$: writing $g_t:=(X(t,\cdot),V(t,\cdot))_\# f_0$
+for the pushforward along the flow frozen at $\rho_t$, both $f$ and $g$ solve the
+same linear equation with the same datum, so $f=g$. That linear uniqueness is proved
+by the \emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
+constant along characteristics --- and for $\psi(s,\cdot)$ to be an admissible $C^1$
+test function the flow $\Phi$ must be $C^1$ in its initial point $z$. That single
+requirement is exactly what $\mathrm{AssW2}$ buys and $\mathrm{AssW}$ does not: with
+$\nabla W\in C^1$ one has $\nabla W*\rho_t\in C^1$ and
+$\|D(\nabla W*\rho_t)\|_\infty\le L$, so $b_f$ is $C^1$ in $z$ and the flow inherits
+$C^1$ dependence on $z$. At the bare $C^{1,1}$ of \lean{AssW} the flow is only
+bi-Lipschitz, the transported test function only Lipschitz, and the chain-rule
+identity holds merely Lebesgue-a.e.\ rather than $f_t$-a.e.; the representation then
+needs the full superposition theorem of Ambrosio \cite{AGS}. The gap between
+``a.e.\ for Lebesgue measure'' and ``a.e.\ for $f_t$'' is the kind of step an
+informal account steps over silently and a ``near-citation'' from the library hides
+in plain sight --- and the win condition will not let it pass: the development either
+carries the $C^1$-flow hypothesis honestly, in the type class, or it does not
+compile. (Dobrushin sidesteps the equivalence entirely by taking the Lagrangian
+representation as the \emph{definition} of solution, for which \lean{AssW} suffices
+--- which is why the marquee theorems (Theorems~\ref{thm:wp} and~\ref{thm:dob}) need
+only \lean{AssW}, and only this bridge to \emph{all} weak solutions pays for
+\lean{AssW2}.)
+
+This $C^1$ dependence of the flow on its initial point is the \emph{variational
+equation}: the research-grade core absent from the ambient library and built in
+house --- the single lemma on which, by the retrospective of
+Section~\ref{sec:retro}, most of the project's hardest analytic effort was spent.
+Its hypothesis is precisely $\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the
+flow's Fr\'echet derivative.
+\begin{leancode}
+theorem charFlow_hasFDerivAt_in_initialPoint
+    (gradW) (hgradW_C1 : ContDiff ℝ 1 gradW)          -- ← the AssW2 input
+    (L) (hL …) (ρ) [∀ s, IsProbabilityMeasure (ρ s)]
+    (charX charV) (T) (hT : 0 < T)
+    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
+    …    -- force-integrability + joint continuity of the force derivative on [0,T]
+    : ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
+        (∀ t ∈ Set.Ioo 0 T, ∀ z,
+            HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
+        (∀ t ∈ Set.Ioo 0 T, Continuous (Dflow t))
+\end{leancode}
+That the whole regularity ladder collapses onto this one signature --- a $C^1$
+input, a \lean{HasFDerivAt} output --- is the case study's sharpest evidence for the
+paper's recurring claim. Here formalization did not merely \emph{certify} a known
+argument; it \emph{sharpened} it, forcing the exact degree of smoothness the
+superposition principle needs out of the prose and onto a type class, where a referee
+reads it off in one line.
+
 \subsection{End-game lemmas: the library gaps}\label{ssec:endgame-lemmas}
 
 \paragraph{The phantom foundation.}
@@ -1336,8 +1444,8 @@ formalized as \lean{meanFieldLimit}. Both marquee results here ---
 \lean{IsLagrangianVlasovSolution}s by hypothesis --- are stated for \emph{Lagrangian}
 solutions, for which the weaker \lean{AssW} suffices because the flow representation
 is built into the solution concept; promoting either to a statement about \emph{all
-weak} solutions is the superposition principle (Theorem~\ref{thm:superposition}
-below), and that promotion is exactly what costs the stronger \lean{AssW2}.
+weak} solutions is the superposition principle (Theorem~\ref{thm:superposition}),
+and that promotion is exactly what costs the stronger \lean{AssW2}.
 
 \subsection{Weak and Lagrangian solutions, and the superposition principle}
 
@@ -1372,8 +1480,11 @@ class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
 \end{leancode}
 
+% NOTE(appendix-slim, deferred): this theorem + its surrounding A.4 narrative are
+% now promoted verbatim into Section~\ref{ssec:superposition}; the canonical
+% \label{thm:superposition} moved there. This unlabeled restatement is removed
+% wholesale when the appendix is slimmed (unit 3).
 \begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]
-\label{thm:superposition}
 Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
 Lagrangian: it is transported by the characteristic flow it generates. Hence the
 weak and Lagrangian notions coincide, and the unique solution of
