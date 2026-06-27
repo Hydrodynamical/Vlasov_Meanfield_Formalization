@@ -830,10 +830,9 @@ The construction of Section~\ref{ssec:dynamical-core} produces a solution of a
 special form --- a pushforward of the datum along the characteristic flow ---
 whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all}
 distributional solutions. Reconciling the two is the \emph{superposition
-principle}, the development's deepest theorem, and the place the game's recurring
-lesson returns at full depth: the hardest-won move is once again getting a
-\emph{definition} exactly right, and the definition that decides everything here
-is the regularity class of the potential. Stating the principle needs two notions
+principle}, and it is where the game's recurring lesson reappears: what the result
+turns on is, once again, getting a \emph{definition} exactly right --- here the
+definition that decides everything is the regularity class of the potential. Stating the principle needs two notions
 of solution made precise; throughout, $\rho_t$ is the spatial marginal of $f_t$.
 
 A \emph{weak} (Eulerian) solution is a narrowly continuous
@@ -896,22 +895,19 @@ $\|D(\nabla W*\rho_t)\|_\infty\le L$, so $b_f$ is $C^1$ in $z$ and the flow inhe
 $C^1$ dependence on $z$. At the bare $C^{1,1}$ of \lean{AssW} the flow is only
 bi-Lipschitz, the transported test function only Lipschitz, and the chain-rule
 identity holds merely Lebesgue-a.e.\ rather than $f_t$-a.e.; the representation then
-needs the full superposition theorem of Ambrosio \cite{AGS}. The gap between
-``a.e.\ for Lebesgue measure'' and ``a.e.\ for $f_t$'' is the kind of step an
-informal account steps over silently and a ``near-citation'' from the library hides
-in plain sight --- and the win condition will not let it pass: the development either
-carries the $C^1$-flow hypothesis honestly, in the type class, or it does not
-compile. (Dobrushin sidesteps the equivalence entirely by taking the Lagrangian
+needs the full superposition theorem of Ambrosio \cite{AGS}. The distinction between
+holding almost everywhere for Lebesgue measure and holding almost everywhere for
+$f_t$ is what the $C^1$-flow hypothesis controls, and the development carries that
+hypothesis explicitly in the type class rather than leaving it implicit in the prose.
+(Dobrushin sidesteps the equivalence entirely by taking the Lagrangian
 representation as the \emph{definition} of solution, for which \lean{AssW} suffices
 --- which is why the marquee theorems (Theorems~\ref{thm:wp} and~\ref{thm:dob}) need
 only \lean{AssW}, and only this bridge to \emph{all} weak solutions pays for
 \lean{AssW2}.)
 
 This $C^1$ dependence of the flow on its initial point is the \emph{variational
-equation}: the research-grade core absent from the ambient library and built in
-house --- the single lemma on which, by the retrospective of
-Section~\ref{sec:retro}, most of the project's hardest analytic effort was spent.
-Its hypothesis is precisely $\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the
+equation}, a result absent from the ambient library and supplied in house. Its
+hypothesis is precisely $\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the
 flow's Fr\'echet derivative.
 \begin{leancode}
 theorem charFlow_hasFDerivAt_in_initialPoint
@@ -925,12 +921,11 @@ theorem charFlow_hasFDerivAt_in_initialPoint
             HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
         (∀ t ∈ Set.Ioo 0 T, Continuous (Dflow t))
 \end{leancode}
-That the whole regularity ladder collapses onto this one signature --- a $C^1$
-input, a \lean{HasFDerivAt} output --- is the case study's sharpest evidence for the
-paper's recurring claim. Here formalization did not merely \emph{certify} a known
-argument; it \emph{sharpened} it, forcing the exact degree of smoothness the
-superposition principle needs out of the prose and onto a type class, where a referee
-reads it off in one line.
+The regularity ladder is captured by this one signature --- a $C^1$ input, a
+\lean{HasFDerivAt} output --- concrete evidence for the paper's recurring claim. Here
+formalization did not merely \emph{certify} a known argument; it \emph{sharpened} it,
+forcing the exact degree of smoothness the superposition principle needs out of the
+prose and onto a type class, where a referee reads it off in one line.
 
 \subsection{End-game lemmas: the library gaps}\label{ssec:endgame-lemmas}
 
@@ -1205,10 +1200,8 @@ revision (before it, the file was an undifferentiated list of tool lessons; afte
 all four series are present), and the process series jumps by four rules in one
 revision --- the aftermath of exactly the cascade of frictions that the mid- and
 end-game of Section~\ref{sec:phases} describe. The tool-lesson series keeps growing
-through June, tracking the hardest analytic grind (the variational equation behind
-the superposition bridge), and the framework stops growing once that crux closes:
-$\mathcal{G}$ accumulates precisely when the game is hard, and is quiet when it is
-not.
+through June, during the superposition-bridge follow-on (the variational equation),
+and stops once that work closes.
 
 \begin{figure}[t]
 \centering
@@ -1452,7 +1445,7 @@ and that promotion is exactly what costs the stronger \lean{AssW2}.
 The construction above produces a solution of a special form --- a pushforward of
 the datum along the flow --- whereas well-posedness (Theorem~\ref{thm:wp}) asserts
 uniqueness among \emph{all} distributional solutions. Reconciling the two is the
-\emph{superposition principle}, the development's deepest theorem; stating it needs
+\emph{superposition principle}; stating it needs
 two notions of solution made precise. Throughout, $\rho_t$ is the spatial marginal
 of $f_t$.
 
@@ -1519,9 +1512,8 @@ of solution, for which \lean{AssW} suffices --- which is why the marquee results
 Section~\ref{sec:casestudy} need only \lean{AssW}.)
 
 This $C^1$ dependence of the flow on its initial point is the \emph{variational
-equation}: the research-grade core absent from the ambient library and built in
-house, and the formal content of ``the variational equation behind the superposition
-bridge'' of Figure~\ref{fig:lessons}. Its hypothesis is precisely
+equation}, a result absent from the ambient library and supplied in house. Its
+hypothesis is precisely
 $\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the flow's Fr\'echet derivative.
 \begin{leancode}
 theorem charFlow_hasFDerivAt_in_initialPoint
