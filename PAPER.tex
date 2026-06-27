@@ -42,8 +42,10 @@
 \large AI-assisted Lean formalization as a strategy game,\\
 with a worked end-to-end case study in kinetic theory}
 
-\author{Joseph K. Miller
-}
+\author{Joseph K. Miller\thanks{%
+  Stanford University, \href{mailto:jkm314@stanford.edu}{jkm314@stanford.edu};
+  Massachusetts Institute of Technology, \href{mailto:jkm314@mit.edu}{jkm314@mit.edu}.}}
+
 \date{\today}
 
 \begin{document}
@@ -82,10 +84,15 @@ interface, with no reverse dependency.
 We report the methodology candidly, including the
 mode in which ``about a week'' is the honest figure: a human mathematician
 acting as strategic director over an AI execution engine, with a verification
-discipline that keeps the development sound at speed. The conceptual framing is
-the contribution; the case study is its evidence, and we state that evidence's
-quantitative claims as observations of one game --- with one director, one system,
-at one moment in a fast-moving field --- rather than as general laws.
+discipline that keeps the development sound at speed. The paper makes two
+contributions: a certified discipline for AI-assisted formalization --- a
+machine-checkable win condition and a reusability grade a referee re-runs in
+seconds --- and a library-grounded perspective on Dobrushin's derivation of the
+Vlasov equation, in which the optimal-transport duality, the exactness of the
+empirical-measure solution, and the regularity ladder behind the superposition
+principle are read through the lens of the game. We state the quantitative claims
+as observations of one game --- one director, one system, one moment in a
+fast-moving field --- not as general laws.
 \end{abstract}
 
 \tableofcontents
@@ -120,32 +127,47 @@ enough to formalize a genuine research result end to end in roughly a week of
 calendar time, and we believe the \emph{structure} of how that worked is worth
 reporting independently of the result.
 
+% MOVE-2 DEFERRED (backfill the prose of these two paragraphs after §6.1–6.3 exist, per plan):
+%  (1) \paragraph{The derivation, and why this one.}  Claim bullets: the Vlasov derivation is a
+%      hierarchy by force regularity; the Lipschitz / W^{1,∞} regime (Dobrushin–Braun–Hepp–Neunzert)
+%      is what we formalize and the right first target (the ambient library is buildable there); the
+%      singular frontier → Vlasov–Poisson at the Coulomb exponent is open.  Cites: \cite{TODO-bhn},
+%      \cite{TODO-hauray-jabin}, \cite{TODO-vp-open} (+ matching \bibitem stubs when the prose lands).
+%  (2) \paragraph{Why this derivation is interesting to formalize.}  Claim bullets, as OUR
+%      perspective (not a recap): (i) exactness R_N ≡ 0 under evenness; (ii) dual/primal W₁ duality
+%      lets the entire dynamical content avoid any attainment theorem; (iii) the superposition
+%      principle exposes the C¹-vs-C² regularity ladder and forces the variational equation.
+
 \paragraph{The framing.}
 We describe the activity as a game because the framing is unusually faithful.
 There is a precise objective (turn the \LaTeX{} into Lean), a precise and
 machine-checkable win condition (zero \lean{sorry}, clean axiom footprint), and
 a meaningful reusability grade (whether the won code yields a self-contained
-layer). And there are three phases,
-each with a different dominant strategy --- the same player who excels at the
-opening can lose the endgame by playing it with opening heuristics. Making the
-phases explicit, and naming the strategies that win each one, is the
-contribution of this paper.
+layer). And there are three phases, each with a different dominant strategy ---
+the same player who excels at the opening can lose the endgame by playing it with
+opening heuristics. But the game is a \emph{lens}, not the subject. The body of
+this paper runs an actual derivation --- Dobrushin's mean-field route to the
+Vlasov equation --- and reads each of its stages as a phase of the game; the
+framing earns its place by making the mathematician's moves legible, not by
+standing in for the mathematics.
 
 \paragraph{Outline.}
 Section~\ref{sec:related} situates the work among recent efforts in agentic and
 human-directed formalization. Section~\ref{sec:game} formalizes the game, its win
-condition, and its reusability grade. Section~\ref{sec:phases} describes the three phases and
-their dominant strategies. Section~\ref{sec:strategies} presents the
+condition, and its reusability grade; Section~\ref{sec:phases} the three phases and
+their dominant strategies; Section~\ref{sec:strategies} the
 $\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$ strategy taxonomy --- the standing
 guidance the human accumulates and the agent internalizes.
-Section~\ref{sec:casestudy} is the worked Vlasov case study, with the key
-definitions, theorems, and the genuinely hard lemmas presented as instances of
-the three phases. Section~\ref{sec:discipline} describes the verification
-discipline that keeps the method sound. Section~\ref{sec:assessment} assesses
-the methodology, including an honest account of the ``about a week'' figure and
-the reusability actually achieved. Appendix~\ref{app:arc} states the full
-mathematical arc, including the superposition principle and the regularity it
-requires, each statement paired with its Lean form.
+Section~\ref{sec:casestudy} is the heart of the paper: Dobrushin's derivation of
+the Vlasov equation, run as a formalization and read phase by phase --- the exact
+empirical-measure solution and the optimal-transport duality (the opening), the
+dual/primal decomposition and the coupling-gluing construction (the middle game),
+the superposition principle and its regularity ladder, and the library gaps the
+endgame must triage. Section~\ref{sec:discipline} describes the verification
+discipline; Section~\ref{sec:assessment} assesses the methodology, including an
+honest account of the ``about a week'' figure. Appendix~\ref{app:arc} collects the
+full Lean signatures behind the statements in the body and the boundary of what is
+formalized.
 
 % ============================================================================
 \section{Related work}\label{sec:related}
@@ -174,13 +196,21 @@ the International Mathematical Olympiad; its agentic successor
 evolutionary language-model/Lean loops and have autonomously resolved open
 Erd\H{o}s problems \cite{Erdos728}; LeanMarathon \cite{LeanMarathon} is a
 multi-agent, blueprint-centric harness that autoformalizes the theorems of recent
-Erd\H{o}s-problem papers. These differ from the present work on two axes: the
-agent \emph{drives} (the human, when present, supervises), and the targets are
-\emph{many short statements} --- competition or Erd\H{o}s problems. Our regime is
-the complementary one --- human-directed, \emph{one} substantial result carried
-end to end --- where the scarce resource is the mathematician's judgment about how
-to decompose a hard theorem and how to triage the ambient library's gaps, not raw
-proof search over short goals. Tellingly, the autonomous systems exhibit the very
+Erd\H{o}s-problem papers. Relatedly, Alexeev, Lichtman, Tao, and coauthors
+\cite{PrimitiveSets} resolved several open conjectures of Erd\H{o}s on primitive
+sets (problems \#1196, \#1217, \#164) with initial proofs generated by
+GPT-5.4~Pro and then independently formalized in Lean by two autonomous systems
+(OpenAI's Codex and Math~Inc.'s Gauss) --- the AI-generates,
+machine-checks loop in microcosm. These differ from the present work on two axes.
+The first is direction: the agent \emph{drives} (the human, when present,
+supervises), whereas in our regime the scarce resource is the mathematician's
+judgment --- how to decompose a hard theorem, how to triage the ambient library's
+gaps --- not raw proof search over short goals. The second is the shape of the
+target: even where the underlying mathematics is substantial, as in the
+primitive-sets work, the formal artifacts are \emph{isolated} statements, each
+checked on its own, rather than \emph{one} interlocking result carried end to end,
+where much of the difficulty lives in the shared infrastructure binding the
+theorems together. Tellingly, the autonomous systems exhibit the very
 failure mode our win condition is designed to reject --- and their own authors
 document it. The DeepMind proof-search study \cite{AlphaProofNexus} reports, in its
 failure analysis, that the agent ``offloaded a problem's core difficulty into a
@@ -198,7 +228,20 @@ mathematician (using, among other tools, Claude Code and Aristotle) --- the same
 domain and broadly the same mode as here, but a static characterization rather
 than the dynamic well-posedness, Dobrushin stability, mean-field limit, and
 superposition principle \cite{AGS} we formalize, and without the methodological
-apparatus we foreground. The ``Agentic Researcher'' guide of Zimmer et al.\
+apparatus we foreground. Contemporaneously, Armstrong and Kempe \cite{DGNM}
+formalized the core interior De Giorgi--Nash--Moser regularity theory for
+uniformly elliptic divergence-form equations in Lean~4 --- to their knowledge the
+first machine-checked formalization of a major theorem in modern PDE regularity ---
+likewise carried out with extensive use of large language models under close
+human supervision. Their account, like ours, locates the decisive human
+contributions in detailed proof blueprints, careful interface design, and
+validation against the checked artifact --- but states that discipline as
+retrospective narrative. Our aim is to \emph{operationalize} it: to replace the
+prose account with a binary, machine-checkable win condition (the axiom-footprint
+check of Definition~\ref{def:win}) and a quantified reusability grade, so that
+whether the discipline was honored is decided by the kernel rather than asserted
+by the authors.
+The ``Agentic Researcher'' guide of Zimmer et al.\
 \cite{AgenticResearcher} gives end-to-end agentic-research guidance with norms
 encoded as prompt ``commandments,'' a close parallel to our standing-instruction
 file; and Avigad \cite{Avigad} argues that mathematicians should actively deploy
@@ -1446,9 +1489,17 @@ Green build is a precondition, not a proof.
   \emph{LeanMarathon: toward reliable AI co-mathematicians through long-horizon
   Lean autoformalization}, arXiv:2606.05400 (2026).
 
+\bibitem{PrimitiveSets} B.~Alexeev, K.~Barreto, Y.~Li, J.~D.~Lichtman, L.~Price,
+  J.~I.~Shah, Q.~Tang, T.~Tao, \emph{Primitive sets and von Mangoldt chains:
+  Erd\H{o}s problem \#1196 and beyond}, arXiv:2605.00301 (2026).
+
 \bibitem{IlinVML} V.~Ilin,
   \emph{Semi-autonomous formalization of the Vlasov--Maxwell--Landau
   equilibrium}, arXiv:2603.15929 (2026).
+
+\bibitem{DGNM} S.~Armstrong, J.~Kempe,
+  \emph{Formalization of De Giorgi--Nash--Moser theory in Lean},
+  arXiv:2604.05984 (2026).
 
 \bibitem{AgenticResearcher} M.~Zimmer, N.~Pelleriti, C.~Roux, S.~Pokutta,
   \emph{The Agentic Researcher: a practical guide to AI-assisted research in
