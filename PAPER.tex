@@ -597,9 +597,10 @@ across the thousands of individual moves the agent makes.
 
 We played the game on Dobrushin's derivation \cite{Dobrushin} of the Vlasov
 equation from $N$-particle Hamiltonian dynamics; for the broader mean-field theory
-see \cite{Spohn,Golse,Neunzert}. This section presents the key definitions and
-target theorems, then the genuinely hard lemmas, organized by the phase in which
-each arose.
+see \cite{Spohn,Golse,Neunzert}. This section runs that derivation as the paper's central narrative --- from the
+$N$-particle system to the exact weak solution, through the dynamical core and the
+superposition principle to the gaps where the library ran out --- with each stage
+read as a phase of the game.
 
 \paragraph{The system.}
 % TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
@@ -753,23 +754,41 @@ through the primal lets the whole derivation sidestep an optimal-coupling attain
 theorem the library lacks --- is a decomposition choice, and the subject of
 Section~\ref{ssec:dynamical-core}.
 
-\subsection{The target theorems}
+\subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
 
+With the empirical measure established as an exact weak solution and $\Wone$ in two
+faces (Section~\ref{ssec:newton-to-weak}), the derivation passes to the limit object.
+The limit equation is the nonlinear Vlasov equation
+$\partial_t f + v\cdot\nabla_x f - (\nabla W * \rho_t)\cdot\nabla_v f = 0$, solved by
+the characteristic flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the
+datum $f_0$, with $\rho_t$ the self-consistent spatial marginal of $f_t$. Two facts
+about this flow are the case study's marquee targets, and each arrives as the
+construction reaches it.
+
+The first is that the flow exists at all: forward well-posedness is a Banach fixed
+point in $\Wone$.
 \begin{theorem}[Well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
 Under the standing assumption on $W$ \emph{(at arbitrary Lipschitz constant
 $L$)}, the Vlasov characteristic flow exists and is unique, globally in time.
 \end{theorem}
 
+The second is that two such flows, from different data, stay close --- Dobrushin's
+estimate, whose proof is the coupling argument that drives the mean-field limit, so we
+sketch it. Take an optimal coupling $\pi_0$ of $f_0,g_0$ for $\Wone$ and push it
+forward along the two characteristic flows to a coupling $\pi_t$ of $f_t,g_t$, so that
+$\Wone(f_t,g_t)\le\int(|X_f-X_g|+|V_f-V_g|)\,d\pi_0$; a Gronwall estimate on the
+characteristic equations, using $\mathrm{Lip}(\nabla W)=L$ and the force bound
+$\|\nabla W*\rho-\nabla W*\sigma\|_\infty\le L\,\Wone(\rho,\sigma)$, yields the
+exponential rate.
 \begin{theorem}[Mean-field stability and limit, \lean{dobrushin}]\label{thm:dob}
 Two Vlasov solutions are stable in $\Wone$ with an explicit (Gronwall) rate, and
 the empirical measures of the $N$-particle Newton dynamics converge to the
 Vlasov solution in the mean-field limit.
 \end{theorem}
-
-\noindent The stability half --- the mathematical statement on the left, its Lean
-form on the right (lightly cleaned; the full signature is in the repository) ---
-reads:
-\[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0)\quad(t\ge 0),\qquad C=C(L). \]
+\noindent The stability half reads
+\[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0)\quad(t\ge 0),\qquad C=C(L), \]
+with Lean form the stability \emph{core} --- two Lagrangian solutions and the bound
+(lightly cleaned; the full signature is in the repository):
 \begin{leancode}
 theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d) (L : NNReal) (hL : LipschitzWith L gradW)
@@ -783,46 +802,50 @@ theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
         ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
 \end{leancode}
 
-The displayed signature is the stability \emph{core} --- two Lagrangian solutions
-and the $\Wone$ bound. The theorem's second clause, the mean-field limit, is the
-separate corollary \lean{meanFieldLimit}, obtained by taking $g$ to be the
-$N$-particle empirical measure and letting $N\to\infty$.
-
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
-\printaxioms{} on each returns exactly \cleanfootprint. We highlight that
-Theorem~\ref{thm:wp} holds at arbitrary $L$ --- the small-$L$ restriction present
-in a naive formalization of Dobrushin's argument is removed
-(Section~\ref{ssec:endgame-lemmas}).
+\printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
+arbitrary $L$; the small-$L$ restriction present in a naive formalization of
+Dobrushin's argument is an artifact removed in Section~\ref{ssec:endgame-lemmas}.
 
-\subsection{Mid-game lemmas: decomposition choices}\label{ssec:dynamical-core}
+\medskip\noindent
+That coupling argument hides the subsection's decisive decomposition --- the place the
+mid game's human judgment enters. The stability estimate reads most naturally in the
+dual $\Wone$; proved there directly, it appears to require an \emph{optimal coupling},
+an attainment theorem the library does not have. The move that unlocked the proof was
+to state the stability core in the \emph{primal} coupling cost and discharge it by an
+infimum-over-couplings inequality (``the infimum is below \emph{any} particular
+coupling's cost''), which needs no attainment; the dual-form headline is recovered in
+one line through the bridge lemma \lean{wasserstein1\_eq\_coupling}. This relocated the
+only genuine optimal-transport dependency to a single labeled line and left the entire
+dynamical content --- existence, uniqueness, the stability core, the mean-field limit
+--- provably independent of attainment.
 
-\paragraph{The dual/primal split (the decisive decomposition).}
-With both faces of $\Wone$ in hand (Section~\ref{ssec:newton-to-weak}), the mid
-game's decisive move is choosing \emph{which} to state the stability estimate in.
-The mean-field estimate (Theorem~\ref{thm:dob}) reads most naturally in the dual
-$\Wone$; proved there directly, it appears to require an \emph{optimal coupling}
---- an attainment theorem the library does not have. The decomposition that
-unlocked the proof was to state the stability core in the \emph{primal} coupling
-cost and discharge it by an infimum-over-couplings inequality (``the infimum is
-below \emph{any} particular coupling's cost''), which needs no attainment; the
-dual-form headline is then recovered in one line through the bridge lemma
-\lean{wasserstein1\_eq\_coupling}. This relocated the only genuine optimal-transport
-dependency to a single labeled line and left the entire dynamical content ---
-existence, uniqueness, the stability core, the mean-field limit --- provably
-independent of attainment.
+The primal route rests on one delicate lemma, the coupling cost's triangle inequality.
+Given a coupling of $(\mu,\rho)$ and a coupling of $(\rho,\nu)$, one disintegrates the
+second over $\rho$ and glues, producing a coupling of $(\mu,\nu)$. The load-bearing
+and error-prone part is not the cost bound --- it is proving the glued measure has the
+\emph{correct marginals}, i.e.\ that it is genuinely a coupling of $(\mu,\nu)$.
+Marginal-preservation through the disintegration-and-recombination is exactly where a
+``near-citation'' from the library hides a gap; the cost bound is the easy half. (This
+is why the coupling triangle inequality requires a ground-cost triangle hypothesis
+that the dual-side triangle inequality does not.)
 
-\paragraph{The coupling triangle inequality (a disintegration gluing).}
-The primal coupling cost satisfies a triangle inequality, and its proof is a
-genuinely delicate measure-theoretic construction: given a coupling of
-$(\mu,\rho)$ and a coupling of $(\rho,\nu)$, one disintegrates the second over
-$\rho$ and glues, producing a coupling of $(\mu,\nu)$. The load-bearing and
-error-prone part is not the cost bound --- it is proving the glued measure has
-the \emph{correct marginals}, i.e.\ that it is genuinely a coupling of
-$(\mu,\nu)$. Marginal-preservation through the disintegration-and-recombination
-is exactly where a ``near-citation'' from the library hides a gap; the cost
-bound is the easy half. (This is why the coupling triangle inequality requires a
-ground-cost triangle hypothesis that the dual-side triangle inequality does
-not.)
+With stability in hand, the mean-field limit closes the loop: applying the estimate to
+the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
+measures converge,
+\[
+  \sup_{t\in[0,T]} \Wone(\mu^N_t, f_t) \;\le\; e^{CT}\,\Wone(\mu^N_0,f_0)
+  \;\xrightarrow[N\to\infty]{}\; 0,
+\]
+the separate corollary \lean{meanFieldLimit} --- the second clause of
+Theorem~\ref{thm:dob}, obtained by taking $g$ to be the $N$-particle empirical measure
+and letting $N\to\infty$.
+
+Both marquee results take their solutions as \lean{IsLagrangianVlasovSolution}s, for
+which the weaker \lean{AssW} suffices because the flow representation is built into the
+solution concept. Promoting either to a statement about \emph{all} weak solutions is
+the superposition principle of Section~\ref{ssec:superposition} --- and that promotion
+is what costs the stronger \lean{AssW2}.
 
 \subsection{The superposition principle, and why $C^2$}\label{ssec:superposition}
 
