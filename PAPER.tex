@@ -451,13 +451,10 @@ claim with a deliberate hedge --- \emph{in this game, with this system, at this
 time} --- because decomposition is exactly the capability frontier systems are
 improving at fastest; this is a time-stamped observation about where the judgment
 lived in this development, not a claim about a permanent division of labor.
-In the case study, the decisive mid-game choices were exactly of this kind:
-routing the mean-field stability estimate through an infimum-over-couplings
-inequality (which needs no attainment theorem) rather than through optimal-coupling
-attainment; choosing a discrete-approximation route to Kantorovich duality over
-a Hahn--Banach route; cutting the coupling triangle inequality through a
-disintegration-and-gluing construction. Each was a human decision; each was then
-executed by the agent.
+In the case study, the decisive mid-game choices were of exactly this kind --- which
+face of the Wasserstein metric to argue the stability estimate in, and how to construct
+the coupling triangle inequality it rests on. Each was a human decision the agent then
+executed, developed in Section~\ref{ssec:dynamical-core}.
 
 The mid game also has a \emph{learning} component, and it is the reason the
 standing instruction file $\mathcal{G}$ is a live part of the game rather than a
@@ -488,16 +485,13 @@ gaps are present in the library}, and deciding what to do about each.
 The surviving sorries partition into three kinds, and the endgame is the triage:
 \begin{enumerate}[label=(\alph*),leftmargin=2.5em]
 \item \emph{Phantoms}: statements that look like genuine gaps but dissolve under
-a sharper reading of what the consumer actually needs. In the case study, an
-entire conjectured ``foundation'' (a metrization theorem relating narrow and
-$\Wone$ convergence) turned out to be a phantom: the one consumer needed only
-the easy lower-semicontinuity half of it, which is a short, library-supported
-lemma. The work here is recognizing that the gap is not real before building
-to fill it.
+a sharper reading of what the consumer actually needs. The work here is recognizing
+that the gap is not real before building to fill it. The case study had one ---
+a conjectured metrization ``foundation'' the development never needed
+(Section~\ref{ssec:endgame-lemmas}).
 \item \emph{Genuine gaps you build}: standard mathematics the library lacks,
-which the player decides to formalize from the primitives that \emph{are}
-present. In the case study this was finite Kantorovich duality, built from the
-library's Farkas lemma.
+which the player decides to formalize from the primitives that \emph{are} present
+--- in the case study, a finite Kantorovich duality (Section~\ref{ssec:endgame-lemmas}).
 \item \emph{Genuine gaps you honestly defer}: standard mathematics the library
 lacks, which the player marks with an explicit, cited placeholder rather than
 building --- when the cost of building outweighs the value, and the dependency
