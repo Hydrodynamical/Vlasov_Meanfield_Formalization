@@ -127,16 +127,33 @@ enough to formalize a genuine research result end to end in roughly a week of
 calendar time, and we believe the \emph{structure} of how that worked is worth
 reporting independently of the result.
 
-% MOVE-2 DEFERRED (backfill the prose of these two paragraphs after §6.1–6.3 exist, per plan):
-%  (1) \paragraph{The derivation, and why this one.}  Claim bullets: the Vlasov derivation is a
-%      hierarchy by force regularity; the Lipschitz / W^{1,∞} regime (Dobrushin–Braun–Hepp–Neunzert)
-%      is what we formalize and the right first target (the ambient library is buildable there); the
-%      singular frontier → Vlasov–Poisson at the Coulomb exponent is open.  Cites: \cite{TODO-bhn},
-%      \cite{TODO-hauray-jabin}, \cite{TODO-vp-open} (+ matching \bibitem stubs when the prose lands).
-%  (2) \paragraph{Why this derivation is interesting to formalize.}  Claim bullets, as OUR
-%      perspective (not a recap): (i) exactness R_N ≡ 0 under evenness; (ii) dual/primal W₁ duality
-%      lets the entire dynamical content avoid any attainment theorem; (iii) the superposition
-%      principle exposes the C¹-vs-C² regularity ladder and forces the variational equation.
+\paragraph{The derivation, and why this one.}
+The mean-field derivations of kinetic equations form a hierarchy ordered by the
+regularity of the interaction force. At the regular end is the
+Lipschitz / $W^{1,\infty}$ regime --- pair potentials with a globally Lipschitz
+gradient --- where the mean-field limit is classical, going back to Dobrushin
+\cite{Dobrushin} and the Braun--Hepp--Neunzert line \cite{Neunzert} (see also the
+surveys \cite{Spohn,Golse}). At the singular end is Vlasov--Poisson at the Coulomb
+exponent, where the force is as singular as the equation's own nonlinearity and the
+mean-field limit remains a celebrated open problem, approached so far only for
+less-singular kernels \cite{TODO-hauray-jabin,TODO-vp-open}. We formalize the regular
+rung, and we choose it deliberately: it is the rung on which a reusable
+optimal-transport library can be built, the natural first target for a kinetic-theory
+formalization. We mention the Coulomb frontier only to place that choice --- and to
+name a distant aspiration. Closing it is a problem of \emph{mathematics}, not of proof
+engineering: the missing ingredient is new analysis, and we make no claim that an AI or
+a proof assistant could supply it. What a mature kinetic-theory library might one day
+offer there is narrower and more honest --- a place to \emph{certify} singular-limit
+arguments as they are discovered, catching exactly the kind of quietly-misapplied
+regularity hypothesis (a Lipschitz estimate invoked where the kernel is not Lipschitz)
+that the win condition is built to reject. The library amplifies the mathematician; it
+does not stand in for the mathematics.
+
+% MOVE-2 DEFERRED (paragraph (2) only --- the author's-angle preview, still to backfill):
+%  \paragraph{Why this derivation is interesting to formalize.}  Claim bullets, as OUR
+%  perspective (not a recap): (i) exactness R_N ≡ 0 under evenness; (ii) dual/primal W₁ duality
+%  lets the entire dynamical content avoid any attainment theorem; (iii) the superposition
+%  principle exposes the C¹-vs-C² regularity ladder and forces the variational equation.
 
 \paragraph{The framing.}
 We describe the activity as a game because the framing is unusually faithful.
@@ -1499,6 +1516,12 @@ Green build is a precondition, not a proof.
 \bibitem{Neunzert} H.~Neunzert, \emph{An introduction to the nonlinear
   Boltzmann--Vlasov equation}, in \emph{Kinetic Theories and the Boltzmann
   Equation}, Lecture Notes in Math.\ \textbf{1048}, Springer, 1984.
+
+\bibitem{TODO-hauray-jabin} TODO(author): M.~Hauray, P.-E.~Jabin --- mean-field limit /
+  propagation of chaos for singular (sub-Coulomb) kernels; fill the exact reference.
+
+\bibitem{TODO-vp-open} TODO(author): a reference for the Vlasov--Poisson mean-field
+  limit at the Coulomb exponent and its open status; fill the exact reference.
 
 \bibitem{MNPRS} J.~K.~Miller, A.~R.~Nahmod, N.~Pavlovi\'c, M.~Rosenzweig,
   G.~Staffilani, \emph{A rigorous derivation of the Hamiltonian structure for the
