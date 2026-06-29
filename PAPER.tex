@@ -165,9 +165,7 @@ dual/primal decomposition and the coupling-gluing construction (the middle game)
 the superposition principle and its regularity ladder, and the library gaps the
 endgame must triage. Section~\ref{sec:discipline} describes the verification
 discipline; Section~\ref{sec:assessment} assesses the methodology, including an
-honest account of the ``about a week'' figure. Appendix~\ref{app:arc} collects the
-full Lean signatures behind the statements in the body and the boundary of what is
-formalized.
+honest account of the ``about a week'' figure.
 
 % ============================================================================
 \section{Related work}\label{sec:related}
@@ -709,7 +707,8 @@ theorem weakEvolutionEmpiricalMeasure (N) [NeZero N] (W) [AssW W] (gradW …)
               ∂(empiricalMeasureCurve N X V t)  +  r) t ∧
       |r| ≤ (1 / N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)
 \end{leancode}
-\noindent That $R_N\equiv0$ under \lean{AssW} is the corollary
+\noindent Here \lean{gradXφ} and \lean{gradVφ} are the position- and
+velocity-gradients of $\varphi$. That $R_N\equiv0$ under \lean{AssW} is the corollary
 \lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
 distributional Vlasov solution. (The test functions are the $C^\infty$ compactly
 supported $\varphi$ --- pinning that class down, against a library change that had
@@ -1332,7 +1331,7 @@ would build it, and it remains future work, most naturally as an upstream
 contribution.
 
 % ============================================================================
-\section{Conclusion}
+\section{Outlook and future directions}
 % ============================================================================
 
 We have described AI-assisted Lean formalization as a strategy game with a
@@ -1354,221 +1353,20 @@ analysis, where the human's mathematical judgment --- about how to cut a problem
 and where the library runs out --- is exactly the scarce resource the loop is
 designed to amortize.
 
+The natural next edge is geometric. The Vlasov equation inherits a Hamiltonian,
+Lie--Poisson structure from the $N$-particle system --- an energy $\mathcal{H}[f]$
+and a bracket $\{F,G\}[f]$ for which $\partial_t f = \{f,\mathcal{H}\}$ --- and
+identifying that bracket as the Lie--Poisson bracket on the dual of the Lie algebra
+of Hamiltonian vector fields, arising as the $N\to\infty$ limit of the canonical
+brackets on $(\R^d\times\R^d)^N$, is not formalized here; it is the subject of
+\cite{MNPRS} and a natural target for a follow-on game. That the present development
+covers the dynamics --- existence, uniqueness, stability, the mean-field limit, and
+the superposition principle --- but not the geometric structure of the limit is a
+boundary we state plainly: doing so is itself part of the discipline the win
+condition enforces.
+
 % ============================================================================
 \appendix
-% ============================================================================
-
-% ============================================================================
-\section{The mean-field arc, formalized}\label{app:arc}
-% ============================================================================
-
-The methodology spine of the paper deliberately keeps the mathematics in the
-background. This appendix narrates the arc it backgrounds --- the derivation of the
-Vlasov equation as the mean-field limit of $N$-particle dynamics --- and marks where
-the formalization stops. It is a \emph{perspective}, paired with Lean to show the
-arc is real, not a reference: the exhaustive signatures live in the source document
-\lean{vlasov.tex} and in the development, and the auto-generated blueprint
-(Figure~\ref{fig:depgraph}) links each statement to its formal declaration and its
-\lean{leanok} marker. Two pieces of notation, kept distinct throughout: $\mathbb{X}
-= \R^d\times\R^d$ is single-particle phase space (the Lean \lean{PhaseSpace d}),
-while $\mathbf{X}=(x_1,\dots,x_N)$ and $\mathbf{V}=(v_1,\dots,v_N)$ are the
-$N$-particle position and velocity configurations.
-
-\subsection{From Newton to the empirical measure}
-
-Take $N$ identical particles in $\R^d$ in the mean-field scaling, with Hamiltonian
-$H_N(\X,\V) = \sum_i \tfrac{|v_i|^2}{2} + \tfrac1N \sum_{i<j} W(x_i-x_j)$ and the
-Newton equations
-\[
-  \dot{x}_i = v_i, \qquad \dot{v}_i = -\tfrac1N \textstyle\sum_{j\neq i}\nabla W(x_i-x_j),
-  \qquad i=1,\dots,N.
-\]
-The $1/N$ coupling is what makes the kinetic and interaction energies the same
-order as $N\to\infty$. The object that bridges the particle and kinetic pictures is
-the \emph{empirical measure} $\mu^N := \frac1N\sum_i \delta_{(x_i,v_i)}$, a
-probability measure on phase space $\mathbb{X}=\R^d\times\R^d$:
-\begin{leancode}
-noncomputable def empiricalMeasure (N : ℕ) (X V : Fin N → PhysSpace d) :
-    Measure (PhaseSpace d)            -- μᴺ = (1/N) Σᵢ δ_(Xᵢ, Vᵢ)
-\end{leancode}
-
-\subsection{The weak evolution, and the diagonal-removal trick}
-
-Differentiating $\langle \mu^N_t,\varphi\rangle = \frac1N\sum_i\varphi(x_i,v_i)$
-along the Newton flow and reorganizing the resulting double sum as a convolution
-against the spatial marginal $\rho^N_t$ yields the weak identity
-\[
-  \frac{d}{dt}\langle \mu^N_t,\varphi\rangle
-   = \big\langle \mu^N_t,\; v\cdot\nabla_x\varphi - (\nabla W * \rho^N_t)\cdot\nabla_v\varphi \big\rangle
-   + R_N(t),
-\]
-with $|R_N(t)| \le \frac1N\|\nabla W\|_\infty\|\nabla_v\varphi\|_\infty$. The
-computation is three lines, and the remainder is its whole point. Differentiating
-gives
-\[
-  \tfrac1N\sum_i v_i\cdot\nabla_x\varphi(x_i,v_i)
-   \;-\; \tfrac1{N^2}\sum_i\sum_{j\neq i}\nabla W(x_i-x_j)\cdot\nabla_v\varphi(x_i,v_i);
-\]
-the first term is $\langle\mu^N_t,\,v\cdot\nabla_x\varphi\rangle$. In the second,
-\emph{adding and subtracting the diagonal} $i=j$ completes the inner sum to
-$\sum_j\nabla W(x_i-x_j)=N\,(\nabla W*\rho^N_t)(x_i)$ --- turning the double sum into
-$\langle\mu^N_t,\,(\nabla W*\rho^N_t)\cdot\nabla_v\varphi\rangle$ --- and leaves behind
-precisely the diagonal
-$R_N=\tfrac1{N^2}\sum_i\nabla W(0)\cdot\nabla_v\varphi(x_i,v_i)$. Under the
-\emph{evenness} of $W$ (part of the standing assumption \lean{AssW}),
-$\nabla W(0)=0$, so $R_N\equiv 0$ and the empirical measure solves the Vlasov weak
-equation \emph{exactly}, not merely to $O(1/N)$. Formalizing this forced the
-remainder to be made explicit in the statement --- it is returned as an $r$ whose
-value is the diagonal term and whose bound is the displayed estimate:
-\begin{leancode}
-theorem weakEvolutionEmpiricalMeasure (N) [NeZero N] (W) [AssW W] (gradW …)
-    (X V : ℝ → Fin N → PhysSpace d) (hSol : IsNewtonSolution N gradW X V)
-    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
-    … (t : ℝ) :
-    ∃ r : ℝ,
-      -- the remainder is exactly the i = j diagonal term (zero when ∇W 0 = 0):
-      r = (1 / N^2) * ∑ i, inner (gradW 0) (gradVφ (X t i, V t i)) ∧
-      HasDerivAt (fun s => ∫ z, φ z ∂(empiricalMeasureCurve N X V s))
-        (∫ z, ( inner z.2 (gradXφ z)
-                - inner (convolveFunctionMeasure gradW (ρ t) z.1) (gradVφ z) )
-              ∂(empiricalMeasureCurve N X V t)  +  r) t ∧
-      |r| ≤ (1 / N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)
-\end{leancode}
-\noindent (Here $\rho_t$ abbreviates \lean{spatialMarginal (empiricalMeasureCurve N
-X V t)}, and \lean{gradXφ}/\lean{gradVφ} the position/velocity gradients of
-$\varphi$.) That $R_N\equiv0$ under \lean{AssW} is the corollary
-\lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
-distributional solution.
-
-\subsection{Characteristics, well-posedness, and the limit}
-
-The limit equation is the nonlinear Vlasov equation
-$\partial_t f + v\cdot\nabla_x f - (\nabla W * \rho_t)\cdot\nabla_v f = 0$, solved by
-the characteristic flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting
-$f_0$, with $\rho_t$ the self-consistent spatial marginal. Forward well-posedness is
-the Banach fixed point in $\Wone$ (\lean{vlasovWellPosedness}, Theorem~\ref{thm:wp});
-stability is Dobrushin's estimate (\lean{dobrushin}, Theorem~\ref{thm:dob}), whose
-proof (we sketch it, since it drives the limit) is a coupling argument: take an
-optimal coupling $\pi_0$ of $f_0,g_0$ for $\Wone$, push it forward along the two
-characteristic flows to a coupling $\pi_t$ of $f_t,g_t$, so that
-$\Wone(f_t,g_t)\le\int(|X_f-X_g|+|V_f-V_g|)\,d\pi_0$; a Gronwall estimate on the
-characteristic equations, using $\mathrm{Lip}(\nabla W)=L$ and the force bound
-$\|\nabla W*\rho-\nabla W*\sigma\|_\infty\le L\,\Wone(\rho,\sigma)$, yields the
-exponential rate. The mean-field limit then closes the loop: applying the estimate to
-$f$ and the empirical curve gives, whenever the initial empirical measures converge,
-\[
-  \sup_{t\in[0,T]} \Wone(\mu^N_t, f_t) \;\le\; e^{CT}\,\Wone(\mu^N_0,f_0)
-  \;\xrightarrow[N\to\infty]{}\; 0,
-\]
-formalized as \lean{meanFieldLimit}. Both marquee results here ---
-\lean{vlasovWellPosedness} and \lean{dobrushin}, the latter taking two
-\lean{IsLagrangianVlasovSolution}s by hypothesis --- are stated for \emph{Lagrangian}
-solutions, for which the weaker \lean{AssW} suffices because the flow representation
-is built into the solution concept; promoting either to a statement about \emph{all
-weak} solutions is the superposition principle (Theorem~\ref{thm:superposition}),
-and that promotion is exactly what costs the stronger \lean{AssW2}.
-
-\subsection{Weak and Lagrangian solutions, and the superposition principle}
-
-The construction above produces a solution of a special form --- a pushforward of
-the datum along the flow --- whereas well-posedness (Theorem~\ref{thm:wp}) asserts
-uniqueness among \emph{all} distributional solutions. Reconciling the two is the
-\emph{superposition principle}; stating it needs
-two notions of solution made precise. Throughout, $\rho_t$ is the spatial marginal
-of $f_t$.
-
-A \emph{weak} (Eulerian) solution is a narrowly continuous
-$f:[0,\infty)\to\mathcal{P}_1(\mathbb{X})$ with datum $f_0$ such that for every
-$\varphi\in C_c^\infty(\mathbb{X})$ the map $t\mapsto\langle f_t,\varphi\rangle$ is
-differentiable with $\frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\,
-v\cdot\nabla_x\varphi-(\nabla W*\rho_t)\cdot\nabla_v\varphi\rangle$ (the predicate
-\lean{IsVlasovSolution}). A \emph{Lagrangian} solution is a weak solution that, in
-addition, is transported by its own characteristic flow --- and the Lean predicate
-says exactly that, the flow witness sitting beside the weak-PDE conjunct:
-\begin{leancode}
-def IsLagrangianVlasovSolution (gradW) (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  IsVlasovSolution gradW f ∧
-  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
-    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
-    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
-    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
-\end{leancode}
-A Lagrangian solution is weak by the first conjunct; the substantive content is the
-converse. It costs one degree of regularity beyond \lean{AssW} --- the second
-standing assumption of the development, here making its only appearance:
-\begin{leancode}
-class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
-  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
-\end{leancode}
-
-% NOTE(appendix-slim, deferred): this theorem + its surrounding A.4 narrative are
-% now promoted verbatim into Section~\ref{ssec:superposition}; the canonical
-% \label{thm:superposition} moved there. This unlabeled restatement is removed
-% wholesale when the appendix is slimmed (unit 3).
-\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]
-Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
-Lagrangian: it is transported by the characteristic flow it generates. Hence the
-weak and Lagrangian notions coincide, and the unique solution of
-Theorem~\ref{thm:wp} is a pushforward of its datum along its flow.
-\end{theorem}
-\begin{leancode}
-theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
-    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
-    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
-    : IsLagrangianVlasovSolutionOn gradW f T
-\end{leancode}
-
-\paragraph{Why $C^2$?}
-The proof reduces uniqueness for the nonlinear equation to uniqueness for the
-\emph{linear} continuity equation
-$\partial_t f + \mathrm{div}_{(x,v)}(b_f\,f)=0$ with the frozen field
-$b_f(t,x,v)=(v,-(\nabla W*\rho_t)(x))$: writing $g_t:=(X(t,\cdot),V(t,\cdot))_\# f_0$
-for the pushforward along the flow frozen at $\rho_t$, both $f$ and $g$ solve the
-same linear equation with the same datum, so $f=g$. That linear uniqueness is proved
-by the \emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
-constant along characteristics; for $\psi(s,\cdot)$ to be an admissible $C^1$ test
-function the flow must be $C^1$ in its initial point $z$. \emph{This is exactly what
-$\mathrm{AssW2}$ buys}: with $\nabla W\in C^1$ one has $\nabla W*\rho_t\in C^1$ and
-$\|D(\nabla W*\rho_t)\|_\infty\le L$, so $b_f$ is $C^1$ in $z$ and the flow inherits
-$C^1$ dependence on $z$. At the bare $C^{1,1}$ of \lean{AssW} the flow is only
-bi-Lipschitz, the transported test function only Lipschitz, and the chain-rule
-identity holds merely Lebesgue-a.e.\ rather than $f_t$-a.e.; the representation then
-needs the full superposition theorem of Ambrosio \cite{AGS}. (Dobrushin sidesteps the
-equivalence entirely by taking the Lagrangian representation as the \emph{definition}
-of solution, for which \lean{AssW} suffices --- which is why the marquee results of
-Section~\ref{sec:casestudy} need only \lean{AssW}.)
-
-This $C^1$ dependence of the flow on its initial point is the \emph{variational
-equation}, a result absent from the ambient library and supplied in house. Its
-hypothesis is precisely
-$\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the flow's Fr\'echet derivative.
-\begin{leancode}
-theorem charFlow_hasFDerivAt_in_initialPoint
-    (gradW) (hgradW_C1 : ContDiff ℝ 1 gradW)          -- ← the AssW2 input
-    (L) (hL …) (ρ) [∀ s, IsProbabilityMeasure (ρ s)]
-    (charX charV) (T) (hT : 0 < T)
-    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
-    …    -- force-integrability + joint continuity of the force derivative on [0,T]
-    : ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
-        (∀ t ∈ Set.Ioo 0 T, ∀ z,
-            HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
-        (∀ t ∈ Set.Ioo 0 T, Continuous (Dflow t))
-\end{leancode}
-
-\subsection{Where the formalization stops}
-
-The Vlasov equation inherits a Hamiltonian, Lie--Poisson structure from the
-$N$-particle system: an energy $\mathcal{H}[f]$ and a bracket $\{F,G\}[f]$ for which
-$\partial_t f = \{f,\mathcal{H}\}$. Identifying that bracket as the Lie--Poisson
-bracket on the dual of the Lie algebra of Hamiltonian vector fields, and showing it
-arises as the $N\to\infty$ limit of the canonical brackets on $(\R^d\times\R^d)^N$,
-is \emph{not} formalized here; it is the natural next edge, and the subject of
-\cite{MNPRS}. Stating that boundary plainly is itself part of the discipline the win
-condition enforces: the development covers the dynamics --- existence, uniqueness,
-stability, the mean-field limit, and the superposition principle --- not the
-geometric structure of the limit.
-
 % ============================================================================
 \section{The standing instruction file: two lessons, verbatim}\label{app:claudemd}
 % ============================================================================
