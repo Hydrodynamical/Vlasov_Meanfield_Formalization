@@ -149,11 +149,24 @@ regularity hypothesis (a Lipschitz estimate invoked where the kernel is not Lips
 that the win condition is built to reject. The library amplifies the mathematician; it
 does not stand in for the mathematics.
 
-% MOVE-2 DEFERRED (paragraph (2) only --- the author's-angle preview, still to backfill):
-%  \paragraph{Why this derivation is interesting to formalize.}  Claim bullets, as OUR
-%  perspective (not a recap): (i) exactness R_N ≡ 0 under evenness; (ii) dual/primal W₁ duality
-%  lets the entire dynamical content avoid any attainment theorem; (iii) the superposition
-%  principle exposes the C¹-vs-C² regularity ladder and forces the variational equation.
+\paragraph{Why this derivation is worth formalizing.}
+The choice is, first, a classical one: the passage from $N$-body Hamiltonian dynamics to
+the Vlasov equation --- equivalently the collisionless Boltzmann equation --- is a
+classical derivation of a nonlinear kinetic PDE from microscopic particle dynamics, and
+Dobrushin's optimal-transport argument is its canonical treatment. We took it less for
+any single theorem than as a faithful representative of its class, whose stages ---
+empirical measures, a metric on probability measures, characteristic flows, and weak and
+Lagrangian solutions --- recur throughout mean-field theory. The second reason is what
+formalizing it leaves behind. The argument cannot be written in Lean without first
+building infrastructure the ambient library does not provide and, to our knowledge, no
+prior formalization had assembled: a Wasserstein-space metric layer --- the $\Wone$
+distance in its dual and primal faces, the Kantorovich--Rubinstein bridge between them, a
+finite Kantorovich duality, and a coupling-gluing construction --- together with the
+dynamical-PDE apparatus built on it: characteristic flows, the weak and Lagrangian
+solution concepts, and the variational equation for the flow. This machinery is general
+and absent from Mathlib, and the development isolates it as the self-contained layer that
+Definition~\ref{def:selfcontained} certifies. The Vlasov derivation is the occasion; the
+reusable optimal-transport and dynamical-PDE scaffolding is the lasting artifact.
 
 \paragraph{The framing.}
 We describe the activity as a game because the framing is unusually faithful.
