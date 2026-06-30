@@ -111,50 +111,58 @@ fast-moving field --- not as general laws.
 \paragraph{The problem.}
 Three fears attend the arrival of capable AI in mathematics, and a working
 mathematician feels all three. The first is \emph{displacement}: that as agents
-grow better at proof search, the mathematician is reduced to supervising machine
-output --- or cut from the loop entirely --- and judgment ceases to be where the
-value lies. The second is \emph{trust}: that an AI-generated argument, fluent and
-plausible, can hide a gap --- a hallucinated lemma, a renamed \lean{sorry}, a
-quietly-misapplied hypothesis --- that no human referee can reliably catch at the
-speed and volume the machine produces. The third is \emph{slop}: that what
-autoformalization leaves behind is write-only, code that compiles but that no one
-understands and nothing downstream can build on. This paper is a way forward that
-answers each --- not in the abstract, but by example: we win a real formalization
-game and show, on that one run, where each fear is met.
+grow better at proof search, the mathematician's contribution narrows to
+supervising machine output --- or is cut from the loop altogether --- and judgment
+ceases to be where the value lies. The fear is sharpest precisely where one hopes
+it is weakest, for the work one most wants to keep human --- how to cut a hard
+theorem, which library gaps are real --- is what the systems are improving at
+fastest. The second is \emph{trust}: that a fluent, plausible, machine-generated
+argument can conceal a gap --- a hallucinated lemma cited as settled, a
+\lean{sorry} renamed to look principled, a hypothesis quietly misapplied --- that
+no referee reliably catches at the speed the machine produces. The danger is not
+error as such, but undetected error wearing the outward form of a proof. The third
+is \emph{slop}: that autoformalization accretes write-only mathematics --- code
+that compiles, and even certifies a theorem, but that no one understands and on
+which nothing downstream can build --- so the corpus grows faster than it becomes
+usable.
 
 \paragraph{The way forward.}
-Two of the three answers are a machine-checkable certificate rather than our
-say-so. \emph{Displacement} is met by the division of labor itself: the binding
-resource in this regime is the human's judgment about how to cut a hard theorem
-into tractable pieces and which library gaps are real --- the agent executes the
-cut it does not choose --- a claim we state as a time-stamped observation, since
-decomposition is exactly the capability the systems are improving at fastest.
-\emph{Trust} is met by the win condition (Definition~\ref{def:win}): Lean's axiom
-footprint makes a hidden gap a loss, re-checkable in seconds --- exactly the
-failure a recent autonomous proof-search study documents in its own output, where
-the agent buried a problem's core difficulty in a single \lean{sorry} and leaned
-on hallucinated lemmas it claimed were established results \cite{AlphaProofNexus}
-(Section~\ref{sec:related}). We separate the trust the footprint buys --- that the
-proof is sound relative to its statement --- from the trust it does not, that the
-statement says what we meant; the latter is secured by the human in the early
-game, not by the kernel. \emph{Slop} is met by the reusability grade
-(Definition~\ref{def:selfcontained}): the development stays understood because the
-mathematician never leaves the loop, and beyond merely avoiding slop, a general
-optimal-transport layer extracts clean --- dependency-isolated, linter-clean --- as
-a candidate for upstreaming.
+We answer these by example, carrying one real result end to end: Dobrushin's
+mean-field derivation of the Vlasov equation, formalized in Lean~4 in roughly a
+week, its target theorems resting on nothing but Lean's three foundational axioms.
+Two of the three answers are certificates a referee re-runs, not claims taken on
+faith.
+
+The first is the division of labor itself. The binding resource throughout was the
+mathematician's judgment --- how to decompose a hard theorem, which library gaps
+are real --- with the agent executing cuts it did not choose. We state this for
+this game and this system, not as a law: decomposition is exactly the frontier
+capability, and that it stayed human here is an observation, time-stamped.
+
+The second is the win condition (Definition~\ref{def:win}). Lean's axiom footprint
+traces every axiom a theorem depends on, so a hidden gap --- a renamed
+\lean{sorry}, a hallucinated lemma, a custom axiom --- cannot hide: it surfaces in
+a footprint a referee re-runs in seconds. One line is worth drawing with care. The
+footprint certifies that the proof is sound relative to its statement, not that
+the statement says what was meant; that second trust is the human's to secure, in
+the early game, and it does not disappear.
+
+The third is the reusability grade (Definition~\ref{def:selfcontained}). Because
+the mathematician never left the loop, the development stayed understood as it
+grew; and a general optimal-transport layer lifted out of it clean ---
+dependency-isolated, linter-clean, a candidate for upstreaming. The extracted
+layer is a bonus on top of a development that was never slop, not the salvageable
+remainder of one that was.
 
 \paragraph{The proposal.}
-We put the mathematician back in the loop. The human does not write the Lean;
-the human \emph{directs} an AI agent system --- here, Claude Code (Anthropic's
-agentic coding environment) driving a frontier Claude model, with access to the
-source \LaTeX{} document, the Lean files being written, and a standing instruction
-file (\lean{CLAUDE.md}) that governs the agent's behavior. The human's contribution is strategic: scope the definitions,
-choose the decompositions, triage the gaps, and --- crucially --- distill
-recurring strategic insights into reusable guidance that the agent internalizes
-through its standing instructions. We found this division of labor productive
-enough to formalize a genuine research result end to end in roughly a week of
-calendar time, and we believe the \emph{structure} of how that worked is worth
-reporting independently of the result.
+The mathematician does not write the Lean, but \emph{directs} an AI agent system
+--- here, Claude Code (Anthropic's agentic coding environment) driving a frontier
+Claude model --- giving it the source \LaTeX{} document, the Lean files under
+construction, and a standing instruction file (\lean{CLAUDE.md}) that governs its
+behavior and into which recurring strategic insight is distilled, in reusable
+form, as the game proceeds. That the \emph{structure} of this direction is itself
+reusable --- worth reporting independently of the result it produced --- is the
+claim of this paper.
 
 \paragraph{The derivation, and why this one.}
 The mean-field derivations of kinetic equations form a hierarchy ordered by the
@@ -204,11 +212,10 @@ machine-checkable win condition (zero \lean{sorry}, clean axiom footprint), and
 a meaningful reusability grade (whether the won code yields a self-contained
 layer). And there are three phases, each with a different dominant strategy ---
 the same player who excels at the opening can lose the endgame by playing it with
-opening heuristics. But the game is a \emph{lens}, not the subject. The body of
-this paper runs an actual derivation --- Dobrushin's mean-field route to the
-Vlasov equation --- and reads each of its stages as a phase of the game; the
-framing earns its place by making the mathematician's moves legible, not by
-standing in for the mathematics.
+opening heuristics. The game is a \emph{lens}: the body of this paper runs an
+actual derivation --- Dobrushin's mean-field route to the Vlasov equation --- and
+reads each of its stages as a phase of the game, the lens making the
+mathematician's moves legible while the mathematics carries the weight.
 
 \paragraph{Outline.}
 Section~\ref{sec:related} situates the work among recent efforts in agentic and
