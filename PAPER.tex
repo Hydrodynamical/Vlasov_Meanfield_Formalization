@@ -55,8 +55,7 @@ with a worked end-to-end case study in kinetic theory}
 Three fears attend the use of capable AI in mathematics --- that it displaces the
 mathematician's judgment, that a fluent machine-generated proof can hide a gap no
 referee catches, and that what it leaves behind is unmaintainable slop. This paper
-answers each by example, two of them with a machine-checkable certificate rather
-than the authors' say-so.
+answers each by example, two of the answers as machine-checkable certificates.
 We describe a methodology for formalizing research mathematics in the Lean~4
 proof assistant, in which a human mathematician guides an AI agent system
 through an extended interactive session. We frame the activity as a
@@ -88,11 +87,10 @@ of the development (49 of 299 declarations), reached through a $22$-declaration
 interface, with no reverse dependency. This layer is a bonus extracted on top of a
 development the mathematician kept understood throughout, not the salvageable part
 of an opaque one.
-We report the methodology candidly, including the
-mode in which ``about a week'' is the honest figure: a human mathematician
-acting as strategic director over an AI execution engine, with a verification
-discipline that keeps the development sound at speed. Against those three fears the
-paper makes two contributions: a certified discipline for AI-assisted formalization --- a
+The case study ran in about a week of calendar time, with a human mathematician
+acting as strategic director over an AI execution engine and a verification
+discipline that keeps the development sound at speed. The paper makes two
+contributions: a certified discipline for AI-assisted formalization --- a
 machine-checkable win condition and a reusability grade a referee re-runs in
 seconds --- and a library-grounded perspective on Dobrushin's derivation of the
 Vlasov equation, in which the optimal-transport duality, the exactness of the
