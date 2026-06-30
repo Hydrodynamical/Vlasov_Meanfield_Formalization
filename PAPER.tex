@@ -52,6 +52,11 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
+Three fears attend the use of capable AI in mathematics --- that it displaces the
+mathematician's judgment, that a fluent machine-generated proof can hide a gap no
+referee catches, and that what it leaves behind is unmaintainable slop. This paper
+answers each by example, two of them with a machine-checkable certificate rather
+than the authors' say-so.
 We describe a methodology for formalizing research mathematics in the Lean~4
 proof assistant, in which a human mathematician guides an AI agent system
 through an extended interactive session. We frame the activity as a
@@ -80,12 +85,14 @@ transport-polytope compactness theory, a coupling-gluing construction) is
 separated into a self-contained layer (Definition~\ref{def:selfcontained}) whose
 modules compile against Mathlib alone and pass its linter suite --- about a sixth
 of the development (49 of 299 declarations), reached through a $22$-declaration
-interface, with no reverse dependency.
+interface, with no reverse dependency. This layer is a bonus extracted on top of a
+development the mathematician kept understood throughout, not the salvageable part
+of an opaque one.
 We report the methodology candidly, including the
 mode in which ``about a week'' is the honest figure: a human mathematician
 acting as strategic director over an AI execution engine, with a verification
-discipline that keeps the development sound at speed. The paper makes two
-contributions: a certified discipline for AI-assisted formalization --- a
+discipline that keeps the development sound at speed. Against those three fears the
+paper makes two contributions: a certified discipline for AI-assisted formalization --- a
 machine-checkable win condition and a reusability grade a referee re-runs in
 seconds --- and a library-grounded perspective on Dobrushin's derivation of the
 Vlasov equation, in which the optimal-transport duality, the exactness of the
@@ -102,17 +109,39 @@ fast-moving field --- not as general laws.
 % ============================================================================
 
 \paragraph{The problem.}
-Formalizing frontier mathematics in a proof assistant is slow, and the
-bottleneck is rarely the proof assistant's logic. It is the sheer volume of
-intermediate lemmas, the friction of matching an informal argument to the
-ambient library's idioms, and --- for analysis in particular --- the gaps in
-that library's coverage of functional-analytic infrastructure. A research
-paper that a human reads in an afternoon can take a skilled formalizer weeks to
-mechanize. Modern AI agents can write Lean proofs, but left to themselves they
-do not know \emph{which} lemma to prove next, \emph{how} to cut a hard theorem
-into tractable pieces, or \emph{when} a missing fact is a genuine library gap
-versus an artifact of the wrong proof strategy. Those are mathematical
-judgments.
+Three fears attend the arrival of capable AI in mathematics, and a working
+mathematician feels all three. The first is \emph{displacement}: that as agents
+grow better at proof search, the mathematician is reduced to supervising machine
+output --- or cut from the loop entirely --- and judgment ceases to be where the
+value lies. The second is \emph{trust}: that an AI-generated argument, fluent and
+plausible, can hide a gap --- a hallucinated lemma, a renamed \lean{sorry}, a
+quietly-misapplied hypothesis --- that no human referee can reliably catch at the
+speed and volume the machine produces. The third is \emph{slop}: that what
+autoformalization leaves behind is write-only, code that compiles but that no one
+understands and nothing downstream can build on. This paper is a way forward that
+answers each --- not in the abstract, but by example: we win a real formalization
+game and show, on that one run, where each fear is met.
+
+\paragraph{The way forward.}
+Two of the three answers are a machine-checkable certificate rather than our
+say-so. \emph{Displacement} is met by the division of labor itself: the binding
+resource in this regime is the human's judgment about how to cut a hard theorem
+into tractable pieces and which library gaps are real --- the agent executes the
+cut it does not choose --- a claim we state as a time-stamped observation, since
+decomposition is exactly the capability the systems are improving at fastest.
+\emph{Trust} is met by the win condition (Definition~\ref{def:win}): Lean's axiom
+footprint makes a hidden gap a loss, re-checkable in seconds --- exactly the
+failure a recent autonomous proof-search study documents in its own output, where
+the agent buried a problem's core difficulty in a single \lean{sorry} and leaned
+on hallucinated lemmas it claimed were established results \cite{AlphaProofNexus}
+(Section~\ref{sec:related}). We separate the trust the footprint buys --- that the
+proof is sound relative to its statement --- from the trust it does not, that the
+statement says what we meant; the latter is secured by the human in the early
+game, not by the kernel. \emph{Slop} is met by the reusability grade
+(Definition~\ref{def:selfcontained}): the development stays understood because the
+mathematician never leaves the loop, and beyond merely avoiding slop, a general
+optimal-transport layer extracts clean --- dependency-isolated, linter-clean --- as
+a candidate for upstreaming.
 
 \paragraph{The proposal.}
 We put the mathematician back in the loop. The human does not write the Lean;
@@ -319,6 +348,17 @@ the footprint check catches it where a build-success check would not. The win
 condition is therefore not ``the code compiles'' but ``the code compiles
 \emph{and} the foundations are clean,'' and these are different claims
 (see Strategy~\ref{strat:P10}).
+
+One boundary must be drawn precisely, because it is where this guarantee stops.
+\printaxioms{} certifies that a target theorem is proved soundly \emph{relative to
+its own statement}; it does not certify that the statement faithfully encodes the
+intended mathematics. A development can carry a clean footprint on a theorem that
+says something subtly other than what was meant --- the kernel cannot see the
+difference. That second responsibility, statement-faithfulness, is not
+mechanizable here and does not disappear; it is discharged by the human in the
+early game, through the definitional scoping and atom-level signature reading that
+Section~\ref{sec:phases} describes. The win condition buys \emph{proof}-trust;
+\emph{statement}-trust is relocated to the mathematician, not eliminated.
 
 We operationalize reusability as the existence of a \emph{self-contained layer}
 (Definition~\ref{def:selfcontained}): a subset of the development that the
@@ -1094,6 +1134,16 @@ fraction of the hard-won proof effort, or the reverse --- so the grade is the pa
 on (Q1)--(Q4), and the fraction only says whether a layer is large enough to be
 worth extracting at all.
 
+\paragraph{The fraction is not a slop ratio.}
+One inversion to head off: the $16\%$ is not the salvageable part of an otherwise
+disposable development. The other $84\%$ is the kinetic-theory content ---
+characteristic flows, the weak and Lagrangian solution concepts, the variational
+equation --- which is \emph{legitimately} problem-specific, kept understood and
+structured by the human throughout (Section~\ref{sec:discipline}) and carrying the
+same clean axiom footprint as the targets. The self-contained layer is a
+\emph{bonus} extracted on top of a development that is not slop to begin with ---
+not the fraction that redeems one that is.
+
 \paragraph{What is asserted rather than compiled.}
 The one judgment we do not compile is (A1), and it is now narrow. The layer is
 linter-clean, so the honest residual is specific: the files import Mathlib
@@ -1258,6 +1308,17 @@ alone --- through mid-June the process, mathematical, and bridging series stay f
 Figure~\ref{fig:sorry}, and it added Lean idioms rather than new strategy: the lesson
 file tracks the novelty of the tactical terrain crossed, not the size of the proof
 obligation.
+
+We state the obvious caveat plainly: this staircase was built and graded on a
+single run, by the same author who designed the framework, so it is evidence for
+\emph{internal} consistency --- the rules track the failures that earned them ---
+more than for the framework's generality. What independent reports corroborate is
+the \emph{mode}, not this particular taxonomy: Ilin's single-supervisor
+formalization \cite{IlinVML} and Armstrong and Kempe's LLM-assisted De
+Giorgi--Nash--Moser development \cite{DGNM} locate the decisive human
+contributions in the same place we do --- decomposition, interface design, and
+validation against the checked artifact --- reached on different targets, by
+different people, without our apparatus.
 
 \begin{figure}[t]
 \centering
