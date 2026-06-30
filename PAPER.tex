@@ -52,10 +52,10 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
-Three fears attend the use of capable AI in mathematics: that it displaces the
-mathematician's judgment, that a fluent machine-generated proof can hide a gap no
-referee catches, and that what it leaves behind is unmaintainable slop. This paper
-answers each by example, two of them with a machine-checkable certificate. We
+Three fears attend the use of AI in mathematics: that it will replace the
+mathematician's work, that its output cannot be verified, and that what it leaves
+behind is unstructured and unusable. This paper answers each by example, two of
+them with a machine-checkable certificate. We
 formalize research mathematics in the Lean~4 proof assistant by having a human
 mathematician direct an AI agent system through an extended interactive session,
 framing the activity as a \emph{game}: the objective is to turn a \LaTeX{} document
@@ -98,22 +98,10 @@ claims as observations of one game, not as general laws.
 % ============================================================================
 
 \paragraph{The problem.}
-Three fears attend the arrival of capable AI in mathematics, and a working
-mathematician feels all three. The first is \emph{displacement}: that as agents
-grow better at proof search, the mathematician's contribution narrows to
-supervising machine output --- or is cut from the loop altogether --- and judgment
-ceases to be where the value lies. The fear is sharpest precisely where one hopes
-it is weakest, for the work one most wants to keep human --- how to cut a hard
-theorem, which library gaps are real --- is what the systems are improving at
-fastest. The second is \emph{trust}: that a fluent, plausible, machine-generated
-argument can conceal a gap --- a hallucinated lemma cited as settled, a
-\lean{sorry} renamed to look principled, a hypothesis quietly misapplied --- that
-no referee reliably catches at the speed the machine produces. The danger is not
-error as such, but undetected error wearing the outward form of a proof. The third
-is \emph{slop}: that autoformalization accretes write-only mathematics --- code
-that compiles, and even certifies a theorem, but that no one understands and on
-which nothing downstream can build --- so the corpus grows faster than it becomes
-usable.
+Three fears attend the use of AI in mathematics: \emph{obsolescence}, that it will
+replace the mathematician's work; \emph{trust}, that its output cannot be verified;
+and \emph{slop}, that what it produces is unstructured and unusable downstream.
+This paper answers each by example.
 
 \paragraph{The way forward.}
 We answer these by example, carrying one real result end to end: Dobrushin's
