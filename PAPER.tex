@@ -52,52 +52,43 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
-Three fears attend the use of capable AI in mathematics --- that it displaces the
+Three fears attend the use of capable AI in mathematics: that it displaces the
 mathematician's judgment, that a fluent machine-generated proof can hide a gap no
 referee catches, and that what it leaves behind is unmaintainable slop. This paper
-answers each by example, two of the answers as machine-checkable certificates.
-We describe a methodology for formalizing research mathematics in the Lean~4
-proof assistant, in which a human mathematician guides an AI agent system
-through an extended interactive session. We frame the activity as a
-\emph{game}: the objective is to turn a \LaTeX{} mathematics document into a
-Lean development; the game is \emph{won} when the development compiles with no
+answers each by example, two of them with a machine-checkable certificate. We
+formalize research mathematics in the Lean~4 proof assistant by having a human
+mathematician direct an AI agent system through an extended interactive session,
+framing the activity as a \emph{game}: the objective is to turn a \LaTeX{} document
+into a Lean development; the game is \emph{won} when it compiles with no
 \lean{sorry} and \printaxioms{} on the target theorems returns only Lean's
 foundational axioms; and each won game carries a \emph{reusability} grade --- a
 pass/fail certificate of whether the development contains a \emph{self-contained
-layer}: a dependency-isolated subset, behind a small explicit interface, that the
-ambient library could absorb on its own. We argue the game has three phases with genuinely distinct
-optimal strategies --- an \emph{early game} dominated by definitional scoping, a
-\emph{mid game} dominated by human-judgment proof decomposition, and an
-\emph{end game} dominated by the triage of gaps against the ambient library's
-coverage --- and we present a taxonomy of reusable guidance strategies (the
-$\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$ series) that the human encodes into
-the agent's standing instructions as the game proceeds.
+layer}, a dependency-isolated subset behind a small interface that the ambient
+library could absorb on its own. The game has three phases with distinct optimal
+strategies --- definitional scoping, human-judgment decomposition, and triage of
+gaps against the library's coverage --- and the human encodes recurring guidance
+into the agent's standing instructions (the
+$\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$ taxonomy) as play proceeds.
 
 We demonstrate the method on a substantial case study: a complete, axiom-clean
-formalization of well-posedness for the Vlasov equation via Dobrushin's
-mean-field route --- existence, uniqueness, the mean-field stability estimate,
-the mean-field limit, and the superposition principle that every weak solution is
-Lagrangian --- at \emph{arbitrary} interaction-Lipschitz constant.
-The target theorems depend only on Lean's three foundational axioms; the
-optimal-transport machinery built along the way (a finite Kantorovich duality, a
-transport-polytope compactness theory, a coupling-gluing construction) is
-separated into a self-contained layer (Definition~\ref{def:selfcontained}) whose
-modules compile against Mathlib alone and pass its linter suite --- about a sixth
-of the development (49 of 299 declarations), reached through a $22$-declaration
-interface, with no reverse dependency. This layer is a bonus extracted on top of a
-development the mathematician kept understood throughout, not the salvageable part
-of an opaque one.
-The case study ran in about a week of calendar time, with a human mathematician
-acting as strategic director over an AI execution engine and a verification
-discipline that keeps the development sound at speed. The paper makes two
-contributions: a certified discipline for AI-assisted formalization --- a
-machine-checkable win condition and a reusability grade a referee re-runs in
-seconds --- and a library-grounded perspective on Dobrushin's derivation of the
-Vlasov equation, in which the optimal-transport duality, the exactness of the
-empirical-measure solution, and the regularity ladder behind the superposition
-principle are read through the lens of the game. We state the quantitative claims
-as observations of one game --- one director, one system, one moment in a
-fast-moving field --- not as general laws.
+formalization of well-posedness for the Vlasov equation via Dobrushin's mean-field
+route --- existence, uniqueness, the mean-field stability estimate and limit, and
+the superposition principle that every weak solution is Lagrangian --- at
+\emph{arbitrary} interaction-Lipschitz constant. The target theorems depend on
+Lean's three foundational axioms alone; the optimal-transport machinery built along
+the way (a finite Kantorovich duality, a transport-polytope compactness theory, a
+coupling-gluing construction) separates into a self-contained layer
+(Definition~\ref{def:selfcontained}) that compiles against Mathlib alone and passes
+its linter suite --- about a sixth of the development (49 of 299 declarations),
+reached through a 22-declaration interface, with no reverse dependency, and
+extracted as a bonus on top of a development the mathematician kept understood
+throughout. The case study ran in about a week, with the human acting as strategic
+director over an AI execution engine under a verification discipline that keeps the
+development sound at speed. The paper's two contributions are a certified discipline
+for AI-assisted formalization --- a machine-checkable win condition and a
+reusability grade a referee re-runs in seconds --- and a library-grounded reading of
+Dobrushin's derivation through the lens of the game. We state the quantitative
+claims as observations of one game, not as general laws.
 \end{abstract}
 
 \tableofcontents
@@ -127,30 +118,27 @@ usable.
 \paragraph{The way forward.}
 We answer these by example, carrying one real result end to end: Dobrushin's
 mean-field derivation of the Vlasov equation, formalized in Lean~4 in roughly a
-week, its target theorems resting on nothing but Lean's three foundational axioms.
-Two of the three answers are certificates a referee re-runs, not claims taken on
-faith.
+week, its target theorems resting on Lean's three foundational axioms alone. Two of
+the three answers are certificates a referee re-runs, not claims taken on faith.
 
-The first is the division of labor itself. The binding resource throughout was the
+The first is the division of labor. The binding resource throughout was the
 mathematician's judgment --- how to decompose a hard theorem, which library gaps
-are real --- with the agent executing cuts it did not choose. We state this for
-this game and this system, not as a law: decomposition is exactly the frontier
-capability, and that it stayed human here is an observation, time-stamped.
+are real --- with the agent executing cuts it did not choose. We claim this for
+this game and this system, not as a law: decomposition is the frontier capability,
+and that it stayed human here is a time-stamped observation.
 
 The second is the win condition (Definition~\ref{def:win}). Lean's axiom footprint
 traces every axiom a theorem depends on, so a hidden gap --- a renamed
-\lean{sorry}, a hallucinated lemma, a custom axiom --- cannot hide: it surfaces in
-a footprint a referee re-runs in seconds. One line is worth drawing with care. The
-footprint certifies that the proof is sound relative to its statement, not that
-the statement says what was meant; that second trust is the human's to secure, in
-the early game, and it does not disappear.
+\lean{sorry}, a hallucinated lemma, a custom axiom --- cannot survive it. The
+footprint certifies that the proof is sound relative to its statement, not that the
+statement says what was meant; that second trust is the human's to secure in the
+early game, and it does not disappear.
 
-The third is the reusability grade (Definition~\ref{def:selfcontained}). Because
-the mathematician never left the loop, the development stayed understood as it
-grew; and a general optimal-transport layer lifted out of it clean ---
-dependency-isolated, linter-clean, a candidate for upstreaming. The extracted
-layer is a bonus on top of a development that was never slop, not the salvageable
-remainder of one that was.
+The third is the reusability grade (Definition~\ref{def:selfcontained}). Because the
+mathematician never left the loop, the development stayed understood as it grew, and
+a general optimal-transport layer lifted out of it clean --- dependency-isolated,
+linter-clean, a candidate for upstreaming. The extracted layer is a bonus on a
+development that was never slop, not the salvageable remainder of one that was.
 
 \paragraph{The proposal.}
 The mathematician does not write the Lean, but \emph{directs} an AI agent system
@@ -644,8 +632,7 @@ conjunct's shape: reading only the consumer can leave it over-strong for some
 producer to satisfy; reading only the producers can leave it under-strength.
 \end{strategy}
 
-A point worth emphasizing about the taxonomy: these strategies were not designed
-in advance. They were \emph{earned}, each one keyed to a specific failure that
+These strategies were not designed in advance. They were \emph{earned}, each one keyed to a specific failure that
 occurred during the game and was then encoded into $\mathcal{G}$ to prevent its
 recurrence. The standing instruction file is, in effect, a record of the
 mathematician's accumulated strategic experience, written in a form the agent
@@ -1127,11 +1114,8 @@ it names a Vlasov object; non-redundancy is library-search \emph{evidence} (no
 \lean{exact?} hit against the pinned Mathlib), not proof.
 
 \paragraph{Size, reported descriptively.}
-The size row above is a descriptive statistic, not the grade. Other denominators
-move it --- a layer can be a small fraction of the declarations yet a large
-fraction of the hard-won proof effort, or the reverse --- so the grade is the pass
-on (Q1)--(Q4), and the fraction only says whether a layer is large enough to be
-worth extracting at all.
+The size row is descriptive, not the grade (Definition~\ref{def:selfcontained}); it
+says only whether a layer is large enough to be worth extracting.
 
 \paragraph{The fraction is not a slop ratio.}
 One inversion to head off: the $16\%$ is not the salvageable part of an otherwise
@@ -1308,7 +1292,7 @@ Figure~\ref{fig:sorry}, and it added Lean idioms rather than new strategy: the l
 file tracks the novelty of the tactical terrain crossed, not the size of the proof
 obligation.
 
-We state the obvious caveat plainly: this staircase was built and graded on a
+This staircase was built and graded on a
 single run, by the same author who designed the framework, so it is evidence for
 \emph{internal} consistency --- the rules track the failures that earned them ---
 more than for the framework's generality. What independent reports corroborate is
