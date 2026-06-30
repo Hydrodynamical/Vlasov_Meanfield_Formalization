@@ -97,46 +97,50 @@ claims as observations of one game, not as general laws.
 \section{Introduction}
 % ============================================================================
 
-\paragraph{The problem.}
-Three fears attend the use of AI in mathematics: \emph{obsolescence}, that it will
-replace the mathematician's work; \emph{trust}, that its output cannot be verified;
-and \emph{slop}, that what it produces is unstructured and unusable downstream.
-This paper answers each by example.
+We begin with what a proof assistant is, and why one might care.
 
-\paragraph{The way forward.}
-We answer these by example, carrying one real result end to end: Dobrushin's
-mean-field derivation of the Vlasov equation, formalized in Lean~4 in roughly a
-week, its target theorems resting on Lean's three foundational axioms alone. Two of
-the three answers are certificates a referee re-runs, not claims taken on faith.
+A proof on paper is an argument that asks a reader to be convinced. A proof in a
+formal proof assistant is a different kind of object: one the computer checks. The
+definitions, the theorem, and the proof are written in a formal language, and the
+machine either accepts the proof or it does not. There is no room for ``clearly,''
+and no referee to persuade. Lean is one such language. Over the past decade a
+community has assembled in it a large and growing library of mathematics, called
+Mathlib, on which new formal proofs can be built.
 
-The first is the division of labor. The binding resource throughout was the
-mathematician's judgment --- how to decompose a hard theorem, which library gaps
-are real --- with the agent executing cuts it did not choose. We claim this for
-this game and this system, not as a law: decomposition is the frontier capability,
-and that it stayed human here is a time-stamped observation.
+For most of its history, formalization has trailed far behind the mathematics it
+certifies. A result a mathematician reads in an afternoon can take a skilled
+formalizer weeks to put into Lean, and the obstacle is rarely the logic. It is the
+volume of small intermediate steps, the labor of matching an informal argument to
+the library's conventions, and, in analysis especially, the parts of the library
+that do not yet exist. This is what has kept formal proof a specialist's craft
+rather than an everyday tool.
 
-The second is the win condition (Definition~\ref{def:win}). Lean's axiom footprint
-traces every axiom a theorem depends on, so a hidden gap --- a renamed
-\lean{sorry}, a hallucinated lemma, a custom axiom --- cannot survive it. The
-footprint certifies that the proof is sound relative to its statement, not that the
-statement says what was meant; that second trust is the human's to secure in the
-early game, and it does not disappear.
+Two things have recently changed: AI systems can now write Lean proofs, and they
+can write them quickly. This raises the real possibility that formalization might
+keep pace with ordinary mathematical work. It also raises three fears that anyone
+following the area will recognize. The first is \emph{obsolescence}: that AI will
+replace the work mathematicians do. The second is \emph{trust}: that its output
+cannot be verified. The third is \emph{slop}: that what it produces, even when
+correct, is unstructured and unusable by anyone downstream.
 
-The third is the reusability grade (Definition~\ref{def:selfcontained}). Because the
-mathematician never left the loop, the development stayed understood as it grew, and
-a general optimal-transport layer lifted out of it clean --- dependency-isolated,
-linter-clean, a candidate for upstreaming. The extracted layer is a bonus on a
-development that was never slop, not the salvageable remainder of one that was.
+This paper takes up all three by doing the work and reporting what the work
+required. We formalized a genuine result from kinetic theory --- Dobrushin's
+derivation of the Vlasov equation, a classical passage from the motion of many
+interacting particles to the equation governing their average --- in Lean, in
+about a week. We did not write the Lean ourselves. A human mathematician directed
+an AI system, which wrote the proofs; the mathematician decided what to prove, how
+to cut each hard theorem into reachable pieces, and when to abandon a line that was
+not working.
 
-\paragraph{The proposal.}
-The mathematician does not write the Lean, but \emph{directs} an AI agent system
---- here, Claude Code (Anthropic's agentic coding environment) driving a frontier
-Claude model --- giving it the source \LaTeX{} document, the Lean files under
-construction, and a standing instruction file (\lean{CLAUDE.md}) that governs its
-behavior and into which recurring strategic insight is distilled, in reusable
-form, as the game proceeds. That the \emph{structure} of this direction is itself
-reusable --- worth reporting independently of the result it produced --- is the
-claim of this paper.
+None of the three fears survived the exercise. The mathematician was not made
+obsolete but relocated: the judgment the work demanded --- what to prove, how to
+cut it, when to change course --- was exactly what the AI could not supply, and we
+record throughout where that judgment fell. Trust did not rest on our word; Lean
+reports the exact list of axioms a theorem depends on, and a reader can confirm in
+seconds that ours depend on nothing beyond Lean's own foundations. And the result
+is not slop. The mathematician kept the development understood as it grew, and a
+self-contained body of general mathematics that the argument forced us to build
+separates cleanly from the rest, ready for the library to absorb.
 
 \paragraph{Where this sits.}
 This work borders three recent lines --- the end-to-end formalization of
@@ -192,7 +196,7 @@ research mathematics. Ilin \cite{IlinVML} semi-autonomously formalized a
 Vlasov--Maxwell--Landau \emph{equilibrium} in Lean~4 under a single supervising
 mathematician (using, among other tools, Claude Code and Aristotle) --- the same
 domain and broadly the same mode as here, but a static characterization rather
-than the dynamic well-posedness, Dobrushin stability, mean-field limit, and
+than the dynamic well-posedness, stability, the limit, and
 superposition principle \cite{AGS} we formalize, and without the methodological
 apparatus we foreground. Contemporaneously, Armstrong and Kempe \cite{DGNM}
 formalized the core interior De Giorgi--Nash--Moser regularity theory for
@@ -217,72 +221,51 @@ backdrop is the target it runs on --- a research-grade \emph{dynamical} result
 carried end to end, rather than short problems or a static equilibrium.
 
 \paragraph{The derivation, and why this one.}
-The mean-field derivations of kinetic equations form a hierarchy ordered by the
-regularity of the interaction force. At the regular end is the
-Lipschitz / $W^{1,\infty}$ regime --- pair potentials with a globally Lipschitz
-gradient --- where the mean-field limit is classical, going back to Dobrushin
-\cite{Dobrushin} and the Braun--Hepp--Neunzert line \cite{Neunzert} (see also the
-surveys \cite{Spohn,Golse}). At the singular end is Vlasov--Poisson at the Coulomb
-exponent, where the force is as singular as the equation's own nonlinearity and the
-mean-field limit remains a celebrated open problem, approached so far only for
-less-singular kernels \cite{TODO-hauray-jabin,TODO-vp-open}. We formalize the regular
-rung, and we choose it deliberately: it is the rung on which a reusable
-optimal-transport library can be built, the natural first target for a kinetic-theory
-formalization. We mention the Coulomb frontier only to place that choice --- and to
-name a distant aspiration. Closing it is a problem of \emph{mathematics}, not of proof
-engineering: the missing ingredient is new analysis, and we make no claim that an AI or
-a proof assistant could supply it. What a mature kinetic-theory library might one day
-offer there is narrower and more honest --- a place to \emph{certify} singular-limit
-arguments as they are discovered, catching exactly the kind of quietly-misapplied
-regularity hypothesis (a Lipschitz estimate invoked where the kernel is not Lipschitz)
-that the win condition is built to reject. The library amplifies the mathematician; it
-does not stand in for the mathematics.
+Derivations of this kind come in a range of difficulty, set by how rough the force
+between particles is. Where the force is smooth, the passage to the limiting
+equation is classical, going back to Dobrushin \cite{Dobrushin} and the
+Braun--Hepp--Neunzert line \cite{Neunzert} (with the later surveys
+\cite{Spohn,Golse}). Where the force is singular, as in gravitation or
+electrostatics, the same passage is a celebrated open problem, settled so far only
+in softened cases \cite{TODO-hauray-jabin,TODO-vp-open}. We formalize the smooth
+end, and chose it deliberately: it is where a reusable library can actually be
+built. The singular frontier we mention only to place that choice. Closing it is a
+problem of mathematics, not of proof engineering --- the missing ingredient is new
+analysis, which no proof assistant supplies --- and the most a mature library could
+offer there is a place to check such arguments as they are found, catching a
+regularity assumption used where it does not hold. The library amplifies the
+mathematician; it does not stand in for the mathematics.
 
 \paragraph{Why this derivation is worth formalizing.}
-The choice is, first, a classical one: the passage from $N$-body Hamiltonian dynamics to
-the Vlasov equation --- equivalently the collisionless Boltzmann equation --- is a
-classical derivation of a nonlinear kinetic PDE from microscopic particle dynamics, and
-Dobrushin's optimal-transport argument is its canonical treatment. We took it less for
-any single theorem than as a faithful representative of its class, whose stages ---
-empirical measures, a metric on probability measures, characteristic flows, and weak and
-Lagrangian solutions --- recur throughout mean-field theory. The second reason is what
-formalizing it leaves behind. The argument cannot be written in Lean without first
-building infrastructure the ambient library does not provide and, to our knowledge, no
-prior formalization had assembled: a Wasserstein-space metric layer --- the $\Wone$
-distance in its dual and primal faces, the Kantorovich--Rubinstein bridge between them, a
-finite Kantorovich duality, and a coupling-gluing construction --- together with the
-dynamical-PDE apparatus built on it: characteristic flows, the weak and Lagrangian
-solution concepts, and the variational equation for the flow. This machinery is general
-and absent from Mathlib, and the development isolates it as the self-contained layer that
-Definition~\ref{def:selfcontained} certifies. The Vlasov derivation is the occasion; the
-reusable optimal-transport and dynamical-PDE scaffolding is the lasting artifact.
+We took it less for any one theorem than as a faithful representative of its kind:
+its stages --- the empirical distribution of the particles, a notion of distance
+between such distributions, the flow that moves them, and the equation they satisfy
+in the limit --- recur across the subject. Writing it in Lean meant first building
+general mathematics the library does not yet contain, about distances between
+probability distributions and the flows that move them. To our knowledge no prior
+formalization had assembled it; this is the self-contained layer of
+Definition~\ref{def:selfcontained}, and the lasting artifact of the exercise.
 
 \paragraph{The framing.}
-We describe the activity as a game because the framing is unusually faithful.
-There is a precise objective (turn the \LaTeX{} into Lean), a precise and
-machine-checkable win condition (zero \lean{sorry}, clean axiom footprint), and
-a meaningful reusability grade (whether the won code yields a self-contained
-layer). And there are three phases, each with a different dominant strategy ---
-the same player who excels at the opening can lose the endgame by playing it with
-opening heuristics. The game is a \emph{lens}: the body of this paper runs an
-actual derivation --- Dobrushin's mean-field route to the Vlasov equation --- and
-reads each of its stages as a phase of the game, the lens making the
-mathematician's moves legible while the mathematics carries the weight.
+We describe the activity as a game because the framing is exact, not decorative.
+There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
+win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grade
+(whether the won development yields a self-contained layer). And there are three
+phases, each rewarding a different strategy: a player who opens well can still lose
+the endgame. The game is a \emph{lens}; the body of the paper runs the derivation
+and reads each of its stages as a phase of play, while the mathematics carries the
+weight.
 
 \paragraph{Outline.}
-Section~\ref{sec:game} formalizes the game, its win
-condition, and its reusability grade; Section~\ref{sec:phases} the three phases and
-their dominant strategies; Section~\ref{sec:strategies} the
-$\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$ strategy taxonomy --- the standing
-guidance the human accumulates and the agent internalizes.
-Section~\ref{sec:casestudy} is the heart of the paper: Dobrushin's derivation of
-the Vlasov equation, run as a formalization and read phase by phase --- the exact
-empirical-measure solution and the optimal-transport duality (the opening), the
-dual/primal decomposition and the coupling-gluing construction (the middle game),
-the superposition principle and its regularity ladder, and the library gaps the
-endgame must triage. Section~\ref{sec:discipline} describes the verification
-discipline; Section~\ref{sec:assessment} assesses the methodology, including an
-honest account of the ``about a week'' figure.
+Section~\ref{sec:game} sets out the game, its win condition, and its reusability
+grade; Section~\ref{sec:phases} the three phases and their strategies;
+Section~\ref{sec:strategies} the $\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$
+taxonomy of standing guidance the human accumulates. Section~\ref{sec:casestudy}
+is the heart of the paper: Dobrushin's derivation, run as a formalization and read
+phase by phase, from the particle system to the limiting equation, through the core
+estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
+describes the verification discipline, and Section~\ref{sec:assessment} assesses
+the method, including the ``about a week'' figure.
 
 % ============================================================================
 \section{The game}\label{sec:game}
@@ -392,8 +375,8 @@ off the declaration-level dependency graph extracted from the proof assistant's
 own elaboration environment, (Q2) compiles that isolation into a standalone build,
 and (Q3) is the ambient library's own linter applied unchanged. Only (A1) is a
 human judgment. In the case study (Section~\ref{sec:casestudy}) the
-self-contained layer is the optimal-transport machinery: the kinetic-theory
-content reaches it through a $22$-declaration interface, with no edge in the
+self-contained layer is the general machinery the argument forced us to build: the
+problem-specific content reaches it through a $22$-declaration interface, with no edge in the
 reverse direction. We report the layer's \emph{size} descriptively, against more
 than one denominator, rather than as the grade itself --- and we flag under (A1)
 the minimal-imports cleanup that an upstream submission would still require.
@@ -466,8 +449,8 @@ system, at this time}: decomposition is exactly the capability frontier systems 
 improving at fastest, so it is a time-stamped observation about where the judgment
 lived in this development, not a claim about a permanent division of labor.
 In the case study, the decisive mid-game choices were of exactly this kind --- which
-face of the Wasserstein metric to argue the stability estimate in, and how to construct
-the coupling triangle inequality it rests on. Each was a human decision the agent then
+of two equivalent forms of the distance between distributions to argue the stability
+estimate in, and how to build the key inequality it rests on. Each was a human decision the agent then
 executed, developed in Section~\ref{ssec:dynamical-core}.
 
 The mid game also has a \emph{learning} component, and it is the reason the
@@ -505,7 +488,7 @@ a conjectured metrization ``foundation'' the development never needed
 (Section~\ref{ssec:endgame-lemmas}).
 \item \emph{Genuine gaps you build}: standard mathematics the library lacks,
 which the player decides to formalize from the primitives that \emph{are} present
---- in the case study, a finite Kantorovich duality (Section~\ref{ssec:endgame-lemmas}).
+--- in the case study, a finite-dimensional duality theorem (Section~\ref{ssec:endgame-lemmas}).
 \item \emph{Genuine gaps you honestly defer}: standard mathematics the library
 lacks, which the player marks with an explicit, cited placeholder rather than
 building --- when the cost of building outweighs the value, and the dependency
