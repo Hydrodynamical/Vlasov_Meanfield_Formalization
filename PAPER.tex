@@ -956,15 +956,25 @@ only genuine optimal-transport dependency to a single labeled line and left the 
 dynamical content --- existence, uniqueness, the stability core, the mean-field limit
 --- provably independent of attainment.
 
-The primal route rests on one delicate lemma, the coupling cost's triangle inequality.
-Given a coupling of $(\mu,\rho)$ and a coupling of $(\rho,\nu)$, one disintegrates the
-second over $\rho$ and glues, producing a coupling of $(\mu,\nu)$. The load-bearing
+The primal route rests on one delicate lemma, the coupling cost's triangle
+inequality, gluing a coupling of $(\mu,\rho)$ and one of $(\rho,\nu)$ into a coupling
+of $(\mu,\nu)$:
+\begin{leancode}
+theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z) (hc_meas …)
+    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ρ] :
+    wassersteinCost_coupling c μ ν ≤
+      wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν
+\end{leancode}
+One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing
 and error-prone part is not the cost bound --- it is proving the glued measure has the
-\emph{correct marginals}, i.e.\ that it is genuinely a coupling of $(\mu,\nu)$.
-Marginal-preservation through the disintegration-and-recombination is exactly where a
-``near-citation'' from the library hides a gap; the cost bound is the easy half. (This
-is why the coupling triangle inequality requires a ground-cost triangle hypothesis
-that the dual-side triangle inequality does not.)
+\emph{correct marginals}, i.e.\ that it is genuinely a coupling of $(\mu,\nu)$;
+marginal-preservation through the disintegration-and-recombination is exactly where a
+``near-citation'' from the library hides a gap. The \lean{hc\_triangle} argument is
+the ground-cost triangle hypothesis this needs and the dual-side triangle does not.
+Together with the finite Kantorovich duality of Section~\ref{ssec:endgame-lemmas},
+this lemma is one of the two pieces that build the bridge \lean{wasserstein1\_eq\_coupling}
+--- the single line \lean{dobrushin} consumes (\lean{rw [wasserstein1\_eq\_coupling …]}).
 
 With stability in hand, the mean-field limit closes the loop: applying the estimate to
 the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
@@ -991,27 +1001,13 @@ whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all
 distributional solutions. Reconciling the two is the \emph{superposition
 principle}, and it is where the game's recurring lesson reappears: what the result
 turns on is, once again, getting a \emph{definition} exactly right --- here the
-definition that decides everything is the regularity class of the potential. Stating the principle needs two notions
-of solution made precise; throughout, $\rho_t$ is the spatial marginal of $f_t$.
-
-A \emph{weak} (Eulerian) solution is a narrowly continuous
-$f:[0,\infty)\to\mathcal{P}_1(\mathbb{X})$ with datum $f_0$ such that for every
-$\varphi\in C_c^\infty(\mathbb{X})$ the map $t\mapsto\langle f_t,\varphi\rangle$ is
-differentiable with $\frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\,
-v\cdot\nabla_x\varphi-(\nabla W*\rho_t)\cdot\nabla_v\varphi\rangle$ (the predicate
-\lean{IsVlasovSolution}). A \emph{Lagrangian} solution is a weak solution that, in
-addition, is transported by its own characteristic flow --- and the Lean predicate
-says exactly that, the flow witness sitting beside the weak-PDE conjunct:
-\begin{leancode}
-def IsLagrangianVlasovSolution (gradW) (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  IsVlasovSolution gradW f ∧
-  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
-    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
-    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
-    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
-\end{leancode}
-A Lagrangian solution is weak by its first conjunct; the substantive direction is
-the converse, the superposition principle.
+definition that decides everything is the regularity class of the potential. The two solution notions were set out in the introduction: a \emph{weak} (Eulerian)
+solution asks the Vlasov equation to hold against every test function
+(\lean{IsVlasovSolution}); a \emph{Lagrangian} solution is a weak solution
+transported by its own characteristic flow (\lean{IsLagrangianVlasovSolution}), its
+flow witness sitting beside the weak-PDE conjunct. A Lagrangian solution is weak by
+that first conjunct; the substantive direction is the converse, the superposition
+principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
 \begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
 Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
 Lagrangian: it is transported by the characteristic flow it generates. Hence the
@@ -1105,9 +1101,21 @@ The surviving route assembled the library's Farkas lemma (conic separation)
 polytope; closedness of the image cone) and a $c$-transform converting the dual
 pair into a single admissible potential. The metric structure (triangle,
 symmetry) enters \emph{only} in the $c$-transform; the linear-programming duality
-itself is metric-free. The whole construction yields the duality \emph{inequality}
-the consumer needs --- not an attained optimum --- consistent with the dynamical
-content never requiring attainment.
+itself is metric-free. The construction yields the duality \emph{inequality} on
+finite-range measures --- primal $\le$ dual, not an attained optimum:
+\begin{leancode}
+theorem wassersteinCost_coupling_le_dual_of_finiteRange (c : α → α → ℝ) (hc_nonneg …)
+    (hc_self …) (hc_symm …) (hc_triangle …) (hc_meas …)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (hT …) (hS …)
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
+    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν) ≤
+      wassersteinCost c (Measure.map T μ) (Measure.map S ν)
+\end{leancode}
+With the coupling triangle of Section~\ref{ssec:dynamical-core} it discharges the
+hard direction of the Kantorovich--Rubinstein bridge \lean{wasserstein1\_eq\_coupling}
+--- the single optimal-transport line \lean{dobrushin} consumes --- consistent with
+the dynamical content never requiring attainment.
 
 \paragraph{Removing the small-$L$ restriction (exact tiling).}
 A naive formalization of Dobrushin's global-in-time argument requires the
