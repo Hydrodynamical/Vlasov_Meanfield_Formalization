@@ -923,13 +923,9 @@ the Vlasov characteristic flow exists and is unique, globally in time.
 \end{theorem}
 
 The second is that two such flows, from different data, stay close --- Dobrushin's
-estimate, whose proof is the coupling argument that drives the mean-field limit, so we
-sketch it. Take an optimal coupling $\pi_0$ of $f_0,g_0$ for $\Wone$ and push it
-forward along the two characteristic flows to a coupling $\pi_t$ of $f_t,g_t$, so that
-$\Wone(f_t,g_t)\le\int(|X_f-X_g|+|V_f-V_g|)\,d\pi_0$; a Gronwall estimate on the
-characteristic equations, using $\mathrm{Lip}(\nabla W)=L$ and the force bound
-$\|\nabla W*\rho-\nabla W*\sigma\|_\infty\le L\,\Wone(\rho,\sigma)$, yields the
-exponential rate.
+estimate. Its proof is the coupling argument that drives the mean-field limit, and
+because that argument is where the whole optimal-transport apparatus of
+Section~\ref{ssec:newton-to-weak} is put to work, we give it rather than sketch it.
 \begin{theorem}[Mean-field stability and limit, \lean{dobrushin}]\label{thm:dob}
 Two Vlasov solutions are stable in $\Wone$ with an explicit (Gronwall) rate, and
 the empirical measures of the $N$-particle Newton dynamics converge to the Vlasov
@@ -944,21 +940,57 @@ arbitrary $L$; the small-$L$ restriction present in a naive formalization of
 Dobrushin's argument is an artifact removed in Section~\ref{ssec:endgame-lemmas}.
 
 \medskip\noindent
-That coupling argument hides the subsection's decisive decomposition --- the place the
-mid game's human judgment enters. The stability estimate reads most naturally in the
-dual $\Wone$; proved there directly, it appears to require an \emph{optimal coupling},
-an attainment theorem the library does not have. The move that unlocked the proof was
-to state the stability core in the \emph{primal} coupling cost and discharge it by an
-infimum-over-couplings inequality (``the infimum is below \emph{any} particular
-coupling's cost''), which needs no attainment; the dual-form headline is recovered in
-one line through the bridge lemma \lean{wasserstein1\_eq\_coupling}. This relocated the
-only genuine optimal-transport dependency to a single labeled line and left the entire
-dynamical content --- existence, uniqueness, the stability core, the mean-field limit
---- provably independent of attainment.
+\textbf{The coupling argument.} The decisive move is a decomposition --- where the mid
+game's human judgment enters. Read in the dual $\Wone$, the estimate appears to need an
+\emph{optimal} coupling of the data, an attainment theorem the library does not have.
+Stated instead in the \emph{primal} coupling cost \lean{wasserstein1\_coupling}, it needs
+only that the infimum over couplings lies below \emph{any} particular coupling's cost ---
+no attainment --- with the dual headline recovered at the end in a single line.
 
-The primal route rests on one delicate lemma, the coupling cost's triangle
-inequality, gluing a coupling of $(\mu,\rho)$ and one of $(\rho,\nu)$ into a coupling
-of $(\mu,\nu)$:
+So fix \emph{any} coupling $\pi$ of the data $(f_0,g_0)$, optimal or not. Because $f$ and
+$g$ are \emph{Lagrangian} solutions, each is transported by its own characteristic flow,
+$f_t=(\Phi^t_f)_\#f_0$ and $g_t=(\Phi^t_g)_\#g_0$; pushing $\pi$ forward by the pair of
+flows gives a coupling of $(f_t,g_t)$, and \lean{wasserstein1\_pushforward\_le\_iInf}
+specialises the infimum inequality to it,
+\[
+  \Wone(f_t,g_t)\;\le\;\int \mathrm{dist}\!\big(\Phi^t_f z_1,\ \Phi^t_g z_2\big)\,
+  d\pi(z_1,z_2)\;=:\;Q_t ,
+\]
+with $Q_0$ the transported cost of $\pi$ itself. It remains to bound $Q_t\le e^{2Mt}Q_0$,
+where $M:=\max(1,L)$.
+
+Two estimates drive that bound, and their interplay is the argument's content. The
+mean-field force is $L$-Lipschitz in space (\lean{convolveFunctionMeasure\_lipschitz\_in\_x}),
+so the two drifts evaluated at a common point differ by at most $M$ times the position
+gap; integrated against $\pi$, this bounds the forcing mismatch by the very quantity under
+estimate, $\varepsilon_s\le M\,Q_s$ --- a self-reference. Independently, each trajectory
+pair obeys the \emph{mild} (integral-form) bound \lean{flow\_difference\_mild\_bound}, and
+integrating it over $\pi$ by Tonelli (\lean{integral\_mild\_bound}) gives the same shape
+for $Q$:
+\[
+  Q_t\;\le\;Q_0+\int_0^t\big(M\,Q_s+\varepsilon_s\big)\,ds ,
+\]
+the constant $M$ being the joint phase-space field's Lipschitz constant
+(\lean{vlasovVectorField\_lipschitzWith}: velocity couples to position at rate $1$, the
+force at rate $L$). Substituting the self-reference collapses the two terms to
+$Q_t\le Q_0+2M\!\int_0^t Q_s\,ds$, and the scalar Grönwall lemma \lean{gronwall\_mild\_le}
+closes it to $Q_t\le Q_0\,e^{2Mt}$. The rate is therefore $C=2\max(1,L)$; the factor $2$
+is not cosmetic but the self-reference doubling, drift and forcing each contributing $M$.
+The formalization departs from the textbook telling in staying with this mild form rather
+than differentiating $\Wone$ in time --- which would summon the time-regularity the dual
+sup supplies only as lower semicontinuity --- and in running on a finite window, each $t$
+handled at $T=t+1$.
+
+Taking the infimum over the initial coupling $\pi$ turns $Q_0$ into the primal (coupling)
+distance of the data, and one application of the Kantorovich--Rubinstein bridge
+\lean{wasserstein1\_eq\_coupling} rewrites it as the dual $\Wone(f_0,g_0)$ of the
+statement. That single \lean{rw} is the proof's \emph{only} appeal to duality: the whole
+stability core, and the mean-field limit that follows from it, are built in the coupling
+cost without it, and attainment is never invoked.
+
+That bridge is itself assembled from two reusable pieces, of which the more delicate is
+the coupling cost's triangle inequality, gluing a coupling of $(\mu,\rho)$ and one of
+$(\rho,\nu)$ into a coupling of $(\mu,\nu)$:
 \begin{leancode}
 theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z) (hc_meas …)
@@ -966,15 +998,15 @@ theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …
     wassersteinCost_coupling c μ ν ≤
       wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν
 \end{leancode}
-One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing
-and error-prone part is not the cost bound --- it is proving the glued measure has the
-\emph{correct marginals}, i.e.\ that it is genuinely a coupling of $(\mu,\nu)$;
-marginal-preservation through the disintegration-and-recombination is exactly where a
-``near-citation'' from the library hides a gap. The \lean{hc\_triangle} argument is
-the ground-cost triangle hypothesis this needs and the dual-side triangle does not.
-Together with the finite Kantorovich duality of Section~\ref{ssec:endgame-lemmas},
-this lemma is one of the two pieces that build the bridge \lean{wasserstein1\_eq\_coupling}
---- the single line \lean{dobrushin} consumes (\lean{rw [wasserstein1\_eq\_coupling …]}).
+One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing,
+error-prone part is not the cost bound but proving the glued measure has the \emph{correct
+marginals} --- that it is genuinely a coupling of $(\mu,\nu)$; marginal-preservation
+through the disintegration-and-recombination is exactly where a ``near-citation'' from the
+library hides a gap. The \lean{hc\_triangle} argument is the ground-cost triangle
+hypothesis this needs and the dual-side triangle does not. Together with the finite
+Kantorovich duality of Section~\ref{ssec:endgame-lemmas}, it builds the bridge
+\lean{wasserstein1\_eq\_coupling} --- the single line \lean{dobrushin} consumes
+(\lean{rw [wasserstein1\_eq\_coupling …]}).
 
 With stability in hand, the mean-field limit closes the loop: applying the estimate to
 the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
