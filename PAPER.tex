@@ -143,10 +143,9 @@ self-contained body of general mathematics that the argument forced us to build
 separates cleanly from the rest, ready for the library to absorb.
 
 \paragraph{Where this sits.}
-This work borders three recent lines --- the end-to-end formalization of
-known-hard results, the autonomous proof-search agents, and the first-hand
-methodological accounts of AI-assisted mathematics --- and the contribution is
-sharpest seen against each.
+This work borders three recent lines: the end-to-end formalization of known-hard
+results, the autonomous proof-search agents, and first-hand methodological accounts
+of AI-assisted mathematics.
 
 \paragraph{Formalizing research mathematics end to end.}
 This work sits in the now-established tradition of formalizing a substantial,
@@ -266,6 +265,130 @@ phase by phase, from the particle system to the limiting equation, through the c
 estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
 describes the verification discipline, and Section~\ref{sec:assessment} assesses
 the method, including the ``about a week'' figure.
+
+% ============================================================================
+\section{What we formalize}\label{sec:statements}
+% ============================================================================
+
+The dynamics originate in $N$ interacting particles. With positions $x_i$ and
+velocities $v_i$ under a pairwise force $-\nabla W$, Newton's equations are
+\[
+  \dot{x}_i \;=\; v_i, \qquad
+  \dot{v}_i \;=\; -\frac{1}{N} \sum_{j \neq i} \nabla W(x_i - x_j),
+  \qquad i = 1, \dots, N .
+\]
+As $N \to \infty$ the empirical distribution of the particles concentrates on a
+density $f(t,x,v)$ on $\R^d \times \R^d$ governed by the nonlinear Vlasov equation
+\[
+  \partial_t f \;+\; v \cdot \nabla_x f
+    \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
+  \qquad \rho_t(x) = \int_{\R^d} f(t,x,v)\, dv ,
+\]
+with $\rho_t$ the spatial marginal. This is the object of study.
+
+The standing hypothesis is that $W$ is $C^{1,1}$ and even, with a globally Lipschitz
+gradient of constant $L := \mathrm{Lip}(\nabla W)$:
+\begin{leancode}
+class AssW (W : PhysSpace d → ℝ) : Prop where
+  differentiable : Differentiable ℝ W
+  even          : ∀ x : PhysSpace d, W (-x) = W x
+  lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
+\end{leancode}
+
+A solution comes in two forms. A \emph{weak} (Eulerian) solution is a narrowly
+continuous family $f : [0,\infty) \to \mathcal{P}_1(\R^d \times \R^d)$ of
+probability measures with finite first moment, with datum $f_0$, for which
+$t \mapsto \langle f_t, \varphi\rangle$ is differentiable with
+$\frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\, v\cdot\nabla_x\varphi -
+(\nabla W * \rho_t)\cdot\nabla_v\varphi\rangle$ at every test function
+$\varphi \in C_c^\infty$:
+\begin{leancode}
+def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
+      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
+      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
+      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
+\end{leancode}
+A \emph{Lagrangian} solution is a weak solution transported by its own
+characteristic flow, $f_t = (X_t, V_t)_\# f_0$:
+\begin{leancode}
+def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  IsVlasovSolution gradW f ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
+    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
+\end{leancode}
+A Lagrangian solution is weak by its first conjunct; the substantive direction is
+the converse, stated last.
+
+The two central theorems are existence--uniqueness and stability. For a
+finite-first-moment datum $f_0$, under $\mathrm{AssW}$ there is a unique narrowly
+continuous Vlasov solution with $f_{|t=0} = f_0$:
+\begin{leancode}
+theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀) :
+    ∃ f : ℝ → Measure (PhaseSpace d), f 0 = f₀ ∧
+      (∀ t ∈ Set.Ici (0 : ℝ), HasFiniteFirstMoment (f t)) ∧
+      (∀ T_target : ℝ, 0 < T_target →
+        IsLagrangianVlasovSolutionOn gradW f T_target) ∧
+      (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
+        ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
+\end{leancode}
+Any two solutions are stable in $\Wone$ at an exponential rate $C = C(L)$, whence
+the empirical measures of the Newton dynamics converge to the Vlasov solution:
+\begin{leancode}
+theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
+      wasserstein1 (f t) (g t) ≤
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
+\end{leancode}
+
+The converse --- that every weak solution is Lagrangian --- is the superposition
+principle, and it costs one degree of regularity: the strengthened assumption that
+$\nabla W \in C^1$, i.e.\ $W \in C^2$.
+\begin{leancode}
+class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
+\end{leancode}
+Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
+Lagrangian on each forward window; the weak and Lagrangian notions then coincide:
+\begin{leancode}
+theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
+    : IsLagrangianVlasovSolutionOn gradW f T
+\end{leancode}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
+\caption{The project blueprint's dependency graph, auto-extracted from the
+elaborated Lean proof terms. Box nodes are definitions and assumptions, ellipse
+nodes are theorems; dashed edges are statement-level dependencies and solid edges
+proof-level dependencies; green marks a fully formalized (\lean{leanok}) node. The
+optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling} family)
+feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
+(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
+\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
+axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back
+into the optimal-transport layer --- the one-directional cut that
+Definition~\ref{def:selfcontained} (Q1) certifies.}
+\label{fig:depgraph}
+\end{figure}
 
 % ============================================================================
 \section{The game}\label{sec:game}
@@ -1016,7 +1139,7 @@ structural origin showed that the offending small-$L$ threshold arose from the
 window construction's unit width, not from any genuine analytic mechanism (an
 instance of Strategy~\ref{strat:M}). The fix was \emph{exact} tiling: cover the
 target interval with $N$ windows of width exactly $T/N$, so the chain lands
-exactly on the target. Crucially, the naive alternative --- ``drop the $+1$
+exactly on the target. The naive alternative --- ``drop the $+1$
 offset, replace $(T+1)^2$ by $T^2$'' --- would have left a hidden reach-slack
 $(T+\delta)$ from the last window's overshoot, producing a threshold that
 \emph{looks} general but fails for large $L$. The construction was rebuilt with
@@ -1124,23 +1247,6 @@ architecture: the optimal-transport machinery (left) feeds the marquee
 Definition~\ref{def:selfcontained} certifies --- while the kinetic-theory and superposition-bridge content
 (right) feeds \lean{vlasov-wp} and the superposition principle. Every node is green:
 the entire graph is formalized, with no informal placeholder on any path to a target.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
-\caption{The project blueprint's dependency graph, auto-extracted from the
-elaborated Lean proof terms. Box nodes are definitions and assumptions, ellipse
-nodes are theorems; dashed edges are statement-level dependencies and solid edges
-proof-level dependencies; green marks a fully formalized (\lean{leanok}) node. The
-optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling} family)
-feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
-(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
-\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
-axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back
-into the optimal-transport layer --- the one-directional cut that
-Definition~\ref{def:selfcontained} (Q1) certifies.}
-\label{fig:depgraph}
-\end{figure}
 
 % ============================================================================
 \section{The verification discipline}\label{sec:discipline}
@@ -1314,9 +1420,8 @@ measure of the meta-learning loop, distinct from the proof work itself.}
 \subsection{On ``about a week''}
 
 The calendar span of the case study, from the first translated theorem to the
-final certified extraction, was approximately one week. We state the figure
-honestly, because the interesting claim is not raw speed but the \emph{mode} that
-makes the speed possible.
+final certified extraction, was approximately one week. The interesting claim is
+not raw speed but the \emph{mode} that makes the speed possible.
 
 This was neither solo human formalization (implausible at this speed for a result
 of this size) nor autonomous AI formalization (which could not have made the
@@ -1402,11 +1507,10 @@ and a bracket $\{F,G\}[f]$ for which $\partial_t f = \{f,\mathcal{H}\}$ --- and
 identifying that bracket as the Lie--Poisson bracket on the dual of the Lie algebra
 of Hamiltonian vector fields, arising as the $N\to\infty$ limit of the canonical
 brackets on $(\R^d\times\R^d)^N$, is not formalized here; it is the subject of
-\cite{MNPRS} and a natural target for a follow-on game. That the present development
+\cite{MNPRS} and a natural target for a follow-on game. The present development
 covers the dynamics --- existence, uniqueness, stability, the mean-field limit, and
-the superposition principle --- but not the geometric structure of the limit is a
-boundary we state plainly: doing so is itself part of the discipline the win
-condition enforces.
+the superposition principle --- but not the geometric structure of the limit.
+Marking that boundary is itself part of the discipline the win condition enforces.
 
 % ============================================================================
 \appendix
