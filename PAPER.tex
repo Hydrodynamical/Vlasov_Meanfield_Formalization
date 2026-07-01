@@ -256,8 +256,9 @@ and reads each of its stages as a phase of play, while the mathematics carries t
 weight.
 
 \paragraph{Outline.}
-Section~\ref{sec:game} sets out the game, its win condition, and its reusability
-grade; Section~\ref{sec:phases} the three phases and their strategies;
+Section~\ref{sec:statements} states, in mathematics and in Lean, exactly what we
+formalized. Section~\ref{sec:game} then sets out the game, its win condition, and
+its reusability grade; Section~\ref{sec:phases} the three phases and their strategies;
 Section~\ref{sec:strategies} the $\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$
 taxonomy of standing guidance the human accumulates. Section~\ref{sec:casestudy}
 is the heart of the paper: Dobrushin's derivation, run as a formalization and read
@@ -325,9 +326,11 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
 A Lagrangian solution is weak by its first conjunct; the substantive direction is
 the converse, stated last.
 
-The two central theorems are existence--uniqueness and stability. For a
-finite-first-moment datum $f_0$, under $\mathrm{AssW}$ there is a unique narrowly
-continuous Vlasov solution with $f_{|t=0} = f_0$:
+The two central theorems are existence--uniqueness and stability.
+\begin{theorem}[Well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
+For a finite-first-moment datum $f_0$, under $\mathrm{AssW}$ there is a unique
+narrowly continuous Vlasov solution with $f_{|t=0} = f_0$.
+\end{theorem}
 \begin{leancode}
 theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -340,8 +343,10 @@ theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
       (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
         ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
 \end{leancode}
-Any two solutions are stable in $\Wone$ at an exponential rate $C = C(L)$, whence
-the empirical measures of the Newton dynamics converge to the Vlasov solution:
+\begin{theorem}[Mean-field stability and limit, \lean{dobrushin}]\label{thm:dob}
+Any two solutions are stable in $\Wone$ at an exponential rate $C = C(L)$; the
+empirical measures of the Newton dynamics converge to the Vlasov solution.
+\end{theorem}
 \begin{leancode}
 theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -363,8 +368,11 @@ $\nabla W \in C^1$, i.e.\ $W \in C^2$.
 class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
 \end{leancode}
+\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]
+\label{thm:superposition}
 Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
-Lagrangian on each forward window; the weak and Lagrangian notions then coincide:
+Lagrangian on each forward window; the weak and Lagrangian notions then coincide.
+\end{theorem}
 \begin{leancode}
 theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
@@ -911,11 +919,8 @@ about this flow are the case study's marquee targets, and each arrives as the
 construction reaches it.
 
 The first is that the flow exists at all: forward well-posedness is a Banach fixed
-point in $\Wone$.
-\begin{theorem}[Well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
-Under the standing assumption on $W$ \emph{(at arbitrary Lipschitz constant
-$L$)}, the Vlasov characteristic flow exists and is unique, globally in time.
-\end{theorem}
+point in $\Wone$ --- this is Theorem~\ref{thm:wp}, existence and uniqueness of the
+Vlasov characteristic flow at arbitrary Lipschitz constant.
 
 The second is that two such flows, from different data, stay close --- Dobrushin's
 estimate, whose proof is the coupling argument that drives the mean-field limit, so we
@@ -924,28 +929,9 @@ forward along the two characteristic flows to a coupling $\pi_t$ of $f_t,g_t$, s
 $\Wone(f_t,g_t)\le\int(|X_f-X_g|+|V_f-V_g|)\,d\pi_0$; a Gronwall estimate on the
 characteristic equations, using $\mathrm{Lip}(\nabla W)=L$ and the force bound
 $\|\nabla W*\rho-\nabla W*\sigma\|_\infty\le L\,\Wone(\rho,\sigma)$, yields the
-exponential rate.
-\begin{theorem}[Mean-field stability and limit, \lean{dobrushin}]\label{thm:dob}
-Two Vlasov solutions are stable in $\Wone$ with an explicit (Gronwall) rate, and
-the empirical measures of the $N$-particle Newton dynamics converge to the
-Vlasov solution in the mean-field limit.
-\end{theorem}
-\noindent The stability half reads
-\[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0)\quad(t\ge 0),\qquad C=C(L), \]
-with Lean form the stability \emph{core} --- two Lagrangian solutions and the bound
-(lightly cleaned; the full signature is in the repository):
-\begin{leancode}
-theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
-    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
-      wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
-\end{leancode}
+exponential rate --- this is Theorem~\ref{thm:dob}, the stability estimate and the
+mean-field limit it drives. The stability half reads
+\[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0)\quad(t\ge 0),\qquad C=C(L). \]
 
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
 \printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
@@ -1020,24 +1006,11 @@ def IsLagrangianVlasovSolution (gradW) (f : ℝ → Measure (PhaseSpace d)) : Pr
     (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
 \end{leancode}
 A Lagrangian solution is weak by its first conjunct; the substantive direction is
-the converse, and that converse is the superposition principle.
-
-\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]
-\label{thm:superposition}
-Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
-Lagrangian: it is transported by the characteristic flow it generates. Hence the
-weak and Lagrangian notions coincide, and the unique solution of
-Theorem~\ref{thm:wp} is a pushforward of its datum along its flow.
-\end{theorem}
-\begin{leancode}
-theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
-    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
-    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
-    : IsLagrangianVlasovSolutionOn gradW f T
-\end{leancode}
-The converse costs exactly one degree of regularity beyond \lean{AssW} --- the
-development's second standing assumption, which makes its only appearance here:
+the converse, the superposition principle (Theorem~\ref{thm:superposition}): under
+$\mathrm{AssW2}$, every weak solution with finite-first-moment datum is Lagrangian,
+so the two notions coincide and the unique solution of Theorem~\ref{thm:wp} is a
+pushforward of its datum along its flow. The converse costs exactly one degree of
+regularity beyond \lean{AssW} --- the development's second standing assumption:
 \begin{leancode}
 class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
