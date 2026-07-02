@@ -133,9 +133,13 @@ to cut each hard theorem into reachable pieces, and when to abandon a line that 
 not working.
 
 None of the three fears survived the exercise. The mathematician was not made
-obsolete but relocated: the judgment the work demanded --- what to prove, how to
-cut it, when to change course --- was exactly what the AI could not supply, and we
-record throughout where that judgment fell. Trust did not rest on our word; Lean
+obsolete but relocated, from writing proofs to directing them: choosing what to
+prove, how to cut it, and when to change course. Where the work turned --- routing
+the central estimate through the coupling cost to avoid an attainment theorem the
+library does not have, or spending one degree of regularity to make a uniqueness
+argument go through --- the decision was the mathematician's and the execution the
+AI's. These are the judgments the week turned on, and the case study marks each
+where it falls: they are visible, not asserted. Trust did not rest on our word; Lean
 reports the exact list of axioms a theorem depends on, and a reader can confirm in
 seconds that ours depend on nothing beyond Lean's own foundations. And the result
 is not slop. The mathematician kept the development understood as it grew, and a
@@ -352,7 +356,7 @@ equation is classical, going back to Dobrushin \cite{Dobrushin} and the
 Braun--Hepp--Neunzert line \cite{Neunzert} (with the later surveys
 \cite{Spohn,Golse}). Where the force is singular, as in gravitation or
 electrostatics, the same passage is a celebrated open problem, settled so far only
-in softened cases \cite{TODO-hauray-jabin,TODO-vp-open}. We formalize the smooth
+in softened cases \cite{hauray-jabin,lazarovici-pickl,serfaty-coulomb}. We formalize the smooth
 end, and chose it deliberately: it is where a reusable library can actually be
 built. The singular frontier we mention only to place that choice. Closing it is a
 problem of mathematics, not of proof engineering --- the missing ingredient is new
@@ -384,11 +388,10 @@ weight.
 \paragraph{Outline.}
 This introduction has named the three fears, set down in mathematics and in Lean
 exactly what we formalized, and placed the work among its neighbors; the rest of
-the paper is the method and its evidence. Section~\ref{sec:game} sets out the game,
-its win condition, and its reusability grade; Section~\ref{sec:phases} the three
-phases and their strategies;
-Section~\ref{sec:strategies} the $\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$
-taxonomy of standing guidance the human accumulates. Section~\ref{sec:casestudy}
+the paper is the method and its evidence. Section~\ref{sec:game} sets out the game
+--- its win condition, its reusability grade, the three phases, and the
+$\mathrm{L}/\mathrm{P}/\mathrm{M}/\mathrm{B}$ framework of standing guidance the
+human accumulates. Section~\ref{sec:casestudy}
 is the heart of the paper: Dobrushin's derivation, run as a formalization and read
 phase by phase, from the particle system to the limiting equation, through the core
 estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
@@ -420,37 +423,24 @@ returns exactly \cleanfootprint.
 \end{enumerate}
 \end{definition}
 
-The second clause is the substantive one, and it is the reason we frame the win
-condition in terms of the \emph{axiom footprint} rather than the more obvious
-``no \lean{sorry}.'' A development can be free of \lean{sorry} and still depend
-on a bespoke \lean{axiom} declaration --- a \lean{sorry} renamed to look
-principled. Lean's \printaxioms{} traces the \emph{complete} set of axioms a
-theorem transitively depends on; the three names \lean{propext},
-\lean{Classical.choice}, and \lean{Quot.sound} are Lean's own foundations, and
-nothing else. A theorem whose footprint is exactly these three is proved
-``modulo Lean's foundations alone.'' Any fourth name --- a \lean{sorryAx} from a
-hidden \lean{sorry}, a custom axiom, a deferred placeholder --- is a loss, and
-the footprint check catches it where a build-success check would not. The win
-condition is therefore not ``the code compiles'' but ``the code compiles
-\emph{and} the foundations are clean,'' and these are different claims
-(see Strategy~\ref{strat:P10}).
+The second clause is the substantive one. A development can be free of
+\lean{sorry} and still lean on a bespoke \lean{axiom} --- a \lean{sorry} renamed
+to look principled. \printaxioms{} traces the \emph{complete} axiom set a theorem
+depends on; a footprint of exactly \lean{propext}, \lean{Classical.choice}, and
+\lean{Quot.sound} --- Lean's own foundations --- means proved modulo those alone,
+and any fourth name is a loss a build-success check would miss. The win condition
+is ``compiles \emph{and} the foundations are clean,'' not ``compiles.''
 
-One boundary must be drawn precisely, because it is where this guarantee stops.
-\printaxioms{} certifies that a target theorem is proved soundly \emph{relative to
-its own statement}; it does not certify that the statement faithfully encodes the
-intended mathematics. A development can carry a clean footprint on a theorem that
-says something subtly other than what was meant --- the kernel cannot see the
-difference. That second responsibility, statement-faithfulness, is not
-mechanizable here and does not disappear; it is discharged by the human in the
-early game, through the definitional scoping and atom-level signature reading that
-Section~\ref{sec:phases} describes. The win condition buys \emph{proof}-trust;
-\emph{statement}-trust is relocated to the mathematician, not eliminated.
+This certifies a theorem soundly \emph{relative to its own statement}; it does not
+certify that the statement says what was meant. That second responsibility,
+statement-faithfulness, is the human's, discharged in the early game through
+definitional scoping and atom-level signature reading. The win condition buys
+\emph{proof}-trust; \emph{statement}-trust is relocated to the mathematician, not
+eliminated.
 
-We operationalize reusability as the existence of a \emph{self-contained layer}
-(Definition~\ref{def:selfcontained}): a subset of the development that the
-ambient library could absorb with no trace of the problem it was extracted from.
-The grade is not a number but a pass/fail certificate built on checks defined by
-the ambient library, not by us.
+We operationalize reusability as the existence of a \emph{self-contained layer}: a
+subset of the development the ambient library could absorb with no trace of the
+problem it came from, graded pass/fail by checks the library defines, not us.
 
 \begin{definition}[Self-contained layer]\label{def:selfcontained}
 A won game exports one or more \emph{self-contained layers}. A subset
@@ -465,9 +455,9 @@ inward, through an interface of width $w$ (the number of
 $\mathcal{L}_{\mathrm{gen}}$ declarations referenced from outside). The
 reverse-edge count is $0$, read directly off the graph.
 \item \textbf{Standalone compilation.} $\mathcal{L}_{\mathrm{gen}}$ builds as a
-package depending only on the ambient library, with zero problem-specific files
-in its import graph. This is the compiled certificate of (Q1): the build cannot
-succeed if a hidden reverse edge exists.
+package depending only on the Mathlib library (v4.29.1), with zero
+problem-specific files in its import graph. This is the compiled certificate of
+(Q1): the build cannot succeed if a hidden reverse edge exists.
 \item \textbf{Linter-clean.} $\mathcal{L}_{\mathrm{gen}}$ passes the ambient
 library's own linter suite with zero warnings --- the automated gate its
 maintainers apply before any merge (unused hypotheses, simp-normal-form, naming,
@@ -481,147 +471,113 @@ A layer passing (Q1)--(Q4) is \emph{self-contained}: standalone-compilable,
 linter-clean, non-redundant general mathematics, separated from the
 problem-specific development through an interface of width $w$. The \emph{size}
 of $\mathcal{L}_{\mathrm{gen}}$, as a fraction of $\mathcal{L}$, is reported
-descriptively against more than one denominator; it indicates whether a layer is
-large enough to be worth extracting, and is \emph{not itself} the grade. We claim
-reusability in this precise, certified sense, and distinguish it from
-demonstrated \emph{reuse}, which we do not assert.
-
-\smallskip
-One further property is reported but not certified.
-\textbf{(A1) Convention-compatibility (reported, not certified).}
-$\mathcal{L}_{\mathrm{gen}}$'s declarations are structured for upstream
-submission, but we do not claim they meet the ambient library's concision and
-idiom standards as written; reaching that bar is editing work we have not
-performed. This is the one place this grade is asserted rather than compiled, and
-the gap it names is real: a self-contained layer is a candidate for upstreaming,
-not a finished contribution to it.
+descriptively, not as the grade. We claim reusability in this precise, certified
+sense, and distinguish it from demonstrated \emph{reuse}, which we do not assert.
 \end{definition}
 
-This grade is a pass/fail certificate, not an aesthetic judgment. Three of the
-four checks are mechanical and re-runnable by a referee: (Q1) and (Q4) are read
-off the declaration-level dependency graph extracted from the proof assistant's
-own elaboration environment, (Q2) compiles that isolation into a standalone build,
-and (Q3) is the ambient library's own linter applied unchanged. Only (A1) is a
-human judgment. In the case study (Section~\ref{sec:casestudy}) the
-self-contained layer is the general machinery the argument forced us to build: the
-problem-specific content reaches it through a $22$-declaration interface, with no edge in the
-reverse direction. We report the layer's \emph{size} descriptively, against more
-than one denominator, rather than as the grade itself --- and we flag under (A1)
-the minimal-imports cleanup that an upstream submission would still require.
+All four checks are mechanical and re-runnable by a referee: (Q1) and (Q4) read
+off the elaboration environment's dependency graph, (Q2) compiles the isolation
+into a standalone build, (Q3) runs the library's own linter unchanged. In the case
+study, $\mathcal{L}_{\mathrm{gen}}$ is the optimal-transport machinery the
+derivation forced us to build --- the Wasserstein-1 metric in both faces, the
+Kantorovich--Rubinstein bridge between them, a finite Kantorovich duality, and the
+coupling-gluing triangle inequality (Table~\ref{tab:lgen}). It passes (Q1)--(Q4):
+the problem-specific content reaches it through a $22$-declaration interface with
+no reverse edge, it builds against Mathlib alone, and it is linter-clean and
+non-redundant --- a self-contained layer in the certified sense above. Its
+\emph{size} we report descriptively (about a sixth of the development, $49$ of
+$299$ declarations), never as the grade.
 
-\subsection{Why ``game'' is the right metaphor}
+\begin{table}[t]
+\centering
+\begin{tabular}{ll}
+\hline
+General object (mathematics) & Lean declaration \\
+\hline
+Wasserstein-1, dual (Kantorovich--Rubinstein) form & \lean{wassersteinCost}, \lean{wasserstein1} \\
+Wasserstein-1, primal (coupling) form & \lean{wasserstein1\_coupling} \\
+Truncated variant $\Wbar$ (bounded ground cost) & \lean{wassersteinBar} \\
+Dual $=$ primal (Kantorovich--Rubinstein bridge) & \lean{wasserstein1\_eq\_coupling} \\
+Finite Kantorovich duality (from Farkas) & \lean{finiteRange\_transportation\_dual} \\
+Coupling-cost triangle inequality (gluing) & \lean{wassersteinCost\_coupling\_triangle} \\
+Non-expansion under Lipschitz pushforward & \lean{wasserstein1\_pushforward\_le\_iInf} \\
+\hline
+\end{tabular}
+\caption{Representative contents of the self-contained layer
+$\mathcal{L}_{\mathrm{gen}}$ --- general optimal-transport mathematics the
+derivation forced us to build, stated once and reused. The full layer is $49$
+declarations behind a $22$-declaration interface, compiling against Mathlib alone.}
+\label{tab:lgen}
+\end{table}
 
-Three features make the metaphor load-bearing rather than ornamental. First,
-the win condition is \emph{adversarial in a specific sense}: the proof assistant
-will not be fooled. Unlike informal mathematics, where a gap can hide in a
-``clearly,'' a Lean development that wins Definition~\ref{def:win} is checkable
-by a referee in seconds (run the build; run \printaxioms{}). The opponent is
-the type-checker, and it does not accept hand-waving.
+\medskip
+The metaphor is load-bearing, not ornamental: the opponent is the type-checker,
+which will not be fooled by a ``clearly''; reusability is a real trade-off the
+fastest win would sacrifice; and --- the part that motivates the rest of the paper
+--- the three phases reward \emph{different} strategies, so carrying an early-game
+strategy into the endgame is a characteristic way to lose.
 
-Second, reusability creates a genuine trade-off. The fastest path to (W1)--(W2)
-is often to prove everything in the most problem-specific form available;
-the path that yields a self-contained layer requires building general
-infrastructure and keeping it dependency-clean. A player optimizing only for the
-win will under-invest in reusability; a player optimizing only for reusability
-may never finish. Good play balances them, and the balance shifts by phase.
+\subsection{The three phases}\label{sec:phases}
 
-Third --- and this is the part that motivates the rest of the paper --- the
-phases reward \emph{different} strategies, and carrying an early-game strategy
-into the endgame is a characteristic way to lose.
-
-% ============================================================================
-\section{The three phases}\label{sec:phases}
-% ============================================================================
-
-\subsection{Early game: definitional scoping}
-
-In the early game the player translates the main theorems of $\mathcal{T}$ into
-Lean theorem \emph{statements}, with proofs left as \lean{sorry}. This sounds
-mechanical and is not. The difficulty is not the theorem statements; it is the
-\emph{definitions of the objects} those statements quantify over. Every later
-move builds on these definitions, so a definition that is subtly wrong --- one
-that bakes in the wrong hypothesis, the wrong metric, or the wrong regularity
-class --- propagates its error through the entire development and is most
-expensive to discover late.
+\paragraph{Early game: definitional scoping.}
+In the early game the player translates the target theorems of $\mathcal{T}$ into
+Lean \emph{statements}, proofs left as \lean{sorry}. The difficulty is not the
+statements but the \emph{definitions} they quantify over: every later move builds
+on them, so a definition that bakes in the wrong hypothesis, metric, or regularity
+class propagates its error through the whole development and is most expensive to
+find late.
 
 \begin{quote}\itshape
 The early-game risk is definitional. The dominant strategy is to lock the
 object scaffolding --- the definitions and the target signatures --- before
-proving anything, and to read the source document at the level of atoms (which
-exact hypothesis, which exact moment, which exact norm) rather than at the level
-of prose.
+proving anything, and to read the source at the level of atoms (which exact
+hypothesis, which exact moment, which exact norm), not of prose.
 \end{quote}
 
-Concretely, the player commits the \emph{statements} of the target theorems and
-the definitions they reference, gets the file to compile with every proof a
-\lean{sorry}, and only then begins to prove. This ``API-lock'' (Strategy
-\ref{strat:P4}) separates the act of committing to an interface from the act of
-discharging it, which matters because the interface is what every subsequent
-phase is written against. Errors caught here are cheap; the same errors caught
-in the endgame require unwinding everything built on top.
+The player commits the statements and their definitions, compiles with every proof
+a \lean{sorry}, and only then proves. This ``API-lock'' separates committing to an
+interface from discharging it --- and the interface is what every later phase is
+written against, so errors caught here are cheap and the same errors caught in the
+endgame are not.
 
-\subsection{Mid game: human-judgment decomposition}
+\paragraph{Mid game: human-judgment decomposition.}
+In the mid game the player repeatedly \emph{decomposes} a sorried statement into
+smaller sorried sub-statements, each heuristically easier, until the leaves are
+within the agent's reach. The paper's central empirical claim is that
+\textbf{decomposition is the part of the loop that most demanded human judgment}:
+the agent could prove a well-specified sub-lemma, but chose poorly \emph{where} to
+cut and which of several equivalent routes the library could actually support ---
+acts of mathematical taste. The claim is time-stamped (\emph{this} game, system,
+and moment; decomposition is exactly the frontier systems improve at fastest), not
+a permanent division of labor. In the case study the decisive mid-game choices
+were of this kind --- which face of the distance to argue the stability estimate
+in, and how to build the inequality it rests on (Section~\ref{ssec:dynamical-core}).
 
-In the mid game the player repeatedly takes a sorried statement and
-\emph{decomposes} it into smaller sorried sub-statements, each heuristically
-easier, until the leaves are within reach of the agent's proving ability. This
-is where, in the language of the project, ``the mathematician's hat goes on.''
-
-The central empirical claim of this paper is that \textbf{decomposition is the
-part of the loop that most demanded human judgment.} An AI agent could prove a
-well-specified sub-lemma; what it did poorly was \emph{choose} the decomposition
-that makes the original problem tractable --- which sub-problems are heuristically
-easier, where to cut, which of several equivalent routes leads to a proof the
-library can actually support. Those are acts of mathematical taste. The claim holds \emph{in this game, with this
-system, at this time}: decomposition is exactly the capability frontier systems are
-improving at fastest, so it is a time-stamped observation about where the judgment
-lived in this development, not a claim about a permanent division of labor.
-In the case study, the decisive mid-game choices were of exactly this kind --- which
-of two equivalent forms of the distance between distributions to argue the stability
-estimate in, and how to build the key inequality it rests on. Each was a human decision the agent then
-executed, developed in Section~\ref{ssec:dynamical-core}.
-
-The mid game also has a \emph{learning} component, and it is the reason the
-standing instruction file $\mathcal{G}$ is a live part of the game rather than a
-fixed prompt. When the human recognizes a recurring decomposition pattern --- or,
-more often, a recurring \emph{failure} pattern --- they distill it into a
-strategy and write it into $\mathcal{G}$, where the agent internalizes it for
-all subsequent moves. The loop thus accumulates the human's strategic insight
-as standing guidance. Section~\ref{sec:strategies} is the taxonomy of strategies
-that accumulated this way.
+This is also where the loop \emph{learns}: a recurring pattern --- more often a
+recurring \emph{failure} --- is distilled into a strategy and written into
+$\mathcal{G}$, which is what makes the standing instruction file a live part of the
+game rather than a fixed prompt.
 
 \begin{quote}\itshape
 The mid-game risk is choosing a decomposition the library cannot support, or one
 that multiplies rather than reduces difficulty. The dominant strategy is
 human-selected decomposition --- cut where the mathematician sees tractability ---
-combined with encoding each hard-won decomposition heuristic into $\mathcal{G}$
-so it is reused, not re-derived.
+combined with encoding each hard-won heuristic into $\mathcal{G}$ so it is reused,
+not re-derived.
 \end{quote}
 
-\subsection{End game: triaging the library gaps}
-
-Eventually the development reaches sorried statements that are not further
-decomposable into project-specific pieces --- they are requests for
-\emph{general} mathematics that the ambient library may or may not contain. For
-the formalization of partial differential equations, this phase has a specific
-character: it becomes the work of \textbf{understanding what functional-analytic
-gaps are present in the library}, and deciding what to do about each.
-
-The surviving sorries partition into three kinds, and the endgame is the triage:
-\begin{enumerate}[label=(\alph*),leftmargin=2.5em]
-\item \emph{Phantoms}: statements that look like genuine gaps but dissolve under
-a sharper reading of what the consumer actually needs. The work here is recognizing
-that the gap is not real before building to fill it. The case study had one ---
-a conjectured metrization ``foundation'' the development never needed
-(Section~\ref{ssec:endgame-lemmas}).
-\item \emph{Genuine gaps you build}: standard mathematics the library lacks,
-which the player decides to formalize from the primitives that \emph{are} present
---- in the case study, a finite-dimensional duality theorem (Section~\ref{ssec:endgame-lemmas}).
-\item \emph{Genuine gaps you honestly defer}: standard mathematics the library
-lacks, which the player marks with an explicit, cited placeholder rather than
-building --- when the cost of building outweighs the value, and the dependency
-is on a recognized, true theorem.
-\end{enumerate}
+\paragraph{End game: triaging the library gaps.}
+Eventually the surviving sorries are no longer decomposable into project-specific
+pieces: they are requests for \emph{general} mathematics the ambient library may or
+may not contain, and the endgame is the triage. Each falls into one of three kinds.
+A \emph{phantom} looks like a gap but dissolves under a sharper reading of what the
+consumer needs --- the case study had one, a conjectured metrization the
+development never used (Section~\ref{ssec:endgame-lemmas}). A \emph{genuine gap you
+build} is standard mathematics the library lacks that the player formalizes from
+the primitives present --- here, a finite-dimensional duality theorem. A
+\emph{genuine gap you defer} is marked with an explicit, cited placeholder when the
+cost of building outweighs the value and the dependency is a recognized, true
+theorem.
 
 \begin{quote}\itshape
 The end-game risk is misclassifying: building infrastructure for a phantom, or
@@ -631,106 +587,29 @@ the functional-analysis level --- and verifying each candidate gap at the level
 of what the consumer truly needs before committing to build it.
 \end{quote}
 
-This phase is, we think, an under-appreciated structural fact about formalizing
-research analysis: progress is rate-limited by the ambient library's
-infrastructure, and the endgame is precisely the work of locating, and either
-filling or honestly marking, the places where that infrastructure runs out.
+Progress in formalizing research analysis is rate-limited by the ambient library's
+infrastructure; the endgame is the work of locating, and either filling or honestly
+marking, where it runs out.
 
-% ============================================================================
-\section{The strategy taxonomy}\label{sec:strategies}
-% ============================================================================
+\subsection{The strategy framework}\label{sec:strategies}
 
-The standing instruction file accumulated, over the course of the game, a set of
-lessons organized into four series (the file itself is excerpted in
-Appendix~\ref{app:claudemd}). The series are not arbitrary: they operate
-at genuinely different levels, with different triggers for ``this rule applies''
-and different audiences in the agent's reasoning when it consults them.
-
+The standing instruction file accumulated its lessons in four series, which operate
+at genuinely different levels with different triggers for ``this rule applies.''
 \begin{description}[leftmargin=2em,style=nextline]
 \item[L-series --- Lean / agent-tool lessons.] Idioms, elaborator quirks,
 parser quirks, and the engineering of agent sub-task specifications. Consulted
-at the level of writing or debugging an individual Lean proof.
-\item[P-series --- Process discipline.] When to ask, when to commit, when to
-delegate, when to pivot, how to verify. Consulted at the per-move discipline
-level, and whenever a tactical plan starts surfacing repeated friction.
-\item[M-series --- Mathematical structure.] Principles about which mathematical
-structures to work in and what shape a proof should take. Consulted when
-designing a proof before writing it.
-\item[B-series --- Bridging architecture.] When to introduce new infrastructure
-versus patch an existing seam. Consulted when frictions accumulate across
-several attempted bridges.
+when writing or debugging an individual Lean proof.
+\item[P-series --- Process discipline.] When to ask, commit, delegate, pivot, and
+how to verify. Consulted at the per-move discipline level.
+\item[M-series --- Mathematical structure.] Which mathematical structures to work
+in, and what shape a proof should take. Consulted when designing a proof.
+\item[B-series --- Bridging architecture.] When to build new infrastructure versus
+patch an existing seam. Consulted when frictions accumulate across attempted bridges.
 \end{description}
+One representative lesson from each series --- earned, and reproduced verbatim from
+$\mathcal{G}$ --- appears in Appendix~\ref{app:claudemd}.
 
-We state a representative strategy from each series; these are the ones that
-recurred most and did the most work in the case study.
-
-\begin{strategy}[P4: API-lock vs.\ substantive proof]\label{strat:P4}
-When a theorem's body requires a multi-step composition that exceeds a single
-working session, do not inline the full composition. Instead, commit the
-\emph{signature} of the theorem and of its named sub-lemmas first --- with
-sorried bodies --- and verify that the composition typechecks against the locked
-interfaces before discharging any body. This separates interface commitment from
-proof discharge, prevents a proliferation of sub-sorries inside an un-checkpointable
-inline block, and lets each leaf be proved and committed independently.
-\end{strategy}
-
-\begin{strategy}[P5: the framework's own extrapolations need atom-level
-verification]\label{strat:P5}
-The strategy framework itself recognizes patterns and produces recommendations
-(``this looks like the situation where X''). Such a recommendation is a
-\emph{hypothesis to verify}, not a conclusion to act on. Before executing a
-pattern-extrapolated plan, read the actual artifacts at the atom level
-(the exact construction, the exact dependency, the exact hypothesis) and confirm
-the pattern truly applies. The case study repeatedly found that the
-``obvious'' reading was wrong in a way only an atom-level read exposed --- the
-phantom foundation, a stale planning note that confidently asserted a dead-end
-route, a hidden reach-slack in a tiling argument.
-\end{strategy}
-
-\begin{strategy}[P10: a green build permits multiple stories; only an audit
-certifies]\label{strat:P10}
-After a non-trivial refactor, a clean build is necessary but not sufficient for
-``the refactor preserved meaning.'' The build certifies typechecking against the
-new types; it does not certify that consumers use the new types for the same
-mathematical purpose. The certifying instrument is \printaxioms{}: it traces the
-complete axiom dependency and exposes any hidden \lean{sorry} or custom axiom.
-Trust the footprint, not the green build --- and never trust an automated agent's
-report of success without re-running the footprint check by hand.
-\end{strategy}
-
-\begin{strategy}[P11: a check that ran against a failed build is stale]\label{strat:P11}
-A move followed by ``build, then footprint-check'' can mislead: if the build
-\emph{fails}, the footprint check may still print a passing result, because it
-ran against the previous build's cached artifacts. Reading that pass as success
-is a false certification --- it certifies the \emph{old} state, not the current
-edit. Always confirm the build succeeded \emph{before} trusting any secondary
-check.
-\end{strategy}
-
-\begin{strategy}[M3/M4: distinguishing artifact constraints from genuine
-ones]\label{strat:M}
-A smallness constraint imposed by a \emph{static} construction forcing a
-parameter to bound its own growth is an \emph{artifact} that dissolves when the
-construction is rebuilt on the sharp time-local bound; a constraint from a
-genuine analytic mechanism (a contraction ratio below one) does not. When
-removing a constraint imposed by chaining or tiling short pieces, use
-\emph{exact} tiling rather than naively dropping the offset in the bound ---
-because the chain may overshoot the target by a reach-slack the interface does
-not expose, producing a threshold that looks general but is secretly
-data-dependent --- and certify the removal by instantiating the formerly
-forbidden parameter value and confirming it typechecks.
-\end{strategy}
-
-\begin{strategy}[B3: conjunct shape is bounded below by the consumer, above by
-the producers]\label{strat:B3}
-When strengthening a predicate with a new conjunct, the conjunct's strength is
-bounded below by what the consumer needs and above by what \emph{every} producer
-can supply. Read both the consumer and all producers before fixing the
-conjunct's shape: reading only the consumer can leave it over-strong for some
-producer to satisfy; reading only the producers can leave it under-strength.
-\end{strategy}
-
-These strategies were not designed in advance. They were \emph{earned}, each one keyed to a specific failure that
+The lessons were not designed in advance but \emph{earned} --- each keyed to a specific failure that
 occurred during the game and was then encoded into $\mathcal{G}$ to prevent its
 recurrence. The standing instruction file is, in effect, a record of the
 mathematician's accumulated strategic experience, written in a form the agent
@@ -762,42 +641,7 @@ coordinated by a small driver script; these delegated sub-agents ran on
 instruction file $\mathcal{G}$
 of Section~\ref{sec:strategies} is the project's in-repository \lean{CLAUDE.md}. The
 development is a public git repository, from which the exact model versions, the
-full standing instructions, and the per-session agent logs are recoverable; the
-worked exchange of Figure~\ref{fig:transcript} is one such log.
-
-\begin{figure}[t]
-\centering
-\begin{Verbatim}[frame=single,framesep=6pt,fontsize=\footnotesize]
-  target:  exists_finiteRange_map_cost_le                       [success, 5 iters]
-
-  human's cut — four named helper lemmas:
-      finiteRange_approxMap_measurable               measurable finite-range step map
-      lintegral_ofReal_ne_top_of_integrable_nonneg   integrable + ae-nonneg → finite
-      lintegral_ofReal_tail_tendsto_zero             absolute continuity:  tail → 0
-      lintegral_ofReal_kept_cells_le                 kept-cell bound via  c (x, T x) ≤ δ
-
-  agent execution:
-      iter 1   initial cut; hc_le_dist added to the target's signature
-      iter 3   hc_le_dist in the target BREAKS the foundationB_coupling_le_dual caller,
-               which a standing rule forbids modifying        →  revert
-      iter 4   restate WITHOUT hc_le_dist; the gap becomes a residual `sorry`,
-               stated against the GROUND COST  c,  not  dist
-      iter 5   build clean (0 errors); the five sorries now sit in named leaves
-\end{Verbatim}
-\caption{One worked human--agent exchange (a \emph{sorry-decomposer} run,
-verbatim-abridged from the project logs). The human chooses the cut --- four named
-helper lemmas --- and the agent executes it; the mid-game judgment is the cut
-itself. The exchange also surfaces a Strategy~\ref{strat:B3} subtlety in vivo: the
-cost bound must be stated against the \emph{ground cost} $c$, not $\mathrm{dist}$.
-The two coincide at $c=\mathrm{dist}$, but forcing the \lean{dist}-form hypothesis
-\lean{hc\_le\_dist} into the signature breaks a downstream caller the rules forbid
-editing, so the $c$-vs-$\mathrm{dist}$ gap is isolated as a residual \lean{sorry}
-rather than papered over.}
-\label{fig:transcript}
-% TODO(author): revise this exhibit so the human's role and the proposed decomposition
-% read clearly --- make legible that the human (not the agent) chose the four-lemma cut,
-% and what the cut is.
-\end{figure}
+full standing instructions, and the per-session agent logs are recoverable.
 
 \subsection{From Newton to an exact weak solution}\label{ssec:newton-to-weak}
 
@@ -889,13 +733,12 @@ inequality) proved once at that level and \emph{instantiated} at $c=\mathrm{dist
 for $\Wone$ and at $c=\min(\mathrm{dist},1)$ for the truncated variant $\Wbar$ the
 global-in-time argument needs; a development that hard-coded $\mathrm{dist}$ would
 have paid for it in the endgame. Second --- a sharper instance of the same
-discipline (Strategy~\ref{strat:B3}) --- a coupling-cost bound must take its moment
-hypothesis against the ground cost $c$, not against $\mathrm{dist}$: the two
-coincide \emph{definitionally} at $c=\mathrm{dist}$, so stating it the wrong way
-leaves the marquee instantiation looking fine while making the general lemma
-unprovable. Reading both the consumer's need and every producer's capacity before
-freezing that hypothesis is what caught it --- the subtlety the worked exchange of
-Figure~\ref{fig:transcript} surfaced in vivo.
+discipline (the conjunct-shape lesson of Appendix~\ref{app:claudemd}) --- a
+coupling-cost bound must take its moment hypothesis against the ground cost $c$, not
+against $\mathrm{dist}$: the two coincide \emph{definitionally} at $c=\mathrm{dist}$,
+so stating it the wrong way leaves the marquee instantiation looking fine while
+making the general lemma unprovable. Reading both the consumer's need and every
+producer's capacity before freezing that hypothesis is what caught it.
 
 \medskip\noindent
 Establishing the two faces and the bridge is all the opening needs from $\Wone$.
@@ -1157,8 +1000,9 @@ artifact of that formalization route, \emph{not} of the mathematics: Dobrushin's
 theorem holds for every $L$, its stability constant $C=C(L)$ simply growing with
 $L$, and no step of the argument on paper needs $L<1$. Tracing the dependency to its single
 structural origin showed that the offending small-$L$ threshold arose from the
-window construction's unit width, not from any genuine analytic mechanism (an
-instance of Strategy~\ref{strat:M}). The fix was \emph{exact} tiling: cover the
+window construction's unit width, not from any genuine analytic mechanism (the
+artifact-versus-genuine distinction of Appendix~\ref{app:claudemd}). The fix was
+\emph{exact} tiling: cover the
 target interval with $N$ windows of width exactly $T/N$, so the chain lands
 exactly on the target. The naive alternative --- ``drop the $+1$
 offset, replace $(T+1)^2$ by $T^2$'' --- would have left a hidden reach-slack
@@ -1242,8 +1086,8 @@ same clean axiom footprint as the targets. The self-contained layer is a
 not the fraction that redeems one that is.
 
 \paragraph{What is asserted rather than compiled.}
-The one judgment we do not compile is (A1), and it is now narrow. The layer is
-linter-clean, so the honest residual is specific: the files import Mathlib
+One residual is stated rather than compiled, and it is narrow. The layer is
+linter-clean, so the honest gap is specific: the files import Mathlib
 wholesale rather than the minimal set each declaration needs --- the one cleanup
 Mathlib's import discipline would require before merge. Modulo that, the layer ---
 a finite Kantorovich duality, a transport-polytope compactness theory, a
@@ -1281,16 +1125,16 @@ honest is a small set of standing rules, all variations on a single theme:
 agent's claim of success is not one.}
 
 \begin{enumerate}[leftmargin=2em]
-\item \emph{Read before building} (Strategy~\ref{strat:P5}). Every consequential
+\item \emph{Read before building.} Every consequential
 move is preceded by reading the actual construction at the atom level, not the
 interface's stated summary. The phantom foundation, the stale dead-end planning
 note, and the tiling reach-slack were all caught by reading the construction
 rather than trusting a plausible summary of it.
-\item \emph{Certify by the footprint, not the build} (Strategy~\ref{strat:P10}).
+\item \emph{Certify by the footprint, not the build.}
 The win condition is the axiom footprint, and it is checked --- by hand,
 re-running \printaxioms{} --- after every structural change, never inferred from
 a green build or an agent's report.
-\item \emph{A failed build poisons its checks} (Strategy~\ref{strat:P11}). A
+\item \emph{A failed build poisons its checks.} A
 secondary check that ran against cached artifacts from a failed build certifies
 the old state; build success is confirmed before any check is trusted.
 \item \emph{Move, verify, commit, one unit at a time.} Structural changes are
@@ -1341,7 +1185,7 @@ single \emph{active leaf}: of all the production files, essentially one at a tim
 carries the bulk of the \lean{sorry}s, and the front migrates from file to file as
 the game proceeds --- from the basic objects, through the characteristic-flow
 well-posedness core, to the weak-to-Lagrangian bridge. This is the API-lock
-discipline (Strategy~\ref{strat:P4}) made visible: an interface is locked, its
+discipline made visible: an interface is locked, its
 file's goals are driven down, and only then does the front advance. The total never
 runs away --- it peaks at $24$ and returns to $0$ --- because the game is played as a
 sequence of bounded burndowns, not as one accumulating debt.
@@ -1482,7 +1326,7 @@ proof assistant.
 The reusability grade (Definition~\ref{def:selfcontained}) is a pass/fail
 certificate rather than a number, and we have applied it to a single development;
 the open question is not whether a fraction generalizes but whether its four
-checks (Q1)--(Q4) transfer cleanly to other projects. As (A1) records, even in
+checks (Q1)--(Q4) transfer cleanly to other projects. Even in
 this case the extracted layer --- though dependency-isolated, standalone-compiling,
 and linter-clean --- still imports Mathlib wholesale rather than the minimal files
 each declaration needs, so it remains a candidate for upstreaming rather than a
@@ -1536,14 +1380,14 @@ Marking that boundary is itself part of the discipline the win condition enforce
 % ============================================================================
 \appendix
 % ============================================================================
-\section{The standing instruction file: two lessons, verbatim}\label{app:claudemd}
+\section{The standing instruction file: one lesson per series, verbatim}\label{app:claudemd}
 % ============================================================================
 
-The strategy taxonomy of Section~\ref{sec:strategies} is summarized there but
-lives, in full, in the project's \lean{CLAUDE.md}. Two entries, lightly abridged,
-show the form: each names a failure mode, its fix, and the generalization that
-makes it reusable, and each was \emph{earned} from a specific failure during the
-game.
+The strategy framework of Section~\ref{sec:strategies} is summarized there but
+lives, in full, in the project's \lean{CLAUDE.md}. One entry from each of the four
+series, lightly abridged, shows the form: each names a failure mode, its fix, and
+the generalization that makes it reusable, and each was \emph{earned} from a
+specific failure during the game.
 
 \paragraph{An L-series (Lean-idiom) lesson.}
 \begin{leancode}
@@ -1577,6 +1421,41 @@ Operational rule: after a refactor that changes hypothesis semantics, do not
 certify it "complete" on a green build alone.  The certifying instrument is
 `#print axioms` — a body-level audit of the axiom footprint at each consumer.
 Green build is a precondition, not a proof.
+\end{leancode}
+
+\paragraph{An M-series (mathematical-structure) lesson.}
+\begin{leancode}
+### M3/M4. Artifact smallness-constraints dissolve under the moving boundary
+
+Failure mode: a smallness constraint (parameter < threshold) forced by a *static*
+construction — a parameter made to bound its own growth — reads like genuine
+mathematics but is an artifact of the construction, not of the theorem.  A green
+build with the binder stripped does not certify its removal.
+
+Diagnostic: trace the constraint to its unfold site.  If it makes a construction
+parameter (a radius, a constant moment bound) large enough to contain its own
+growth → artifact: dissolve it by rebuilding on the sharp time-local bound.  If it
+makes a contraction ratio < 1 → genuine: carry it.
+
+Fix: when removing a constraint imposed by chaining/tiling short pieces, use
+*exact* tiling (windows of width T/N, landing on the target) — not a naive
+offset-drop, which leaves a data-dependent reach-slack that looks general but fails
+for large L.  Certify by instantiating the formerly forbidden value and confirming
+it typechecks, not by a green build with the binder gone.
+\end{leancode}
+
+\paragraph{A B-series (bridging-architecture) lesson.}
+\begin{leancode}
+### B3. Conjunct shape: bounded below by the consumer, above by the producers
+
+Failure mode: when strengthening a predicate with a new conjunct, reading only the
+consumer's need fixes the *lower* bound and can leave the conjunct over-strong for
+some producer to supply; reading only the producers can leave it under-strength.
+
+Fix: read BOTH the consumer's genuine need and EVERY producer's available data
+before fixing the conjunct — it belongs at the weakest-sufficient point in that
+interval.  The one extra read (producer capacity) catches the
+over-strong-but-unsupplyable shape before the edit, not mid-break.
 \end{leancode}
 
 % ============================================================================
@@ -1668,11 +1547,20 @@ Green build is a precondition, not a proof.
   Boltzmann--Vlasov equation}, in \emph{Kinetic Theories and the Boltzmann
   Equation}, Lecture Notes in Math.\ \textbf{1048}, Springer, 1984.
 
-\bibitem{TODO-hauray-jabin} TODO(author): M.~Hauray, P.-E.~Jabin --- mean-field limit /
-  propagation of chaos for singular (sub-Coulomb) kernels; fill the exact reference.
+\bibitem{hauray-jabin}
+M.~Hauray, P.-E.~Jabin,
+\emph{Particle approximation of Vlasov equations with singular forces: propagation of chaos},
+Annales scientifiques de l'\'Ecole normale sup\'erieure \textbf{48} (2015), fasc.~4, 891--940.
 
-\bibitem{TODO-vp-open} TODO(author): a reference for the Vlasov--Poisson mean-field
-  limit at the Coulomb exponent and its open status; fill the exact reference.
+\bibitem{lazarovici-pickl}
+D.~Lazarovici, P.~Pickl,
+\emph{A mean field limit for the Vlasov--Poisson system},
+Arch. Ration. Mech. Anal. \textbf{225} (2017), 1201--1231.
+
+\bibitem{serfaty-coulomb}
+S.~Serfaty,
+\emph{Mean field limit for Coulomb-type flows},
+Duke Math. J. \textbf{169} (2020), no.~15, 2887--2935.
 
 \bibitem{MNPRS} J.~K.~Miller, A.~R.~Nahmod, N.~Pavlovi\'c, M.~Rosenzweig,
   G.~Staffilani, \emph{A rigorous derivation of the Hamiltonian structure for the
