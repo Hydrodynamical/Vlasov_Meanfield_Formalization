@@ -37,6 +37,8 @@
 \newcommand{\Wone}{W_1}
 \newcommand{\Wbar}{\overline{W}}
 \newcommand{\lean}[1]{\texttt{#1}}
+\newcommand{\leanbaseurl}{}   % set to the repo/blueprint base URL to activate links; empty = styled text only
+\newcommand{\leanlink}[1]{\ifx\leanbaseurl\empty\lean{#1}\else\href{\leanbaseurl/#1}{\lean{#1}}\fi}
 \newcommand{\printaxioms}{\lean{\#print axioms}}
 \newcommand{\cleanfootprint}{\lean{[propext, Classical.choice, Quot.sound]}}
 
@@ -54,12 +56,9 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
-Three fears attend the use of AI in mathematics: that it replaces the
-mathematician's work, that its output cannot be verified, and that what it leaves
-behind is unstructured. We take up all three by doing the work and reporting what it
-required. A human mathematician directs an AI agent system through an extended
-session to formalize a research result in the Lean~4 proof assistant --- an activity
-we frame as a \emph{game}: the objective is to turn a \LaTeX{} document into Lean;
+We formalize a research result in the Lean~4 proof assistant by having a human
+mathematician direct an AI agent system through an extended session, an activity we
+frame as a \emph{game}: the objective is to turn a \LaTeX{} document into Lean;
 the game is \emph{won} when it compiles with no \lean{sorry} and \printaxioms{} on
 the target theorems returns only Lean's foundational axioms; and each win carries a
 pass/fail \emph{reusability} grade --- whether the development yields a
@@ -109,33 +108,40 @@ rather than an everyday tool.
 
 Two things have recently changed: AI systems can now write Lean proofs, and they
 can write them quickly. This raises the real possibility that formalization might
-keep pace with ordinary mathematical work. It also raises three fears that anyone
-following the area will recognize. The first is \emph{obsolescence}: that AI will
-replace the work mathematicians do. The second is \emph{trust}: that its output
-cannot be verified. The third is \emph{slop}: that what it produces, even when
-correct, is unstructured and unusable by anyone downstream.
+keep pace with ordinary mathematical work. That speed sharpens two questions about what the machine produces: whether one can
+trust proofs one did not write, and whether anyone can use what is left behind. This
+paper makes both machine-checkable. Trust is answered by a \emph{win condition} --- the
+development compiles, contains no \lean{sorry}, and depends on Lean's foundational
+axioms alone --- which certifies a proof relative to its statement, leaving
+statement-faithfulness with the mathematician. Reuse is answered by a
+\emph{self-contained layer} --- a dependency-isolated body of general mathematics,
+behind a small interface, that builds against the ambient library alone --- which
+certifies that what remains is absorbable rather than disposable. Both are stated
+precisely in Section~\ref{sec:game} (Definitions~\ref{def:win}
+and~\ref{def:selfcontained}); the case study is read through them.
 
-This paper takes up all three by doing the work and reporting what the work
-required. We formalized a genuine result from kinetic theory --- Dobrushin's
-derivation of the Vlasov equation, a classical passage from the motion of many
-interacting particles to the equation governing their average --- in Lean, over
-about a month (the well-posedness and stability marquee in about a week). We did not write the Lean ourselves. A human mathematician directed
-an AI system, which wrote the proofs; the mathematician decided what to prove, how
-to cut each hard theorem into reachable pieces, and when to abandon a line that was
-not working.
+We put both to the test by doing the work and reporting what it required. We
+formalized a genuine result from kinetic theory --- Dobrushin's derivation of the
+Vlasov equation, a classical passage from the motion of many interacting particles to
+the equation governing their average --- in Lean, over about a month (the
+well-posedness and stability marquee in about a week). We did not write the Lean
+ourselves: a human mathematician directed an AI system, which wrote the proofs, while
+the mathematician decided what to prove, how to cut each hard theorem into reachable
+pieces, and when to abandon a line that was not working.
 
-In this development, none of the three materialized. Obsolescence gave way to
-relocation: the mathematician moved from writing the proofs to directing them. Where
-the work turned --- routing the central estimate through the coupling cost to avoid
-an attainment theorem the library does not have, or spending one degree of regularity
-to make a uniqueness argument go through --- the decision was the mathematician's and
-the execution the AI's, and the case study marks each such judgment where it falls,
-visible rather than asserted. Trust did not rest on our word: Lean reports the exact
-axioms a theorem depends on, and ours depend on nothing beyond its own foundations
-(Definition~\ref{def:win}). And what the work leaves behind is not unstructured: a
-self-contained body of general mathematics the argument forced us to build separates
-cleanly from the rest (Section~\ref{ssec:endgame-lemmas}), ready for the library to
-absorb.
+Both guarantees are met here, and the case study is where one sees what each does and
+does not cover. The win condition is discharged by the machine: \printaxioms{} reports
+the target theorems depend on Lean's foundations alone. What it cannot supply is the
+other half --- that each statement says what was meant --- and the case study marks
+where the mathematician supplied it: routing the central estimate through the coupling
+cost to avoid an attainment theorem the library lacks, and spending one degree of
+regularity to make a uniqueness argument go through, are decisions the mathematician
+made and the AI executed. The reusability grade is met in turn: the general mathematics
+the argument forced us to build separates into a self-contained layer
+(Section~\ref{ssec:reuse}) the ambient library could absorb. That the marked
+decisions are the mathematician's is not incidental --- the judgment behind them
+accumulates, in a standing guidance file built as play proceeds
+(Section~\ref{sec:strategies}).
 
 \paragraph{Where this sits.}
 This work borders three recent lines: the end-to-end formalization of known-hard
@@ -178,11 +184,10 @@ target: even where the underlying mathematics is substantial, as in the
 primitive-sets work, the formal artifacts are \emph{isolated} statements, each
 checked on its own, rather than \emph{one} interlocking result carried end to end,
 where much of the difficulty lives in the shared infrastructure binding the
-theorems together. The autonomous systems also exhibit the very failure mode the
-trust discussion above named --- a renamed \lean{sorry}, a hallucinated lemma cited
-as settled --- documented by the systems' own authors \cite{AlphaProofNexus}, and
-exactly what the axiom-footprint check (Definition~\ref{def:win}) is built to
-reject.
+theorems together. The autonomous systems also exhibit exactly the failure mode the win condition is
+built to catch --- a renamed \lean{sorry}, a hallucinated lemma cited as settled,
+documented by the systems' own authors \cite{AlphaProofNexus} --- which the
+axiom-footprint check (Definition~\ref{def:win}) rejects.
 
 \paragraph{Methodology, and the closest companions.}
 Closest to this paper are first-hand methodological accounts of AI-assisted
@@ -451,7 +456,8 @@ Definition~\ref{def:selfcontained} (Q1) certifies.}
 \end{figure}
 
 \paragraph{Outline.}
-This introduction has named the three fears, set down in mathematics and in Lean
+This introduction has stated the two guarantees --- the win condition and the
+reusability grade --- set down in mathematics and in Lean
 exactly what we formalized, and placed the work among its neighbors; the rest of
 the paper is the method and its evidence. Section~\ref{sec:game} sets out the game
 --- its win condition, its reusability grade, the three phases, and the
@@ -460,7 +466,8 @@ human accumulates. Section~\ref{sec:casestudy}
 is the heart of the paper: Dobrushin's derivation, run as a formalization and read
 phase by phase, from the particle system to the limiting equation, through the core
 estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
-describes the verification discipline, and Section~\ref{sec:assessment} assesses
+describes the verification discipline, Section~\ref{sec:retro} reads the development
+back from its commit record, and Section~\ref{sec:assessment} assesses
 the method, including the timeframe.
 % ============================================================================
 \section{The game}\label{sec:game}
@@ -636,7 +643,7 @@ pieces: they are requests for \emph{general} mathematics the ambient library may
 may not contain, and the endgame is the triage. Each falls into one of three kinds.
 A \emph{phantom} looks like a gap but dissolves under a sharper reading of what the
 consumer needs --- the case study had one, a conjectured metrization the
-development never used (Section~\ref{ssec:endgame-lemmas}). A \emph{genuine gap you
+development never used (Section~\ref{ssec:dynamical-core}). A \emph{genuine gap you
 build} is standard mathematics the library lacks that the player formalizes from
 the primitives present --- here, a finite-dimensional duality theorem. A
 \emph{genuine gap you defer} is marked with an explicit, cited placeholder when the
@@ -693,7 +700,9 @@ read as a phase of the game. At each stage we mark two things the finished proof
 hides: where the mathematics was genuinely hard, and, where a single human decision
 unlocked it, what that decision was. Some stages turned on such a decision; one
 turned on nothing but sustained proof-work the agent carried alone. The division of
-labor is then visible in the derivation itself, not asserted about it.
+labor is then visible in the derivation itself, not asserted about it. The endgame's
+library-building --- the general mathematics the ambient library lacked --- is marked
+where it arises rather than gathered into a section of its own.
 
 \paragraph{The system.}
 % TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
@@ -820,6 +829,58 @@ making the general lemma unprovable. Reading both the consumer's need and every
 producer's capacity before freezing that hypothesis is what caught it.
 
 \medskip\noindent
+The two faces are easy to write down; the \emph{bridge} between them had to be built, and it
+is the reusable layer's most substantial construction. It rests on two pieces. The more
+delicate is the coupling cost's triangle inequality, gluing a coupling of $(\mu,\rho)$ and
+one of $(\rho,\nu)$ into a coupling of $(\mu,\nu)$:
+\begin{leancode}
+theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …)
+    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z) (hc_meas …)
+    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ρ] :
+    wassersteinCost_coupling c μ ν ≤
+      wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν
+\end{leancode}
+One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing,
+error-prone part is not the cost bound but proving the glued measure has the \emph{correct
+marginals} --- that it is genuinely a coupling of $(\mu,\nu)$; marginal-preservation through
+the disintegration-and-recombination is exactly where a ``near-citation'' from the library
+hides a gap. The \lean{hc\_triangle} argument is the ground-cost triangle hypothesis this
+needs and the dual-side triangle does not.
+
+The second piece is the hard direction of the duality itself --- primal below dual, on
+finitely-supported measures --- which has no packaged form in the Mathlib version we build
+against (v4.29.1). We built it. The route had a fork the library forced: the natural
+map-form of the duality lives on a Hilbert space and ran into systemic friction between the
+proof assistant's inner-product instances on its Euclidean space type; pivoting to the
+geometric separation on the plain product $\iota \to \R$ (continuous linear functionals, no
+inner products) removed the friction. We also confirmed the appealing Birkhoff-vertex
+shortcut was blocked: the library has the doubly-stochastic (uniform-marginal) Birkhoff
+theorem, but the transportation polytope here has general marginals and no library theory.
+The surviving route assembled the library's Farkas lemma (conic separation) \cite{mathlib}
+with two compactness facts we proved by hand (primal attainment on the transport polytope;
+closedness of the image cone) and a $c$-transform converting the dual pair into a single
+admissible potential. The metric structure (triangle, symmetry) enters \emph{only} in the
+$c$-transform; the linear-programming duality itself is metric-free. The construction yields
+the duality \emph{inequality} on finite-range measures --- primal $\le$ dual, not an attained
+optimum:
+\begin{leancode}
+theorem wassersteinCost_coupling_le_dual_of_finiteRange (c : α → α → ℝ) (hc_nonneg …)
+    (hc_self …) (hc_symm …) (hc_triangle …) (hc_meas …)
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (T S : α → α) (hT …) (hS …)
+    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
+    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν) ≤
+      wassersteinCost c (Measure.map T μ) (Measure.map S ν)
+\end{leancode}
+Together the two build the bridge \lean{wasserstein1\_eq\_coupling} --- the single
+optimal-transport line \lean{dobrushin} consumes (\lean{rw [wasserstein1\_eq\_coupling …]}).
+Unlike the decisions elsewhere in the derivation, this bridge turned on no single insight. It
+was throughput: some twenty-five commits assembling Farkas, the two compactness facts, and
+the $c$-transform into a duality Mathlib did not carry. The labor here ran the other way ---
+the mathematician fixed the target, the agent did the sustained proof-work --- and it is the
+clearest case in the development of the machine carrying a hard, unglamorous build to the end.
+
+\medskip\noindent
 Establishing the two faces and the bridge is all the opening needs from $\Wone$.
 \emph{Which} face to prove a theorem in --- and why routing the stability estimate
 through the primal lets the whole derivation sidestep an optimal-coupling attainment
@@ -849,8 +910,7 @@ Section~\ref{ssec:wasserstein} is put to work, we give it rather than sketch it.
 
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
 \printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
-arbitrary $L$; the small-$L$ restriction present in a naive formalization of
-Dobrushin's argument is an artifact removed in Section~\ref{ssec:endgame-lemmas}.
+\emph{arbitrary} $L$.
 
 A statement-level decision shaped the well-posedness theorem before any proof.
 Dobrushin's is a \emph{forward} Cauchy problem, and the marquee is posed that way ---
@@ -861,6 +921,18 @@ where the mathematics puts it --- per window, in the Lagrangian class
 (\lean{vlasovWellPosedness\_uniqueness}, Theorem~\ref{thm:wp}) --- so nothing is lost
 by proving forward. Matching the statement to what the argument supports is the early
 game's other discipline, dual to definitional scoping.
+
+Reaching arbitrary $L$, by contrast, was a matter of the \emph{proof}, not the statement.
+Dobrushin's global-in-time argument, tiled into short windows with a fixed unit
+force-window, forces $L$ small ($L<1$) --- an artifact of the tiling, not of the
+mathematics, since Dobrushin's theorem holds for every $L$, its constant $C=C(L)$ simply
+growing. Tracing the dependency to its single structural origin (the window's unit width,
+not any analytic mechanism --- the artifact-versus-genuine distinction of
+Appendix~\ref{app:claudemd}) gave the fix: \emph{exact} tiling, windows of width exactly
+$T/N$ so the chain lands on the target, killing the reach-slack $(T+\delta)$ a naive
+offset-drop would leave. The removal was certified the right way --- by instantiating the
+theorem at $L=2$, a formerly forbidden value, and confirming it typechecks with no smallness
+hypothesis.
 
 \medskip\noindent
 \textbf{The coupling argument.} The decisive move is a decomposition --- where the mid
@@ -909,27 +981,9 @@ distance of the data, and one application of the Kantorovich--Rubinstein bridge
 \lean{wasserstein1\_eq\_coupling} rewrites it as the dual $\Wone(f_0,g_0)$ of the
 statement. That single \lean{rw} is the proof's \emph{only} appeal to duality: the whole
 stability core, and the mean-field limit that follows from it, are built in the coupling
-cost without it, and attainment is never invoked.
-
-That bridge is itself assembled from two reusable pieces, of which the more delicate is
-the coupling cost's triangle inequality, gluing a coupling of $(\mu,\rho)$ and one of
-$(\rho,\nu)$ into a coupling of $(\mu,\nu)$:
-\begin{leancode}
-theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …)
-    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z) (hc_meas …)
-    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ρ] :
-    wassersteinCost_coupling c μ ν ≤
-      wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν
-\end{leancode}
-One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing,
-error-prone part is not the cost bound but proving the glued measure has the \emph{correct
-marginals} --- that it is genuinely a coupling of $(\mu,\nu)$; marginal-preservation
-through the disintegration-and-recombination is exactly where a ``near-citation'' from the
-library hides a gap. The \lean{hc\_triangle} argument is the ground-cost triangle
-hypothesis this needs and the dual-side triangle does not. Together with the finite
-Kantorovich duality of Section~\ref{ssec:endgame-lemmas}, it builds the bridge
-\lean{wasserstein1\_eq\_coupling} --- the single line \lean{dobrushin} consumes
-(\lean{rw [wasserstein1\_eq\_coupling …]}).
+cost without it, and attainment is never invoked. (The bridge
+\lean{wasserstein1\_eq\_coupling} is the one built in Section~\ref{ssec:wasserstein}; here it
+is consumed in a single \lean{rw}.)
 
 With stability in hand, the mean-field limit closes the loop: applying the estimate to
 the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
@@ -940,6 +994,13 @@ measures converge,
 \]
 the separate corollary \lean{meanFieldLimit} (Corollary~\ref{cor:mfl}), obtained by taking $g$ to be the $N$-particle empirical measure
 and letting $N\to\infty$.
+
+One conjectured foundation dissolved rather than got built. The development first carried a
+metrization theorem relating narrow convergence and $\Wone$ as an external gap; its single
+consumer needed only the easy lower-semicontinuity direction (Villani's, with moment control
+\cite{Villani}), a short lemma from the dual representation. Recognizing the full metrization
+as never load-bearing --- before building it --- is the endgame's triage in action, and the
+certification confirmed it: the target theorems' footprint was already clean of it.
 
 Both marquee results take their solutions as \lean{IsLagrangianVlasovSolution}s, for
 which the weaker \lean{AssW} suffices because the flow representation is built into the
@@ -1035,79 +1096,7 @@ library did not shorten, and the agent carried it. This is the division of labor
 the resolution of a single theorem: a short human insight fixing what to prove, a long
 machine effort discharging it.
 
-\subsection{End-game lemmas: the library gaps}\label{ssec:endgame-lemmas}
-
-\paragraph{The phantom foundation.}
-The development initially carried two conjectured ``foundations'' as external
-gaps. One --- a metrization theorem relating narrow convergence and $\Wone$ ---
-turned out to be a phantom. The single consumer needed only the easy
-lower-semicontinuity direction (Villani's lower-semicontinuity of $\Wone$ under
-narrow convergence with moment control \cite{Villani}), which is a short lemma provable from the
-dual representation. The full metrization was never load-bearing; recognizing
-this --- before building it --- is the endgame's triage in action. The
-certification confirmed it: with the metrization never invoked, the target
-theorems' axiom footprint was already clean of it.
-
-\paragraph{Finite Kantorovich duality from Farkas (the genuine gap, built).}
-The one genuine optimal-transport external --- the hard direction of the
-Kantorovich--Rubinstein duality, on finitely-supported measures --- has no
-packaged form in the Mathlib version we build against (v4.29.1). We built it. The route had a fork the library
-forced: the natural map-form of the duality lives on a Hilbert space and ran into
-systemic friction between the proof assistant's inner-product instances on its
-Euclidean space type; pivoting to the geometric separation on the plain product
-$\iota \to \R$ (continuous linear functionals, no inner products) removed the
-friction. We also confirmed the appealing Birkhoff-vertex shortcut was blocked:
-the library has the doubly-stochastic (uniform-marginal) Birkhoff theorem, but
-the transportation polytope here has general marginals and no library theory.
-The surviving route assembled the library's Farkas lemma (conic separation)
-\cite{mathlib} with two compactness facts we proved by hand (primal attainment on the transport
-polytope; closedness of the image cone) and a $c$-transform converting the dual
-pair into a single admissible potential. The metric structure (triangle,
-symmetry) enters \emph{only} in the $c$-transform; the linear-programming duality
-itself is metric-free. The construction yields the duality \emph{inequality} on
-finite-range measures --- primal $\le$ dual, not an attained optimum:
-\begin{leancode}
-theorem wassersteinCost_coupling_le_dual_of_finiteRange (c : α → α → ℝ) (hc_nonneg …)
-    (hc_self …) (hc_symm …) (hc_triangle …) (hc_meas …)
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (T S : α → α) (hT …) (hS …)
-    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
-    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν) ≤
-      wassersteinCost c (Measure.map T μ) (Measure.map S ν)
-\end{leancode}
-With the coupling triangle of Section~\ref{ssec:dynamical-core} it discharges the
-hard direction of the Kantorovich--Rubinstein bridge \lean{wasserstein1\_eq\_coupling}
---- the single optimal-transport line \lean{dobrushin} consumes --- consistent with
-the dynamical content never requiring attainment.
-
-Unlike the decisions elsewhere in the derivation, this gap turned on no single
-insight. It was throughput: some twenty-five commits assembling Farkas, the two
-compactness facts, and the $c$-transform into a duality Mathlib did not carry. The
-labor here ran the other way --- the mathematician fixed the target, the agent did the
-sustained proof-work --- and it is the clearest case in the development of the machine
-carrying a hard, unglamorous build to the end.
-
-\paragraph{Removing the small-$L$ restriction (exact tiling).}
-A naive formalization of Dobrushin's global-in-time argument requires the
-interaction Lipschitz constant to be small ($L<1$), inherited from a per-window
-construction with a fixed unit force-window. This restriction is an
-artifact of that formalization route, \emph{not} of the mathematics: Dobrushin's
-theorem holds for every $L$, its stability constant $C=C(L)$ simply growing with
-$L$, and no step of the argument on paper needs $L<1$. Tracing the dependency to its single
-structural origin showed that the offending small-$L$ threshold arose from the
-window construction's unit width, not from any genuine analytic mechanism (the
-artifact-versus-genuine distinction of Appendix~\ref{app:claudemd}). The fix was
-\emph{exact} tiling: cover the
-target interval with $N$ windows of width exactly $T/N$, so the chain lands
-exactly on the target. The naive alternative --- ``drop the $+1$
-offset, replace $(T+1)^2$ by $T^2$'' --- would have left a hidden reach-slack
-$(T+\delta)$ from the last window's overshoot, producing a threshold that
-\emph{looks} general but fails for large $L$. The construction was rebuilt with
-exact tiling, and the removal was certified the right way: by instantiating the
-theorem at $L=2$ (a formerly forbidden value) and confirming it typechecks with
-no smallness hypothesis.
-
-\subsection{The reusability outcome}
+\subsection{The reusability outcome}\label{ssec:reuse}
 
 The headline of the extraction is a machine-checkable \emph{zero}. After the game
 was won, we reorganized the optimal-transport machinery into a self-contained
@@ -1157,7 +1146,7 @@ it names a Vlasov object; non-redundancy is library-search \emph{evidence} (no
 
 The width $w=22$ is not minimal. It was $17$ under a broader definition of
 $\mathcal{L}_{\mathrm{gen}}$; taking the layer to be the \emph{reachable} general core
-(the reorganization of Section~\ref{ssec:endgame-lemmas}) reclassified five
+reclassified five
 refactor-superseded declarations as problem-specific, and the general API names they
 still reference count toward the interface, raising $w$ to $22$. Pruning those five
 from the Lean would return $w$ toward $17$, but is signature-touching --- it
@@ -1252,7 +1241,7 @@ and~\ref{thm:dob}; the second (mid-to-late June) is a follow-on game on a furthe
 result --- the superposition principle, that every weak Vlasov solution is
 Lagrangian --- played with the identical method and likewise driven to a clean win.
 The flat stretch between them, where the library sits at zero live \lean{sorry}, is
-the reusability extraction of Section~\ref{sec:casestudy}: a structural
+the reusability extraction of Section~\ref{ssec:reuse}: a structural
 reorganization performed on an already-won development, banking the reusability grade without
 reopening a single goal.
 
