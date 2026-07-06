@@ -21,9 +21,11 @@
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{strategy}{Strategy}[section]
+\newtheorem{assumption}{Assumption}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
 
@@ -82,7 +84,7 @@ coupling-gluing construction) separates into a self-contained layer
 its linter suite --- about a sixth of the development (49 of 299 declarations),
 reached through a 22-declaration interface, with no reverse dependency, and
 extracted as a bonus on top of a development the mathematician kept understood
-throughout. The case study ran in about a week, with the human acting as strategic
+throughout. The well-posedness and stability marquee ran in about a week, the full development in about a month, with the human acting as strategic
 director over an AI execution engine under a verification discipline that keeps the
 development sound at speed. The paper's two contributions are a certified discipline
 for AI-assisted formalization --- a machine-checkable win condition and a
@@ -126,8 +128,8 @@ correct, is unstructured and unusable by anyone downstream.
 This paper takes up all three by doing the work and reporting what the work
 required. We formalized a genuine result from kinetic theory --- Dobrushin's
 derivation of the Vlasov equation, a classical passage from the motion of many
-interacting particles to the equation governing their average --- in Lean, in
-about a week. We did not write the Lean ourselves. A human mathematician directed
+interacting particles to the equation governing their average --- in Lean, over
+about a month (the well-posedness and stability marquee in about a week). We did not write the Lean ourselves. A human mathematician directed
 an AI system, which wrote the proofs; the mathematician decided what to prove, how
 to cut each hard theorem into reachable pieces, and when to abandon a line that was
 not working.
@@ -138,139 +140,13 @@ prove, how to cut it, and when to change course. Where the work turned --- routi
 the central estimate through the coupling cost to avoid an attainment theorem the
 library does not have, or spending one degree of regularity to make a uniqueness
 argument go through --- the decision was the mathematician's and the execution the
-AI's. These are the judgments the week turned on, and the case study marks each
+AI's. These are the judgments the work turned on, and the case study marks each
 where it falls: they are visible, not asserted. Trust did not rest on our word; Lean
 reports the exact list of axioms a theorem depends on, and a reader can confirm in
 seconds that ours depend on nothing beyond Lean's own foundations. And the result
 is not slop. The mathematician kept the development understood as it grew, and a
 self-contained body of general mathematics that the argument forced us to build
 separates cleanly from the rest, ready for the library to absorb.
-
-\paragraph{What we formalize.}\label{sec:statements}
-The passage just described --- from the motion of many interacting particles to
-the equation governing their average --- is the object we made precise. The
-particles carry positions $x_i$ and velocities $v_i$ and evolve under the
-pairwise force $-\nabla W$ by Newton's equations
-\[
-  \dot{x}_i \;=\; v_i, \qquad
-  \dot{v}_i \;=\; -\frac{1}{N} \sum_{j \neq i} \nabla W(x_i - x_j),
-  \qquad i = 1, \dots, N .
-\]
-As $N \to \infty$ the empirical distribution of the particles concentrates on a
-density $f(t,x,v)$ on $\R^d \times \R^d$ governed by the nonlinear Vlasov equation
-\[
-  \partial_t f \;+\; v \cdot \nabla_x f
-    \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
-  \qquad \rho_t(x) = \int_{\R^d} f(t,x,v)\, dv ,
-\]
-with $\rho_t$ the spatial marginal.
-
-The standing hypothesis is that $W$ is $C^{1,1}$ and even, with a globally Lipschitz
-gradient of constant $L := \mathrm{Lip}(\nabla W)$:
-\begin{leancode}
-class AssW (W : PhysSpace d → ℝ) : Prop where
-  differentiable : Differentiable ℝ W
-  even          : ∀ x : PhysSpace d, W (-x) = W x
-  lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
-\end{leancode}
-
-A solution comes in two forms. A \emph{weak} (Eulerian) solution is a narrowly
-continuous family $f : [0,\infty) \to \mathcal{P}_1(\R^d \times \R^d)$ of
-probability measures with finite first moment, with datum $f_0$, for which
-$t \mapsto \langle f_t, \varphi\rangle$ is differentiable with
-$\frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\, v\cdot\nabla_x\varphi -
-(\nabla W * \rho_t)\cdot\nabla_v\varphi\rangle$ at every test function
-$\varphi \in C_c^\infty$:
-\begin{leancode}
-def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
-    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
-    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
-      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
-      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
-      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
-\end{leancode}
-A \emph{Lagrangian} solution is a weak solution transported by its own
-characteristic flow, $f_t = (X_t, V_t)_\# f_0$:
-\begin{leancode}
-def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
-    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  IsVlasovSolution gradW f ∧
-  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
-    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
-    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
-    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
-\end{leancode}
-A Lagrangian solution is weak by its first conjunct; the substantive direction is
-the converse, stated last.
-
-The two central theorems are existence--uniqueness and stability.
-\textbf{Well-posedness} (\lean{vlasovWellPosedness}): for a finite-first-moment
-datum $f_0$, under $\mathrm{AssW}$ there is a unique narrowly continuous Vlasov
-solution with $f_{|t=0} = f_0$.
-\begin{leancode}
-theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
-    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀) :
-    ∃ f : ℝ → Measure (PhaseSpace d), f 0 = f₀ ∧
-      (∀ t ∈ Set.Ici (0 : ℝ), HasFiniteFirstMoment (f t)) ∧
-      (∀ T_target : ℝ, 0 < T_target →
-        IsLagrangianVlasovSolutionOn gradW f T_target) ∧
-      (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
-        ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
-\end{leancode}
-\textbf{Dobrushin stability} (\lean{dobrushin}): any two solutions are stable in
-$\Wone$ at an exponential rate $C = C(L)$, and the empirical measures of the Newton
-dynamics converge to the Vlasov solution.
-\begin{leancode}
-theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
-    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
-      wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
-\end{leancode}
-
-The converse --- that every weak solution is Lagrangian --- is the superposition
-principle, and it costs one degree of regularity: the strengthened assumption that
-$\nabla W \in C^1$, i.e.\ $W \in C^2$.
-\begin{leancode}
-class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
-  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
-\end{leancode}
-\textbf{Superposition principle} (\lean{weak\_isLagrangianVlasovSolutionOn}): under
-$\mathrm{AssW2}$, every weak solution with finite-first-moment datum is Lagrangian
-on each forward window, so the weak and Lagrangian notions coincide.
-\begin{leancode}
-theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
-    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
-    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
-    : IsLagrangianVlasovSolutionOn gradW f T
-\end{leancode}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
-\caption{The project blueprint's dependency graph, auto-extracted from the
-elaborated Lean proof terms. Box nodes are definitions and assumptions, ellipse
-nodes are theorems; dashed edges are statement-level dependencies and solid edges
-proof-level dependencies; green marks a fully formalized (\lean{leanok}) node. The
-optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling} family)
-feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
-(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
-\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
-axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back
-into the optimal-transport layer --- the one-directional cut that
-Definition~\ref{def:selfcontained} (Q1) certifies.}
-\label{fig:depgraph}
-\end{figure}
 
 \paragraph{Where this sits.}
 This work borders three recent lines: the end-to-end formalization of known-hard
@@ -334,12 +210,7 @@ first machine-checked formalization of a major theorem in modern PDE regularity 
 likewise carried out with extensive use of large language models under close
 human supervision. Their account, like ours, locates the decisive human
 contributions in detailed proof blueprints, careful interface design, and
-validation against the checked artifact --- but states that discipline as
-retrospective narrative. Our aim is to \emph{operationalize} it: to replace the
-prose account with a binary, machine-checkable win condition (the axiom-footprint
-check of Definition~\ref{def:win}) and a quantified reusability grade, so that
-whether the discipline was honored is decided by the kernel rather than asserted
-by the authors.
+validation against the checked artifact.
 The ``Agentic Researcher'' guide of Zimmer et al.\
 \cite{AgenticResearcher} gives end-to-end agentic-research guidance with norms
 encoded as prompt ``commandments,'' a close parallel to our standing-instruction
@@ -385,6 +256,211 @@ the endgame. The game is a \emph{lens}; the body of the paper runs the derivatio
 and reads each of its stages as a phase of play, while the mathematics carries the
 weight.
 
+\paragraph{What we formalize.}\label{sec:statements}
+The passage from the motion of many interacting particles to the equation governing their average is the object we made precise. The
+particles carry positions $x_i$ and velocities $v_i$ and evolve under the
+pairwise force $-\nabla W$ by Newton's equations
+\begin{equation}\label{eqn:Newton-Intro}
+  \dot{x}_i \;=\; v_i, \qquad
+  \dot{v}_i \;=\; -\frac{1}{N} \sum_{j \neq i} \nabla W(x_i - x_j),
+  \qquad i = 1, \dots, N .
+\end{equation}
+As $N \to \infty$ the empirical distribution of the particles concentrates on a probability density $f(t,x,v)$ on $\R^d \times \R^d$ governed by the nonlinear Vlasov equation
+\begin{equation}\label{eqn:Vlasov-Intro}
+  \partial_t f \;+\; v \cdot \nabla_x f
+    \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
+  \qquad \rho_t(x) = \int_{\R^d} f(t,x,v)\, dv ,
+\end{equation}
+with $\rho_t$ the spatial marginal. We now state the first regularity assumption for the interaction potential $W$.
+
+\begin{assumption}\label{ass:1}
+  Let $W: \R^d \rightarrow \R$ be an even function that is $C^{1,1}$, with a globally Lipschitz gradient of constant $L := \mathrm{Lip}(\nabla W)$. 
+\end{assumption}
+
+The above Assumption \ref{ass:1} is formalized in Lean by defining the following class.
+\begin{leancode}
+class AssW (W : PhysSpace d → ℝ) : Prop where
+  differentiable : Differentiable ℝ W
+  even          : ∀ x : PhysSpace d, W (-x) = W x
+  lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
+\end{leancode}
+
+Write $\mathcal{P}_1(\R^d\times\R^d)$ for the Borel probability measures $\mu$ on phase space with finite first moment, $\int_{\R^d\times\R^d}(|x|+|v|)\,d\mu(x,v)<\infty$; in Lean this is the predicate \lean{HasFiniteFirstMoment}. A solution of \eqref{eqn:Vlasov-Intro} comes in two forms, and we begin with the \emph{weak} (Eulerian) one. Each notion below is a property of the whole curve $t\mapsto f_t$; its \emph{initial datum} is the value $f(0)$, pinned to a prescribed $f_0$ only when we solve the Cauchy problem (Theorem~\ref{thm:wp}).
+
+\begin{definition}\label{def:weak-Vlasov}
+  Fix $T>0$. A \emph{weak} solution of \eqref{eqn:Vlasov-Intro} on $[0,T]$ is any $f : [0,T] \rightarrow \mathcal{P}_1(\R^d \times \R^d)$ which is narrowly continuous in time (continuous against bounded continuous test functions) and satisfies, for all $\varphi\in \mathcal{C}^\infty_c(\R^{d}\times \R^d)$:
+  \begin{itemize}
+    \item The map $t\mapsto \langle f_t , \varphi\rangle$ is differentiable, and 
+    \item The derivative satisfies 
+    \begin{equation*}
+      \frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\, v\cdot\nabla_x\varphi -
+(\nabla W * \rho_t)\cdot\nabla_v\varphi\rangle
+    \end{equation*}
+  \end{itemize}
+\end{definition}
+
+This definition of weak solution is formalized by defining:
+\begin{leancode}
+def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
+      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
+      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
+      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
+\end{leancode}
+An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrangian} solution. This solution concept is a weak solution transported by its own characteristic flow, and the formal definition is given below. 
+
+\begin{definition}\label{def:Lagrangian}
+  A \emph{Lagrangian} solution is a weak solution transported by its own characteristic flow: a
+  weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ for which there exists a flow
+  $(X,V):[0,T]\times(\R^d\times\R^d)\to\R^d\times\R^d$ solving the characteristic system
+  \[
+    \dot X(t,z)=V(t,z),\qquad \dot V(t,z)=-(\nabla W*\rho_t)\big(X(t,z)\big),\qquad (X,V)(0,z)=z,
+  \]
+  such that $f_t=\big(X(t,\cdot),V(t,\cdot)\big)_\#\,f(0)$ for every $t\in[0,T]$. Here the
+  pushforward $\Phi_\#\mu$ of a measure $\mu$ by a Borel map $\Phi$ is
+  $(\Phi_\#\mu)(A)=\mu\big(\Phi^{-1}(A)\big)$, equivalently $\int \varphi\,d(\Phi_\#\mu)=\int
+  \varphi\circ\Phi\,d\mu$ for every bounded continuous $\varphi$.
+\end{definition}
+
+The formalization of Definition \ref{def:Lagrangian} is given in Lean below.
+\begin{leancode}
+def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  IsVlasovSolution gradW f ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
+    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
+\end{leancode}
+Every Lagrangian solution is weak, by its first conjunct. The converse --- that every weak solution
+is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. It
+holds under the strengthened assumption $\mathrm{AssW2}$ introduced below, and under it the two
+notions coincide; we prove it in Section~\ref{ssec:superposition}.
+
+We now have the definitions required to phrase the existence and uniqueness of \eqref{eqn:Vlasov-Intro} for both notions of solutions.
+
+\begin{theorem}[Global well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
+  Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. For every
+  $T>0$ there exists a Lagrangian solution $f:[0,T]\rightarrow \mathcal{P}_1(\R^d \times \R^d)$ of
+  \eqref{eqn:Vlasov-Intro} with datum $f_0$, in the sense of Definitions~\ref{def:weak-Vlasov}
+  and~\ref{def:Lagrangian}, and it is the unique such Lagrangian solution.
+\end{theorem}
+The existence half is \lean{vlasovWellPosedness}:
+\begin{leancode}
+theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀) :
+    ∃ f : ℝ → Measure (PhaseSpace d), f 0 = f₀ ∧
+      (∀ t ∈ Set.Ici (0 : ℝ), HasFiniteFirstMoment (f t)) ∧
+      (∀ T_target : ℝ, 0 < T_target →
+        IsLagrangianVlasovSolutionOn gradW f T_target) ∧
+      (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
+        ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
+\end{leancode}
+Uniqueness is a separate statement --- on each window, two Lagrangian solutions with the same datum
+coincide:
+\begin{leancode}
+theorem vlasovWellPosedness_uniqueness (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW) (hL_pos : (0:ℝ) < L)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    {T : ℝ} (hT : 0 < T) (f g : ℝ → Measure (PhaseSpace d))
+    (hf_init : f 0 = f₀) (hg_init : g 0 = f₀)
+    …    -- finite moments on [0,T]; f, g both Lagrangian on [0,T]
+    : ∀ t ∈ Set.Icc (0:ℝ) T, f t = g t
+\end{leancode}
+\noindent It is obtained for $L>0$ from the stability estimate below; the degenerate $L=0$ case
+(constant force) is explicit, so uniqueness holds at every $L$.
+
+Solutions depend stably on their data. The relevant distance is the Wasserstein-1
+(Kantorovich--Rubinstein) metric $\Wone$ on $\mathcal{P}_1$: dually a supremum over $1$-Lipschitz
+test functions, primally an infimum over couplings, the two equal by Kantorovich--Rubinstein
+duality \cite{Villani,AGS}.
+\begin{theorem}[Dobrushin stability \cite{Dobrushin}, \lean{dobrushin}]\label{thm:dob}
+  Let $W$ satisfy Assumption~\ref{ass:1}. Any two Lagrangian solutions $f,g$ with
+  finite-first-moment data are stable in $\Wone$ at an exponential rate,
+  \[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0),\qquad t\ge 0,\quad C=C(L). \]
+\end{theorem}
+\begin{leancode}
+theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
+      wasserstein1 (f t) (g t) ≤
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
+\end{leancode}
+
+\noindent Applied with $g$ the empirical measure of the Newton dynamics
+\eqref{eqn:Newton-Intro}, the estimate gives the mean-field limit as a corollary.
+\begin{corollary}[Mean-field limit, \lean{meanFieldLimit}]\label{cor:mfl}
+  Let $f$ be the Vlasov solution with datum $f_0$, and let $\mu^N_t$ be the empirical measure of
+  $N$ particles evolving by \eqref{eqn:Newton-Intro}. If the initial empirical measures converge,
+  $\Wone(\mu^N_0,f_0)\to0$ as $N\to\infty$, then for every $T>0$
+  \[ \sup_{t\in[0,T]}\Wone(\mu^N_t,f_t)\;\xrightarrow[N\to\infty]{}\;0. \]
+\end{corollary}
+\begin{leancode}
+theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL …)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    (f : ℝ → Measure (PhaseSpace d)) (hf_sol : IsLagrangianVlasovSolution gradW f)
+    (hf_init : f 0 = f₀)
+    (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
+    (hSol : ∀ N, IsNewtonSolution N gradW (X N) (V N))
+    (hInit : Filter.Tendsto
+      (fun N => wasserstein1 (empiricalMeasure N (X N 0) (V N 0)) f₀) atTop (nhds 0))
+    …    -- the Dobrushin stability constant C for the empirical curves
+    (T : ℝ) (hT : 0 < T) :
+    Filter.Tendsto (fun N => ⨆ t ∈ Set.Icc 0 T,
+      wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
+\end{leancode}
+
+Extending stability and uniqueness from Lagrangian solutions to \emph{all} weak solutions is the
+superposition principle, and it costs one degree of regularity beyond Assumption~\ref{ass:1}.
+\begin{assumption}\label{ass:2}
+  In addition to Assumption~\ref{ass:1}, let $\nabla W \in C^1$ (equivalently $W \in C^2$).
+\end{assumption}
+\noindent This strengthens \lean{AssW} to the class \lean{AssW2} by a single field:
+\begin{leancode}
+class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
+\end{leancode}
+\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
+  Under Assumption~\ref{ass:2}, every weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ with
+  finite-first-moment initial datum $f(0)$ is Lagrangian on $[0,T]$; hence the weak and Lagrangian
+  notions coincide on every forward window.
+\end{theorem}
+\begin{leancode}
+theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
+    : IsLagrangianVlasovSolutionOn gradW f T
+\end{leancode}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
+\caption{The project blueprint's dependency graph, auto-extracted from the
+elaborated Lean proof terms. Box nodes are definitions and assumptions, ellipse
+nodes are theorems; dashed edges are statement-level dependencies and solid edges
+proof-level dependencies; green marks a fully formalized (\lean{leanok}) node. The
+optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling} family)
+feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
+(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
+\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
+axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back
+into the optimal-transport layer --- the one-directional cut that
+Definition~\ref{def:selfcontained} (Q1) certifies.}
+\label{fig:depgraph}
+\end{figure}
+
 \paragraph{Outline.}
 This introduction has named the three fears, set down in mathematics and in Lean
 exactly what we formalized, and placed the work among its neighbors; the rest of
@@ -396,8 +472,7 @@ is the heart of the paper: Dobrushin's derivation, run as a formalization and re
 phase by phase, from the particle system to the limiting equation, through the core
 estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
 describes the verification discipline, and Section~\ref{sec:assessment} assesses
-the method, including the ``about a week'' figure.
-
+the method, including the timeframe.
 % ============================================================================
 \section{The game}\label{sec:game}
 % ============================================================================
@@ -758,24 +833,15 @@ datum $f_0$, with $\rho_t$ the self-consistent spatial marginal of $f_t$. Two fa
 about this flow are the case study's marquee targets, and each arrives as the
 construction reaches it.
 
-The first is that the flow exists at all: forward well-posedness is a Banach fixed
-point in $\Wone$.
-\begin{theorem}[Well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
-Under the standing assumption on $W$ \emph{(at arbitrary Lipschitz constant $L$)},
-the Vlasov characteristic flow exists and is unique, globally in time.
-\end{theorem}
+The first is that the flow exists at all: forward well-posedness
+(Theorem~\ref{thm:wp}), at arbitrary Lipschitz constant $L$, is a Banach fixed point
+in $\Wone$.
 
 The second is that two such flows, from different data, stay close --- Dobrushin's
-estimate. Its proof is the coupling argument that drives the mean-field limit, and
+estimate (Theorem~\ref{thm:dob}), $\Wone(f_t,g_t)\le e^{Ct}\,\Wone(f_0,g_0)$ for
+$t\ge 0$. Its proof is the coupling argument that drives the mean-field limit, and
 because that argument is where the whole optimal-transport apparatus of
 Section~\ref{ssec:newton-to-weak} is put to work, we give it rather than sketch it.
-\begin{theorem}[Mean-field stability and limit, \lean{dobrushin}]\label{thm:dob}
-Two Vlasov solutions are stable in $\Wone$ with an explicit (Gronwall) rate, and
-the empirical measures of the $N$-particle Newton dynamics converge to the Vlasov
-solution in the mean-field limit.
-\end{theorem}
-\noindent The stability half reads
-\[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0)\quad(t\ge 0),\qquad C=C(L). \]
 
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
 \printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
@@ -858,8 +924,7 @@ measures converge,
   \sup_{t\in[0,T]} \Wone(\mu^N_t, f_t) \;\le\; e^{CT}\,\Wone(\mu^N_0,f_0)
   \;\xrightarrow[N\to\infty]{}\; 0,
 \]
-the separate corollary \lean{meanFieldLimit} --- the second clause of
-Theorem~\ref{thm:dob}, obtained by taking $g$ to be the $N$-particle empirical measure
+the separate corollary \lean{meanFieldLimit} (Corollary~\ref{cor:mfl}), obtained by taking $g$ to be the $N$-particle empirical measure
 and letting $N\to\infty$.
 
 Both marquee results take their solutions as \lean{IsLagrangianVlasovSolution}s, for
@@ -883,12 +948,10 @@ transported by its own characteristic flow (\lean{IsLagrangianVlasovSolution}), 
 flow witness sitting beside the weak-PDE conjunct. A Lagrangian solution is weak by
 that first conjunct; the substantive direction is the converse, the superposition
 principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
-\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
-Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is
-Lagrangian: it is transported by the characteristic flow it generates. Hence the
-weak and Lagrangian notions coincide, and the unique solution of
-Theorem~\ref{thm:wp} is a pushforward of its datum along its flow.
-\end{theorem} The converse costs exactly one degree of
+Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is Lagrangian
+(Theorem~\ref{thm:superposition}) --- transported by the characteristic flow it
+generates --- so the weak and Lagrangian notions coincide, and the unique solution of
+Theorem~\ref{thm:wp} is a pushforward of its datum along its flow. It costs exactly one degree of
 regularity beyond \lean{AssW} --- the development's second standing assumption:
 \begin{leancode}
 class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
@@ -1161,8 +1224,8 @@ step back and read the same development as the game it was. The game leaves a co
 machine-readable record. Every move is a
 version-control commit, so the development's state --- its \lean{sorry} count, its
 standing instruction file $\mathcal{G}$, its file structure --- can be reconstructed
-at any point in the game's history. The case study ran to $362$ commits over its
-calendar week-and-change. We extract three series directly from that
+at any point in the game's history. The case study ran to $362$ commits over
+about a month. We extract three series directly from that
 history,\footnote{Reproducible scripts and the raw data are in the development's
 \lean{formalize/retrospective} directory. ``Live \lean{sorry}'' counts the token
 after stripping Lean line- and block-comments --- the word appears constantly in
@@ -1282,11 +1345,12 @@ measure of the meta-learning loop, distinct from the proof work itself.}
 \section{Assessment}\label{sec:assessment}
 % ============================================================================
 
-\subsection{On ``about a week''}
+\subsection{On the timeframe}
 
-The calendar span of the case study, from the first translated theorem to the
-final certified extraction, was approximately one week. The interesting claim is
-not raw speed but the \emph{mode} that makes the speed possible.
+The well-posedness and stability marquee --- from the first translated theorem to the
+certified stability estimate --- ran in about a week; the full development, with the
+superposition follow-on, spanned about a month. The interesting claim is not raw speed
+but the \emph{mode} that makes it possible.
 
 This was neither solo human formalization (implausible at this speed for a result
 of this size) nor autonomous AI formalization (which could not have made the
@@ -1294,7 +1358,7 @@ decomposition choices or the gap triage). It was a human mathematician acting as
 strategic director over an AI execution engine: the human scoped the definitions,
 chose the decompositions, triaged the library gaps, and accumulated the strategy
 taxonomy; the agent executed the proofs, ran the builds, and handled the
-mechanical sub-tasks. The week figure is evidence that this \emph{division of
+mechanical sub-tasks. These figures are evidence that this \emph{division of
 labor} --- not either party alone --- has a real efficiency property, and the
 verification discipline of Section~\ref{sec:discipline} is the reason the speed
 did not come at the cost of soundness. We are not the only data point for this
@@ -1302,7 +1366,7 @@ regime: an independent, contemporaneous formalization \cite{IlinVML} --- of a
 different kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- reports
 a comparable mode, a single supervising mathematician completing the work in
 roughly ten days, at about \$200, writing no Lean by hand. Two projects are not a
-controlled measurement, but they make ``about a week, human-directed'' less of an
+controlled measurement, but they make the human-directed strategic-director mode less of an
 outlier than a single run would suggest. The certification is the part that is not
 a matter of trust: the target theorems' axiom footprints are \cleanfootprint,
 and a referee can confirm this in seconds.
@@ -1331,7 +1395,7 @@ this case the extracted layer --- though dependency-isolated, standalone-compili
 and linter-clean --- still imports Mathlib wholesale rather than the minimal files
 each declaration needs, so it remains a candidate for upstreaming rather than a
 completed contribution. The
-``about a week'' figure is a single observation, not a controlled measurement,
+timeframe is a single observation, not a controlled measurement,
 and depends on the human director's prior fluency in both the mathematics and the
 proof assistant. The strategy taxonomy was earned on one project and may be
 incomplete; we expect later games to add series entries (the standing
