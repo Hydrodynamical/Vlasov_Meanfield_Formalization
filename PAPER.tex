@@ -54,43 +54,33 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
-Three fears attend the use of AI in mathematics: that it will replace the
+Three fears attend the use of AI in mathematics: that it replaces the
 mathematician's work, that its output cannot be verified, and that what it leaves
-behind is unstructured and unusable. This paper answers each by example, two of
-them with a machine-checkable certificate. We
-formalize research mathematics in the Lean~4 proof assistant by having a human
-mathematician direct an AI agent system through an extended interactive session,
-framing the activity as a \emph{game}: the objective is to turn a \LaTeX{} document
-into a Lean development; the game is \emph{won} when it compiles with no
-\lean{sorry} and \printaxioms{} on the target theorems returns only Lean's
-foundational axioms; and each won game carries a \emph{reusability} grade --- a
-pass/fail certificate of whether the development contains a \emph{self-contained
-layer}, a dependency-isolated subset behind a small interface that the ambient
-library could absorb on its own. The game has three phases with distinct optimal
-strategies --- definitional scoping, human-judgment decomposition, and triage of
-gaps against the library's coverage --- and the human encodes recurring guidance
-into the agent's standing instructions (the
-$\mathrm{P}/\mathrm{L}/\mathrm{M}/\mathrm{B}$ taxonomy) as play proceeds.
+behind is unstructured. We take up all three by doing the work and reporting what it
+required. A human mathematician directs an AI agent system through an extended
+session to formalize a research result in the Lean~4 proof assistant --- an activity
+we frame as a \emph{game}: the objective is to turn a \LaTeX{} document into Lean;
+the game is \emph{won} when it compiles with no \lean{sorry} and \printaxioms{} on
+the target theorems returns only Lean's foundational axioms; and each win carries a
+pass/fail \emph{reusability} grade --- whether the development yields a
+\emph{self-contained layer} the ambient library could absorb on its own.
 
-We demonstrate the method on a substantial case study: a complete, axiom-clean
-formalization of well-posedness for the Vlasov equation via Dobrushin's mean-field
-route --- existence, uniqueness, the mean-field stability estimate and limit, and
-the superposition principle that every weak solution is Lagrangian --- at
-\emph{arbitrary} interaction-Lipschitz constant. The target theorems depend on
-Lean's three foundational axioms alone; the optimal-transport machinery built along
-the way (a finite Kantorovich duality, a transport-polytope compactness theory, a
+The case study is a complete, axiom-clean formalization of well-posedness for the
+Vlasov equation via Dobrushin's mean-field route --- existence, uniqueness, the
+stability estimate and mean-field limit, and the superposition principle that every
+weak solution is Lagrangian --- at \emph{arbitrary} interaction strength. The human's
+role is to direct, not to write proofs: to scope the definitions, decompose each hard
+theorem, and triage the library's gaps; the agent executes. The win condition makes
+the result \emph{checkable} rather than trusted --- a referee re-runs the axiom
+footprint (\cleanfootprint) in seconds --- while statement-faithfulness stays the
+mathematician's responsibility, not the certificate's. The optimal-transport
+machinery the derivation forced us to build (a finite Kantorovich duality, a
 coupling-gluing construction) separates into a self-contained layer
-(Definition~\ref{def:selfcontained}) that compiles against Mathlib alone and passes
-its linter suite --- about a sixth of the development (49 of 299 declarations),
-reached through a 22-declaration interface, with no reverse dependency, and
-extracted as a bonus on top of a development the mathematician kept understood
-throughout. The well-posedness and stability marquee ran in about a week, the full development in about a month, with the human acting as strategic
-director over an AI execution engine under a verification discipline that keeps the
-development sound at speed. The paper's two contributions are a certified discipline
-for AI-assisted formalization --- a machine-checkable win condition and a
-reusability grade a referee re-runs in seconds --- and a library-grounded reading of
-Dobrushin's derivation through the lens of the game. We state the quantitative
-claims as observations of one game, not as general laws.
+(Definition~\ref{def:selfcontained}) that compiles against Mathlib alone: about a
+sixth of the development ($49$ of $299$ declarations), behind a $22$-declaration
+interface with no reverse dependency. The marquee ran in about a week, the full
+development in about a month. We report the quantitative claims as observations of
+one game, not as general laws.
 \end{abstract}
 
 \tableofcontents
@@ -134,19 +124,18 @@ an AI system, which wrote the proofs; the mathematician decided what to prove, h
 to cut each hard theorem into reachable pieces, and when to abandon a line that was
 not working.
 
-None of the three fears survived the exercise. The mathematician was not made
-obsolete but relocated, from writing proofs to directing them: choosing what to
-prove, how to cut it, and when to change course. Where the work turned --- routing
-the central estimate through the coupling cost to avoid an attainment theorem the
-library does not have, or spending one degree of regularity to make a uniqueness
-argument go through --- the decision was the mathematician's and the execution the
-AI's. These are the judgments the work turned on, and the case study marks each
-where it falls: they are visible, not asserted. Trust did not rest on our word; Lean
-reports the exact list of axioms a theorem depends on, and a reader can confirm in
-seconds that ours depend on nothing beyond Lean's own foundations. And the result
-is not slop. The mathematician kept the development understood as it grew, and a
-self-contained body of general mathematics that the argument forced us to build
-separates cleanly from the rest, ready for the library to absorb.
+In this development, none of the three materialized. Obsolescence gave way to
+relocation: the mathematician moved from writing the proofs to directing them. Where
+the work turned --- routing the central estimate through the coupling cost to avoid
+an attainment theorem the library does not have, or spending one degree of regularity
+to make a uniqueness argument go through --- the decision was the mathematician's and
+the execution the AI's, and the case study marks each such judgment where it falls,
+visible rather than asserted. Trust did not rest on our word: Lean reports the exact
+axioms a theorem depends on, and ours depend on nothing beyond its own foundations
+(Definition~\ref{def:win}). And what the work leaves behind is not unstructured: a
+self-contained body of general mathematics the argument forced us to build separates
+cleanly from the rest (Section~\ref{ssec:endgame-lemmas}), ready for the library to
+absorb.
 
 \paragraph{Where this sits.}
 This work borders three recent lines: the end-to-end formalization of known-hard
@@ -700,7 +689,11 @@ equation from $N$-particle Hamiltonian dynamics; for the broader mean-field theo
 see \cite{Spohn,Golse,Neunzert}. This section runs that derivation as the paper's central narrative --- from the
 $N$-particle system to the exact weak solution, through the dynamical core and the
 superposition principle to the gaps where the library ran out --- with each stage
-read as a phase of the game.
+read as a phase of the game. At each stage we mark two things the finished proof
+hides: where the mathematics was genuinely hard, and, where a single human decision
+unlocked it, what that decision was. Some stages turned on such a decision; one
+turned on nothing but sustained proof-work the agent carried alone. The division of
+labor is then visible in the derivation itself, not asserted about it.
 
 \paragraph{The system.}
 % TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
@@ -780,12 +773,23 @@ theorem weakEvolutionEmpiricalMeasure (N) [NeZero N] (W) [AssW W] (gradW …)
 \noindent Here \lean{gradXφ} and \lean{gradVφ} are the position- and
 velocity-gradients of $\varphi$. That $R_N\equiv0$ under \lean{AssW} is the corollary
 \lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
-distributional Vlasov solution. (The test functions are the $C^\infty$ compactly
-supported $\varphi$ --- pinning that class down, against a library change that had
-silently widened \lean{ContDiff ℝ ⊤} to mean \emph{real-analytic} and so would have
-emptied it, was itself an opening definitional fix.)
+distributional Vlasov solution.
 
-\paragraph{Wasserstein-1, in two faces.}
+\paragraph{The test class, and where the certificate stops.}
+The test functions here are the $C^\infty$ compactly supported $\varphi$, and pinning
+that class down was an opening fix --- and the clearest instance in the development of
+the boundary Definition~\ref{def:win} draws. A library upgrade had silently redefined
+\lean{ContDiff ℝ ⊤} to mean \emph{real-analytic}; a nonzero real-analytic function
+cannot have compact support, so the test class had quietly collapsed to $\{0\}$ and
+the weak-solution hypothesis was \emph{vacuously} true. The build stayed green
+throughout: the axiom footprint certifies a proof relative to its statement, and
+cannot see that the statement had become empty. A thirty-second \lean{\#check} caught
+the collapse, and the fix (\lean{ContDiff ℝ (⊤ : ℕ∞)}, the $C^\infty$ element)
+restored the class at twelve sites. This is statement-trust being discharged in the
+open --- the one obligation, exactly as Definition~\ref{def:win} says, that the
+certificate relocates to the mathematician rather than answering.
+
+\subsection{Wasserstein-1, in two faces}\label{ssec:wasserstein}
 The distance that organizes everything to follow is the Wasserstein-1 metric
 $\Wone$, the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
 development carries it in two faces with a bridge between them: the \emph{dual} face
@@ -825,7 +829,7 @@ Section~\ref{ssec:dynamical-core}.
 \subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
 
 With the empirical measure established as an exact weak solution and $\Wone$ in two
-faces (Section~\ref{ssec:newton-to-weak}), the derivation passes to the limit object.
+faces (Section~\ref{ssec:wasserstein}), the derivation passes to the limit object.
 The limit equation is the nonlinear Vlasov equation
 $\partial_t f + v\cdot\nabla_x f - (\nabla W * \rho_t)\cdot\nabla_v f = 0$, solved by
 the characteristic flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the
@@ -841,12 +845,22 @@ The second is that two such flows, from different data, stay close --- Dobrushin
 estimate (Theorem~\ref{thm:dob}), $\Wone(f_t,g_t)\le e^{Ct}\,\Wone(f_0,g_0)$ for
 $t\ge 0$. Its proof is the coupling argument that drives the mean-field limit, and
 because that argument is where the whole optimal-transport apparatus of
-Section~\ref{ssec:newton-to-weak} is put to work, we give it rather than sketch it.
+Section~\ref{ssec:wasserstein} is put to work, we give it rather than sketch it.
 
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
 \printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
 arbitrary $L$; the small-$L$ restriction present in a naive formalization of
 Dobrushin's argument is an artifact removed in Section~\ref{ssec:endgame-lemmas}.
+
+A statement-level decision shaped the well-posedness theorem before any proof.
+Dobrushin's is a \emph{forward} Cauchy problem, and the marquee is posed that way ---
+existence on $[0,\infty)$ --- rather than as an $\exists!$ over all of $\R$. The
+two-sided claim was too strong: it forced backward-time machinery the evolution does
+not use, phantom proof-work for content that is not there. Uniqueness survives exactly
+where the mathematics puts it --- per window, in the Lagrangian class
+(\lean{vlasovWellPosedness\_uniqueness}, Theorem~\ref{thm:wp}) --- so nothing is lost
+by proving forward. Matching the statement to what the argument supports is the early
+game's other discipline, dual to definitional scoping.
 
 \medskip\noindent
 \textbf{The coupling argument.} The decisive move is a decomposition --- where the mid
@@ -1010,6 +1024,17 @@ formalization did not merely \emph{certify} a known argument; it \emph{sharpened
 forcing the exact degree of smoothness the superposition principle needs out of the
 prose and onto a type class, where a referee reads it off in one line.
 
+Two kinds of work met in this one theorem. The \emph{decision} --- that the
+superposition principle turns on exactly $C^1$ regularity of the flow in its initial
+point, and hence on $\mathrm{AssW2}$ and not $\mathrm{AssW}$ --- was the
+mathematician's, the kind of call the certificate then pins to a type class one line
+from its neighbor. The \emph{construction} behind the signature --- a fundamental
+matrix $\dot M = A(s,z)\,M$, solved by Picard iteration, then Fr\'echet differentiation
+under the integral --- was some fifteen commits of largely mechanical proof the
+library did not shorten, and the agent carried it. This is the division of labor at
+the resolution of a single theorem: a short human insight fixing what to prove, a long
+machine effort discharging it.
+
 \subsection{End-game lemmas: the library gaps}\label{ssec:endgame-lemmas}
 
 \paragraph{The phantom foundation.}
@@ -1055,6 +1080,13 @@ hard direction of the Kantorovich--Rubinstein bridge \lean{wasserstein1\_eq\_cou
 --- the single optimal-transport line \lean{dobrushin} consumes --- consistent with
 the dynamical content never requiring attainment.
 
+Unlike the decisions elsewhere in the derivation, this gap turned on no single
+insight. It was throughput: some twenty-five commits assembling Farkas, the two
+compactness facts, and the $c$-transform into a duality Mathlib did not carry. The
+labor here ran the other way --- the mathematician fixed the target, the agent did the
+sustained proof-work --- and it is the clearest case in the development of the machine
+carrying a hard, unglamorous build to the end.
+
 \paragraph{Removing the small-$L$ restriction (exact tiling).}
 A naive formalization of Dobrushin's global-in-time argument requires the
 interaction Lipschitz constant to be small ($L<1$), inherited from a per-window
@@ -1092,17 +1124,6 @@ coupling predicate \lean{IsCoupling}, and the two phase-space types --- and
 \emph{zero} edges run the other way. Directionality and interface width, not the
 size of the layer, are what make it upstreamable; the $0$ is the hard fact a
 referee re-derives from the graph.
-% FUTURE-POLISH (deferred, not blocking): L_gen is the 49-decl reachable general
-% core, reached by REDEFINITION, not by pruning Lean. The 11 excluded general decls
-% (6 = deferred Wbar truncated-metric regime, intentional; 5 = superseded-by-refactor,
-% dead relative to targets) still physically reside in the four OT modules, so they
-% are now classified specific and the general names THEY reference (the W1 +
-% transport-cost API) count toward the interface --- hence w = 22 is NOT minimal (it
-% was 17 when L_gen = 60). Pruning the 5 superseded from the Lean would make Q4
-% reachability pass by deletion as well as by construction AND shrink w back toward 17.
-% Deferred: it is signature-touching and re-triggers the full gate chain (build /
-% standalone re-sync+build / linter / axioms / reuse-score). Keep the 6 Wbar lemmas:
-% declared-deferred infrastructure, not dead code.
 
 \paragraph{A compiled certificate.}
 Checks (Q2) and (Q3) turn that graph audit into artifacts a referee re-runs, and
@@ -1134,58 +1155,34 @@ holds \emph{by construction} (the layer is the reachable core); generality is
 it names a Vlasov object; non-redundancy is library-search \emph{evidence} (no
 \lean{exact?} hit against the pinned Mathlib), not proof.
 
-\paragraph{Size, reported descriptively.}
-The size row is descriptive, not the grade (Definition~\ref{def:selfcontained}); it
-says only whether a layer is large enough to be worth extracting.
+The width $w=22$ is not minimal. It was $17$ under a broader definition of
+$\mathcal{L}_{\mathrm{gen}}$; taking the layer to be the \emph{reachable} general core
+(the reorganization of Section~\ref{ssec:endgame-lemmas}) reclassified five
+refactor-superseded declarations as problem-specific, and the general API names they
+still reference count toward the interface, raising $w$ to $22$. Pruning those five
+from the Lean would return $w$ toward $17$, but is signature-touching --- it
+re-triggers the full certification chain --- so we report the width as it stands. The
+size row, likewise, is descriptive rather than the grade
+(Definition~\ref{def:selfcontained}): it records only whether a layer is large enough
+to be worth extracting.
 
-\paragraph{The fraction is not a slop ratio.}
-One inversion to head off: the $16\%$ is not the salvageable part of an otherwise
-disposable development. The other $84\%$ is the kinetic-theory content ---
-characteristic flows, the weak and Lagrangian solution concepts, the variational
-equation --- which is \emph{legitimately} problem-specific, kept understood and
-structured by the human throughout (Section~\ref{sec:discipline}) and carrying the
-same clean axiom footprint as the targets. The self-contained layer is a
-\emph{bonus} extracted on top of a development that is not slop to begin with ---
-not the fraction that redeems one that is.
-
-\paragraph{What is asserted rather than compiled.}
-One residual is stated rather than compiled, and it is narrow. The layer is
-linter-clean, so the honest gap is specific: the files import Mathlib
-wholesale rather than the minimal set each declaration needs --- the one cleanup
-Mathlib's import discipline would require before merge. Modulo that, the layer ---
-a finite Kantorovich duality, a transport-polytope compactness theory, a
-coupling-gluing construction, and the $\Wone/\Wbar$ and coupling API,
-dependency-isolated and independent of the kinetic-theory application that
-motivated it --- is a candidate for upstreaming. The extraction itself was
-performed move by move, the axiom footprint re-verified after each move to confirm
-it changed only \emph{where} declarations live, never \emph{what} the target
-theorems depend on.
-
-\paragraph{A human-auditable cross-check.}
-Independently of the declaration-level graph used to check isolation (Q1), the
-development carries a \emph{blueprint}: each marquee and infrastructure result is
-tagged in the Lean source, and a build step extracts a dependency graph whose edges
-are read directly from the elaborated proof terms (not hand-drawn), attaches to each
-node its statement and an informal proof sketch, and links it to the formal
-declaration and its \lean{leanok} (``formalized'') marker.
-Figure~\ref{fig:depgraph} reproduces that graph. It is a coarser, theorem-level view
-than the declaration-level graph, but it independently exhibits the same
-architecture: the optimal-transport machinery (left) feeds the marquee
-\lean{dobrushin} with no edge in the reverse direction --- the one-directional cut
-Definition~\ref{def:selfcontained} certifies --- while the kinetic-theory and superposition-bridge content
-(right) feeds \lean{vlasov-wp} and the superposition principle. Every node is green:
-the entire graph is formalized, with no informal placeholder on any path to a target.
+\paragraph{A second, coarser check.}
+The blueprint gives an independent view of the same cut. Each result is tagged in the
+Lean source, and a build step extracts a theorem-level dependency graph directly from
+the elaborated proof terms --- not hand-drawn --- each node linked to its formal
+declaration and \lean{leanok} marker (Figure~\ref{fig:depgraph}). Coarser than the
+declaration-level graph, it exhibits the same architecture: the optimal-transport
+layer feeds \lean{dobrushin} with no reverse edge, the one-directional cut
+Definition~\ref{def:selfcontained} certifies. Every node is green --- no informal
+placeholder on any path to a target.
 
 % ============================================================================
 \section{The verification discipline}\label{sec:discipline}
 % ============================================================================
 
-The method's central risk is that AI-assisted speed produces a development that
-\emph{looks} complete but is unsound --- a hidden \lean{sorry}, a custom axiom, a
-refactor that silently changed a dependency. The discipline that keeps the game
-honest is a small set of standing rules, all variations on a single theme:
-\emph{the machine-checkable artifact is the only certification, and an automated
-agent's claim of success is not one.}
+The discipline that keeps the game honest is a small set of standing rules, all
+variations on a single theme: \emph{the machine-checkable artifact is the only
+certification, and an automated agent's claim of success is not one.}
 
 \begin{enumerate}[leftmargin=2em]
 \item \emph{Read before building.} Every consequential
@@ -1209,8 +1206,7 @@ the boundary, and redid the move; and the procedure that prevents the class of
 error (boundary assertions) was then encoded into $\mathcal{G}$.
 \end{enumerate}
 
-The discipline is what makes the method \emph{fast and sound} rather than fast
-and broken. It is also delegable in a specific way: the human can hand a
+The discipline is also delegable in a specific way: the human can hand a
 well-specified, mechanical sub-task to a background agent, provided the human
 re-certifies the result by the footprint --- because the gates catch a failure,
 but diagnosing and reverting it is a judgment the human retains.
@@ -1235,10 +1231,7 @@ strip. The production library is the Lean package source, excluding the throwawa
 development scratch file. The commit classification is a heuristic over
 commit-message intent.}
 and together they render the three-phase structure, the accumulation of the strategy
-taxonomy, and the division of labor as data rather than assertion. A caveat the
-figures cannot carry on their face: this is one run, by one director, with one
-system. The series document \emph{this} game, not a population, and no single number
-should be read as more than that.
+taxonomy, and the division of labor as data rather than assertion.
 
 \subsection{The proof frontier is a moving front}
 
@@ -1295,17 +1288,6 @@ alone --- through mid-June the process, mathematical, and bridging series stay f
 Figure~\ref{fig:sorry}, and it added Lean idioms rather than new strategy: the lesson
 file tracks the novelty of the tactical terrain crossed, not the size of the proof
 obligation.
-
-This staircase was built and graded on a
-single run, by the same author who designed the framework, so it is evidence for
-\emph{internal} consistency --- the rules track the failures that earned them ---
-more than for the framework's generality. What independent reports corroborate is
-the \emph{mode}, not this particular taxonomy: Ilin's single-supervisor
-formalization \cite{IlinVML} and Armstrong and Kempe's LLM-assisted De
-Giorgi--Nash--Moser development \cite{DGNM} locate the decisive human
-contributions in the same place we do --- decomposition, interface design, and
-validation against the checked artifact --- reached on different targets, by
-different people, without our apparatus.
 
 \begin{figure}[t]
 \centering
@@ -1367,23 +1349,18 @@ different kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- rep
 a comparable mode, a single supervising mathematician completing the work in
 roughly ten days, at about \$200, writing no Lean by hand. Two projects are not a
 controlled measurement, but they make the human-directed strategic-director mode less of an
-outlier than a single run would suggest. The certification is the part that is not
-a matter of trust: the target theorems' axiom footprints are \cleanfootprint,
-and a referee can confirm this in seconds.
+outlier than a single run would suggest.
 
 \subsection{What generalizes}
 
-The case study is in kinetic theory, but the three-phase structure and the
-strategy taxonomy are not specific to it. The early-game definitional-scoping
-risk, the mid-game decomposition-is-human-judgment claim, and the endgame
-library-gap triage should recur in any attempt to formalize research analysis,
+The three-phase structure and the strategy taxonomy (Section~\ref{sec:game}) are not
+specific to kinetic theory: the definitional-scoping, decomposition, and
+library-gap-triage risks should recur in any formalization of research analysis,
 where the rate-limiting resource is the ambient library's functional-analytic
-coverage. The strategy series are stated at a level meant to transfer: the
-P-series (process discipline) and B-series (bridging architecture) are
-domain-independent; the M-series (mathematical structure) carries
-analysis-flavored principles likely to recur in PDE formalization; the L-series
-(tool idioms) is the most tool-specific and the most likely to age with the
-proof assistant.
+coverage. Of the four strategy series, the P- and B-series are domain-independent,
+the M-series carries analysis-flavored principles likely to recur in PDE
+formalization, and the L-series is the most tool-specific and the likeliest to age
+with the proof assistant.
 
 \subsection{Limitations and honest caveats}
 
@@ -1410,25 +1387,6 @@ contribution.
 % ============================================================================
 \section{Outlook and future directions}
 % ============================================================================
-
-We have described AI-assisted Lean formalization as a strategy game with a
-precise, machine-checkable win condition and a certified reusability grade, and
-argued that the game has three phases --- definitional scoping, human-judgment
-decomposition, and library-gap triage --- each rewarding a distinct strategy. The
-human's role is not to write the proofs but to direct: to scope, to decompose, to
-triage, and to accumulate strategic experience as standing guidance the agent
-internalizes. We demonstrated the method by winning a substantial game --- a
-complete, axiom-clean formalization of Vlasov well-posedness at arbitrary
-interaction strength, with the mean-field stability and limit --- and by
-extracting a self-contained optimal-transport layer whose modules compile against
-Mathlib alone and are linter-clean (Definition~\ref{def:selfcontained}). The certification is
-the part that does not ask for trust: the target theorems depend on Lean's three
-foundational axioms and nothing else, and the claim is checkable in seconds. We
-believe the mathematician-in-the-loop framing, and the strategy taxonomy that
-makes it operational, will transfer to other formalizations of research
-analysis, where the human's mathematical judgment --- about how to cut a problem
-and where the library runs out --- is exactly the scarce resource the loop is
-designed to amortize.
 
 The natural next edge is geometric. The Vlasov equation inherits a Hamiltonian,
 Lie--Poisson structure from the $N$-particle system --- an energy $\mathcal{H}[f]$
