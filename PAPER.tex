@@ -265,7 +265,25 @@ As $N \to \infty$ the empirical distribution of the particles concentrates on a 
     \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
   \qquad \rho_t(x) = \int_{\R^d} f(t,x,v)\, dv ,
 \end{equation}
-with $\rho_t$ the spatial marginal. We now state the first regularity assumption for the interaction potential $W$.
+with $\rho_t$ the spatial marginal. Figure~\ref{fig:depgraph} is a roadmap of what follows --- the statements below and the layered development that proves them.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
+\caption{A roadmap of the development: the project blueprint's dependency graph,
+auto-extracted from the elaborated Lean proof terms. Box nodes are definitions and
+assumptions, ellipse nodes are theorems; dashed edges are statement-level dependencies
+and solid edges proof-level dependencies; green marks a fully formalized (\lean{leanok})
+node. The optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling}
+family) feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
+(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
+\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
+axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back into
+the optimal-transport layer.}
+\label{fig:depgraph}
+\end{figure}
+
+We now state the first regularity assumption for the interaction potential $W$.
 
 \begin{assumption}[\leanlink{AssW}]\label{ass:1}
   Let $W: \R^d \rightarrow \R$ be an even function that is $C^{1,1}$, with a globally Lipschitz gradient of constant $L := \mathrm{Lip}(\nabla W)$. 
@@ -350,23 +368,6 @@ superposition principle, and it costs one degree of regularity beyond Assumption
   notions coincide on every forward window.
 \end{theorem}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
-\caption{The project blueprint's dependency graph, auto-extracted from the
-elaborated Lean proof terms. Box nodes are definitions and assumptions, ellipse
-nodes are theorems; dashed edges are statement-level dependencies and solid edges
-proof-level dependencies; green marks a fully formalized (\lean{leanok}) node. The
-optimal-transport layer (left, the \lean{wcost}/\lean{w1}/\lean{coupling} family)
-feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
-(right) feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
-\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
-axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back
-into the optimal-transport layer --- the one-directional cut that
-Definition~\ref{def:selfcontained} (Q1) certifies.}
-\label{fig:depgraph}
-\end{figure}
-
 \paragraph{Outline.}
 This introduction has stated the two guarantees --- the win condition and the
 reusability grade --- set down in mathematics
@@ -377,10 +378,9 @@ $\mathrm{L}/\mathrm{P}/\mathrm{M}/\mathrm{B}$ framework of standing guidance the
 human accumulates. Section~\ref{sec:casestudy}
 is the heart of the paper: Dobrushin's derivation, run as a formalization and read
 phase by phase, from the particle system to the limiting equation, through the core
-estimates, to the gaps where the library ran out. Section~\ref{sec:discipline}
-describes the verification discipline, Section~\ref{sec:retro} reads the development
-back from its commit record, and Section~\ref{sec:assessment} assesses
-the method, including the timeframe.
+estimates, to the gaps where the library ran out. Section~\ref{sec:assessment} assesses the
+method: the discipline that kept it sound at speed, the timeframe and division of labor,
+what generalizes, and the limits of one run, closing with the next target.
 % ============================================================================
 \section{The game}\label{sec:game}
 % ============================================================================
@@ -464,12 +464,9 @@ into a standalone build, (Q3) runs the library's own linter unchanged. In the ca
 study, $\mathcal{L}_{\mathrm{gen}}$ is the optimal-transport machinery the
 derivation forced us to build --- the Wasserstein-1 metric in both faces, the
 Kantorovich--Rubinstein bridge between them, a finite Kantorovich duality, and the
-coupling-gluing triangle inequality (Table~\ref{tab:lgen}). It passes (Q1)--(Q4):
-the problem-specific content reaches it through a $22$-declaration interface with
-no reverse edge, it builds against Mathlib alone, and it is linter-clean and
-non-redundant --- a self-contained layer in the certified sense above. Its
-\emph{size} we report descriptively (about a sixth of the development, $49$ of
-$299$ declarations), never as the grade.
+coupling-gluing triangle inequality (Table~\ref{tab:lgen}). It passes all four checks;
+the numbers --- interface width, layer size, and the reverse-edge count --- are reported
+with the outcome in Section~\ref{ssec:reuse}.
 
 \begin{table}[t]
 \centering
@@ -494,11 +491,9 @@ declarations behind a $22$-declaration interface, compiling against Mathlib alon
 \end{table}
 
 \medskip
-The metaphor is load-bearing, not ornamental: the opponent is the type-checker,
-which will not be fooled by a ``clearly''; reusability is a real trade-off the
-fastest win would sacrifice; and --- the part that motivates the rest of the paper
---- the three phases reward \emph{different} strategies, so carrying an early-game
-strategy into the endgame is a characteristic way to lose.
+The three phases reward \emph{different} strategies --- a player who opens well can still
+lose the endgame --- which is what makes the phase structure, not the win condition alone,
+the substance of the game and the subject of the next section.
 
 \subsection{The three phases}\label{sec:phases}
 
@@ -574,6 +569,43 @@ Progress in formalizing research analysis is rate-limited by the ambient library
 infrastructure; the endgame is the work of locating, and either filling or honestly
 marking, where it runs out.
 
+\medskip\noindent
+The case study of Section~\ref{sec:casestudy} left a complete, machine-readable record:
+every move is a version-control commit, so the game's state --- its \lean{sorry} count, its
+standing instruction file $\mathcal{G}$, its file structure --- can be reconstructed at any
+point of its $362$-commit history.\footnote{Reproducible scripts and the raw data are in
+the development's \lean{formalize/retrospective} directory. ``Live \lean{sorry}'' counts the
+token after stripping Lean line- and block-comments --- the word appears constantly in
+prose and docstrings, so an unstripped count is meaningless; the count reaching $0$ at the
+final commit, where the build is independently known clean, validates the strip. The
+production library is the Lean package source, excluding the throwaway development scratch
+file. The commit classification is a heuristic over commit-message intent.} Three series
+read off that record turn the claims of this section and the next into data. The first is
+the \lean{sorry} front: Figure~\ref{fig:sorry} plots the live count per source file, and
+the three-phase rhythm is visible in it directly. Open goals stay concentrated in a single
+\emph{active leaf} --- one production file at a time carries the bulk of the \lean{sorry}s,
+and the front migrates from the basic objects, through the characteristic-flow
+well-posedness core, to the weak-to-Lagrangian bridge, each interface locked and its goals
+driven down before the front advances: the early-game API-lock discipline made visible. The
+total never runs away --- it peaks at $24$ and returns to $0$ --- because the game is a
+sequence of bounded burndowns, not one accumulating debt. The figure also holds \emph{two}
+games, the well-posedness/stability marquee (late May into early June) and a
+superposition-principle follow-on (mid-to-late June); the flat stretch between them, at zero
+live \lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the
+grade without reopening a goal.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{sorry_trajectory.png}
+\caption{From the case study of Section~\ref{sec:casestudy} ($362$ commits): live
+\lean{sorry} count per production file, stacked so the leaves sum to the total (black
+line). The open-goal front is concentrated in one active leaf at a time and migrates across
+the development; the total peaks at $24$ and returns to $0$. The two humps are two games ---
+the well-posedness/stability marquee and the superposition-principle follow-on ---
+separated by the zero-\lean{sorry} reusability extraction.}
+\label{fig:sorry}
+\end{figure}
+
 \subsection{The strategy framework}\label{sec:strategies}
 
 The standing instruction file accumulated its lessons in four series, which operate
@@ -598,6 +630,32 @@ recurrence. The standing instruction file is, in effect, a record of the
 mathematician's accumulated strategic experience, written in a form the agent
 can consult. This is the mechanism by which the human's judgment is amortized
 across the thousands of individual moves the agent makes.
+
+\medskip\noindent
+The second series read off the commit record shows this accumulation as data.
+Figure~\ref{fig:lessons} plots the count of named strategies in $\mathcal{G}$ across its
+$36$ revisions, split by series. The curve is a staircase --- long flats punctuated by jumps
+where a failure occurred and was distilled into a rule --- the visual signature of
+strategies \emph{earned} rather than designed; the total grows from $4$ to $34$. Two
+landmarks are legible: the four-series taxonomy crystallizes in a single revision (before
+it, an undifferentiated list of tool lessons; after, all four series present), and the
+process series jumps by four rules at once, in the aftermath of exactly the cascade of
+frictions the three phases above describe. The closing growth is the tool-lesson series
+alone: through the superposition follow-on it is Lean idioms that accumulate, not new
+strategy, so the file tracks the novelty of the tactical terrain crossed rather than the
+size of the proof obligation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{lessons_cumulative.png}
+\caption{From the case study of Section~\ref{sec:casestudy}: named strategies present in the
+standing instruction file $\mathcal{G}$ across its $36$ revisions, by series (L/P/M/B). The
+staircase shape --- flats punctuated by jumps at specific failures --- is the signature of
+strategies earned rather than designed. The total grows $4\to34$; the four-series taxonomy
+crystallizes in one revision, and the process (P) series jumps by four in the aftermath of
+the cascade frictions of Section~\ref{sec:phases}.}
+\label{fig:lessons}
+\end{figure}
 
 % ============================================================================
 \section{The Dobrushin derivation, formalized}\label{sec:casestudy}
@@ -1089,8 +1147,10 @@ Definition~\ref{def:selfcontained} certifies. Every node is green --- no informa
 placeholder on any path to a target.
 
 % ============================================================================
-\section{The verification discipline}\label{sec:discipline}
+\section{Assessment and outlook}\label{sec:assessment}
 % ============================================================================
+
+\subsection{The verification discipline}\label{sec:discipline}
 
 The discipline that keeps the game honest is a small set of standing rules, all
 variations on a single theme: \emph{the machine-checkable artifact is the only
@@ -1121,147 +1181,43 @@ error (boundary assertions) was then encoded into $\mathcal{G}$.
 The discipline is also delegable in a specific way: the human can hand a
 well-specified, mechanical sub-task to a background agent, provided the human
 re-certifies the result by the footprint --- because the gates catch a failure,
-but diagnosing and reverting it is a judgment the human retains.
+but diagnosing and reverting it is a judgment the human retains. This
+delegation-under-recertification is the operational form of the division of labor read off
+the commit record next.
 
-% ============================================================================
-\section{A quantitative retrospective}\label{sec:retro}
-% ============================================================================
+\subsection{Timeframe and the division of labor}
 
-Having followed the derivation of Section~\ref{sec:casestudy} as mathematics, we now
-step back and read the same development as the game it was. The game leaves a complete
-machine-readable record. Every move is a
-version-control commit, so the development's state --- its \lean{sorry} count, its
-standing instruction file $\mathcal{G}$, its file structure --- can be reconstructed
-at any point in the game's history. The case study ran to $362$ commits over
-about a month. We extract three series directly from that
-history,\footnote{Reproducible scripts and the raw data are in the development's
-\lean{formalize/retrospective} directory. ``Live \lean{sorry}'' counts the token
-after stripping Lean line- and block-comments --- the word appears constantly in
-prose and docstrings, so an unstripped count is meaningless; the count reaching $0$
-at the final commit, where the build is independently known clean, validates the
-strip. The production library is the Lean package source, excluding the throwaway
-development scratch file. The commit classification is a heuristic over
-commit-message intent.}
-and together they render the three-phase structure, the accumulation of the strategy
-taxonomy, and the division of labor as data rather than assertion.
-
-\subsection{The proof frontier is a moving front}
-
-Figure~\ref{fig:sorry} plots the live \lean{sorry} count per source file over the
-game. Two features stand out. First, the open goals are always concentrated in a
-single \emph{active leaf}: of all the production files, essentially one at a time
-carries the bulk of the \lean{sorry}s, and the front migrates from file to file as
-the game proceeds --- from the basic objects, through the characteristic-flow
-well-posedness core, to the weak-to-Lagrangian bridge. This is the API-lock
-discipline made visible: an interface is locked, its
-file's goals are driven down, and only then does the front advance. The total never
-runs away --- it peaks at $24$ and returns to $0$ --- because the game is played as a
-sequence of bounded burndowns, not as one accumulating debt.
-
-Second, the figure contains \emph{two} games. The first front (late May into early
-June) is the well-posedness and stability marquee of Theorems~\ref{thm:wp}
-and~\ref{thm:dob}; the second (mid-to-late June) is a follow-on game on a further
-result --- the superposition principle, that every weak Vlasov solution is
-Lagrangian --- played with the identical method and likewise driven to a clean win.
-The flat stretch between them, where the library sits at zero live \lean{sorry}, is
-the reusability extraction of Section~\ref{ssec:reuse}: a structural
-reorganization performed on an already-won development, banking the reusability grade without
-reopening a single goal.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{sorry_trajectory.png}
-\caption{Live \lean{sorry} count per production file, stacked so the leaves sum to
-the total (black line). The open-goal front is concentrated in one active leaf at a
-time and migrates across the development; the total peaks at $24$ and returns to
-$0$. The two humps are two games --- the well-posedness/stability marquee and the
-superposition-principle follow-on --- separated by the zero-\lean{sorry} reusability
-extraction.}
-\label{fig:sorry}
-\end{figure}
-
-\subsection{The strategy taxonomy is earned, not designed}
-
-Figure~\ref{fig:lessons} plots the standing instruction file's content over its
-$36$ revisions: the count of named strategies present, split by series. The shape is
-the visual signature of the central claim of Section~\ref{sec:strategies} --- that
-the strategies were \emph{earned}, each keyed to a specific failure, rather than
-designed in advance. The curve is a staircase: long flats punctuated by jumps where
-a failure occurred and was distilled into a rule. The total grows from $4$ to $34$.
-Two landmarks are legible: the four-series taxonomy itself crystallizes in a single
-revision (before it, the file was an undifferentiated list of tool lessons; after,
-all four series are present), and the process series jumps by four rules in one
-revision --- the aftermath of exactly the cascade of frictions that the mid- and
-end-game of Section~\ref{sec:phases} describe. The tool-lesson series keeps growing
-through June, during the superposition-bridge follow-on (the variational equation),
-and stops once that work closes. The closing growth is the tool-lesson (L) series
-alone --- through mid-June the process, mathematical, and bridging series stay flat
-(Figure~\ref{fig:lessons}). The follow-on is the smaller hump of
-Figure~\ref{fig:sorry}, and it added Lean idioms rather than new strategy: the lesson
-file tracks the novelty of the tactical terrain crossed, not the size of the proof
-obligation.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{lessons_cumulative.png}
-\caption{Named strategies present in the standing instruction file $\mathcal{G}$
-across its $36$ revisions, by series (L/P/M/B; see Section~\ref{sec:strategies}).
-The staircase shape --- flats punctuated by jumps at specific failures --- is the
-signature of strategies earned rather than designed. The total grows $4\to34$; the
-four-series taxonomy crystallizes in one revision, and the process (P) series jumps
-by four in the aftermath of the cascade frictions of Section~\ref{sec:phases}.}
-\label{fig:lessons}
-\end{figure}
-
-\subsection{The division of labor, counted}
-
-Figure~\ref{fig:taxonomy} classifies all $362$ commits by primary intent. Just under
-three-quarters are core proof work; the striking number is the second bar --- roughly
-one commit in seven is pure meta-knowledge capture: editing the standing instruction
-file, recording a strategy, or auditing the discipline. That fraction is a direct
-measure of the meta-learning loop of Section~\ref{sec:strategies}: a substantial,
-sustained share of the effort goes not into proving the next lemma but into
-distilling \emph{how} the next lemma should be proved. The remainder is tooling and
-documentation. The largest category being the proof itself, with meta-work a clear
-and quantifiable second, is the division of labor of Section~\ref{sec:assessment}
-seen from the commit log.
+The well-posedness and stability marquee --- from the first translated theorem to the
+certified stability estimate --- ran in about a week; the full development, with the
+superposition follow-on, spanned about a month. The interesting claim is not raw speed but
+the \emph{mode} that makes it possible. A human mathematician acted as strategic director
+over an AI execution engine: the human scoped the definitions, chose the decompositions,
+triaged the library gaps, and accumulated the strategy taxonomy; the agent executed the
+proofs, ran the builds, and handled the mechanical sub-tasks. The commit record measures the
+split. Figure~\ref{fig:taxonomy} classifies all $362$ commits by primary intent: just under
+three-quarters are core proof work, but roughly one commit in seven is pure meta-knowledge
+capture --- editing the standing instruction file, recording a strategy, auditing the
+discipline --- a direct measure of the meta-learning loop of Section~\ref{sec:strategies},
+the share of effort that goes not into proving the next lemma but into distilling
+\emph{how} it should be proved. That this \emph{division of labor}, not either party alone,
+has a real efficiency property is the claim; the discipline above is why the speed did not
+cost soundness. We are not the only
+data point: an independent, contemporaneous formalization \cite{IlinVML} --- a different
+kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- reports a comparable
+mode, a single supervising mathematician completing the work in roughly ten days, at about
+\$200, writing no Lean by hand. Two projects are not a controlled measurement, but they
+make the human-directed strategic-director mode less of an outlier than a single run would
+suggest.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.86\textwidth]{commit_taxonomy.png}
-\caption{All $362$ commits classified by primary intent. Roughly one in seven is
-pure meta-knowledge capture (discipline / lessons) --- a direct, if heuristic,
-measure of the meta-learning loop, distinct from the proof work itself.}
+\caption{From the case study of Section~\ref{sec:casestudy}: all $362$ commits classified by
+primary intent. Roughly one in seven is pure meta-knowledge capture (discipline / lessons)
+--- a direct, if heuristic, measure of the meta-learning loop, distinct from the proof work
+itself.}
 \label{fig:taxonomy}
 \end{figure}
-
-% ============================================================================
-\section{Assessment}\label{sec:assessment}
-% ============================================================================
-
-\subsection{On the timeframe}
-
-The well-posedness and stability marquee --- from the first translated theorem to the
-certified stability estimate --- ran in about a week; the full development, with the
-superposition follow-on, spanned about a month. The interesting claim is not raw speed
-but the \emph{mode} that makes it possible.
-
-This was neither solo human formalization (implausible at this speed for a result
-of this size) nor autonomous AI formalization (which could not have made the
-decomposition choices or the gap triage). It was a human mathematician acting as
-strategic director over an AI execution engine: the human scoped the definitions,
-chose the decompositions, triaged the library gaps, and accumulated the strategy
-taxonomy; the agent executed the proofs, ran the builds, and handled the
-mechanical sub-tasks. These figures are evidence that this \emph{division of
-labor} --- not either party alone --- has a real efficiency property, and the
-verification discipline of Section~\ref{sec:discipline} is the reason the speed
-did not come at the cost of soundness. We are not the only data point for this
-regime: an independent, contemporaneous formalization \cite{IlinVML} --- of a
-different kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- reports
-a comparable mode, a single supervising mathematician completing the work in
-roughly ten days, at about \$200, writing no Lean by hand. Two projects are not a
-controlled measurement, but they make the human-directed strategic-director mode less of an
-outlier than a single run would suggest.
 
 \subsection{What generalizes}
 
@@ -1296,9 +1252,7 @@ recorded as such rather than papered over; a fully self-contained development
 would build it, and it remains future work, most naturally as an upstream
 contribution.
 
-% ============================================================================
-\section{Outlook and future directions}
-% ============================================================================
+\subsection{Outlook}
 
 The natural next edge is geometric. The Vlasov equation inherits a Hamiltonian,
 Lie--Poisson structure from the $N$-particle system --- an energy $\mathcal{H}[f]$
