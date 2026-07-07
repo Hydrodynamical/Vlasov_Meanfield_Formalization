@@ -1165,11 +1165,13 @@ the commit record next.
 
 The well-posedness and stability marquee --- from the first translated theorem to the
 certified stability estimate --- ran in about a week; the full development, with the
-superposition follow-on, spanned about a month. The interesting claim is not raw speed but
+superposition follow-on, spanned about a month. The claim is not raw speed but
 the \emph{mode} that makes it possible. A human mathematician acted as strategic director
 over an AI execution engine: the human scoped the definitions, chose the decompositions,
 triaged the library gaps, and accumulated the strategy taxonomy; the agent executed the
-proofs, ran the builds, and handled the mechanical sub-tasks. The commit record measures the
+proofs, ran the builds, and handled the mechanical sub-tasks.
+
+The commit record measures the
 split. Figure~\ref{fig:taxonomy} classifies all $362$ commits by primary intent: just under
 three-quarters are core proof work, but roughly one commit in seven is pure meta-knowledge
 capture --- editing the standing instruction file, recording a strategy, auditing the
@@ -1177,7 +1179,9 @@ discipline --- a direct measure of the meta-learning loop of Section~\ref{sec:st
 the share of effort that goes not into proving the next lemma but into distilling
 \emph{how} it should be proved. That this \emph{division of labor}, not either party alone,
 has a real efficiency property is the claim; the discipline above is why the speed did not
-cost soundness. We are not the only
+cost soundness.
+
+We are not the only
 data point: an independent, contemporaneous formalization \cite{IlinVML} --- a different
 kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- reports a comparable
 mode, a single supervising mathematician completing the work in roughly ten days, at about
@@ -1216,8 +1220,7 @@ this case the extracted layer --- though dependency-isolated, standalone-compili
 and linter-clean --- still imports Mathlib wholesale rather than the minimal files
 each declaration needs, so it remains a candidate for upstreaming rather than a
 completed contribution. The
-timeframe is a single observation, not a controlled measurement,
-and depends on the human director's prior fluency in both the mathematics and the
+timeframe is a single observation that depends on the human director's prior fluency in both the mathematics and the
 proof assistant. The strategy taxonomy was earned on one project and may be
 incomplete; we expect later games to add series entries (the standing
 instruction file is designed to keep accumulating them). Finally, one genuine
