@@ -658,7 +658,6 @@ labor is then visible in the derivation itself, not asserted about it. The endga
 library-building --- the general mathematics the ambient library lacked --- is marked
 where it arises rather than gathered into a section of its own.
 
-\paragraph{The system.}
 % TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
 % cost. (The delegated sub-agent model id, claude-sonnet-4-6, is already filled from logs.)
 The agent system was Claude Code, Anthropic's agentic coding environment, driving a
@@ -695,7 +694,6 @@ noncomputable def empiricalMeasure (N : ℕ) (X V : Fin N → PhysSpace d) :
     Measure (PhaseSpace d)            -- μᴺ = (1/N) Σᵢ δ_(Xᵢ, Vᵢ)
 \end{leancode}
 
-\paragraph{The diagonal-removal trick, and exactness.}
 Getting the solution concept right is the opening's whole task, and the empirical
 measure rewards it with an exactness an informal account would miss. Differentiating
 $\langle\mu^N_t,\varphi\rangle=\tfrac1N\sum_i\varphi(x_i,v_i)$ along the Newton flow
@@ -738,7 +736,6 @@ velocity-gradients of $\varphi$. That $R_N\equiv0$ under \lean{AssW} is the coro
 \lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
 distributional Vlasov solution.
 
-\paragraph{The test class, and where the certificate stops.}
 The weak-solution predicate quantifies over the $C^\infty$ compactly supported test
 functions:
 \begin{leancode}
@@ -977,13 +974,11 @@ whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all
 distributional solutions. Reconciling the two is the \emph{superposition
 principle}, and it is where the game's recurring lesson reappears: what the result
 turns on is, once again, getting a \emph{definition} exactly right --- here the
-definition that decides everything is the regularity class of the potential. The two solution notions were set out in the introduction: a \emph{weak} (Eulerian)
-solution asks the Vlasov equation to hold against every test function
-(\lean{IsVlasovSolution}); a \emph{Lagrangian} solution is a weak solution
-transported by its own characteristic flow (\lean{IsLagrangianVlasovSolution}), its
-flow witness sitting beside the weak-PDE conjunct. A Lagrangian solution is weak by
-that first conjunct; the substantive direction is the converse, the superposition
-principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
+definition that decides everything is the regularity class of the potential. Recall from the introduction that a \emph{Lagrangian} solution
+(\lean{IsLagrangianVlasovSolution}) is a \emph{weak} one (\lean{IsVlasovSolution})
+transported by its own characteristic flow, its flow witness sitting beside the
+weak-PDE conjunct; it is weak by that conjunct, and the substantive converse is the
+superposition principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
 Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is Lagrangian
 (Theorem~\ref{thm:superposition}) --- transported by the characteristic flow it
 generates --- so the weak and Lagrangian notions coincide, and the unique solution of
@@ -998,7 +993,6 @@ class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where   -- C², one 
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
 \end{leancode}
 
-\paragraph{Why $C^2$ --- the typeclass distinction \emph{is} the theorem.}
 This is the one subsection where the Lean is not confirmation standing beside the
 mathematics but the mathematical content itself, because what the superposition
 principle asserts is inseparable from \emph{which} regularity hypothesis it runs on,
@@ -1079,7 +1073,6 @@ coupling predicate \lean{IsCoupling}, and the two phase-space types --- and
 size of the layer, are what make it upstreamable; the $0$ is the hard fact a
 referee re-derives from the graph.
 
-\paragraph{A compiled certificate.}
 Checks (Q2) and (Q3) turn that graph audit into artifacts a referee re-runs, and
 both pass at \textsc{head}. Packaged as a standalone Lake project declaring the
 ambient library as its only dependency --- zero kinetic-theory files in its
@@ -1120,7 +1113,6 @@ size row, likewise, is descriptive rather than the grade
 (Definition~\ref{def:selfcontained}): it records only whether a layer is large enough
 to be worth extracting.
 
-\paragraph{A second, coarser check.}
 The blueprint gives an independent view of the same cut. Each result is tagged in the
 Lean source, and a build step extracts a theorem-level dependency graph directly from
 the elaborated proof terms --- not hand-drawn --- each node linked to its formal
