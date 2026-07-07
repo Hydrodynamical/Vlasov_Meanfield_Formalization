@@ -211,7 +211,7 @@ carried end to end, rather than short problems or a static equilibrium.
 Derivations of this kind come in a range of difficulty, set by how rough the force
 between particles is. Where the force is smooth, the passage to the limiting
 equation is classical, going back to Dobrushin \cite{Dobrushin} and the
-Braun--Hepp--Neunzert line \cite{Neunzert} (with the later surveys
+Braun--Hepp--Neunzert line \cite{BraunHepp,Neunzert} (with the later surveys
 \cite{Spohn,Golse}). Where the force is singular, as in gravitation or
 electrostatics, the same passage is a celebrated open problem, settled so far only
 in softened cases \cite{hauray-jabin,lazarovici-pickl,serfaty-coulomb}. We formalize the smooth
@@ -256,7 +256,7 @@ As $N \to \infty$ the empirical distribution of the particles concentrates on a 
     \;-\; (\nabla W * \rho_t)(x) \cdot \nabla_v f \;=\; 0,
   \qquad \rho_t(x) = \int_{\R^d} f(t,x,v)\, dv ,
 \end{equation}
-with $\rho_t$ the spatial marginal. Figure~\ref{fig:depgraph} is a roadmap of what follows --- the statements below and the layered development that proves them.
+with $\rho_t$ the spatial marginal. Figure~\ref{fig:depgraph} is a roadmap of what follows --- the statements below and the layered development that proves them. Here we give the mathematics; the verbatim Lean signatures are collected in Appendix~\ref{app:formal}.
 
 \begin{figure}[t]
 \centering
@@ -313,8 +313,6 @@ Every Lagrangian solution is weak, by definition. The converse --- that every we
 is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. It
 holds under the strengthened assumption $\mathrm{AssW2}$ introduced below, and under it the two
 notions coincide; we prove it in Section~\ref{ssec:superposition}.
-
-The full formal Lean statement of each result below is collected in Appendix~\ref{app:formal}; here we give the mathematics.
 
 \begin{theorem}[Global well-posedness, \leanlink{vlasovWellPosedness}]\label{thm:wp}
   Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. The forward
@@ -1492,6 +1490,10 @@ over-strong-but-unsupplyable shape before the edit, not mid-break.
 
 \bibitem{Dobrushin} R.~L.~Dobrushin, \emph{Vlasov equations},
   Funct.\ Anal.\ Appl.\ \textbf{13} (1979), 115--123.
+
+\bibitem{BraunHepp} W.~Braun, K.~Hepp, \emph{The Vlasov dynamics and its
+  fluctuations in the $1/N$ limit of interacting classical particles},
+  Comm.\ Math.\ Phys.\ \textbf{56} (1977), 101--113.
 
 \bibitem{Villani} C.~Villani, \emph{Optimal Transport: Old and New},
   Grundlehren der mathematischen Wissenschaften \textbf{338}, Springer, 2009.
