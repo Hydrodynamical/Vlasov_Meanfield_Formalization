@@ -267,21 +267,13 @@ As $N \to \infty$ the empirical distribution of the particles concentrates on a 
 \end{equation}
 with $\rho_t$ the spatial marginal. We now state the first regularity assumption for the interaction potential $W$.
 
-\begin{assumption}\label{ass:1}
+\begin{assumption}[\leanlink{AssW}]\label{ass:1}
   Let $W: \R^d \rightarrow \R$ be an even function that is $C^{1,1}$, with a globally Lipschitz gradient of constant $L := \mathrm{Lip}(\nabla W)$. 
 \end{assumption}
 
-The above Assumption \ref{ass:1} is formalized in Lean by defining the following class.
-\begin{leancode}
-class AssW (W : PhysSpace d → ℝ) : Prop where
-  differentiable : Differentiable ℝ W
-  even          : ∀ x : PhysSpace d, W (-x) = W x
-  lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
-\end{leancode}
-
 Write $\mathcal{P}_1(\R^d\times\R^d)$ for the Borel probability measures $\mu$ on phase space with finite first moment, $\int_{\R^d\times\R^d}(|x|+|v|)\,d\mu(x,v)<\infty$; in Lean this is the predicate \lean{HasFiniteFirstMoment}. A solution of \eqref{eqn:Vlasov-Intro} comes in two forms, and we begin with the \emph{weak} (Eulerian) one. Each notion below is a property of the whole curve $t\mapsto f_t$; its \emph{initial datum} is the value $f(0)$, pinned to a prescribed $f_0$ only when we solve the Cauchy problem (Theorem~\ref{thm:wp}).
 
-\begin{definition}\label{def:weak-Vlasov}
+\begin{definition}[\leanlink{IsVlasovSolution}]\label{def:weak-Vlasov}
   Fix $T>0$. A \emph{weak} solution of \eqref{eqn:Vlasov-Intro} on $[0,T]$ is any $f : [0,T] \rightarrow \mathcal{P}_1(\R^d \times \R^d)$ which is narrowly continuous in time (continuous against bounded continuous test functions) and satisfies, for all $\varphi\in \mathcal{C}^\infty_c(\R^{d}\times \R^d)$:
   \begin{itemize}
     \item The map $t\mapsto \langle f_t , \varphi\rangle$ is differentiable, and 
@@ -293,20 +285,10 @@ Write $\mathcal{P}_1(\R^d\times\R^d)$ for the Borel probability measures $\mu$ o
   \end{itemize}
 \end{definition}
 
-This definition of weak solution is formalized by defining:
-\begin{leancode}
-def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
-    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
-    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
-      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
-      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
-      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
-\end{leancode}
-An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrangian} solution. This solution concept is a weak solution transported by its own characteristic flow, and the formal definition is given below. 
+An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrangian} solution: a weak solution transported by its own characteristic flow.
 
-\begin{definition}\label{def:Lagrangian}
-  A \emph{Lagrangian} solution is a weak solution transported by its own characteristic flow: a
+\begin{definition}[\leanlink{IsLagrangianVlasovSolution}]\label{def:Lagrangian}
+  A \emph{Lagrangian} solution is a
   weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ for which there exists a flow
   $(X,V):[0,T]\times(\R^d\times\R^d)\to\R^d\times\R^d$ solving the characteristic system
   \[
@@ -318,125 +300,55 @@ An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrang
   \varphi\circ\Phi\,d\mu$ for every bounded continuous $\varphi$.
 \end{definition}
 
-The formalization of Definition \ref{def:Lagrangian} is given in Lean below.
-\begin{leancode}
-def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
-    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
-  IsVlasovSolution gradW f ∧
-  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
-    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
-    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
-    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
-\end{leancode}
-Every Lagrangian solution is weak, by its first conjunct. The converse --- that every weak solution
+Every Lagrangian solution is weak, by definition. The converse --- that every weak solution
 is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. It
 holds under the strengthened assumption $\mathrm{AssW2}$ introduced below, and under it the two
 notions coincide; we prove it in Section~\ref{ssec:superposition}.
 
-We now have the definitions required to phrase the existence and uniqueness of \eqref{eqn:Vlasov-Intro} for both notions of solutions.
+We can now phrase existence and uniqueness for \eqref{eqn:Vlasov-Intro}. The full formal Lean statement of each result below is collected in Appendix~\ref{app:formal}; here we give the mathematics.
 
-\begin{theorem}[Global well-posedness, \lean{vlasovWellPosedness}]\label{thm:wp}
-  Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. For every
-  $T>0$ there exists a Lagrangian solution $f:[0,T]\rightarrow \mathcal{P}_1(\R^d \times \R^d)$ of
-  \eqref{eqn:Vlasov-Intro} with datum $f_0$, in the sense of Definitions~\ref{def:weak-Vlasov}
-  and~\ref{def:Lagrangian}, and it is the unique such Lagrangian solution.
+\begin{theorem}[Global well-posedness, \leanlink{vlasovWellPosedness}]\label{thm:wp}
+  Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. The forward
+  Cauchy problem is well-posed: there exists a \emph{single} curve
+  $f:[0,\infty)\rightarrow \mathcal{P}_1(\R^d \times \R^d)$ with datum $f(0)=f_0$ and finite first
+  moment at every $t\ge 0$, which is a Lagrangian solution of \eqref{eqn:Vlasov-Intro} on every
+  window $[0,T]$, in the sense of Definitions~\ref{def:weak-Vlasov} and~\ref{def:Lagrangian}; and on
+  each window it is the unique such Lagrangian solution.
 \end{theorem}
-The existence half is \lean{vlasovWellPosedness}:
-\begin{leancode}
-theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
-    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀) :
-    ∃ f : ℝ → Measure (PhaseSpace d), f 0 = f₀ ∧
-      (∀ t ∈ Set.Ici (0 : ℝ), HasFiniteFirstMoment (f t)) ∧
-      (∀ T_target : ℝ, 0 < T_target →
-        IsLagrangianVlasovSolutionOn gradW f T_target) ∧
-      (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
-        ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
-\end{leancode}
-Uniqueness is a separate statement --- on each window, two Lagrangian solutions with the same datum
-coincide:
-\begin{leancode}
-theorem vlasovWellPosedness_uniqueness (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW) (hL_pos : (0:ℝ) < L)
-    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
-    {T : ℝ} (hT : 0 < T) (f g : ℝ → Measure (PhaseSpace d))
-    (hf_init : f 0 = f₀) (hg_init : g 0 = f₀)
-    …    -- finite moments on [0,T]; f, g both Lagrangian on [0,T]
-    : ∀ t ∈ Set.Icc (0:ℝ) T, f t = g t
-\end{leancode}
-\noindent It is obtained for $L>0$ from the stability estimate below; the degenerate $L=0$ case
+\noindent The single global curve is \leanlink{vlasovWellPosedness}; per-window uniqueness in the
+class of Definition~\ref{def:Lagrangian} is \leanlink{vlasovWellPosedness\_uniqueness}, a separate
+statement. It is obtained for $L>0$ from the stability estimate below; the degenerate $L=0$ case
 (constant force) is explicit, so uniqueness holds at every $L$.
 
 Solutions depend stably on their data. The relevant distance is the Wasserstein-1
 (Kantorovich--Rubinstein) metric $\Wone$ on $\mathcal{P}_1$: dually a supremum over $1$-Lipschitz
 test functions, primally an infimum over couplings, the two equal by Kantorovich--Rubinstein
 duality \cite{Villani,AGS}.
-\begin{theorem}[Dobrushin stability \cite{Dobrushin}, \lean{dobrushin}]\label{thm:dob}
+\begin{theorem}[Dobrushin stability \cite{Dobrushin}, \leanlink{dobrushin}]\label{thm:dob}
   Let $W$ satisfy Assumption~\ref{ass:1}. Any two Lagrangian solutions $f,g$ with
   finite-first-moment data are stable in $\Wone$ at an exponential rate,
   \[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0),\qquad t\ge 0,\quad C=C(L). \]
 \end{theorem}
-\begin{leancode}
-theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (f g : ℝ → Measure (PhaseSpace d))
-    (hf : IsLagrangianVlasovSolution gradW f)
-    (hg : IsLagrangianVlasovSolution gradW g)
-    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
-    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
-    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
-      wasserstein1 (f t) (g t) ≤
-        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
-\end{leancode}
 
 \noindent Applied with $g$ the empirical measure of the Newton dynamics
 \eqref{eqn:Newton-Intro}, the estimate gives the mean-field limit as a corollary.
-\begin{corollary}[Mean-field limit, \lean{meanFieldLimit}]\label{cor:mfl}
+\begin{corollary}[Mean-field limit, \leanlink{meanFieldLimit}]\label{cor:mfl}
   Let $f$ be the Vlasov solution with datum $f_0$, and let $\mu^N_t$ be the empirical measure of
   $N$ particles evolving by \eqref{eqn:Newton-Intro}. If the initial empirical measures converge,
   $\Wone(\mu^N_0,f_0)\to0$ as $N\to\infty$, then for every $T>0$
   \[ \sup_{t\in[0,T]}\Wone(\mu^N_t,f_t)\;\xrightarrow[N\to\infty]{}\;0. \]
 \end{corollary}
-\begin{leancode}
-theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL …)
-    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
-    (f : ℝ → Measure (PhaseSpace d)) (hf_sol : IsLagrangianVlasovSolution gradW f)
-    (hf_init : f 0 = f₀)
-    (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
-    (hSol : ∀ N, IsNewtonSolution N gradW (X N) (V N))
-    (hInit : Filter.Tendsto
-      (fun N => wasserstein1 (empiricalMeasure N (X N 0) (V N 0)) f₀) atTop (nhds 0))
-    …    -- the Dobrushin stability constant C for the empirical curves
-    (T : ℝ) (hT : 0 < T) :
-    Filter.Tendsto (fun N => ⨆ t ∈ Set.Icc 0 T,
-      wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
-\end{leancode}
 
 Extending stability and uniqueness from Lagrangian solutions to \emph{all} weak solutions is the
 superposition principle, and it costs one degree of regularity beyond Assumption~\ref{ass:1}.
-\begin{assumption}\label{ass:2}
+\begin{assumption}[\leanlink{AssW2}]\label{ass:2}
   In addition to Assumption~\ref{ass:1}, let $\nabla W \in C^1$ (equivalently $W \in C^2$).
 \end{assumption}
-\noindent This strengthens \lean{AssW} to the class \lean{AssW2} by a single field:
-\begin{leancode}
-class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
-  gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
-\end{leancode}
-\begin{theorem}[Superposition principle, \lean{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
+\begin{theorem}[Superposition principle, \leanlink{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
   Under Assumption~\ref{ass:2}, every weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ with
   finite-first-moment initial datum $f(0)$ is Lagrangian on $[0,T]$; hence the weak and Lagrangian
   notions coincide on every forward window.
 \end{theorem}
-\begin{leancode}
-theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
-    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
-    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
-    : IsLagrangianVlasovSolutionOn gradW f T
-\end{leancode}
 
 \begin{figure}[t]
 \centering
@@ -457,7 +369,7 @@ Definition~\ref{def:selfcontained} (Q1) certifies.}
 
 \paragraph{Outline.}
 This introduction has stated the two guarantees --- the win condition and the
-reusability grade --- set down in mathematics and in Lean
+reusability grade --- set down in mathematics
 exactly what we formalized, and placed the work among its neighbors; the rest of
 the paper is the method and its evidence. Section~\ref{sec:game} sets out the game
 --- its win condition, its reusability grade, the three phases, and the
@@ -785,18 +697,26 @@ velocity-gradients of $\varphi$. That $R_N\equiv0$ under \lean{AssW} is the coro
 distributional Vlasov solution.
 
 \paragraph{The test class, and where the certificate stops.}
-The test functions here are the $C^\infty$ compactly supported $\varphi$, and pinning
-that class down was an opening fix --- and the clearest instance in the development of
-the boundary Definition~\ref{def:win} draws. A library upgrade had silently redefined
-\lean{ContDiff ℝ ⊤} to mean \emph{real-analytic}; a nonzero real-analytic function
-cannot have compact support, so the test class had quietly collapsed to $\{0\}$ and
-the weak-solution hypothesis was \emph{vacuously} true. The build stayed green
-throughout: the axiom footprint certifies a proof relative to its statement, and
-cannot see that the statement had become empty. A thirty-second \lean{\#check} caught
-the collapse, and the fix (\lean{ContDiff ℝ (⊤ : ℕ∞)}, the $C^\infty$ element)
-restored the class at twelve sites. This is statement-trust being discharged in the
-open --- the one obligation, exactly as Definition~\ref{def:win} says, that the
-certificate relocates to the mathematician rather than answering.
+The weak-solution predicate quantifies over the $C^\infty$ compactly supported test
+functions:
+\begin{leancode}
+def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
+      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
+      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
+      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
+\end{leancode}
+Pinning that class down was an opening fix --- and the clearest instance in the
+development of the boundary Definition~\ref{def:win} draws. A library upgrade had
+silently redefined \lean{ContDiff ℝ ⊤} to mean \emph{real-analytic}; a nonzero
+real-analytic function cannot have compact support, so the test class had quietly
+collapsed to $\{0\}$ and the weak-solution hypothesis was \emph{vacuously} true. The
+build stayed green throughout: the axiom footprint certifies a proof relative to its
+statement, and cannot see that the statement had become empty. A thirty-second
+\lean{\#check} caught the collapse, and the fix (\lean{ContDiff ℝ (⊤ : ℕ∞)}, the
+$C^\infty$ element written above) restored the class at twelve sites.
 
 \subsection{Wasserstein-1, in two faces}\label{ssec:wasserstein}
 The distance that organizes everything to follow is the Wasserstein-1 metric
@@ -909,8 +829,7 @@ because that argument is where the whole optimal-transport apparatus of
 Section~\ref{ssec:wasserstein} is put to work, we give it rather than sketch it.
 
 Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
-\printaxioms{} on each returns exactly \cleanfootprint. Theorem~\ref{thm:wp} holds at
-\emph{arbitrary} $L$.
+\printaxioms{} on each returns exactly \cleanfootprint.
 
 A statement-level decision shaped the well-posedness theorem before any proof.
 Dobrushin's is a \emph{forward} Cauchy problem, and the marquee is posed that way ---
@@ -922,8 +841,8 @@ where the mathematics puts it --- per window, in the Lagrangian class
 by proving forward. Matching the statement to what the argument supports is the early
 game's other discipline, dual to definitional scoping.
 
-Reaching arbitrary $L$, by contrast, was a matter of the \emph{proof}, not the statement.
-Dobrushin's global-in-time argument, tiled into short windows with a fixed unit
+Theorem~\ref{thm:wp} holds at \emph{arbitrary} $L$, and reaching that was a matter of the
+\emph{proof}, not the statement. Dobrushin's global-in-time argument, tiled into short windows with a fixed unit
 force-window, forces $L$ small ($L<1$) --- an artifact of the tiling, not of the
 mathematics, since Dobrushin's theorem holds for every $L$, its constant $C=C(L)$ simply
 growing. Tracing the dependency to its single structural origin (the window's unit width,
@@ -1027,9 +946,13 @@ Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is La
 (Theorem~\ref{thm:superposition}) --- transported by the characteristic flow it
 generates --- so the weak and Lagrangian notions coincide, and the unique solution of
 Theorem~\ref{thm:wp} is a pushforward of its datum along its flow. It costs exactly one degree of
-regularity beyond \lean{AssW} --- the development's second standing assumption:
+regularity beyond \lean{AssW}. The two standing assumptions sit a single field apart:
 \begin{leancode}
-class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+class AssW (W : PhysSpace d → ℝ) : Prop where            -- C^{1,1}
+  differentiable : Differentiable ℝ W
+  even          : ∀ x, W (-x) = W x
+  lipschitzGrad : ∃ L : NNReal, LipschitzWith L (fun x => fderiv ℝ W x)
+class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where   -- C², one more field
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)   -- ∇W ∈ C¹, i.e. W ∈ C²
 \end{leancode}
 
@@ -1390,6 +1313,89 @@ Marking that boundary is itself part of the discipline the win condition enforce
 
 % ============================================================================
 \appendix
+% ============================================================================
+\section{Formal statements}\label{app:formal}
+% ============================================================================
+
+The marquee results are stated as mathematics in the introduction
+(Section~\ref{sec:statements}); their verbatim Lean signatures are collected here. The
+assumption classes \leanlink{AssW} and \leanlink{AssW2} and the weak-solution predicate
+\leanlink{IsVlasovSolution} appear in the body (Sections~\ref{ssec:newton-to-weak}
+and~\ref{ssec:superposition}), where their exact form is part of the argument.
+
+\paragraph{Lagrangian solution (Definition~\ref{def:Lagrangian}).}
+\begin{leancode}
+def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  IsVlasovSolution gradW f ∧
+  ∃ charX charV : ℝ → PhaseSpace d → PhysSpace d,
+    IsCharacteristicFlow gradW (fun t => spatialMarginal (f t)) charX charV ∧
+    (∀ t, f t = Measure.map (fun z => (charX t z, charV t z)) (f 0)) ∧
+    (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
+\end{leancode}
+
+\paragraph{Global well-posedness (Theorem~\ref{thm:wp}).}
+\begin{leancode}
+theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL_gradW : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀) :
+    ∃ f : ℝ → Measure (PhaseSpace d), f 0 = f₀ ∧
+      (∀ t ∈ Set.Ici (0 : ℝ), HasFiniteFirstMoment (f t)) ∧
+      (∀ T_target : ℝ, 0 < T_target →
+        IsLagrangianVlasovSolutionOn gradW f T_target) ∧
+      (∀ g : PhaseSpace d → ℝ, Continuous g → Bornology.IsBounded (Set.range g) →
+        ContinuousOn (fun t => ∫ z, g z ∂f t) (Set.Ici 0))
+theorem vlasovWellPosedness_uniqueness (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW) (hL_pos : (0:ℝ) < L)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    {T : ℝ} (hT : 0 < T) (f g : ℝ → Measure (PhaseSpace d))
+    (hf_init : f 0 = f₀) (hg_init : g 0 = f₀)
+    …    -- finite moments on [0,T]; f, g both Lagrangian on [0,T]
+    : ∀ t ∈ Set.Icc (0:ℝ) T, f t = g t
+\end{leancode}
+
+\paragraph{Dobrushin stability (Theorem~\ref{thm:dob}).}
+\begin{leancode}
+theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (hf : IsLagrangianVlasovSolution gradW f)
+    (hg : IsLagrangianVlasovSolution gradW g)
+    (hf_prob : ∀ t, HasFiniteFirstMoment (f t))
+    (hg_prob : ∀ t, HasFiniteFirstMoment (g t)) :
+    ∃ C : ℝ, 0 < C ∧ ∀ t, 0 ≤ t →
+      wasserstein1 (f t) (g t) ≤
+        ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
+\end{leancode}
+
+\paragraph{Mean-field limit (Corollary~\ref{cor:mfl}).}
+\begin{leancode}
+theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL …)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    (f : ℝ → Measure (PhaseSpace d)) (hf_sol : IsLagrangianVlasovSolution gradW f)
+    (hf_init : f 0 = f₀)
+    (X V : (N : ℕ) → ℝ → Fin N → PhysSpace d)
+    (hSol : ∀ N, IsNewtonSolution N gradW (X N) (V N))
+    (hInit : Filter.Tendsto
+      (fun N => wasserstein1 (empiricalMeasure N (X N 0) (V N 0)) f₀) atTop (nhds 0))
+    …    -- the Dobrushin stability constant C for the empirical curves
+    (T : ℝ) (hT : 0 < T) :
+    Filter.Tendsto (fun N => ⨆ t ∈ Set.Icc 0 T,
+      wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
+\end{leancode}
+
+\paragraph{Superposition principle (Theorem~\ref{thm:superposition}).}
+\begin{leancode}
+theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (hf_weak : IsVlasovSolutionOn gradW f T)
+    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
+    : IsLagrangianVlasovSolutionOn gradW f T
+\end{leancode}
+
 % ============================================================================
 \section{The standing instruction file: one lesson per series, verbatim}\label{app:claudemd}
 % ============================================================================
