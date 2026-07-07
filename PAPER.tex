@@ -373,19 +373,18 @@ estimates, to the gaps where the library ran out. Section~\ref{sec:assessment} a
 method: the discipline that kept it sound at speed, the timeframe and division of labor,
 what generalizes, and the limits of one run, closing with the next target.
 % ============================================================================
-\section{The game}\label{sec:game}
+\section{The formalization game}\label{sec:game}
 % ============================================================================
 
 \subsection{Objective, win condition, reusability grade}
 
-The \emph{formalization game} is played on three objects, for which we fix light notation used
-throughout: a source mathematics document $\mathcal{T}$ (a \LaTeX{} paper), a
+The \emph{formalization game} is played on three objects: a source mathematics document $\mathcal{T}$ (a \LaTeX{} paper), a
 Lean~4 development $\mathcal{L}$ under construction, and a standing instruction
 file $\mathcal{G}$ governing the agent's behavior. A distinguished set of
 \emph{target theorems} $\Theta \subseteq \mathcal{L}$ encodes the main results of
 $\mathcal{T}$, and the human and the agent alternate moves that edit $\mathcal{L}$
 and $\mathcal{G}$. The substance is not in this setup but in the win condition and
-its reusability grade, to which we turn.
+its reusability grade.
 
 \begin{definition}[Win condition]\label{def:win}
 The game is \emph{won} when:
@@ -408,9 +407,7 @@ is ``compiles \emph{and} the foundations are clean,'' not ``compiles.''
 This certifies a theorem soundly \emph{relative to its own statement}; it does not
 certify that the statement says what was meant. That second responsibility,
 statement-faithfulness, is the human's, discharged in the early game through
-definitional scoping and atom-level signature reading. The win condition buys
-\emph{proof}-trust; \emph{statement}-trust is relocated to the mathematician, not
-eliminated.
+definitional scoping and atom-level signature reading.
 
 We operationalize reusability as the existence of a \emph{self-contained layer}: a
 subset of the development the ambient library could absorb with no trace of the
@@ -441,17 +438,14 @@ restates a result already present in the ambient library, and every declaration
 is reachable from a target theorem --- no duplication of existing mathematics, no
 dead code.
 \end{enumerate}
-A layer passing (Q1)--(Q4) is \emph{self-contained}: standalone-compilable,
-linter-clean, non-redundant general mathematics, separated from the
+A layer passing (Q1)--(Q4) is \emph{self-contained}, separated from the
 problem-specific development through an interface of width $w$. The \emph{size}
 of $\mathcal{L}_{\mathrm{gen}}$, as a fraction of $\mathcal{L}$, is reported
 descriptively, not as the grade. We claim reusability in this precise, certified
 sense, and distinguish it from demonstrated \emph{reuse}, which we do not assert.
 \end{definition}
 
-All four checks are mechanical and re-runnable by a referee: (Q1) and (Q4) read
-off the elaboration environment's dependency graph, (Q2) compiles the isolation
-into a standalone build, (Q3) runs the library's own linter unchanged. In the case
+In the case
 study, $\mathcal{L}_{\mathrm{gen}}$ is the optimal-transport machinery the
 derivation forced us to build --- the Wasserstein-1 metric in both faces, the
 Kantorovich--Rubinstein bridge between them, a finite Kantorovich duality, and the
@@ -482,13 +476,13 @@ declarations behind a $22$-declaration interface, compiling against Mathlib alon
 \end{table}
 
 \medskip
-The three phases reward \emph{different} strategies --- a player who opens well can still
-lose the endgame --- which is what makes the phase structure, not the win condition alone,
-the substance of the game and the subject of the next section.
+The three phases reward \emph{different} strategies: a player who opens well can still
+lose the endgame. The phase structure, not the win condition alone, is the substance of
+the game.
 
 \subsection{The three phases}\label{sec:phases}
 
-\paragraph{Early game: definitional scoping.}
+\subsubsection{Early game: definitional scoping}
 In the early game the player translates the target theorems of $\mathcal{T}$ into
 Lean \emph{statements}, proofs left as \lean{sorry}. The difficulty is not the
 statements but the \emph{definitions} they quantify over: every later move builds
@@ -509,7 +503,7 @@ interface from discharging it --- and the interface is what every later phase is
 written against, so errors caught here are cheap and the same errors caught in the
 endgame are not.
 
-\paragraph{Mid game: human-judgment decomposition.}
+\subsubsection{Mid game: human-judgment decomposition}
 In the mid game the player repeatedly \emph{decomposes} a sorried statement into
 smaller sorried sub-statements, each heuristically easier, until the leaves are
 within the agent's reach. The paper's central empirical claim is that
@@ -535,7 +529,7 @@ combined with encoding each hard-won heuristic into $\mathcal{G}$ so it is reuse
 not re-derived.
 \end{quote}
 
-\paragraph{End game: triaging the library gaps.}
+\subsubsection{End game: triaging the library gaps}
 Eventually the surviving sorries are no longer decomposable into project-specific
 pieces: they are requests for \emph{general} mathematics the ambient library may or
 may not contain, and the endgame is the triage. Each falls into one of three kinds.
@@ -617,10 +611,9 @@ $\mathcal{G}$ --- appears in Appendix~\ref{app:claudemd}.
 
 The lessons were not designed in advance but \emph{earned} --- each keyed to a specific failure that
 occurred during the game and was then encoded into $\mathcal{G}$ to prevent its
-recurrence. The standing instruction file is, in effect, a record of the
-mathematician's accumulated strategic experience, written in a form the agent
-can consult. This is the mechanism by which the human's judgment is amortized
-across the thousands of individual moves the agent makes.
+recurrence. The standing instruction file records the mathematician's accumulated strategic
+experience in a form the agent can consult, amortizing the human's judgment across
+the thousands of moves the agent makes.
 
 \medskip\noindent
 The second series read off the commit record shows this accumulation as data.
