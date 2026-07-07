@@ -160,10 +160,10 @@ project also uses --- and a common mode: a human mathematician, or team, directs
 the formalization of a result whose mathematics is already understood. The present
 work is squarely in that lineage; what sets it apart is making the \emph{strategy}
 of the human direction explicit --- naming, phase by phase, what the mathematician
-is actually doing.
+is doing.
 
 \paragraph{Autonomous agents for formal mathematics.}
-A parallel and very recent line is \emph{autonomous}. AlphaProof \cite{AlphaProof}
+A parallel and recent line is \emph{autonomous}. AlphaProof \cite{AlphaProof}
 couples reinforcement learning with Lean and reached silver-medal performance at
 the International Mathematical Olympiad; its agentic successor
 \cite{AlphaProofNexus} and Harmonic's Aristotle \cite{Aristotle} drive
@@ -222,7 +222,7 @@ Braun--Hepp--Neunzert line \cite{Neunzert} (with the later surveys
 \cite{Spohn,Golse}). Where the force is singular, as in gravitation or
 electrostatics, the same passage is a celebrated open problem, settled so far only
 in softened cases \cite{hauray-jabin,lazarovici-pickl,serfaty-coulomb}. We formalize the smooth
-end, and chose it deliberately: it is where a reusable library can actually be
+end, and chose it deliberately: it is where a reusable library can be
 built. The singular frontier we mention only to place that choice. Closing it is a
 problem of mathematics, not of proof engineering --- the missing ingredient is new
 analysis, which no proof assistant supplies --- and the most a mature library could
@@ -524,7 +524,7 @@ smaller sorried sub-statements, each heuristically easier, until the leaves are
 within the agent's reach. The paper's central empirical claim is that
 \textbf{decomposition is the part of the loop that most demanded human judgment}:
 the agent could prove a well-specified sub-lemma, but chose poorly \emph{where} to
-cut and which of several equivalent routes the library could actually support ---
+cut and which of several equivalent routes the library could support ---
 acts of mathematical taste. The claim is time-stamped (\emph{this} game, system,
 and moment; decomposition is exactly the frontier systems improve at fastest), not
 a permanent division of labor. In the case study the decisive mid-game choices
@@ -902,7 +902,7 @@ game's other discipline, dual to definitional scoping.
 Theorem~\ref{thm:wp} holds at \emph{arbitrary} $L$, and reaching that was a matter of the
 \emph{proof}, not the statement. Dobrushin's global-in-time argument, tiled into short windows with a fixed unit
 force-window, forces $L$ small ($L<1$) --- an artifact of the tiling, not of the
-mathematics, since Dobrushin's theorem holds for every $L$, its constant $C=C(L)$ simply
+mathematics, since Dobrushin's theorem holds for every $L$, its constant $C=C(L)$
 growing. Tracing the dependency to its single structural origin (the window's unit width,
 not any analytic mechanism --- the artifact-versus-genuine distinction of
 Appendix~\ref{app:claudemd}) gave the fix: \emph{exact} tiling, windows of width exactly
@@ -1082,7 +1082,7 @@ machine effort discharging it.
 The headline of the extraction is a machine-checkable \emph{zero}. After the game
 was won, we reorganized the optimal-transport machinery into a self-contained
 layer (Definition~\ref{def:selfcontained}). We take the layer to be the
-\emph{reachable general core}: the general-mathematics declarations actually on a
+\emph{reachable general core}: the general-mathematics declarations on a
 target theorem's proof path. General infrastructure we built but did not use --- a
 deferred truncated-metric regime and a few lemmas a refactor superseded --- is
 excluded by definition; a reusable layer should be what the development used, not
