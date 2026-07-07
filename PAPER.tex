@@ -56,23 +56,22 @@ with a worked end-to-end case study in kinetic theory}
 \maketitle
 
 \begin{abstract}
-We formalize a research result in the Lean~4 proof assistant by having a human
-mathematician direct an AI agent system through an extended session, an activity we
-frame as a \emph{game}: the objective is to turn a \LaTeX{} document into Lean;
-the game is \emph{won} when it compiles with no \lean{sorry} and \printaxioms{} on
-the target theorems returns only Lean's foundational axioms; and each win carries a
-pass/fail \emph{reusability} grade --- whether the development yields a
-\emph{self-contained layer} the ambient library could absorb on its own.
+We formalize a research result in the Lean~4 proof assistant by having a
+mathematician direct an AI system, and frame the activity as a \emph{formalization game}. The
+objective is to turn a \LaTeX{} document into Lean. The game is \emph{won} when it
+compiles with no \lean{sorry} and \printaxioms{} on the target theorems returns
+only Lean's foundational axioms. Each win is also graded for reuse, by a definition
+we introduce: a \emph{self-contained layer} of general mathematics the wider library
+could absorb.
 
 The case study is a complete, axiom-clean formalization of well-posedness for the
 Vlasov equation via Dobrushin's mean-field route --- existence, uniqueness, the
 stability estimate and mean-field limit, and the superposition principle that every
-weak solution is Lagrangian --- at \emph{arbitrary} interaction strength. The human's
+weak solution is Lagrangian. The human's
 role is to direct, not to write proofs: to scope the definitions, decompose each hard
-theorem, and triage the library's gaps; the agent executes. The win condition makes
-the result \emph{checkable} rather than trusted --- a referee re-runs the axiom
-footprint (\cleanfootprint) in seconds --- while statement-faithfulness stays the
-mathematician's responsibility, not the certificate's. The optimal-transport
+theorem, and triage the library's gaps; the agent executes. The check certifies the
+proof, not that the statement says what was meant --- that judgment stays the
+mathematician's. The optimal-transport
 machinery the derivation forced us to build (a finite Kantorovich duality, a
 coupling-gluing construction) separates into a self-contained layer
 (Definition~\ref{def:selfcontained}) that compiles against Mathlib alone: about a
@@ -234,7 +233,7 @@ probability distributions and the flows that move them. To our knowledge no prio
 formalization had assembled it; this is the self-contained layer of
 Definition~\ref{def:selfcontained}, and the lasting artifact of the exercise.
 
-We describe the activity as a game because the framing is exact, not decorative.
+We describe the activity as a \emph{formalization game} because the framing is exact, not decorative.
 There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
 win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grade
 (whether the won development yields a self-contained layer). And there are three
@@ -379,7 +378,7 @@ what generalizes, and the limits of one run, closing with the next target.
 
 \subsection{Objective, win condition, reusability grade}
 
-The game is played on three objects, for which we fix light notation used
+The \emph{formalization game} is played on three objects, for which we fix light notation used
 throughout: a source mathematics document $\mathcal{T}$ (a \LaTeX{} paper), a
 Lean~4 development $\mathcal{L}$ under construction, and a standing instruction
 file $\mathcal{G}$ governing the agent's behavior. A distinguished set of
