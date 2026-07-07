@@ -7,6 +7,7 @@
 \usepackage{xcolor}
 \usepackage{graphicx}
 \graphicspath{{Vlasov/formalize/retrospective/}}
+\usepackage[section]{placeins}   % keep figures within the section that references them
 \usepackage{fontspec}              % requires lualatex/xelatex
 \setmonofont{JuliaMono}[Scale=MatchLowercase]  % faithful Lean Unicode in \texttt and code
 \usepackage{fancyvrb}
@@ -595,6 +596,19 @@ separated by the zero-\lean{sorry} reusability extraction.}
 
 The standing instruction file accumulated its lessons in four series, which operate
 at genuinely different levels with different triggers for ``this rule applies.''
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{lessons_cumulative.png}
+\caption{From the case study of Section~\ref{sec:casestudy}: named strategies present in the
+standing instruction file $\mathcal{G}$ across its $36$ revisions, by series (L/P/M/B). The
+staircase shape --- flats punctuated by jumps at specific failures --- is the signature of
+strategies earned rather than designed. The total grows $4\to34$; the four-series taxonomy
+crystallizes in one revision, and the process (P) series jumps by four in the aftermath of
+the cascade frictions of Section~\ref{sec:phases}.}
+\label{fig:lessons}
+\end{figure}
+
 \begin{description}[leftmargin=2em,style=nextline]
 \item[L-series --- Lean / agent-tool lessons.] Idioms, elaborator quirks,
 parser quirks, and the engineering of agent sub-task specifications. Consulted
@@ -628,18 +642,6 @@ frictions the three phases above describe. The closing growth is the tool-lesson
 alone: through the superposition follow-on it is Lean idioms that accumulate, not new
 strategy, so the file tracks the novelty of the tactical terrain crossed rather than the
 size of the proof obligation.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{lessons_cumulative.png}
-\caption{From the case study of Section~\ref{sec:casestudy}: named strategies present in the
-standing instruction file $\mathcal{G}$ across its $36$ revisions, by series (L/P/M/B). The
-staircase shape --- flats punctuated by jumps at specific failures --- is the signature of
-strategies earned rather than designed. The total grows $4\to34$; the four-series taxonomy
-crystallizes in one revision, and the process (P) series jumps by four in the aftermath of
-the cascade frictions of Section~\ref{sec:phases}.}
-\label{fig:lessons}
-\end{figure}
 
 % ============================================================================
 \section{The Dobrushin derivation, formalized}\label{sec:casestudy}
@@ -1198,6 +1200,7 @@ primary intent. Roughly one in seven is pure meta-knowledge capture (discipline 
 itself.}
 \label{fig:taxonomy}
 \end{figure}
+\FloatBarrier
 
 \subsection{What generalizes}
 
