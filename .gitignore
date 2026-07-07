@@ -6,3 +6,7 @@
 
 # Claude Code local settings (not project-wide)
 .claude/settings.local.json
+
+# Personal writing style guide (not project-wide)
+STYLE.md
+
