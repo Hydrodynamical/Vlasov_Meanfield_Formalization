@@ -88,8 +88,6 @@ one game, not as general laws.
 \section{Introduction}
 % ============================================================================
 
-We begin with what a proof assistant is, and why one might care.
-
 A proof on paper is an argument that asks a reader to be convinced. A proof in a
 formal proof assistant is a different kind of object: one the computer checks. The
 definitions, the theorem, and the proof are written in a formal language, and the
@@ -143,13 +141,12 @@ decisions are the mathematician's is not incidental --- the judgment behind them
 accumulates, in a standing guidance file built as play proceeds
 (Section~\ref{sec:strategies}).
 
-\paragraph{Where this sits.}
+\subsection{Where this sits}
 This work borders three recent lines: the end-to-end formalization of known-hard
 results, the autonomous proof-search agents, and first-hand methodological accounts
 of AI-assisted mathematics.
 
-\paragraph{Formalizing research mathematics end to end.}
-This work sits in the now-established tradition of formalizing a substantial,
+The first is the now-established tradition of formalizing a substantial,
 known-hard mathematical result end to end in Lean: the Liquid Tensor Experiment
 \cite{LTE}, the polynomial Freiman--Ruzsa theorem \cite{PFR}, Carleson's theorem
 on the convergence of Fourier series \cite{Carleson}, and the sphere-eversion
@@ -162,7 +159,6 @@ work is squarely in that lineage; what sets it apart is making the \emph{strateg
 of the human direction explicit --- naming, phase by phase, what the mathematician
 is doing.
 
-\paragraph{Autonomous agents for formal mathematics.}
 A parallel and recent line is \emph{autonomous}. AlphaProof \cite{AlphaProof}
 couples reinforcement learning with Lean and reached silver-medal performance at
 the International Mathematical Olympiad; its agentic successor
@@ -189,7 +185,6 @@ built to catch --- a renamed \lean{sorry}, a hallucinated lemma cited as settled
 documented by the systems' own authors \cite{AlphaProofNexus} --- which the
 axiom-footprint check (Definition~\ref{def:win}) rejects.
 
-\paragraph{Methodology, and the closest companions.}
 Closest to this paper are first-hand methodological accounts of AI-assisted
 research mathematics. Ilin \cite{IlinVML} semi-autonomously formalized a
 Vlasov--Maxwell--Landau \emph{equilibrium} in Lean~4 under a single supervising
@@ -214,7 +209,7 @@ paper is a concrete response. What distinguishes the present work against this
 backdrop is the target it runs on --- a research-grade \emph{dynamical} result
 carried end to end, rather than short problems or a static equilibrium.
 
-\paragraph{The derivation, and why this one.}
+\subsection{The derivation, and why this one}
 Derivations of this kind come in a range of difficulty, set by how rough the force
 between particles is. Where the force is smooth, the passage to the limiting
 equation is classical, going back to Dobrushin \cite{Dobrushin} and the
@@ -230,7 +225,6 @@ offer there is a place to check such arguments as they are found, catching a
 regularity assumption used where it does not hold. The library amplifies the
 mathematician; it does not stand in for the mathematics.
 
-\paragraph{Why this derivation is worth formalizing.}
 We took it less for any one theorem than as a faithful representative of its kind:
 its stages --- the empirical distribution of the particles, a notion of distance
 between such distributions, the flow that moves them, and the equation they satisfy
@@ -240,7 +234,6 @@ probability distributions and the flows that move them. To our knowledge no prio
 formalization had assembled it; this is the self-contained layer of
 Definition~\ref{def:selfcontained}, and the lasting artifact of the exercise.
 
-\paragraph{The framing.}
 We describe the activity as a game because the framing is exact, not decorative.
 There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
 win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grade
@@ -250,8 +243,8 @@ the endgame. The game is a \emph{lens}; the body of the paper runs the derivatio
 and reads each of its stages as a phase of play, while the mathematics carries the
 weight.
 
-\paragraph{What we formalize.}\label{sec:statements}
-The passage from the motion of many interacting particles to the equation governing their average is the object we made precise. The
+\subsection{What we formalize}\label{sec:statements}
+We now make that passage precise. The
 particles carry positions $x_i$ and velocities $v_i$ and evolve under the
 pairwise force $-\nabla W$ by Newton's equations
 \begin{equation}\label{eqn:Newton-Intro}
@@ -368,7 +361,6 @@ superposition principle, and it costs one degree of regularity beyond Assumption
   notions coincide on every forward window.
 \end{theorem}
 
-\paragraph{Outline.}
 This introduction has stated the two guarantees --- the win condition and the
 reusability grade --- set down in mathematics
 exactly what we formalized, and placed the work among its neighbors; the rest of
