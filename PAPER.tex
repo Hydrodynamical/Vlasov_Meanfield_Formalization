@@ -1256,7 +1256,7 @@ assumption classes \leanlink{AssW} and \leanlink{AssW2} and the weak-solution pr
 \leanlink{IsVlasovSolution} appear in the body (Sections~\ref{ssec:newton-to-weak}
 and~\ref{ssec:superposition}), where their exact form is part of the argument.
 
-\paragraph{Lagrangian solution (Definition~\ref{def:Lagrangian}).}
+\noindent The \emph{Lagrangian solution} predicate (Definition~\ref{def:Lagrangian}):
 \begin{leancode}
 def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) : Prop :=
@@ -1267,7 +1267,7 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
 \end{leancode}
 
-\paragraph{Global well-posedness (Theorem~\ref{thm:wp}).}
+\noindent \emph{Global well-posedness} and its per-window uniqueness (Theorem~\ref{thm:wp}):
 \begin{leancode}
 theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -1289,7 +1289,7 @@ theorem vlasovWellPosedness_uniqueness (W : PhysSpace d → ℝ) [AssW W]
     : ∀ t ∈ Set.Icc (0:ℝ) T, f t = g t
 \end{leancode}
 
-\paragraph{Dobrushin stability (Theorem~\ref{thm:dob}).}
+\noindent \emph{Dobrushin stability} (Theorem~\ref{thm:dob}):
 \begin{leancode}
 theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -1304,7 +1304,7 @@ theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
         ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
 \end{leancode}
 
-\paragraph{Mean-field limit (Corollary~\ref{cor:mfl}).}
+\noindent The \emph{mean-field limit} (Corollary~\ref{cor:mfl}):
 \begin{leancode}
 theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL …)
     (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
@@ -1320,7 +1320,7 @@ theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL �
       wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
 \end{leancode}
 
-\paragraph{Superposition principle (Theorem~\ref{thm:superposition}).}
+\noindent The \emph{superposition principle} (Theorem~\ref{thm:superposition}):
 \begin{leancode}
 theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
@@ -1333,13 +1333,13 @@ theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
 \section{The standing instruction file: one lesson per series, verbatim}\label{app:claudemd}
 % ============================================================================
 
-The strategy framework of Section~\ref{sec:strategies} is summarized there but
+The strategy framework is summarized in Section~\ref{sec:strategies} but
 lives, in full, in the project's \lean{CLAUDE.md}. One entry from each of the four
 series, lightly abridged, shows the form: each names a failure mode, its fix, and
 the generalization that makes it reusable, and each was \emph{earned} from a
 specific failure during the game.
 
-\paragraph{An L-series (Lean-idiom) lesson.}
+\noindent An \emph{L-series} (Lean-idiom) lesson:
 \begin{leancode}
 ### L10. `ring` requires `CommRing`; additive-group goals are `abel` territory
 
@@ -1357,7 +1357,7 @@ type-check "is this a CommRing?"  If not — and for phase-space differences it 
 is — go straight to `abel`.  Avoids the build-fail-then-fix loop.
 \end{leancode}
 
-\paragraph{A P-series (process) lesson.}
+\noindent A \emph{P-series} (process) lesson:
 \begin{leancode}
 ### P10. Build-permits vs. audit-certifies — a green build permits many stories
 
@@ -1373,7 +1373,7 @@ certify it "complete" on a green build alone.  The certifying instrument is
 Green build is a precondition, not a proof.
 \end{leancode}
 
-\paragraph{An M-series (mathematical-structure) lesson.}
+\noindent An \emph{M-series} (mathematical-structure) lesson:
 \begin{leancode}
 ### M3/M4. Artifact smallness-constraints dissolve under the moving boundary
 
@@ -1394,7 +1394,7 @@ for large L.  Certify by instantiating the formerly forbidden value and confirmi
 it typechecks, not by a green build with the binder gone.
 \end{leancode}
 
-\paragraph{A B-series (bridging-architecture) lesson.}
+\noindent A \emph{B-series} (bridging-architecture) lesson:
 \begin{leancode}
 ### B3. Conjunct shape: bounded below by the consumer, above by the producers
 
