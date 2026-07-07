@@ -77,8 +77,8 @@ machinery the derivation forced us to build (a finite Kantorovich duality, a
 coupling-gluing construction) separates into a self-contained layer
 (Definition~\ref{def:selfcontained}) that compiles against Mathlib alone: about a
 sixth of the development ($49$ of $299$ declarations), behind a $22$-declaration
-interface with no reverse dependency. The marquee ran in about a week, the full
-development in about a month. We report the quantitative claims as observations of
+interface with no reverse dependency. The headline theorems ran in about a week, the
+full development in about a month. We report the quantitative claims as observations of
 one game, not as general laws.
 \end{abstract}
 
@@ -105,10 +105,10 @@ that do not yet exist. This is what has kept formal proof a specialist's craft
 rather than an everyday tool.
 
 Two things have recently changed: AI systems can now write Lean proofs, and they
-can write them quickly. This raises the real possibility that formalization might
+can write them quickly. This raises the possibility that formalization can
 keep pace with ordinary mathematical work. That speed sharpens two questions about what the machine produces: whether one can
 trust proofs one did not write, and whether anyone can use what is left behind. This
-paper makes both machine-checkable. Trust is answered by a \emph{win condition} --- the
+paper turns both into machine checks. Trust is answered by a \emph{win condition} --- the
 development compiles, contains no \lean{sorry}, and depends on Lean's foundational
 axioms alone --- which certifies a proof relative to its statement, leaving
 statement-faithfulness with the mathematician. Reuse is answered by a
@@ -121,8 +121,7 @@ and~\ref{def:selfcontained}); the case study is read through them.
 We put both to the test by doing the work and reporting what it required. We
 formalized a genuine result from kinetic theory --- Dobrushin's derivation of the
 Vlasov equation, a classical passage from the motion of many interacting particles to
-the equation governing their average --- in Lean, over about a month (the
-well-posedness and stability marquee in about a week). We did not write the Lean
+the equation governing their average --- in Lean, over about a month. We did not write the Lean
 ourselves: a human mathematician directed an AI system, which wrote the proofs, while
 the mathematician decided what to prove, how to cut each hard theorem into reachable
 pieces, and when to abandon a line that was not working.
@@ -131,12 +130,12 @@ Both guarantees are met here, and the case study is where one sees what each doe
 does not cover. The win condition is discharged by the machine: \printaxioms{} reports
 the target theorems depend on Lean's foundations alone. What it cannot supply is the
 other half --- that each statement says what was meant --- and the case study marks
-where the mathematician supplied it: routing the central estimate through the coupling
-cost to avoid an attainment theorem the library lacks, and spending one degree of
-regularity to make a uniqueness argument go through, are decisions the mathematician
-made and the AI executed. The reusability grade is met in turn: the general mathematics
-the argument forced us to build separates into a self-contained layer
-(Section~\ref{ssec:reuse}) the ambient library could absorb. That the marked
+where the mathematician supplied it. Two decisions carry the mark: routing the central
+estimate through the coupling cost to avoid an attainment theorem the library lacks, and
+spending one degree of regularity to make a uniqueness argument go through --- both the
+mathematician's, both executed by the AI. The reusability grade is met in turn: the general mathematics
+the argument demanded separates into a self-contained layer
+(Section~\ref{ssec:reuse}) fit for the ambient library. That the marked
 decisions are the mathematician's is not incidental --- the judgment behind them
 accumulates, in a standing guidance file built as play proceeds
 (Section~\ref{sec:strategies}).
@@ -180,10 +179,9 @@ target: even where the underlying mathematics is substantial, as in the
 primitive-sets work, the formal artifacts are \emph{isolated} statements, each
 checked on its own, rather than \emph{one} interlocking result carried end to end,
 where much of the difficulty lives in the shared infrastructure binding the
-theorems together. The autonomous systems also exhibit exactly the failure mode the win condition is
-built to catch --- a renamed \lean{sorry}, a hallucinated lemma cited as settled,
-documented by the systems' own authors \cite{AlphaProofNexus} --- which the
-axiom-footprint check (Definition~\ref{def:win}) rejects.
+theorems together. The autonomous systems also exhibit exactly the failure mode the win condition
+(Definition~\ref{def:win}) is built to catch --- a renamed \lean{sorry}, a hallucinated
+lemma cited as settled --- documented by the systems' own authors \cite{AlphaProofNexus}.
 
 Closest to this paper are first-hand methodological accounts of AI-assisted
 research mathematics. Ilin \cite{IlinVML} semi-autonomously formalized a
@@ -201,7 +199,7 @@ human supervision. Their account, like ours, locates the decisive human
 contributions in detailed proof blueprints, careful interface design, and
 validation against the checked artifact.
 The ``Agentic Researcher'' guide of Zimmer et al.\
-\cite{AgenticResearcher} gives end-to-end agentic-research guidance with norms
+\cite{AgenticResearcher} gives agentic-research guidance with norms
 encoded as prompt ``commandments,'' a close parallel to our standing-instruction
 file; and Avigad \cite{Avigad} argues that mathematicians should actively deploy
 and shape these tools rather than merely react to them --- a call to which this
@@ -276,7 +274,7 @@ the optimal-transport layer.}
 \label{fig:depgraph}
 \end{figure}
 
-We now state the first regularity assumption for the interaction potential $W$.
+The standing assumption, in force throughout, concerns the regularity of the interaction potential.
 
 \begin{assumption}[\leanlink{AssW}]\label{ass:1}
   Let $W: \R^d \rightarrow \R$ be an even function that is $C^{1,1}$, with a globally Lipschitz gradient of constant $L := \mathrm{Lip}(\nabla W)$. 
@@ -285,13 +283,13 @@ We now state the first regularity assumption for the interaction potential $W$.
 Write $\mathcal{P}_1(\R^d\times\R^d)$ for the Borel probability measures $\mu$ on phase space with finite first moment, $\int_{\R^d\times\R^d}(|x|+|v|)\,d\mu(x,v)<\infty$; in Lean this is the predicate \lean{HasFiniteFirstMoment}. A solution of \eqref{eqn:Vlasov-Intro} comes in two forms, and we begin with the \emph{weak} (Eulerian) one. Each notion below is a property of the whole curve $t\mapsto f_t$; its \emph{initial datum} is the value $f(0)$, pinned to a prescribed $f_0$ only when we solve the Cauchy problem (Theorem~\ref{thm:wp}).
 
 \begin{definition}[\leanlink{IsVlasovSolution}]\label{def:weak-Vlasov}
-  Fix $T>0$. A \emph{weak} solution of \eqref{eqn:Vlasov-Intro} on $[0,T]$ is any $f : [0,T] \rightarrow \mathcal{P}_1(\R^d \times \R^d)$ which is narrowly continuous in time (continuous against bounded continuous test functions) and satisfies, for all $\varphi\in \mathcal{C}^\infty_c(\R^{d}\times \R^d)$:
+  A \emph{weak} solution of \eqref{eqn:Vlasov-Intro} on $[0,T]$, $T>0$, is any $f : [0,T] \rightarrow \mathcal{P}_1(\R^d \times \R^d)$ which is narrowly continuous in time (continuous against bounded continuous test functions) and satisfies, for all $\varphi\in \mathcal{C}^\infty_c(\R^{d}\times \R^d)$:
   \begin{itemize}
     \item The map $t\mapsto \langle f_t , \varphi\rangle$ is differentiable, and 
     \item The derivative satisfies 
     \begin{equation*}
       \frac{d}{dt}\langle f_t,\varphi\rangle = \langle f_t,\, v\cdot\nabla_x\varphi -
-(\nabla W * \rho_t)\cdot\nabla_v\varphi\rangle
+(\nabla W * \rho_t)\cdot\nabla_v\varphi\rangle .
     \end{equation*}
   \end{itemize}
 \end{definition}
@@ -316,7 +314,7 @@ is Lagrangian --- is the substantive direction: the classical superposition prin
 holds under the strengthened assumption $\mathrm{AssW2}$ introduced below, and under it the two
 notions coincide; we prove it in Section~\ref{ssec:superposition}.
 
-We can now phrase existence and uniqueness for \eqref{eqn:Vlasov-Intro}. The full formal Lean statement of each result below is collected in Appendix~\ref{app:formal}; here we give the mathematics.
+The full formal Lean statement of each result below is collected in Appendix~\ref{app:formal}; here we give the mathematics.
 
 \begin{theorem}[Global well-posedness, \leanlink{vlasovWellPosedness}]\label{thm:wp}
   Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. The forward
@@ -328,7 +326,7 @@ We can now phrase existence and uniqueness for \eqref{eqn:Vlasov-Intro}. The ful
 \end{theorem}
 \noindent The single global curve is \leanlink{vlasovWellPosedness}; per-window uniqueness in the
 class of Definition~\ref{def:Lagrangian} is \leanlink{vlasovWellPosedness\_uniqueness}, a separate
-statement. It is obtained for $L>0$ from the stability estimate below; the degenerate $L=0$ case
+statement. It follows for $L>0$ from the stability estimate below; the degenerate $L=0$ case
 (constant force) is explicit, so uniqueness holds at every $L$.
 
 Solutions depend stably on their data. The relevant distance is the Wasserstein-1
@@ -337,7 +335,7 @@ test functions, primally an infimum over couplings, the two equal by Kantorovich
 duality \cite{Villani,AGS}.
 \begin{theorem}[Dobrushin stability \cite{Dobrushin}, \leanlink{dobrushin}]\label{thm:dob}
   Let $W$ satisfy Assumption~\ref{ass:1}. Any two Lagrangian solutions $f,g$ with
-  finite-first-moment data are stable in $\Wone$ at an exponential rate,
+  finite first moment at every time are stable in $\Wone$ at an exponential rate,
   \[ \Wone(f_t,g_t)\;\le\; e^{Ct}\,\Wone(f_0,g_0),\qquad t\ge 0,\quad C=C(L). \]
 \end{theorem}
 
@@ -356,8 +354,9 @@ superposition principle, and it costs one degree of regularity beyond Assumption
   In addition to Assumption~\ref{ass:1}, let $\nabla W \in C^1$ (equivalently $W \in C^2$).
 \end{assumption}
 \begin{theorem}[Superposition principle, \leanlink{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
-  Under Assumption~\ref{ass:2}, every weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ with
-  finite-first-moment initial datum $f(0)$ is Lagrangian on $[0,T]$; hence the weak and Lagrangian
+  Under Assumption~\ref{ass:2} --- together with force-field regularity hypotheses recorded in
+  Appendix~\ref{app:formal} --- every weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ with
+  finite first moment at every $t\in[0,T]$ is Lagrangian on $[0,T]$; hence the weak and Lagrangian
   notions coincide on every forward window.
 \end{theorem}
 
@@ -387,13 +386,13 @@ seminars and discussions.
 
 \subsection{Objective, win condition, reusability grade}
 
-The \emph{formalization game} is played on three objects: a source mathematics document $\mathcal{T}$ (a \LaTeX{} paper), a
-Lean~4 development $\mathcal{L}$ under construction, and a standing instruction
-file $\mathcal{G}$ governing the agent's behavior. A distinguished set of
-\emph{target theorems} $\Theta \subseteq \mathcal{L}$ encodes the main results of
-$\mathcal{T}$, and the human and the agent alternate moves that edit $\mathcal{L}$
-and $\mathcal{G}$. The substance is not in this setup but in the win condition and
-its reusability grade.
+The substance of the \emph{formalization game} is its win condition and its
+reusability grade. It is played on three objects: a source mathematics document (a
+\LaTeX{} paper), a Lean~4 development $\mathcal{L}$ under construction, and a
+standing instruction file $\mathcal{G}$ governing the agent's behavior. A
+distinguished set of \emph{target theorems} $\Theta \subseteq \mathcal{L}$ encodes
+the main results of the source, and the human and the agent alternate moves that
+edit $\mathcal{L}$ and $\mathcal{G}$.
 
 \begin{definition}[Win condition]\label{def:win}
 The game is \emph{won} when:
@@ -418,7 +417,7 @@ certify that the statement says what was meant. That second responsibility,
 statement-faithfulness, is the human's, discharged in the early game through
 definitional scoping and atom-level signature reading.
 
-We operationalize reusability as the existence of a \emph{self-contained layer}: a
+We define reusability as the existence of a \emph{self-contained layer}: a
 subset of the development the ambient library could absorb with no trace of the
 problem it came from, graded pass/fail by checks the library defines, not us.
 
@@ -455,8 +454,8 @@ sense, and distinguish it from demonstrated \emph{reuse}, which we do not assert
 \end{definition}
 
 In the case
-study, $\mathcal{L}_{\mathrm{gen}}$ is the optimal-transport machinery the
-derivation forced us to build --- the Wasserstein-1 metric in both faces, the
+study, $\mathcal{L}_{\mathrm{gen}}$ is the optimal-transport machinery built for the
+derivation --- the Wasserstein-1 metric in both faces, the
 Kantorovich--Rubinstein bridge between them, a finite Kantorovich duality, and the
 coupling-gluing triangle inequality (Table~\ref{tab:lgen}). It passes all four checks;
 the numbers --- interface width, layer size, and the reverse-edge count --- are reported
@@ -492,8 +491,8 @@ the game.
 \subsection{The three phases}\label{sec:phases}
 
 \subsubsection{Early game: definitional scoping}
-In the early game the player translates the target theorems of $\mathcal{T}$ into
-Lean \emph{statements}, proofs left as \lean{sorry}. The difficulty is not the
+In the early game the player translates the source's target theorems into Lean
+\emph{statements}, proofs left as \lean{sorry}. The difficulty is not the
 statements but the \emph{definitions} they quantify over: every later move builds
 on them, so a definition that bakes in the wrong hypothesis, metric, or regularity
 class propagates its error through the whole development and is most expensive to
@@ -573,8 +572,9 @@ token after stripping Lean line- and block-comments --- the word appears constan
 prose and docstrings, so an unstripped count is meaningless; the count reaching $0$ at the
 final commit, where the build is independently known clean, validates the strip. The
 production library is the Lean package source, excluding the throwaway development scratch
-file. The commit classification is a heuristic over commit-message intent.} Three series
-read off that record turn the claims of this section and the next into data. The first is
+file. The commit classification is a heuristic over commit-message intent.}
+
+Three series, read off that record, turn the claims of this section and the next into data. The first is
 the \lean{sorry} front: Figure~\ref{fig:sorry} plots the live count per source file, and
 the three-phase rhythm is visible in it directly. Open goals stay concentrated in a single
 \emph{active leaf} --- one production file at a time carries the bulk of the \lean{sorry}s,
@@ -638,9 +638,8 @@ experience in a form the agent can consult, amortizing the human's judgment acro
 the thousands of moves the agent makes.
 
 \medskip\noindent
-The second series read off the commit record shows this accumulation as data.
-Figure~\ref{fig:lessons} plots the count of named strategies in $\mathcal{G}$ across its
-$36$ revisions, split by series. The curve is a staircase --- long flats punctuated by jumps
+The second series shows this accumulation as data: Figure~\ref{fig:lessons} plots the
+count of named strategies in $\mathcal{G}$ across its $36$ revisions, split by series. The curve is a staircase --- long flats punctuated by jumps
 where a failure occurred and was distilled into a rule --- the visual signature of
 strategies \emph{earned} rather than designed; the total grows from $4$ to $34$. Two
 landmarks are legible: the four-series taxonomy crystallizes in a single revision (before
@@ -697,12 +696,8 @@ type class \lean{AssW}): continuously differentiable, even, with globally Lipsch
 gradient of constant $L:=\mathrm{Lip}(\nabla W)$. The $1/N$ coupling holds the
 kinetic and interaction energies at the same order as $N\to\infty$, and the bridge
 to the kinetic picture is the \emph{empirical measure}
-$\mu^N := \tfrac1N\sum_i\delta_{(x_i,v_i)}$, a probability measure on phase space
-$\mathbb{X}=\R^d\times\R^d$ (the Lean \lean{PhaseSpace d}):
-\begin{leancode}
-noncomputable def empiricalMeasure (N : ℕ) (X V : Fin N → PhysSpace d) :
-    Measure (PhaseSpace d)            -- μᴺ = (1/N) Σᵢ δ_(Xᵢ, Vᵢ)
-\end{leancode}
+$\mu^N := \tfrac1N\sum_i\delta_{(x_i,v_i)}$, a probability measure on the phase space
+$\R^d\times\R^d$ --- in Lean, \lean{empiricalMeasure} on \lean{PhaseSpace d}.
 
 Getting the solution concept right is the opening's whole task, and the empirical
 measure rewards it with an exactness an informal account would miss. Differentiating
@@ -963,7 +958,7 @@ measures converge,
 the separate corollary \lean{meanFieldLimit} (Corollary~\ref{cor:mfl}), obtained by taking $g$ to be the $N$-particle empirical measure
 and letting $N\to\infty$.
 
-One conjectured foundation dissolved rather than got built. The development first carried a
+One conjectured foundation dissolved rather than being built. The development first carried a
 metrization theorem relating narrow convergence and $\Wone$ as an external gap; its single
 consumer needed only the easy lower-semicontinuity direction (Villani's, with moment control
 \cite{Villani}), a short lemma from the dual representation. Recognizing the full metrization
@@ -989,7 +984,7 @@ definition that decides everything is the regularity class of the potential. Rec
 transported by its own characteristic flow, its flow witness sitting beside the
 weak-PDE conjunct; it is weak by that conjunct, and the substantive converse is the
 superposition principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
-Under $\mathrm{AssW2}$, every weak solution with finite-first-moment datum is Lagrangian
+Under $\mathrm{AssW2}$, every weak solution with finite first moments is Lagrangian
 (Theorem~\ref{thm:superposition}) --- transported by the characteristic flow it
 generates --- so the weak and Lagrangian notions coincide, and the unique solution of
 Theorem~\ref{thm:wp} is a pushforward of its datum along its flow. It costs exactly one degree of
@@ -1015,7 +1010,9 @@ for the pushforward along the flow frozen at $\rho_t$, both $f$ and $g$ solve th
 same linear equation with the same datum, so $f=g$. That linear uniqueness is proved
 by the \emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
 constant along characteristics --- and for $\psi(s,\cdot)$ to be an admissible $C^1$
-test function the flow $\Phi$ must be $C^1$ in its initial point $z$. That single
+test function the flow $\Phi$ must be $C^1$ in its initial point $z$.
+
+That single
 requirement is exactly what $\mathrm{AssW2}$ buys and $\mathrm{AssW}$ does not: with
 $\nabla W\in C^1$ one has $\nabla W*\rho_t\in C^1$ and
 $\|D(\nabla W*\rho_t)\|_\infty\le L$, so $b_f$ is $C^1$ in $z$ and the flow inherits
@@ -1074,7 +1071,9 @@ layer (Definition~\ref{def:selfcontained}). We take the layer to be the
 target theorem's proof path. General infrastructure we built but did not use --- a
 deferred truncated-metric regime and a few lemmas a refactor superseded --- is
 excluded by definition; a reusable layer should be what the development used, not
-everything general we happened to build. The cut, read off the declaration-level
+everything general we happened to build.
+
+The cut, read off the declaration-level
 dependency graph in the proof assistant's elaboration environment, is
 one-directional: the development outside the layer reaches it through a
 $22$-declaration interface --- the Wasserstein-1 and transport-cost API, the
@@ -1182,7 +1181,7 @@ triaged the library gaps, and accumulated the strategy taxonomy; the agent execu
 proofs, ran the builds, and handled the mechanical sub-tasks.
 
 The commit record measures the
-split. Figure~\ref{fig:taxonomy} classifies all $362$ commits by primary intent: just under
+split. Figure~\ref{fig:taxonomy}, the third series, classifies all $362$ commits by primary intent: just under
 three-quarters are core proof work, but roughly one commit in seven is pure meta-knowledge
 capture --- editing the standing instruction file, recording a strategy, auditing the
 discipline --- a direct measure of the meta-learning loop of Section~\ref{sec:strategies},
@@ -1221,7 +1220,7 @@ the M-series carries analysis-flavored principles likely to recur in PDE
 formalization, and the L-series is the most tool-specific and the likeliest to age
 with the proof assistant.
 
-\subsection{Limitations and honest caveats}
+\subsection{Limitations}
 
 The reusability grade (Definition~\ref{def:selfcontained}) is a pass/fail
 certificate rather than a number, and we have applied it to a single development;
@@ -1262,7 +1261,10 @@ Marking that boundary is itself part of the discipline the win condition enforce
 % ============================================================================
 
 The marquee results are stated as mathematics in the introduction
-(Section~\ref{sec:statements}); their verbatim Lean signatures are collected here. The
+(Section~\ref{sec:statements}); their verbatim Lean signatures are collected here. An
+ellipsis (\lean{…}) marks elided technical hypotheses, each annotated in an adjacent
+comment; in particular, \lean{meanFieldLimit} takes the Dobrushin stability constant for
+the empirical curves as an explicit hypothesis. The
 assumption classes \leanlink{AssW} and \leanlink{AssW2} and the weak-solution predicate
 \leanlink{IsVlasovSolution} appear in the body (Sections~\ref{ssec:newton-to-weak}
 and~\ref{ssec:superposition}), where their exact form is part of the argument.
