@@ -674,7 +674,7 @@ mathematical order --- get the objects right, build the distance, run the dynami
 core, reconcile the two solution notions, extract the layer; one subsection each ---
 and at each stage marks the two things the finished proof hides: where the
 mathematics was genuinely hard, and who unlocked it. The answer differs by stage ---
-a human read, agent throughput, a human decomposition, both at once --- and that
+a human read, human-steered agent throughput, a human decomposition, both at once --- and that
 spread, visible in the derivation rather than asserted about it, is the division of
 labor. One proof is given in full rather than sketched: the coupling argument of
 Section~\ref{ssec:dynamical-core}, where the optimal-transport machinery is spent.
@@ -715,24 +715,19 @@ to the kinetic picture is the \emph{empirical measure}
 $\mu^N := \tfrac1N\sum_i\delta_{(x_i,v_i)}$, a probability measure on the phase space
 $\R^d\times\R^d$ --- in Lean, \lean{empiricalMeasure} on \lean{PhaseSpace d}.
 
-Getting the solution concept right is the opening's whole task, and the empirical
-measure rewards it with an exactness an informal account would miss. Differentiating
-$\langle\mu^N_t,\varphi\rangle$ along the Newton flow and completing the interaction
-sum by \emph{adding and subtracting the diagonal} $i=j$ produces the convolution
-$(\nabla W*\rho^N_t)$ against the spatial marginal, plus a leftover diagonal
-remainder $R_N$ with
-$|R_N|\le\tfrac1N\,\|\nabla W\|_\infty\,\|\nabla_v\varphi\|_\infty$.
-The evenness of $W$ (part of \lean{AssW}) forces $\nabla W(0)=0$, so $R_N\equiv0$:
-the empirical measure solves the Vlasov weak equation \emph{exactly}, not merely to
-$O(1/N)$. The formalization is what makes this honest. Where an informal derivation
-may drop the diagonal as negligible, the win condition forbids discarding a
-remainder silently: the statement (\leanlink{weakEvolutionEmpiricalMeasure}) is
-forced to \emph{return} $R_N$ explicitly, its value and bound as conjuncts, and only
-then does evenness collapse it --- the corollary
-\leanlink{empiricalMeasureSolvesVlasov}, the empirical measure as a genuine
-distributional Vlasov solution.
+The mathematics of the opening is standard bookkeeping --- and, fittingly, among the
+first sorries the agent closed. Differentiating $\langle\mu^N_t,\varphi\rangle$
+along the Newton flow and \emph{adding and subtracting the diagonal} $i=j$ produces
+the convolution against the spatial marginal plus a diagonal remainder, which the
+evenness of $W$ (part of \lean{AssW}) kills: $\nabla W(0)=0$, so the empirical
+measure solves the weak equation \emph{exactly}, not merely to $O(1/N)$. Even here
+the win condition leaves a mark --- a remainder may not be discarded silently, so
+the statement (\leanlink{weakEvolutionEmpiricalMeasure}) returns it explicitly, its
+value and bound as conjuncts, and evenness collapses it in the corollary
+\leanlink{empiricalMeasureSolvesVlasov}.
 
-The weak-solution predicate quantifies over the $C^\infty$ compactly supported test
+What was not routine is the definition the theorem quantifies over. The
+weak-solution predicate ranges over the $C^\infty$ compactly supported test
 functions:
 \begin{leancode}
 def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
@@ -743,19 +738,24 @@ def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
       WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
 \end{leancode}
-Pinning that class down was an opening fix --- and the clearest instance in the
-development of the boundary Definition~\ref{def:win} draws. A library upgrade had
-silently redefined \lean{ContDiff ℝ ⊤} to mean \emph{real-analytic}; a nonzero
-real-analytic function cannot have compact support, so the test class had quietly
-collapsed to $\{0\}$ and the weak-solution hypothesis was \emph{vacuously} true. The
-build stayed green throughout: the axiom footprint certifies a proof relative to its
-statement, and cannot see that the statement had become empty. A thirty-second
-\lean{\#check} caught the collapse, and the fix (\lean{ContDiff ℝ (⊤ : ℕ∞)}, the
-$C^\infty$ element written above) restored the class at twelve sites.
+Its first version was \emph{definitionally wrong}, in a way that collapsed every
+statement quantifying over it to a triviality. The error was ours, and it is the
+early game's own point: getting a definition right at the start is hard, and the
+wrong version typechecks. In the Mathlib we build against, the top exponent in
+\lean{ContDiff ℝ ⊤} means \emph{real-analytic}, not $C^\infty$ (the meaning of
+$\top$ had changed earlier in the library's history; the stale idiom still
+compiles); a nonzero real-analytic function cannot have compact support, so the
+test class had quietly collapsed to $\{0\}$ and the weak-solution hypothesis was
+\emph{vacuously} true. The build stayed green throughout: the axiom footprint
+certifies a proof relative to its statement, and cannot see that the statement had
+become empty. A thirty-second \lean{\#check} caught the collapse, and the fix
+(\lean{ContDiff ℝ (⊤ : ℕ∞)}, the $C^\infty$ element written above) restored the
+class at twelve sites --- the clearest instance in the development of the boundary
+Definition~\ref{def:win} draws.
 
 \subsection{Wasserstein-1, in two faces}\label{ssec:wasserstein}
 
-\noindent\emph{Hard: the bridge between the two faces. Unlocked by: agent throughput --- no single insight.}
+\noindent\emph{Hard: the bridge between the two faces. Unlocked by: human-steered search, agent throughput.}
 
 The distance that organizes everything to follow is the Wasserstein-1 metric
 $\Wone$ (Definition~\ref{def:w1}), the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
@@ -792,22 +792,27 @@ the cost bound but that the glued measure has the \emph{correct marginals}, exac
 where a ``near-citation'' from the library hides a gap; and the hard direction of
 the duality on finitely-supported measures
 (\leanlink{wassersteinCost\_coupling\_le\_dual\_of\_finiteRange}), which the Mathlib
-version we build against (v4.29.1) does not carry. We built the latter from the
-library's Farkas lemma (conic separation) \cite{mathlib}, two compactness facts
-proved by hand (primal attainment on the transport polytope; closedness of the image
-cone), and a $c$-transform folding the dual pair into a single admissible potential
---- an \emph{inequality}, primal $\le$ dual, with no attained optimum anywhere. Two
-routes were tried and abandoned first: the Hilbert-space form of the separation
-(systemic friction with the inner-product instances on the Euclidean type; the plain
-product $\iota\to\R$ removed it), and the Birkhoff-vertex shortcut (the library's
-Birkhoff theorem is uniform-marginal; the transportation polytope here is not).
+version we build against (v4.29.1) does not carry. The duality entered the
+development as a marked, \lean{sorry}'d foundation and had to leave as the
+endgame's built gap (Section~\ref{sec:phases}): the win condition certifies nothing
+while the mark stands. The search for its proof was the mathematician's to steer.
+The natural Hilbert-space form of the separation was assigned first, ran into
+systemic friction with the inner-product instances on the Euclidean type, and was
+called off; the appealing Birkhoff-vertex shortcut was scouted and called off (the
+library's Birkhoff theorem is uniform-marginal; the transportation polytope here is
+not); the third assignment survived --- the geometric separation on the plain
+product $\iota\to\R$, assembling Mathlib's Farkas lemma (conic separation)
+\cite{mathlib} with two compactness facts proved by hand (primal attainment on the
+transport polytope; closedness of the image cone, the hypothesis Farkas consumes)
+and a $c$-transform folding the dual pair into a single admissible potential --- an
+\emph{inequality}, primal $\le$ dual, with no attained optimum anywhere.
 
-Unlike the decisions elsewhere in the derivation, this bridge turned on no single
-insight. It was throughput: some twenty-five commits assembling Farkas, the
-compactness facts, and the $c$-transform into the duality
-\leanlink{wasserstein1\_eq\_coupling} --- the single optimal-transport line
-\lean{dobrushin} consumes. The labor ran the other way --- the mathematician fixed
-the target, the agent did the sustained proof-work --- and it is the clearest case
+Unlike the stages that turned on a single decision, this bridge was won by a
+directed search plus throughput: the mathematician fixed the
+target, assigned each avenue, and called each abandonment; the agent did the
+sustained proof-work --- some twenty-five commits assembling Farkas, the compactness
+facts, and the $c$-transform into the duality \leanlink{wasserstein1\_eq\_coupling},
+the single optimal-transport line \lean{dobrushin} consumes. It is the clearest case
 in the development of the machine carrying a hard, unglamorous build to the end.
 
 \subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
@@ -1182,12 +1187,23 @@ The marquee results are stated as mathematics in the introduction
 ellipsis (\lean{…}) marks elided technical hypotheses, each annotated in an adjacent
 comment; in particular, \lean{meanFieldLimit} takes the Dobrushin stability constant for
 the empirical curves as an explicit hypothesis. The
-assumption classes \leanlink{AssW} and \leanlink{AssW2}, the weak-solution predicate
-\leanlink{IsVlasovSolution}, and the two faces of the Wasserstein-1 metric
-(\leanlink{wasserstein1}, \leanlink{wasserstein1\_coupling}, bridged by
-\leanlink{wasserstein1\_eq\_coupling}) appear in the body
-(Sections~\ref{ssec:newton-to-weak}, \ref{ssec:wasserstein},
-and~\ref{ssec:superposition}), where their exact form is part of the argument.
+assumption classes \leanlink{AssW} and \leanlink{AssW2} and the two faces of the
+Wasserstein-1 metric (\leanlink{wasserstein1}, \leanlink{wasserstein1\_coupling},
+bridged by \leanlink{wasserstein1\_eq\_coupling}) appear in the body
+(Sections~\ref{ssec:wasserstein} and~\ref{ssec:superposition}), where their exact
+form is part of the argument.
+
+\noindent The \emph{weak solution} predicate (Definition~\ref{def:weak-Vlasov}); its
+test class is the subject of Section~\ref{ssec:newton-to-weak}:
+\begin{leancode}
+def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
+    (f : ℝ → Measure (PhaseSpace d)) : Prop :=
+  ∀ φ : PhaseSpace d → ℝ, ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
+    ∀ gradXφ gradVφ : PhaseSpace d → PhysSpace d,
+      (∀ z, gradXφ z = gradient (fun x => φ (x, z.2)) z.1) →
+      (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
+      WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
+\end{leancode}
 
 \noindent The \emph{Lagrangian solution} predicate (Definition~\ref{def:Lagrangian}):
 \begin{leancode}
