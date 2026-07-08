@@ -758,29 +758,25 @@ Definition~\ref{def:win} draws.
 \noindent\emph{Hard: the bridge between the two faces. Unlocked by: human-steered search, agent throughput.}
 
 The distance that organizes everything to follow is the Wasserstein-1 metric
-$\Wone$ (Definition~\ref{def:w1}), the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
-development carries it in two faces with a bridge between them: the \emph{dual} face
-is a supremum over $1$-Lipschitz tests, the \emph{primal} face an infimum over
-couplings, and Kantorovich--Rubinstein duality equates them.
+$\Wone$ (Definition~\ref{def:w1}). The development carries it in two faces. The
+\emph{dual} face is the definition: a supremum over Lipschitz test functions,
+stated once over a general ground cost $c$ and specialized to $c=\mathrm{dist}$:
 \begin{leancode}
 def wassersteinCost (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=   -- DUAL
   ⨆ (f : α → ℝ) (_ : ∀ x y, |f x - f y| ≤ c x y),
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν)
 def wasserstein1 (μ ν : Measure α) : ENNReal :=
   wassersteinCost (fun x y => dist x y) μ ν
+\end{leancode}
+The \emph{primal} face is an infimum over couplings of $(\mu,\nu)$
+(Definition~\ref{def:w1}), and Kantorovich--Rubinstein duality equates the two
+faces at $c=\mathrm{dist}$:
+\begin{leancode}
 def wasserstein1_coupling (μ ν : Measure α) : ENNReal :=            -- PRIMAL
   ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν), ∫⁻ z, edist z.1 z.2 ∂π
 theorem wasserstein1_eq_coupling … :                               -- KR duality
     wasserstein1 μ ν = wasserstein1_coupling μ ν
 \end{leancode}
-Two opening choices about these definitions paid off later: the cost is defined
-\emph{generically} over $c$, the metric facts proved once and instantiated at
-$c=\mathrm{dist}$ for $\Wone$ and at $c=\min(\mathrm{dist},1)$ for the truncated
-variant $\Wbar$; and a coupling-cost bound takes its moment hypothesis against the
-ground cost $c$, not against $\mathrm{dist}$ --- the two coincide definitionally at
-$c=\mathrm{dist}$, so the wrong choice leaves the marquee instantiation looking fine
-while making the general lemma unprovable (the conjunct-shape lesson of
-Appendix~\ref{app:claudemd}).
 
 \medskip\noindent
 The two faces are easy to write down; the \emph{bridge} between them had to be built,
