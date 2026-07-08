@@ -67,8 +67,8 @@ could absorb.
 
 The case study is a complete, axiom-clean formalization of well-posedness for the
 Vlasov equation via Dobrushin's mean-field route --- existence, uniqueness, the
-stability estimate and mean-field limit, and the superposition principle that every
-weak solution is Lagrangian. The human's
+stability estimate and mean-field limit, and a short-window superposition principle
+(weak solutions are Lagrangian). The human's
 role is to direct, not to write proofs: to scope the definitions, decompose each hard
 theorem, and triage the library's gaps; the agent executes. The check certifies the
 proof, not that the statement says what was meant --- that judgment stays the
@@ -217,12 +217,10 @@ Braun--Hepp--Neunzert line \cite{BraunHepp,Neunzert} (with the later surveys
 \cite{Spohn,Golse}). Where the force is singular, as in gravitation or
 electrostatics, the same passage is a celebrated open problem, settled so far only
 in softened cases \cite{hauray-jabin,lazarovici-pickl,serfaty-coulomb}. We formalize the smooth
-end, and chose it deliberately: it is where a reusable library can be
-built. The singular frontier we mention only to place that choice. Closing it is a
-problem of mathematics, not of proof engineering --- the missing ingredient is new
-analysis, which no proof assistant supplies --- and the most a mature library could
-offer there is a place to check such arguments as they are found, catching a
-regularity assumption used where it does not hold. The library amplifies the
+end, and chose it deliberately: it is where a reusable library can be built. Closing
+the singular frontier is a problem of mathematics, not of proof engineering --- the
+missing ingredient is new analysis, and the most a mature library could offer there
+is a place to check such arguments as they are found. The library amplifies the
 mathematician; it does not stand in for the mathematics.
 
 We took it less for any one theorem than as a faithful representative of its kind:
@@ -234,7 +232,7 @@ probability distributions and the flows that move them. To our knowledge no prio
 formalization had assembled it; this is the self-contained layer of
 Definition~\ref{def:selfcontained}, and the lasting artifact of the exercise.
 
-We describe the activity as a \emph{formalization game} because the framing is exact, not decorative.
+We describe the activity as a \emph{formalization game} because the framing is precise enough to be load-bearing.
 There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
 win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grade
 (whether the won development yields a self-contained layer). And there are three
@@ -312,9 +310,9 @@ An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrang
 \end{definition}
 
 Every Lagrangian solution is weak, by definition. The converse --- that every weak solution
-is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. It
-holds under the strengthened assumption $\mathrm{AssW2}$ introduced below, and under it the two
-notions coincide; we prove it in Section~\ref{ssec:superposition}.
+is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. We
+prove a short-window version under the strengthened assumption $\mathrm{AssW2}$ introduced below
+(Theorem~\ref{thm:superposition}; Section~\ref{ssec:superposition}).
 
 \begin{theorem}[Global well-posedness, \leanlink{vlasovWellPosedness}]\label{thm:wp}
   Let $W$ satisfy Assumption~\ref{ass:1} and $f_0 \in \mathcal{P}_1(\R^d \times \R^d)$. The forward
@@ -357,23 +355,33 @@ $\varepsilon$-optimal.
 \noindent Applied with $g$ the empirical measure of the Newton dynamics
 \eqref{eqn:Newton-Intro}, the estimate gives the mean-field limit as a corollary.
 \begin{corollary}[Mean-field limit, \leanlink{meanFieldLimit}]\label{cor:mfl}
-  Let $f$ be the Vlasov solution with datum $f_0$, and let $\mu^N_t$ be the empirical measure of
-  $N$ particles evolving by \eqref{eqn:Newton-Intro}. If the initial empirical measures converge,
-  $\Wone(\mu^N_0,f_0)\to0$ as $N\to\infty$, then for every $T>0$
+  Let $f$ be the Vlasov solution with datum $f_0$, let $\mu^N_t$ be the empirical measure of
+  $N$ particles evolving by \eqref{eqn:Newton-Intro}, and assume the estimate of
+  Theorem~\ref{thm:dob} holds for every pair $(\mu^N,f)$ with one constant $C$. If the initial
+  empirical measures converge, $\Wone(\mu^N_0,f_0)\to0$ as $N\to\infty$, then for every $T>0$
   \[ \sup_{t\in[0,T]}\Wone(\mu^N_t,f_t)\;\xrightarrow[N\to\infty]{}\;0. \]
 \end{corollary}
+\noindent Theorem~\ref{thm:dob} supplies the assumed estimate --- each empirical curve is a
+Lagrangian solution with finite moments, and the rate $C=2\max(1,L)$ of
+Section~\ref{ssec:dynamical-core} is uniform in $N$ --- but the Lean takes it as an explicit
+hypothesis rather than re-deriving it (Appendix~\ref{app:formal}).
 
 Extending stability and uniqueness from Lagrangian solutions to \emph{all} weak solutions is the
-superposition principle, and it costs one degree of regularity beyond Assumption~\ref{ass:1}.
+superposition principle; the version we prove costs one degree of regularity beyond
+Assumption~\ref{ass:1} and runs on a short window.
 \begin{assumption}[\leanlink{AssW2}]\label{ass:2}
   In addition to Assumption~\ref{ass:1}, let $\nabla W \in C^1$ (equivalently $W \in C^2$).
 \end{assumption}
 \begin{theorem}[Superposition principle, \leanlink{weak\_isLagrangianVlasovSolutionOn}]\label{thm:superposition}
-  Under Assumption~\ref{ass:2} --- together with force-field regularity hypotheses recorded in
-  Appendix~\ref{app:formal} --- every weak solution $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ with
-  finite first moment at every $t\in[0,T]$ is Lagrangian on $[0,T]$; hence the weak and Lagrangian
-  notions coincide on every forward window.
+  Let $W$ satisfy Assumption~\ref{ass:2} and let $T>0$ satisfy $L\,T^{2}<1$. Every weak solution
+  $f:[0,T]\to\mathcal{P}_1(\R^d\times\R^d)$ whose first moments are uniformly bounded on $[0,T]$
+  and whose force field is regular --- $(\nabla W*\rho_t)(x)$ continuous in $t$ for each $x$, its
+  spatial derivative jointly continuous on $[0,T]\times\R^d$ --- is Lagrangian on $[0,T]$.
 \end{theorem}
+\noindent The hypotheses, reproduced in full in Appendix~\ref{app:formal}, are not cosmetic: the
+window is short, and the continuity hypotheses concern the solution's \emph{own} force field.
+Chaining short windows to arbitrary $T$, as the well-posedness construction does for its flow,
+is not formalized for this bridge; it is future work.
 
 This introduction has stated the two guarantees --- the win condition and the
 reusability grade --- set down in mathematics
@@ -530,13 +538,12 @@ endgame are not.
 \subsubsection{Mid game: human-judgment decomposition}
 In the mid game the player repeatedly \emph{decomposes} a sorried statement into
 smaller sorried sub-statements, each heuristically easier, until the leaves are
-within the agent's reach. The paper's central empirical claim is that
-\textbf{decomposition is the part of the loop that most demanded human judgment}:
-the agent could prove a well-specified sub-lemma, but chose poorly \emph{where} to
-cut and which of several equivalent routes the library could support ---
-acts of mathematical taste. The claim is time-stamped (\emph{this} game, system,
-and moment; decomposition is exactly the frontier systems improve at fastest), not
-a permanent division of labor. In the case study the decisive mid-game choices
+within the agent's reach. In this game, \textbf{decomposition was the part of the
+loop that most demanded human judgment}: the agent could prove a well-specified
+sub-lemma, but chose poorly \emph{where} to cut and which of several equivalent
+routes the library could support --- acts of mathematical taste. The observation is
+time-stamped (this system, this moment; decomposition is exactly the frontier
+systems improve at fastest), not a permanent division of labor. In the case study the decisive mid-game choices
 were of this kind --- which face of the distance to argue the stability estimate
 in, a call that meant returning to the source's own formulation, and which form of
 its underlying inequality the encoding could support (Section~\ref{ssec:dynamical-core}).
@@ -565,7 +572,8 @@ build} is standard mathematics the library lacks that the player formalizes from
 the primitives present --- here, a finite-dimensional duality theorem. A
 \emph{genuine gap you defer} is marked with an explicit, cited placeholder when the
 cost of building outweighs the value and the dependency is a recognized, true
-theorem.
+theorem --- here, a Polish-space completeness fact for the Wasserstein metric,
+deferred off every certified path.
 
 \begin{quote}\itshape
 The end-game risk is misclassifying: building infrastructure for a phantom, or
@@ -598,12 +606,10 @@ the three-phase rhythm is visible in it directly. Open goals stay concentrated i
 and the front migrates from the basic objects, through the characteristic-flow
 well-posedness core, to the weak-to-Lagrangian bridge, each interface locked and its goals
 driven down before the front advances: the early-game API-lock discipline made visible. The
-total never runs away --- it peaks at $24$ and returns to $0$ --- because the game is a
-sequence of bounded burndowns, not one accumulating debt. The figure also holds \emph{two}
-games, the well-posedness/stability marquee (late May into early June) and a
-superposition-principle follow-on (mid-to-late June); the flat stretch between them, at zero
-live \lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the
-grade without reopening a goal.
+total never runs away, because the game is a sequence of bounded burndowns, not one
+accumulating debt; and the flat stretch between the figure's two games, at zero live
+\lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the grade
+without reopening a goal.
 
 \begin{figure}[t]
 \centering
@@ -656,9 +662,7 @@ the thousands of moves the agent makes.
 
 \medskip\noindent
 The second series shows this accumulation as data: Figure~\ref{fig:lessons} plots the
-count of named strategies in $\mathcal{G}$ across its $36$ revisions, split by series. The curve is a staircase --- long flats punctuated by jumps
-where a failure occurred and was distilled into a rule --- the visual signature of
-strategies \emph{earned} rather than designed; the total grows from $4$ to $34$. Two
+count of named strategies in $\mathcal{G}$ across its $36$ revisions, split by series. Two
 landmarks are legible: the four-series taxonomy crystallizes in a single revision (before
 it, an undifferentiated list of tool lessons; after, all four series present), and the
 process series jumps by four rules at once, in the aftermath of exactly the cascade of
@@ -905,10 +909,10 @@ target theorems' footprint was already clean of it.
 \noindent\emph{Hard: the superposition principle. Unlocked by: both --- a human typeclass decision, an agent construction.}
 
 The construction of Section~\ref{ssec:dynamical-core} produces a solution of a
-special form --- a pushforward of the datum along the characteristic flow ---
-whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all}
-distributional solutions. The superposition principle
-(Theorem~\ref{thm:superposition}) reconciles the two, and what it turns on is, once
+special form --- a pushforward of the datum along the characteristic flow --- and
+Theorem~\ref{thm:wp}'s uniqueness lives in that Lagrangian class. Promoting it
+toward \emph{all} weak solutions is the superposition principle
+(Theorem~\ref{thm:superposition}), and what it turns on is, once
 again, a \emph{definition} --- the regularity class of the potential. It costs
 exactly one degree beyond \lean{AssW}; the two standing assumptions sit a single
 field apart:
@@ -996,12 +1000,14 @@ interface width $w$ & $22$ \\
 holds \emph{by construction} (the layer is the reachable core); generality is
 \emph{certified by} (Q2) --- a layer module cannot compile against Mathlib alone if
 it names a Vlasov object; non-redundancy is library-search \emph{evidence} (no
-\lean{exact?} hit against the pinned Mathlib), not proof.
+\lean{exact?} hit against the pinned Mathlib), not proof --- \lean{exact?} cannot
+see a semantic duplicate stated in a different form.
 
-The width $w=22$ is not minimal: it was $17$ under a broader layer definition, and
-pruning back toward that is signature-touching --- it re-triggers the full
-certification chain --- so we report the width as it stands. The size row, likewise,
-is descriptive rather than the grade (Definition~\ref{def:selfcontained}).
+The reported width is the honest one, not the smallest achievable: five superseded
+declarations sit just outside the reachable core, and the interface names they still
+use raise $w$ from a possible $17$ to $22$; pruning them is signature-touching ---
+it re-triggers the full certification chain --- so $22$ stands. The size row,
+likewise, is descriptive rather than the grade (Definition~\ref{def:selfcontained}).
 
 % ============================================================================
 \section{Assessment and outlook}\label{sec:assessment}
@@ -1051,12 +1057,11 @@ over an AI execution engine, the division Section~\ref{sec:casestudy} marked sta
 by stage.
 
 The commit record measures the
-split. Figure~\ref{fig:taxonomy}, the third series, classifies all $362$ commits by primary intent: just under
-three-quarters are core proof work, but roughly one commit in seven is pure meta-knowledge
-capture --- editing the standing instruction file, recording a strategy, auditing the
-discipline --- a direct measure of the meta-learning loop of Section~\ref{sec:strategies},
-the share of effort that goes not into proving the next lemma but into distilling
-\emph{how} it should be proved. The claim is that the division of labor, not either
+split. Figure~\ref{fig:taxonomy}, the third series, classifies all $362$ commits by primary
+intent: just under three-quarters are core proof work, but roughly one commit in seven is
+pure meta-knowledge capture --- the share of effort that goes not into proving the next
+lemma but into distilling \emph{how} it should be proved (the meta-learning loop of
+Section~\ref{sec:strategies}). The claim is that the division of labor, not either
 party alone, is what the timeframe measures; the discipline above is why the speed
 did not cost soundness.
 
@@ -1088,7 +1093,9 @@ where the rate-limiting resource is the ambient library's functional-analytic
 coverage. Of the four strategy series, the P- and B-series are domain-independent,
 the M-series carries analysis-flavored principles likely to recur in PDE
 formalization, and the L-series is the most tool-specific and the likeliest to age
-with the proof assistant.
+with the proof assistant. The transferable artifact is Appendix~\ref{app:claudemd}:
+one verbatim lesson per series, liftable into another project's standing
+instructions.
 
 \subsection{Limitations}
 
@@ -1128,9 +1135,9 @@ is proved.
 
 The marquee results are stated as mathematics in the introduction
 (Section~\ref{sec:statements}); their verbatim Lean signatures are collected here. An
-ellipsis (\lean{…}) marks elided technical hypotheses, each annotated in an adjacent
-comment; in particular, \lean{meanFieldLimit} takes the Dobrushin stability constant for
-the empirical curves as an explicit hypothesis. The
+ellipsis (\lean{…}) marks an elided standard binder or technical hypothesis, annotated
+in an adjacent comment; the superposition principle's hypotheses are reproduced
+complete. The
 assumption classes \leanlink{AssW} and \leanlink{AssW2} and the two faces of the
 Wasserstein-1 metric (\leanlink{wasserstein1}, \leanlink{wasserstein1\_coupling},
 bridged by \leanlink{wasserstein1\_eq\_coupling}) appear in the body
@@ -1207,19 +1214,36 @@ theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL �
     (hSol : ∀ N, IsNewtonSolution N gradW (X N) (V N))
     (hInit : Filter.Tendsto
       (fun N => wasserstein1 (empiricalMeasure N (X N 0) (V N 0)) f₀) atTop (nhds 0))
-    …    -- the Dobrushin stability constant C for the empirical curves
+    (C : ℝ) (hC : 0 < C)
+    (hDobrushin : ∀ N, DobrushinStabilityEstimate
+      (empiricalMeasureCurve N (X N) (V N)) f C)
     (T : ℝ) (hT : 0 < T) :
     Filter.Tendsto (fun N => ⨆ t ∈ Set.Icc 0 T,
       wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
 \end{leancode}
 
-\noindent The \emph{superposition principle} (Theorem~\ref{thm:superposition}):
+\noindent The \emph{superposition principle} (Theorem~\ref{thm:superposition}), its
+hypotheses reproduced complete --- nothing elided:
 \begin{leancode}
-theorem weak_isLagrangianVlasovSolutionOn (W) [AssW2 W] (gradW …) (L) (hL …)
+theorem weak_isLagrangianVlasovSolutionOn
+    (W : PhysSpace d → ℝ) [AssW2 W]
+    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_weak : IsVlasovSolutionOn gradW f T)
-    …    -- finite moments + narrow continuity + force-field regularity on [0,T]
-    : IsLagrangianVlasovSolutionOn gradW f T
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
+      ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
+    (hf_cont : ∀ x, Continuous
+      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
+    (hf_cont_deriv : ContinuousOn
+      (fun p : ℝ × PhysSpace d =>
+        ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
+    (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
+    (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
+    (hTL_PL : LocalSmallness_PL_buffer L T) :  -- L · T² < 1
+    IsLagrangianVlasovSolutionOn gradW f T
 \end{leancode}
 
 % ============================================================================
