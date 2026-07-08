@@ -240,8 +240,8 @@ win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grad
 (whether the won development yields a self-contained layer). And there are three
 phases, each rewarding a different strategy: a player who opens well can still lose
 the endgame. The game is a \emph{lens}; the body of the paper runs the derivation
-and reads each of its stages as a phase of play, while the mathematics carries the
-weight.
+and marks at each stage what the finished proof hides, while the mathematics carries
+the weight.
 
 \subsection{What we formalize}\label{sec:statements}
 We now make that passage precise. The
@@ -382,9 +382,10 @@ the paper is the method and its evidence. Section~\ref{sec:game} sets out the ga
 --- its win condition, its reusability grade, the three phases, and the
 $\mathrm{L}/\mathrm{P}/\mathrm{M}/\mathrm{B}$ framework of standing guidance the
 human accumulates. Section~\ref{sec:casestudy}
-is the heart of the paper: Dobrushin's derivation, run as a formalization and read
-phase by phase, from the particle system to the limiting equation, through the core
-estimates, to the gaps where the library ran out. Section~\ref{sec:assessment} assesses the
+is the heart of the paper: Dobrushin's derivation, run as a formalization in its
+mathematical order --- from the particle system to the limiting equation, through the
+core estimates, to the gaps where the library ran out --- marking at each stage where
+the mathematics was hard and who unlocked it. Section~\ref{sec:assessment} assesses the
 method: the discipline that kept it sound at speed, the timeframe and division of labor,
 what generalizes, and the limits of one run, closing with the next target.
 
@@ -537,8 +538,8 @@ acts of mathematical taste. The claim is time-stamped (\emph{this} game, system,
 and moment; decomposition is exactly the frontier systems improve at fastest), not
 a permanent division of labor. In the case study the decisive mid-game choices
 were of this kind --- which face of the distance to argue the stability estimate
-in, a call that meant returning to the source's own formulation, and how to build
-the inequality it rests on (Section~\ref{ssec:dynamical-core}).
+in, a call that meant returning to the source's own formulation, and which form of
+its underlying inequality the encoding could support (Section~\ref{ssec:dynamical-core}).
 
 This is also where the loop \emph{learns}: a recurring pattern --- more often a
 recurring \emph{failure} --- is distilled into a strategy and written into
@@ -679,8 +680,9 @@ and at each stage marks the two things the finished proof hides: where the
 mathematics was genuinely hard, and who unlocked it. The answer differs by stage ---
 a human read, human-steered agent throughput, a human redirection, both at once --- and that
 spread, visible in the derivation rather than asserted about it, is the division of
-labor. One proof is given in full rather than sketched: the coupling argument of
-Section~\ref{ssec:dynamical-core}, where the optimal-transport machinery is spent.
+labor. The coupling argument of Section~\ref{ssec:dynamical-core} is shown in
+Dobrushin's terms, at paragraph length --- it is where the optimal-transport
+machinery is spent.
 The endgame's library-building --- the general mathematics the ambient library
 lacked --- is marked where it arises rather than gathered into a section of its own.
 
@@ -823,17 +825,13 @@ flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the datum $f_0$
 with $\rho_t$ the self-consistent spatial marginal. Its two marquee facts are
 forward well-posedness at arbitrary Lipschitz constant $L$ (Theorem~\ref{thm:wp}),
 a Banach fixed point in $\Wone$, and Dobrushin's estimate (Theorem~\ref{thm:dob}),
-$\Wone(f_t,g_t)\le e^{Ct}\,\Wone(f_0,g_0)$, whose proof drives the mean-field limit.
-Both are \emph{won} in the sense of Definition~\ref{def:win} --- \printaxioms{} on
-each returns exactly \cleanfootprint{} --- and the stability proof, where the whole
-optimal-transport apparatus of Section~\ref{ssec:wasserstein} is spent, is the one
-we give rather than sketch.
+whose proof drives the mean-field limit. Both are won (Definition~\ref{def:win}).
 
 A statement-level decision shaped the well-posedness theorem before any proof.
 Dobrushin's is a \emph{forward} Cauchy problem, and the marquee is posed that way ---
 existence on $[0,\infty)$ --- rather than as an $\exists!$ over all of $\R$. The
 two-sided claim was too strong: it forced backward-time machinery the evolution does
-not use, phantom proof-work for content that is not there. Uniqueness survives exactly
+not use. Uniqueness survives exactly
 where the mathematics puts it --- per window, in the Lagrangian class
 (\lean{vlasovWellPosedness\_uniqueness}, Theorem~\ref{thm:wp}) --- so nothing is lost
 by proving forward. Matching the statement to what the argument supports is the early
@@ -842,89 +840,65 @@ game's other discipline, dual to definitional scoping.
 Theorem~\ref{thm:wp} holds at \emph{arbitrary} $L$, and reaching that was a matter of the
 \emph{proof}, not the statement. Dobrushin's global-in-time argument, tiled into short windows with a fixed unit
 force-window, forces $L$ small ($L<1$) --- an artifact of the tiling, not of the
-mathematics, since Dobrushin's theorem holds for every $L$, its constant $C=C(L)$
-growing. Tracing the dependency to its single structural origin (the window's unit width,
+mathematics, since Dobrushin's theorem holds for every $L$. Tracing the dependency to its single structural origin (the window's unit width,
 not any analytic mechanism --- the artifact-versus-genuine distinction of
 Appendix~\ref{app:claudemd}) gave the fix: \emph{exact} tiling, windows of width exactly
-$T/N$ so the chain lands on the target, killing the reach-slack $(T+\delta)$ a naive
-offset-drop would leave. The removal was certified the right way --- by instantiating the
+$T/N$ so the chain lands on the target, killing the reach-slack a naive
+offset-drop would leave. The removal was certified by instantiating the
 theorem at $L=2$, a formerly forbidden value, and confirming it typechecks with no smallness
 hypothesis.
 
 \medskip\noindent
-\textbf{The coupling argument.} The decisive move is a redirection --- where the mid
-game's human judgment enters. Read in the dual $\Wone$, the estimate appears to need an
-\emph{optimal} coupling of the data, an attainment theorem the library does not have.
-The mathematician's call was to return to the source: Dobrushin states the estimate in
-the coupling cost from the start --- his metric \emph{is} an infimum over couplings
-\cite{Dobrushin} --- and there it needs only that the infimum lie below \emph{any}
-particular coupling's cost, no attainment, with the dual headline recovered at the end
-in a single line. The route is his; the judgment was the pairing --- a library gap on
-one side and, on the other, a formulation that never needs what the library lacks.
+\textbf{The coupling argument.} The decisive move is a redirection. Read in the dual
+$\Wone$, the estimate appears to need an \emph{optimal} coupling of the data, an
+attainment theorem the library does not have. The mathematician's call was to return
+to the source: Dobrushin states the estimate in the coupling cost from the start ---
+his metric \emph{is} an infimum over couplings \cite{Dobrushin} --- and there it needs
+only that the infimum lie below \emph{any} particular coupling's cost, no attainment.
+The route is his; the judgment was the pairing of library gap with source formulation.
 
-So fix \emph{any} coupling $\pi$ of the data $(f_0,g_0)$, optimal or not. Because $f$ and
-$g$ are \emph{Lagrangian} solutions, each is transported by its own characteristic flow,
-$f_t=(\Phi^t_f)_\#f_0$ and $g_t=(\Phi^t_g)_\#g_0$; pushing $\pi$ forward by the pair of
-flows gives a coupling of $(f_t,g_t)$, and \lean{wasserstein1\_pushforward\_le\_iInf}
-specialises the infimum inequality to it,
+Fix \emph{any} coupling $\pi$ of the data, optimal or not. Each solution is
+transported by its own characteristic flow, so pushing $\pi$ forward by the pair of
+flows couples $(f_t,g_t)$, and \lean{wasserstein1\_pushforward\_le\_iInf} bounds
 \[
   \Wone(f_t,g_t)\;\le\;\int \mathrm{dist}\!\big(\Phi^t_f z_1,\ \Phi^t_g z_2\big)\,
   d\pi(z_1,z_2)\;=:\;Q_t ,
 \]
-with $Q_0$ the transported cost of $\pi$ itself. It remains to bound $Q_t\le e^{2Mt}Q_0$,
-where $M:=\max(1,L)$.
+with $Q_0$ the cost of $\pi$ itself. Dobrushin's two estimates close the bound
+\cite{Dobrushin}, transplanted from his truncated metric to the unbounded $\Wone$
+with moment control: the force mismatch is controlled by the very quantity under
+estimate (\lean{convolveFunctionMeasure\_lipschitz\_in\_x}), the trajectory gap obeys
+the integral-form bound (\lean{flow\_difference\_mild\_bound}), and Grönwall
+(\lean{gronwall\_mild\_le}) closes them to $Q_t\le Q_0\,e^{2Mt}$ with $M=\max(1,L)$
+--- the rate $C=2\max(1,L)$ of Theorem~\ref{thm:dob}, the factor $2$ not cosmetic but
+drift and forcing each contributing $M$. The mild form is Dobrushin's own, and it is
+the form the encoding can support: Grönwall on $t\mapsto\Wone(f_t,g_t)$ directly ---
+the development's first route --- demands a time-regularity the dual sup supplies
+only as lower semicontinuity. The formalization runs on a finite window, each $t$
+handled at $T=t+1$.
 
-Two estimates drive that bound, and their interplay is the argument's content. The
-mean-field force is $L$-Lipschitz in space (\lean{convolveFunctionMeasure\_lipschitz\_in\_x}),
-so the two drifts evaluated at a common point differ by at most $M$ times the position
-gap; integrated against $\pi$, this bounds the forcing mismatch by the very quantity under
-estimate, $\varepsilon_s\le M\,Q_s$ --- a self-reference. Independently, each trajectory
-pair obeys the \emph{mild} (integral-form) bound \lean{flow\_difference\_mild\_bound}, and
-integrating it over $\pi$ by Tonelli (\lean{integral\_mild\_bound}) gives the same shape
-for $Q$:
-\[
-  Q_t\;\le\;Q_0+\int_0^t\big(M\,Q_s+\varepsilon_s\big)\,ds ,
-\]
-the constant $M$ being the joint phase-space field's Lipschitz constant
-(\lean{vlasovVectorField\_lipschitzWith}: velocity couples to position at rate $1$, the
-force at rate $L$). Substituting the self-reference collapses the two terms to
-$Q_t\le Q_0+2M\!\int_0^t Q_s\,ds$, and the scalar Grönwall lemma \lean{gronwall\_mild\_le}
-closes it to $Q_t\le Q_0\,e^{2Mt}$. The rate is therefore $C=2\max(1,L)$; the factor $2$
-is not cosmetic but the self-reference doubling, drift and forcing each contributing $M$.
-The mild form is Dobrushin's own, and it is the form the encoding can support:
-Grönwall on $t\mapsto\Wone(f_t,g_t)$ directly --- the development's first route ---
-demands a time-regularity the dual sup supplies only as lower semicontinuity. The
-formalization also runs on a finite window, each $t$ handled at $T=t+1$.
-
-Taking the infimum over the initial coupling $\pi$ turns $Q_0$ into the primal (coupling)
+Taking the infimum over the initial coupling $\pi$ turns $Q_0$ into the primal
 distance of the data, and one application of the Kantorovich--Rubinstein bridge
 \lean{wasserstein1\_eq\_coupling} rewrites it as the dual $\Wone(f_0,g_0)$ of the
 statement. That single \lean{rw} is the proof's \emph{only} appeal to duality: the whole
 stability core, and the mean-field limit that follows from it, are built in the coupling
-cost without it, and attainment is never invoked.
+cost without it.
 
-With stability in hand, the mean-field limit closes the loop: applying the estimate to
+The mean-field limit follows: applying the estimate to
 the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
 measures converge,
 \[
   \sup_{t\in[0,T]} \Wone(\mu^N_t, f_t) \;\le\; e^{CT}\,\Wone(\mu^N_0,f_0)
   \;\xrightarrow[N\to\infty]{}\; 0,
 \]
-the separate corollary \lean{meanFieldLimit} (Corollary~\ref{cor:mfl}), obtained by taking $g$ to be the $N$-particle empirical measure
-and letting $N\to\infty$.
+the separate corollary \lean{meanFieldLimit} (Corollary~\ref{cor:mfl}).
 
 One conjectured foundation dissolved rather than being built. The development first carried a
 metrization theorem relating narrow convergence and $\Wone$ as an external gap; its single
 consumer needed only the easy lower-semicontinuity direction (Villani's, with moment control
 \cite{Villani}), a short lemma from the dual representation. Recognizing the full metrization
-as never load-bearing --- before building it --- is the endgame's triage in action, and the
-certification confirmed it: the target theorems' footprint was already clean of it.
-
-Both marquee results take their solutions as \lean{IsLagrangianVlasovSolution}s, for
-which the weaker \lean{AssW} suffices because the flow representation is built into the
-solution concept. Promoting either to a statement about \emph{all} weak solutions is
-the superposition principle of Section~\ref{ssec:superposition} --- and that promotion
-is what costs the stronger \lean{AssW2}.
+as never load-bearing --- before building it --- is the endgame's triage in action: the
+target theorems' footprint was already clean of it.
 
 \subsection{The superposition principle, and why $C^2$}\label{ssec:superposition}
 
