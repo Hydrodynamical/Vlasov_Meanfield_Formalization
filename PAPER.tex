@@ -1016,8 +1016,8 @@ certification, and an automated agent's claim of success is not one.}
 \begin{enumerate}[leftmargin=2em]
 \item \emph{Read before building.} Every consequential
 move is preceded by reading the actual construction at the atom level, not the
-interface's stated summary. The phantom foundation, the stale dead-end planning
-note, and the tiling reach-slack were all caught by reading the construction
+interface's stated summary. The phantom foundation and the tiling reach-slack
+(Section~\ref{ssec:dynamical-core}) were both caught by reading the construction
 rather than trusting a plausible summary of it.
 \item \emph{Certify by the footprint, not the build.}
 The win condition is the axiom footprint, and it is checked --- by hand,
@@ -1029,10 +1029,9 @@ the old state; build success is confirmed before any check is trusted.
 \item \emph{Move, verify, commit, one unit at a time.} Structural changes are
 made one mathematical unit per step, each followed by build, footprint check, and
 commit, so that any regression is localized to a single, revertible move. When a
-move broke the build during the case study --- a chunk boundary that captured a
-trailing docstring --- the discipline caught it, reverted cleanly, re-diagnosed
-the boundary, and redid the move; and the procedure that prevents the class of
-error (boundary assertions) was then encoded into $\mathcal{G}$.
+move broke the build during the case study, the discipline caught it, reverted,
+re-diagnosed, and redid the move --- and the procedure preventing that class of
+error was encoded into $\mathcal{G}$.
 \end{enumerate}
 
 The discipline is also delegable in a specific way: the human can hand a
@@ -1047,10 +1046,9 @@ the commit record next.
 The well-posedness and stability marquee --- from the first translated theorem to the
 certified stability estimate --- ran in about a week; the full development, with the
 superposition follow-on, spanned about a month. The claim is not raw speed but
-the \emph{mode} that makes it possible. A human mathematician acted as strategic director
-over an AI execution engine: the human scoped the definitions, chose the decompositions,
-triaged the library gaps, and accumulated the strategy taxonomy; the agent executed the
-proofs, ran the builds, and handled the mechanical sub-tasks.
+the \emph{mode} that makes it possible: a human mathematician as strategic director
+over an AI execution engine, the division Section~\ref{sec:casestudy} marked stage
+by stage.
 
 The commit record measures the
 split. Figure~\ref{fig:taxonomy}, the third series, classifies all $362$ commits by primary intent: just under
@@ -1058,16 +1056,16 @@ three-quarters are core proof work, but roughly one commit in seven is pure meta
 capture --- editing the standing instruction file, recording a strategy, auditing the
 discipline --- a direct measure of the meta-learning loop of Section~\ref{sec:strategies},
 the share of effort that goes not into proving the next lemma but into distilling
-\emph{how} it should be proved. That this \emph{division of labor}, not either party alone,
-has a real efficiency property is the claim; the discipline above is why the speed did not
-cost soundness.
+\emph{how} it should be proved. The claim is that the division of labor, not either
+party alone, is what the timeframe measures; the discipline above is why the speed
+did not cost soundness.
 
 We are not the only
 data point: an independent, contemporaneous formalization \cite{IlinVML} --- a different
 kinetic-theory target, the Vlasov--Maxwell--Landau equilibrium --- reports a comparable
 mode, a single supervising mathematician completing the work in roughly ten days, at about
 \$200, writing no Lean by hand. Two projects are not a controlled measurement, but they
-make the human-directed strategic-director mode less of an outlier than a single run would
+make the strategic-director mode less of an outlier than a single run would
 suggest.
 
 \begin{figure}[t]
@@ -1098,20 +1096,16 @@ The reusability grade (Definition~\ref{def:selfcontained}) is a pass/fail
 certificate rather than a number, and we have applied it to a single development;
 the open question is not whether a fraction generalizes but whether its four
 checks (Q1)--(Q4) transfer cleanly to other projects. Even in
-this case the extracted layer --- though dependency-isolated, standalone-compiling,
-and linter-clean --- still imports Mathlib wholesale rather than the minimal files
-each declaration needs, so it remains a candidate for upstreaming rather than a
-completed contribution. The
+this case the extracted layer still imports Mathlib wholesale rather than the
+minimal files each declaration needs, so it remains a candidate for upstreaming
+rather than a completed contribution. The
 timeframe is a single observation that depends on the human director's prior fluency in both the mathematics and the
 proof assistant. The strategy taxonomy was earned on one project and may be
-incomplete; we expect later games to add series entries (the standing
-instruction file is designed to keep accumulating them). Finally, one genuine
+incomplete; we expect later games to add series entries. Finally, one genuine
 library gap in the case study (a Polish-space completeness fact for the
-Wasserstein metric) was honestly \emph{deferred} as a cited placeholder rather
-than built --- it lies off the path of the certified target theorems --- and is
-recorded as such rather than papered over; a fully self-contained development
-would build it, and it remains future work, most naturally as an upstream
-contribution.
+Wasserstein metric) was \emph{deferred} as a cited placeholder rather than built
+--- it lies off the path of the certified target theorems; building it remains
+future work, most naturally as an upstream contribution.
 
 \subsection{Outlook}
 
@@ -1122,9 +1116,9 @@ identifying that bracket as the Lie--Poisson bracket on the dual of the Lie alge
 of Hamiltonian vector fields, arising as the $N\to\infty$ limit of the canonical
 brackets on $(\R^d\times\R^d)^N$, is not formalized here; it is the subject of
 \cite{MNPRS} and a natural target for a follow-on game. The present development
-covers the dynamics --- existence, uniqueness, stability, the mean-field limit, and
-the superposition principle --- but not the geometric structure of the limit.
-Marking that boundary is itself part of the discipline the win condition enforces.
+covers the dynamics but not the geometric structure of the limit. Marking that
+boundary is the same statement-side discipline the paper runs on: say exactly what
+is proved.
 
 % ============================================================================
 \appendix
