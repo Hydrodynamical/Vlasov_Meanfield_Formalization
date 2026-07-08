@@ -954,32 +954,29 @@ single theorem.
 
 \noindent\emph{The outcome: the layer, extracted and certified.}
 
-The headline of the extraction is a machine-checkable \emph{zero}. After the game
-was won, we reorganized the optimal-transport machinery into a self-contained
-layer (Definition~\ref{def:selfcontained}). We take the layer to be the
-\emph{reachable general core}: the general-mathematics declarations on a
-target theorem's proof path. General infrastructure we built but did not use --- a
-deferred truncated-metric regime and a few lemmas a refactor superseded --- is
-excluded by definition; a reusable layer should be what the development used, not
-everything general we happened to build.
+After the game was won, we reorganized the optimal-transport machinery into a
+self-contained layer (Definition~\ref{def:selfcontained}), taking the layer to be
+the \emph{reachable general core}: the general-mathematics declarations on a target
+theorem's proof path. General infrastructure we built but did not use --- a deferred
+truncated-metric regime and a few lemmas a refactor superseded --- is excluded: a
+reusable layer should be what the development used, not everything general we
+happened to build.
 
-The cut, read off the declaration-level
-dependency graph in the proof assistant's elaboration environment, is
-one-directional: the development outside the layer reaches it through a
-$22$-declaration interface --- the Wasserstein-1 and transport-cost API, the
-coupling predicate \lean{IsCoupling}, and the two phase-space types --- and
-\emph{zero} edges run the other way. Directionality and interface width, not the
-size of the layer, are what make it upstreamable; the $0$ is the hard fact a
-referee re-derives from the graph.
+The cut, read off the declaration-level dependency graph, is one-directional: the
+development outside the layer reaches it through a $22$-declaration interface ---
+the Wasserstein-1 and transport-cost API, the coupling predicate \lean{IsCoupling},
+and the two phase-space types --- and \emph{zero} edges run the other way.
+Directionality and interface width, not the size of the layer, are what make it
+upstreamable; the reverse-edge count is the hard fact a referee re-derives from
+the graph.
 
 Checks (Q2) and (Q3) turn that graph audit into artifacts a referee re-runs, and
-both pass at \textsc{head}. Packaged as a standalone Lake project declaring the
-ambient library as its only dependency --- zero kinetic-theory files in its
-import graph --- the modules containing the layer build against Mathlib alone (Q2),
-and pass Mathlib's environment-linter suite ($16$ linters) with zero warnings (Q3). That Q3 pass is
-annotated honestly: seven declarations carry disclosed
-\lean{@[nolint unusedArguments]} for interface arguments deliberately retained for
-caller uniformity, and eighteen genuinely-unused instance arguments were removed.
+both pass at \textsc{head}. Packaged as a standalone Lake project, the layer builds
+against Mathlib alone --- no kinetic-theory file in its import graph (Q2) --- and
+passes Mathlib's environment-linter suite ($16$ linters) with zero warnings (Q3).
+The Q3 pass is annotated: seven declarations carry disclosed
+\lean{@[nolint unusedArguments]} for interface arguments retained for caller
+uniformity; eighteen genuinely-unused instance arguments were removed.
 The whole grade is one re-runnable block:
 \begin{center}\small
 \begin{tabular}{ll}
@@ -1001,23 +998,10 @@ holds \emph{by construction} (the layer is the reachable core); generality is
 it names a Vlasov object; non-redundancy is library-search \emph{evidence} (no
 \lean{exact?} hit against the pinned Mathlib), not proof.
 
-The width $w=22$ is not minimal. It was $17$ under a broader definition of
-$\mathcal{L}_{\mathrm{gen}}$; taking the layer to be the \emph{reachable} general core
-reclassified five
-refactor-superseded declarations as problem-specific, and the general API names they
-still reference count toward the interface, raising $w$ to $22$. Pruning those five
-from the Lean would return $w$ toward $17$, but is signature-touching --- it
-re-triggers the full certification chain --- so we report the width as it stands. The
-size row, likewise, is descriptive rather than the grade
-(Definition~\ref{def:selfcontained}): it records only whether a layer is large enough
-to be worth extracting.
-
-The blueprint gives an independent, coarser view of the same cut: a build step
-extracts a theorem-level dependency graph directly from the elaborated proof terms
---- not hand-drawn --- each node linked to its formal declaration
-(Figure~\ref{fig:depgraph}). It exhibits the same architecture --- the
-optimal-transport layer feeds \lean{dobrushin} with no reverse edge --- and every
-node is green: no informal placeholder on any path to a target.
+The width $w=22$ is not minimal: it was $17$ under a broader layer definition, and
+pruning back toward that is signature-touching --- it re-triggers the full
+certification chain --- so we report the width as it stands. The size row, likewise,
+is descriptive rather than the grade (Definition~\ref{def:selfcontained}).
 
 % ============================================================================
 \section{Assessment and outlook}\label{sec:assessment}
