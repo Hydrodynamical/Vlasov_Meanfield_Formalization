@@ -130,13 +130,15 @@ Both guarantees are met here, and the case study is where one sees what each doe
 does not cover. The win condition is discharged by the machine: \printaxioms{} reports
 the target theorems depend on Lean's foundations alone. What it cannot supply is the
 other half --- that each statement says what was meant --- and the case study marks
-where the mathematician supplied it. Two decisions carry the mark: routing the central
-estimate through the coupling cost to avoid an attainment theorem the library lacks, and
-spending one degree of regularity to make a uniqueness argument go through --- both the
-mathematician's, both executed by the AI. The reusability grade is met in turn: the general mathematics
+where the mathematician supplied it. Two interventions carry the mark: a test class
+that had silently collapsed, leaving a key statement vacuously true behind a green
+build, caught by a human read (Section~\ref{ssec:newton-to-weak}); and one degree of
+regularity deliberately spent to make a uniqueness argument go through
+(Section~\ref{ssec:superposition}) --- both the mathematician's, both executed by
+the AI. The reusability grade is met in turn: the general mathematics
 the argument demanded separates into a self-contained layer
 (Section~\ref{ssec:reuse}) fit for the ambient library. That the marked
-decisions are the mathematician's is not incidental --- the judgment behind them
+interventions are the mathematician's is not incidental --- the judgment behind them
 accumulates, in a standing guidance file built as play proceeds
 (Section~\ref{sec:strategies}).
 
@@ -535,7 +537,8 @@ acts of mathematical taste. The claim is time-stamped (\emph{this} game, system,
 and moment; decomposition is exactly the frontier systems improve at fastest), not
 a permanent division of labor. In the case study the decisive mid-game choices
 were of this kind --- which face of the distance to argue the stability estimate
-in, and how to build the inequality it rests on (Section~\ref{ssec:dynamical-core}).
+in, a call that meant returning to the source's own formulation, and how to build
+the inequality it rests on (Section~\ref{ssec:dynamical-core}).
 
 This is also where the loop \emph{learns}: a recurring pattern --- more often a
 recurring \emph{failure} --- is distilled into a strategy and written into
@@ -674,7 +677,7 @@ mathematical order --- get the objects right, build the distance, run the dynami
 core, reconcile the two solution notions, extract the layer; one subsection each ---
 and at each stage marks the two things the finished proof hides: where the
 mathematics was genuinely hard, and who unlocked it. The answer differs by stage ---
-a human read, human-steered agent throughput, a human decomposition, both at once --- and that
+a human read, human-steered agent throughput, a human redirection, both at once --- and that
 spread, visible in the derivation rather than asserted about it, is the division of
 labor. One proof is given in full rather than sketched: the coupling argument of
 Section~\ref{ssec:dynamical-core}, where the optimal-transport machinery is spent.
@@ -813,7 +816,7 @@ in the development of the machine carrying a hard, unglamorous build to the end.
 
 \subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
 
-\noindent\emph{Hard: the stability estimate. Unlocked by: a human decomposition --- state it in the primal.}
+\noindent\emph{Hard: the stability estimate. Unlocked by: a human redirection --- back to Dobrushin's own coupling formulation.}
 
 The limit equation is the nonlinear Vlasov equation, solved by the characteristic
 flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the datum $f_0$,
@@ -849,12 +852,15 @@ theorem at $L=2$, a formerly forbidden value, and confirming it typechecks with 
 hypothesis.
 
 \medskip\noindent
-\textbf{The coupling argument.} The decisive move is a decomposition --- where the mid
+\textbf{The coupling argument.} The decisive move is a redirection --- where the mid
 game's human judgment enters. Read in the dual $\Wone$, the estimate appears to need an
 \emph{optimal} coupling of the data, an attainment theorem the library does not have.
-Stated instead in the \emph{primal} coupling cost \lean{wasserstein1\_coupling}, it needs
-only that the infimum over couplings lies below \emph{any} particular coupling's cost ---
-no attainment --- with the dual headline recovered at the end in a single line.
+The mathematician's call was to return to the source: Dobrushin states the estimate in
+the coupling cost from the start --- his metric \emph{is} an infimum over couplings
+\cite{Dobrushin} --- and there it needs only that the infimum lie below \emph{any}
+particular coupling's cost, no attainment, with the dual headline recovered at the end
+in a single line. The route is his; the judgment was the pairing --- a library gap on
+one side and, on the other, a formulation that never needs what the library lacks.
 
 So fix \emph{any} coupling $\pi$ of the data $(f_0,g_0)$, optimal or not. Because $f$ and
 $g$ are \emph{Lagrangian} solutions, each is transported by its own characteristic flow,
@@ -885,10 +891,10 @@ force at rate $L$). Substituting the self-reference collapses the two terms to
 $Q_t\le Q_0+2M\!\int_0^t Q_s\,ds$, and the scalar Grönwall lemma \lean{gronwall\_mild\_le}
 closes it to $Q_t\le Q_0\,e^{2Mt}$. The rate is therefore $C=2\max(1,L)$; the factor $2$
 is not cosmetic but the self-reference doubling, drift and forcing each contributing $M$.
-The formalization departs from the textbook telling in staying with this mild form rather
-than differentiating $\Wone$ in time --- which would summon the time-regularity the dual
-sup supplies only as lower semicontinuity --- and in running on a finite window, each $t$
-handled at $T=t+1$.
+The mild form is Dobrushin's own, and it is the form the encoding can support:
+Grönwall on $t\mapsto\Wone(f_t,g_t)$ directly --- the development's first route ---
+demands a time-regularity the dual sup supplies only as lower semicontinuity. The
+formalization also runs on a finite window, each $t$ handled at $T=t+1$.
 
 Taking the infimum over the initial coupling $\pi$ turns $Q_0$ into the primal (coupling)
 distance of the data, and one application of the Kantorovich--Rubinstein bridge
