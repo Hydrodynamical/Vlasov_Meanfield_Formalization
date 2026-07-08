@@ -669,16 +669,17 @@ size of the proof obligation.
 
 We played the game on Dobrushin's derivation \cite{Dobrushin} of the Vlasov
 equation from $N$-particle Hamiltonian dynamics; for the broader mean-field theory
-see \cite{Spohn,Golse,Neunzert}. This section runs that derivation as the paper's central narrative --- from the
-$N$-particle system to the exact weak solution, through the dynamical core and the
-superposition principle to the gaps where the library ran out --- with each stage
-read as a phase of the game. At each stage we mark two things the finished proof
-hides: where the mathematics was genuinely hard, and, where a single human decision
-unlocked it, what that decision was. Some stages turned on such a decision; one
-turned on nothing but sustained proof-work the agent carried alone. The division of
-labor is then visible in the derivation itself, not asserted about it. The endgame's
-library-building --- the general mathematics the ambient library lacked --- is marked
-where it arises rather than gathered into a section of its own.
+see \cite{Spohn,Golse,Neunzert}. This section replays the derivation in its
+mathematical order --- get the objects right, build the distance, run the dynamical
+core, reconcile the two solution notions, extract the layer; one subsection each ---
+and at each stage marks the two things the finished proof hides: where the
+mathematics was genuinely hard, and who unlocked it. The answer differs by stage ---
+a human read, agent throughput, a human decomposition, both at once --- and that
+spread, visible in the derivation rather than asserted about it, is the division of
+labor. One proof is given in full rather than sketched: the coupling argument of
+Section~\ref{ssec:dynamical-core}, where the optimal-transport machinery is spent.
+The endgame's library-building --- the general mathematics the ambient library
+lacked --- is marked where it arises rather than gathered into a section of its own.
 
 % TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
 % cost. (The delegated sub-agent model id, claude-sonnet-4-6, is already filled from logs.)
@@ -697,6 +698,8 @@ full standing instructions, and the per-session agent logs are recoverable.
 
 \subsection{From Newton to an exact weak solution}\label{ssec:newton-to-weak}
 
+\noindent\emph{Hard: getting the solution concept right. Unlocked by: a human read of the test class.}
+
 The derivation opens with $N$ identical particles in $\R^d$ under the mean-field
 scaling, governed by the Newton equations
 \[
@@ -714,44 +717,19 @@ $\R^d\times\R^d$ --- in Lean, \lean{empiricalMeasure} on \lean{PhaseSpace d}.
 
 Getting the solution concept right is the opening's whole task, and the empirical
 measure rewards it with an exactness an informal account would miss. Differentiating
-$\langle\mu^N_t,\varphi\rangle=\tfrac1N\sum_i\varphi(x_i,v_i)$ along the Newton flow
-gives two terms,
-\[
-  \tfrac1N\sum_i v_i\cdot\nabla_x\varphi(x_i,v_i)
-   \;-\; \tfrac1{N^2}\sum_i\sum_{j\neq i}\nabla W(x_i-x_j)\cdot\nabla_v\varphi(x_i,v_i),
-\]
-the first being $\langle\mu^N_t,\,v\cdot\nabla_x\varphi\rangle$. In the second,
-\emph{adding and subtracting the diagonal} $i=j$ completes the inner sum to
-$\sum_j\nabla W(x_i-x_j)=N\,(\nabla W*\rho^N_t)(x_i)$ --- the convolution against the
-spatial marginal $\rho^N_t$, i.e.\ $\langle\mu^N_t,\,(\nabla W*\rho^N_t)\cdot
-\nabla_v\varphi\rangle$ --- and leaves behind exactly the diagonal
-\[
-  R_N=\tfrac1{N^2}\sum_i\nabla W(0)\cdot\nabla_v\varphi(x_i,v_i),
-  \qquad |R_N|\le\tfrac1N\,\|\nabla W\|_\infty\,\|\nabla_v\varphi\|_\infty.
-\]
+$\langle\mu^N_t,\varphi\rangle$ along the Newton flow and completing the interaction
+sum by \emph{adding and subtracting the diagonal} $i=j$ produces the convolution
+$(\nabla W*\rho^N_t)$ against the spatial marginal, plus a leftover diagonal
+remainder $R_N$ with
+$|R_N|\le\tfrac1N\,\|\nabla W\|_\infty\,\|\nabla_v\varphi\|_\infty$.
 The evenness of $W$ (part of \lean{AssW}) forces $\nabla W(0)=0$, so $R_N\equiv0$:
 the empirical measure solves the Vlasov weak equation \emph{exactly}, not merely to
 $O(1/N)$. The formalization is what makes this honest. Where an informal derivation
 may drop the diagonal as negligible, the win condition forbids discarding a
-remainder silently, so the statement is forced to \emph{return} $R_N$ explicitly ---
-as an $r$ whose value is the diagonal term and whose bound is the displayed estimate
---- and only then does evenness collapse it:
-\begin{leancode}
-theorem weakEvolutionEmpiricalMeasure (N) [NeZero N] (W) [AssW W] (gradW …)
-    (X V : ℝ → Fin N → PhysSpace d) (hSol : IsNewtonSolution N gradW X V)
-    (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
-    … (t : ℝ) :
-    ∃ r : ℝ,
-      r = (1 / N^2) * ∑ i, inner (gradW 0) (gradVφ (X t i, V t i)) ∧
-      HasDerivAt (fun s => ∫ z, φ z ∂(empiricalMeasureCurve N X V s))
-        (∫ z, ( inner z.2 (gradXφ z)
-                - inner (convolveFunctionMeasure gradW (ρ t) z.1) (gradVφ z) )
-              ∂(empiricalMeasureCurve N X V t)  +  r) t ∧
-      |r| ≤ (1 / N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)
-\end{leancode}
-\noindent Here \lean{gradXφ} and \lean{gradVφ} are the position- and
-velocity-gradients of $\varphi$. That $R_N\equiv0$ under \lean{AssW} is the corollary
-\lean{empiricalMeasureSolvesVlasov}: the empirical measure is a genuine
+remainder silently: the statement (\leanlink{weakEvolutionEmpiricalMeasure}) is
+forced to \emph{return} $R_N$ explicitly, its value and bound as conjuncts, and only
+then does evenness collapse it --- the corollary
+\leanlink{empiricalMeasureSolvesVlasov}, the empirical measure as a genuine
 distributional Vlasov solution.
 
 The weak-solution predicate quantifies over the $C^\infty$ compactly supported test
@@ -776,6 +754,9 @@ statement, and cannot see that the statement had become empty. A thirty-second
 $C^\infty$ element written above) restored the class at twelve sites.
 
 \subsection{Wasserstein-1, in two faces}\label{ssec:wasserstein}
+
+\noindent\emph{Hard: the bridge between the two faces. Unlocked by: agent throughput --- no single insight.}
+
 The distance that organizes everything to follow is the Wasserstein-1 metric
 $\Wone$ (Definition~\ref{def:w1}), the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
 development carries it in two faces with a bridge between them: the \emph{dual} face
@@ -792,100 +773,57 @@ def wasserstein1_coupling (μ ν : Measure α) : ENNReal :=            -- PRIMAL
 theorem wasserstein1_eq_coupling … :                               -- KR duality
     wasserstein1 μ ν = wasserstein1_coupling μ ν
 \end{leancode}
-Two opening choices about these definitions paid off later. First, the cost is
-defined \emph{generically} over $c$, with the metric facts (symmetry, the triangle
-inequality) proved once at that level and \emph{instantiated} at $c=\mathrm{dist}$
-for $\Wone$ and at $c=\min(\mathrm{dist},1)$ for the truncated variant $\Wbar$; a development that hard-coded $\mathrm{dist}$ would
-have paid for it in the endgame. Second --- a sharper instance of the same
-discipline (the conjunct-shape lesson of Appendix~\ref{app:claudemd}) --- a
-coupling-cost bound must take its moment hypothesis against the ground cost $c$, not
-against $\mathrm{dist}$: the two coincide \emph{definitionally} at $c=\mathrm{dist}$,
-so stating it the wrong way leaves the marquee instantiation looking fine while
-making the general lemma unprovable. Reading both the consumer's need and every
-producer's capacity before freezing that hypothesis is what caught it.
+Two opening choices about these definitions paid off later: the cost is defined
+\emph{generically} over $c$, the metric facts proved once and instantiated at
+$c=\mathrm{dist}$ for $\Wone$ and at $c=\min(\mathrm{dist},1)$ for the truncated
+variant $\Wbar$; and a coupling-cost bound takes its moment hypothesis against the
+ground cost $c$, not against $\mathrm{dist}$ --- the two coincide definitionally at
+$c=\mathrm{dist}$, so the wrong choice leaves the marquee instantiation looking fine
+while making the general lemma unprovable (the conjunct-shape lesson of
+Appendix~\ref{app:claudemd}).
 
 \medskip\noindent
-The two faces are easy to write down; the \emph{bridge} between them had to be built, and it
-is the reusable layer's most substantial construction. It rests on two pieces. The more
-delicate is the coupling cost's triangle inequality, gluing a coupling of $(\mu,\rho)$ and
-one of $(\rho,\nu)$ into a coupling of $(\mu,\nu)$:
-\begin{leancode}
-theorem wassersteinCost_coupling_triangle (c : α → α → ℝ) (hc_nonneg …)
-    (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z) (hc_meas …)
-    (μ ν ρ : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ρ] :
-    wassersteinCost_coupling c μ ν ≤
-      wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν
-\end{leancode}
-One disintegrates the coupling of $(\rho,\nu)$ over $\rho$ and glues. The load-bearing,
-error-prone part is not the cost bound but proving the glued measure has the \emph{correct
-marginals} --- that it is genuinely a coupling of $(\mu,\nu)$; marginal-preservation through
-the disintegration-and-recombination is exactly where a ``near-citation'' from the library
-hides a gap. The \lean{hc\_triangle} argument is the ground-cost triangle hypothesis this
-needs and the dual-side triangle does not.
+The two faces are easy to write down; the \emph{bridge} between them had to be built,
+and it is the reusable layer's most substantial construction. Its two pieces: the
+coupling cost's triangle inequality
+(\leanlink{wassersteinCost\_coupling\_triangle}), which disintegrates a coupling of
+$(\rho,\nu)$ over $\rho$ and glues --- the load-bearing, error-prone part being not
+the cost bound but that the glued measure has the \emph{correct marginals}, exactly
+where a ``near-citation'' from the library hides a gap; and the hard direction of
+the duality on finitely-supported measures
+(\leanlink{wassersteinCost\_coupling\_le\_dual\_of\_finiteRange}), which the Mathlib
+version we build against (v4.29.1) does not carry. We built the latter from the
+library's Farkas lemma (conic separation) \cite{mathlib}, two compactness facts
+proved by hand (primal attainment on the transport polytope; closedness of the image
+cone), and a $c$-transform folding the dual pair into a single admissible potential
+--- an \emph{inequality}, primal $\le$ dual, with no attained optimum anywhere. Two
+routes were tried and abandoned first: the Hilbert-space form of the separation
+(systemic friction with the inner-product instances on the Euclidean type; the plain
+product $\iota\to\R$ removed it), and the Birkhoff-vertex shortcut (the library's
+Birkhoff theorem is uniform-marginal; the transportation polytope here is not).
 
-The second piece is the hard direction of the duality itself --- primal below dual, on
-finitely-supported measures --- which has no packaged form in the Mathlib version we build
-against (v4.29.1). We built it. The route had a fork the library forced: the natural
-map-form of the duality lives on a Hilbert space and ran into systemic friction between the
-proof assistant's inner-product instances on its Euclidean space type; pivoting to the
-geometric separation on the plain product $\iota \to \R$ (continuous linear functionals, no
-inner products) removed the friction. We also confirmed the appealing Birkhoff-vertex
-shortcut was blocked: the library has the doubly-stochastic (uniform-marginal) Birkhoff
-theorem, but the transportation polytope here has general marginals and no library theory.
-The surviving route assembled the library's Farkas lemma (conic separation) \cite{mathlib}
-with two compactness facts we proved by hand (primal attainment on the transport polytope;
-closedness of the image cone) and a $c$-transform converting the dual pair into a single
-admissible potential. The metric structure (triangle, symmetry) enters \emph{only} in the
-$c$-transform; the linear-programming duality itself is metric-free. The construction yields
-the duality \emph{inequality} on finite-range measures --- primal $\le$ dual, not an attained
-optimum:
-\begin{leancode}
-theorem wassersteinCost_coupling_le_dual_of_finiteRange (c : α → α → ℝ) (hc_nonneg …)
-    (hc_self …) (hc_symm …) (hc_triangle …) (hc_meas …)
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (T S : α → α) (hT …) (hS …)
-    (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
-    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν) ≤
-      wassersteinCost c (Measure.map T μ) (Measure.map S ν)
-\end{leancode}
-Together the two build the bridge \lean{wasserstein1\_eq\_coupling} --- the single
-optimal-transport line \lean{dobrushin} consumes (\lean{rw [wasserstein1\_eq\_coupling …]}).
-Unlike the decisions elsewhere in the derivation, this bridge turned on no single insight. It
-was throughput: some twenty-five commits assembling Farkas, the two compactness facts, and
-the $c$-transform into a duality Mathlib did not carry. The labor here ran the other way ---
-the mathematician fixed the target, the agent did the sustained proof-work --- and it is the
-clearest case in the development of the machine carrying a hard, unglamorous build to the end.
-
-\medskip\noindent
-Establishing the two faces and the bridge is all the opening needs from $\Wone$.
-\emph{Which} face to prove a theorem in --- and why routing the stability estimate
-through the primal lets the whole derivation sidestep an optimal-coupling attainment
-theorem the library lacks --- is a decomposition choice, and the subject of
-Section~\ref{ssec:dynamical-core}.
+Unlike the decisions elsewhere in the derivation, this bridge turned on no single
+insight. It was throughput: some twenty-five commits assembling Farkas, the
+compactness facts, and the $c$-transform into the duality
+\leanlink{wasserstein1\_eq\_coupling} --- the single optimal-transport line
+\lean{dobrushin} consumes. The labor ran the other way --- the mathematician fixed
+the target, the agent did the sustained proof-work --- and it is the clearest case
+in the development of the machine carrying a hard, unglamorous build to the end.
 
 \subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
 
-With the empirical measure established as an exact weak solution and $\Wone$ in two
-faces (Section~\ref{ssec:wasserstein}), the derivation passes to the limit object.
-The limit equation is the nonlinear Vlasov equation
-$\partial_t f + v\cdot\nabla_x f - (\nabla W * \rho_t)\cdot\nabla_v f = 0$, solved by
-the characteristic flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the
-datum $f_0$, with $\rho_t$ the self-consistent spatial marginal of $f_t$. Two facts
-about this flow are the case study's marquee targets, and each arrives as the
-construction reaches it.
+\noindent\emph{Hard: the stability estimate. Unlocked by: a human decomposition --- state it in the primal.}
 
-The first is that the flow exists at all: forward well-posedness
-(Theorem~\ref{thm:wp}), at arbitrary Lipschitz constant $L$, is a Banach fixed point
-in $\Wone$.
-
-The second is that two such flows, from different data, stay close --- Dobrushin's
-estimate (Theorem~\ref{thm:dob}), $\Wone(f_t,g_t)\le e^{Ct}\,\Wone(f_0,g_0)$ for
-$t\ge 0$. Its proof is the coupling argument that drives the mean-field limit, and
-because that argument is where the whole optimal-transport apparatus of
-Section~\ref{ssec:wasserstein} is put to work, we give it rather than sketch it.
-
-Both theorems are \emph{won} in the sense of Definition~\ref{def:win}:
-\printaxioms{} on each returns exactly \cleanfootprint.
+The limit equation is the nonlinear Vlasov equation, solved by the characteristic
+flow $\dot X = V$, $\dot V = -(\nabla W*\rho_t)(X)$ transporting the datum $f_0$,
+with $\rho_t$ the self-consistent spatial marginal. Its two marquee facts are
+forward well-posedness at arbitrary Lipschitz constant $L$ (Theorem~\ref{thm:wp}),
+a Banach fixed point in $\Wone$, and Dobrushin's estimate (Theorem~\ref{thm:dob}),
+$\Wone(f_t,g_t)\le e^{Ct}\,\Wone(f_0,g_0)$, whose proof drives the mean-field limit.
+Both are \emph{won} in the sense of Definition~\ref{def:win} --- \printaxioms{} on
+each returns exactly \cleanfootprint{} --- and the stability proof, where the whole
+optimal-transport apparatus of Section~\ref{ssec:wasserstein} is spent, is the one
+we give rather than sketch.
 
 A statement-level decision shaped the well-posedness theorem before any proof.
 Dobrushin's is a \emph{forward} Cauchy problem, and the marquee is posed that way ---
@@ -956,9 +894,7 @@ distance of the data, and one application of the Kantorovich--Rubinstein bridge
 \lean{wasserstein1\_eq\_coupling} rewrites it as the dual $\Wone(f_0,g_0)$ of the
 statement. That single \lean{rw} is the proof's \emph{only} appeal to duality: the whole
 stability core, and the mean-field limit that follows from it, are built in the coupling
-cost without it, and attainment is never invoked. (The bridge
-\lean{wasserstein1\_eq\_coupling} is the one built in Section~\ref{ssec:wasserstein}; here it
-is consumed in a single \lean{rw}.)
+cost without it, and attainment is never invoked.
 
 With stability in hand, the mean-field limit closes the loop: applying the estimate to
 the Vlasov solution $f$ and the empirical curve gives, whenever the initial empirical
@@ -985,22 +921,18 @@ is what costs the stronger \lean{AssW2}.
 
 \subsection{The superposition principle, and why $C^2$}\label{ssec:superposition}
 
+\noindent\emph{Hard: the superposition principle. Unlocked by: both --- a human typeclass decision, an agent construction.}
+
 The construction of Section~\ref{ssec:dynamical-core} produces a solution of a
 special form --- a pushforward of the datum along the characteristic flow ---
 whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all}
-distributional solutions. Reconciling the two is the \emph{superposition
-principle}, and it is where the game's recurring lesson reappears: what the result
-turns on is, once again, getting a \emph{definition} exactly right --- here the
-definition that decides everything is the regularity class of the potential. Recall from the introduction that a \emph{Lagrangian} solution
-(\lean{IsLagrangianVlasovSolution}) is a \emph{weak} one (\lean{IsVlasovSolution})
-transported by its own characteristic flow, its flow witness sitting beside the
-weak-PDE conjunct; it is weak by that conjunct, and the substantive converse is the
-superposition principle. Throughout, $\rho_t$ is the spatial marginal of $f_t$.
-Under $\mathrm{AssW2}$, every weak solution with finite first moments is Lagrangian
-(Theorem~\ref{thm:superposition}) --- transported by the characteristic flow it
-generates --- so the weak and Lagrangian notions coincide, and the unique solution of
-Theorem~\ref{thm:wp} is a pushforward of its datum along its flow. It costs exactly one degree of
-regularity beyond \lean{AssW}. The two standing assumptions sit a single field apart:
+distributional solutions. Reconciling the two is the superposition principle
+(Theorem~\ref{thm:superposition}): under $\mathrm{AssW2}$, every weak solution with
+finite first moments is Lagrangian, the two notions coincide, and the unique
+solution is a pushforward of its datum along its flow. What the result turns on is,
+once again, a \emph{definition} --- the regularity class of the potential. It costs
+exactly one degree beyond \lean{AssW}; the two standing assumptions sit a single
+field apart:
 \begin{leancode}
 class AssW (W : PhysSpace d → ℝ) : Prop where            -- C^{1,1}
   differentiable : Differentiable ℝ W
@@ -1011,57 +943,30 @@ class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where   -- C², one 
 \end{leancode}
 
 This is the one subsection where the Lean is not confirmation standing beside the
-mathematics but the mathematical content itself, because what the superposition
-principle asserts is inseparable from \emph{which} regularity hypothesis it runs on,
-and the two candidate hypotheses are two type classes a single line apart. The
-proof reduces uniqueness for the nonlinear equation to uniqueness for the
-\emph{linear} continuity equation
+mathematics but the mathematical content itself. The proof reduces uniqueness for
+the nonlinear equation to uniqueness for the \emph{linear} continuity equation
 $\partial_t f + \mathrm{div}_{(x,v)}(b_f\,f)=0$ with the frozen field
-$b_f(t,x,v)=(v,-(\nabla W*\rho_t)(x))$: writing $g_t:=(X(t,\cdot),V(t,\cdot))_\# f_0$
-for the pushforward along the flow frozen at $\rho_t$, both $f$ and $g$ solve the
-same linear equation with the same datum, so $f=g$. That linear uniqueness is proved
-by the \emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
-constant along characteristics --- and for $\psi(s,\cdot)$ to be an admissible $C^1$
-test function the flow $\Phi$ must be $C^1$ in its initial point $z$.
+$b_f(t,x,v)=(v,-(\nabla W*\rho_t)(x))$ --- both $f$ and the pushforward along the
+frozen flow solve it with the same datum --- and proves the linear uniqueness by the
+\emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
+constant along characteristics. For $\psi(s,\cdot)$ to be an admissible $C^1$ test
+function the flow $\Phi$ must be $C^1$ in its initial point $z$, and that single
+requirement is exactly what $\mathrm{AssW2}$ buys and $\mathrm{AssW}$ does not: at
+the bare $C^{1,1}$ the flow is only bi-Lipschitz, the chain-rule identity holds
+merely Lebesgue-a.e.\ rather than $f_t$-a.e., and the representation needs the full
+superposition theorem of Ambrosio \cite{AGS}. (Dobrushin sidesteps the equivalence
+by taking the Lagrangian representation as the \emph{definition} of solution, which
+is why the marquee theorems need only \lean{AssW}, and only this bridge to \emph{all}
+weak solutions pays for \lean{AssW2}.)
 
-That single
-requirement is exactly what $\mathrm{AssW2}$ buys and $\mathrm{AssW}$ does not: with
-$\nabla W\in C^1$ one has $\nabla W*\rho_t\in C^1$ and
-$\|D(\nabla W*\rho_t)\|_\infty\le L$, so $b_f$ is $C^1$ in $z$ and the flow inherits
-$C^1$ dependence on $z$. At the bare $C^{1,1}$ of \lean{AssW} the flow is only
-bi-Lipschitz, the transported test function only Lipschitz, and the chain-rule
-identity holds merely Lebesgue-a.e.\ rather than $f_t$-a.e.; the representation then
-needs the full superposition theorem of Ambrosio \cite{AGS}. The distinction between
-holding almost everywhere for Lebesgue measure and holding almost everywhere for
-$f_t$ is what the $C^1$-flow hypothesis controls, and the development carries that
-hypothesis explicitly in the type class rather than leaving it implicit in the prose.
-(Dobrushin sidesteps the equivalence entirely by taking the Lagrangian
-representation as the \emph{definition} of solution, for which \lean{AssW} suffices
---- which is why the marquee theorems (Theorems~\ref{thm:wp} and~\ref{thm:dob}) need
-only \lean{AssW}, and only this bridge to \emph{all} weak solutions pays for
-\lean{AssW2}.)
-
-This $C^1$ dependence of the flow on its initial point is the \emph{variational
-equation}, a result absent from the ambient library and supplied in house. Its
-hypothesis is precisely $\mathrm{AssW2}$'s $C^1$ gradient; its conclusion is the
-flow's Fr\'echet derivative.
-\begin{leancode}
-theorem charFlow_hasFDerivAt_in_initialPoint
-    (gradW) (hgradW_C1 : ContDiff ℝ 1 gradW)          -- ← the AssW2 input
-    (L) (hL …) (ρ) [∀ s, IsProbabilityMeasure (ρ s)]
-    (charX charV) (T) (hT : 0 < T)
-    (hflow : IsCharacteristicFlowOn gradW ρ charX charV (Set.Ioo 0 T) Set.univ)
-    …    -- force-integrability + joint continuity of the force derivative on [0,T]
-    : ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
-        (∀ t ∈ Set.Ioo 0 T, ∀ z,
-            HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
-        (∀ t ∈ Set.Ioo 0 T, Continuous (Dflow t))
-\end{leancode}
-The regularity ladder is captured by this one signature --- a $C^1$ input, a
-\lean{HasFDerivAt} output --- concrete evidence for the paper's recurring claim. Here
-formalization did not merely \emph{certify} a known argument; it \emph{sharpened} it,
-forcing the exact degree of smoothness the superposition principle needs out of the
-prose and onto a type class, where a referee reads it off in one line.
+That $C^1$ dependence of the flow on its initial point is the \emph{variational
+equation} --- absent from the ambient library, supplied in house as
+\leanlink{charFlow\_hasFDerivAt\_in\_initialPoint}, whose signature is the
+regularity ladder in a single line: a $C^1$ input (the \lean{AssW2} field), a
+\lean{HasFDerivAt} conclusion. Here formalization did not merely \emph{certify} a
+known argument; it \emph{sharpened} it, forcing the exact degree of smoothness the
+superposition principle needs out of the prose and onto a type class, where a
+referee reads it off.
 
 Two kinds of work met in this one theorem. The \emph{decision} --- that the
 superposition principle turns on exactly $C^1$ regularity of the flow in its initial
@@ -1075,6 +980,8 @@ the resolution of a single theorem: a short human insight fixing what to prove, 
 machine effort discharging it.
 
 \subsection{The reusability outcome}\label{ssec:reuse}
+
+\noindent\emph{The outcome: the layer, extracted and certified.}
 
 The headline of the extraction is a machine-checkable \emph{zero}. After the game
 was won, we reorganized the optimal-transport machinery into a self-contained
@@ -1134,14 +1041,12 @@ size row, likewise, is descriptive rather than the grade
 (Definition~\ref{def:selfcontained}): it records only whether a layer is large enough
 to be worth extracting.
 
-The blueprint gives an independent view of the same cut. Each result is tagged in the
-Lean source, and a build step extracts a theorem-level dependency graph directly from
-the elaborated proof terms --- not hand-drawn --- each node linked to its formal
-declaration and \lean{leanok} marker (Figure~\ref{fig:depgraph}). Coarser than the
-declaration-level graph, it exhibits the same architecture: the optimal-transport
-layer feeds \lean{dobrushin} with no reverse edge, the one-directional cut
-Definition~\ref{def:selfcontained} certifies. Every node is green --- no informal
-placeholder on any path to a target.
+The blueprint gives an independent, coarser view of the same cut: a build step
+extracts a theorem-level dependency graph directly from the elaborated proof terms
+--- not hand-drawn --- each node linked to its formal declaration
+(Figure~\ref{fig:depgraph}). It exhibits the same architecture --- the
+optimal-transport layer feeds \lean{dobrushin} with no reverse edge --- and every
+node is green: no informal placeholder on any path to a target.
 
 % ============================================================================
 \section{Assessment and outlook}\label{sec:assessment}
