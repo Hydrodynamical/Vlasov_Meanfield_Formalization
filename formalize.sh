@@ -3,7 +3,7 @@
 #
 # Stages:
 #   0. Scaffold a fresh Lean 4 + Mathlib project under ./Vlasov (once).
-#   1. latex-parser    vlasov.tex            -> formalize/structure.md
+#   1. latex-parser    formalize/vlasov.tex  -> formalize/structure.md
 #   2. lean-translator structure.md          -> Vlasov/Vlasov/Basic.lean
 #   3. lean-fixer      iterates `lake build` until clean (sorries OK)
 #   4. lean-verifier   produces formalize/report.md
@@ -19,7 +19,7 @@ set -euo pipefail
 unset CLAUDECODE CLAUDE_CODE_SSE_PORT CLAUDE_CODE_ENTRYPOINT 2>/dev/null || true
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEX="${ROOT}/vlasov.tex"
+TEX="${ROOT}/formalize/vlasov.tex"
 PROJECT="${ROOT}/Vlasov"
 LEAN_FILE_REL="Vlasov/Basic.lean"
 LEAN_FILE="${PROJECT}/${LEAN_FILE_REL}"

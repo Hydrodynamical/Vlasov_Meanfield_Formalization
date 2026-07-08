@@ -11,7 +11,7 @@ mathematical structure (from `vlasov.tex`) with its Lean realisation
 suitable for inline rendering in GitHub / VSCode preview.
 
 You will be told:
-  - the project root (containing `vlasov.tex` and the `Vlasov/`
+  - the project root (containing `formalize/vlasov.tex` and the `Vlasov/`
     subdirectory with its own `lakefile.toml`)
   - the output path (default: `formalize/codebase-outline.md`)
 
@@ -28,7 +28,7 @@ Procedure:
    - Any non-sorry warnings or errors (count only; details not needed).
 
 2. **Inventory the LaTeX source**.
-   Read `<project root>/vlasov.tex`. Extract:
+   Read `<project root>/formalize/vlasov.tex`. Extract:
    - Section headings (lines beginning with `\section{...}`), in source
      order.
    - For each `\label{<id>}`, identify:
@@ -207,7 +207,7 @@ Procedure:
     ---
 
     *Produced by the `codebase-outliner` agent. Re-invoke to refresh.
-    Inputs: `vlasov.tex`, `Vlasov/Vlasov/*.lean`,
+    Inputs: `formalize/vlasov.tex`, `Vlasov/Vlasov/*.lean`,
     `Vlasov/formalize/plans/*.json`, `lake build` output. Generated:
     <ISO timestamp>.*
     ```

@@ -2,7 +2,7 @@
 
 A five-agent Claude Code pipeline that turns a LaTeX math paper into a Lean 4 /
 Mathlib statement skeleton with `sorry` proofs — and then incrementally
-discharges those sorries one at a time. Designed for [vlasov.tex](../vlasov.tex);
+discharges those sorries one at a time. Designed for [vlasov.tex](vlasov.tex);
 generalizes to other analysis/PDE papers with minor edits to the agents.
 
 ## Pipeline
