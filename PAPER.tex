@@ -59,20 +59,20 @@ with a worked end-to-end case study in kinetic theory}
 \begin{abstract}
 We formalize a research result in the Lean~4 proof assistant by having a
 mathematician direct an AI system, and frame the activity as a \emph{formalization game}. The
-objective is to turn a \LaTeX{} document into Lean. The game is \emph{won} when it
-compiles with no \lean{sorry} and \printaxioms{} on the target theorems returns
-only Lean's foundational axioms. Each win is also graded for reuse, by a definition
-we introduce: a \emph{self-contained layer} of general mathematics the wider library
-could absorb.
+objective is to turn a \LaTeX{} document into Lean. The game is \emph{won} when the
+development compiles, contains no \lean{sorry}, and a machine check shows the target
+theorems rest on Lean's foundational axioms alone. Reuse is a second check, by a
+definition we introduce: whether the development yields a \emph{self-contained layer}
+of general mathematics the wider library could absorb.
 
 The case study is a complete, axiom-clean formalization of well-posedness for the
 Vlasov equation via Dobrushin's mean-field route --- existence, uniqueness, the
 stability estimate and mean-field limit, and a short-window superposition principle
 (weak solutions are Lagrangian). The human's
-role is to direct, not to write proofs: to scope the definitions, decompose each hard
-theorem, and triage the library's gaps; the agent executes. The check certifies the
-proof, not that the statement says what was meant --- that judgment stays the
-mathematician's. The optimal-transport
+role is to direct, not to write proofs: to scope the definitions, steer the
+decompositions, and triage the library's gaps; the agent executes. The check certifies the
+proof of each statement as written; whether the written statement is the intended
+theorem stays the mathematician's judgment. The optimal-transport
 machinery the derivation forced us to build (a finite Kantorovich duality, a
 coupling-gluing construction) separates into a self-contained layer
 (Definition~\ref{def:selfcontained}) that compiles against Mathlib alone: about a
@@ -110,7 +110,7 @@ keep pace with ordinary mathematical work. That speed sharpens two questions abo
 trust proofs one did not write, and whether anyone can use what is left behind. This
 paper turns both into machine checks. Trust is answered by a \emph{win condition} --- the
 development compiles, contains no \lean{sorry}, and depends on Lean's foundational
-axioms alone --- which certifies a proof relative to its statement, leaving
+axioms alone --- which certifies a proof relative to the statement as written, leaving
 statement-faithfulness with the mathematician. Reuse is answered by a
 \emph{self-contained layer} --- a dependency-isolated body of general mathematics,
 behind a small interface, that builds against the ambient library alone --- which
@@ -126,29 +126,29 @@ ourselves: a human mathematician directed an AI system, which wrote the proofs, 
 the mathematician decided what to prove, how to cut each hard theorem into reachable
 pieces, and when to abandon a line that was not working.
 
-Both guarantees are met here, and the case study is where one sees what each does and
-does not cover. The win condition is discharged by the machine: \printaxioms{} reports
+The win condition is met here, and the development yields a self-contained layer;
+the case study shows what each does and does not cover. The win condition is discharged by the machine: \printaxioms{} reports
 the target theorems depend on Lean's foundations alone. What it cannot supply is the
-other half --- that each statement says what was meant --- and the case study marks
+other half --- that each statement as written is the theorem intended --- and the case study marks
 where the mathematician supplied it. Two interventions carry the mark: a test class
 that had silently collapsed, leaving a key statement vacuously true behind a green
 build, caught by a human read (Section~\ref{ssec:newton-to-weak}); and one degree of
 regularity deliberately spent to make a uniqueness argument go through
 (Section~\ref{ssec:superposition}) --- both the mathematician's, both executed by
-the AI. The reusability grade is met in turn: the general mathematics
-the argument demanded separates into a self-contained layer
-(Section~\ref{ssec:reuse}) fit for the ambient library. That the marked
+the AI. The layer is delivered in turn: the general mathematics
+the argument demanded separates cleanly from the problem-specific development
+(Section~\ref{ssec:reuse}), fit for the ambient library. That the marked
 interventions are the mathematician's is not incidental --- the judgment behind them
 accumulates, in a standing guidance file built as play proceeds
 (Section~\ref{sec:strategies}).
 
-\subsection{Where this sits}
+\subsection{Related work}
 This work borders three recent lines: the end-to-end formalization of known-hard
 results, the autonomous proof-search agents, and first-hand methodological accounts
 of AI-assisted mathematics.
 
 The first is the now-established tradition of formalizing a substantial,
-known-hard mathematical result end to end in Lean: the Liquid Tensor Experiment
+known-hard mathematical result \emph{end to end} in Lean: the Liquid Tensor Experiment
 \cite{LTE}, the polynomial Freiman--Ruzsa theorem \cite{PFR}, Carleson's theorem
 on the convergence of Fourier series \cite{Carleson}, and the sphere-eversion
 project \cite{SphereEversion} are the canonical examples. These share an
@@ -175,7 +175,7 @@ GPT-5.4~Pro and then independently formalized in Lean by two autonomous systems
 machine-checks loop in microcosm. These differ from the present work on two axes.
 The first is direction: the agent \emph{drives} (the human, when present,
 supervises), whereas in our regime the scarce resource is the mathematician's
-judgment --- how to decompose a hard theorem, how to triage the ambient library's
+judgment --- where to cut a hard theorem, how to triage the ambient library's
 gaps --- not raw proof search over short goals. The second is the shape of the
 target: even where the underlying mathematics is substantial, as in the
 primitive-sets work, the formal artifacts are \emph{isolated} statements, each
@@ -185,7 +185,7 @@ theorems together. The autonomous systems also exhibit exactly the failure mode 
 (Definition~\ref{def:win}) is built to catch --- a renamed \lean{sorry}, a hallucinated
 lemma cited as settled --- documented by the systems' own authors \cite{AlphaProofNexus}.
 
-Closest to this paper are first-hand methodological accounts of AI-assisted
+Closest to this paper are \emph{first-hand} methodological accounts of AI-assisted
 research mathematics. Ilin \cite{IlinVML} semi-autonomously formalized a
 Vlasov--Maxwell--Landau \emph{equilibrium} in Lean~4 under a single supervising
 mathematician (using, among other tools, Claude Code and Aristotle) --- the same
@@ -209,7 +209,7 @@ paper is a concrete response. What distinguishes the present work against this
 backdrop is the target it runs on --- a research-grade \emph{dynamical} result
 carried end to end, rather than short problems or a static equilibrium.
 
-\subsection{The derivation, and why this one}
+\subsection{Choosing the target}
 Derivations of this kind come in a range of difficulty, set by how rough the force
 between particles is. Where the force is smooth, the passage to the limiting
 equation is classical, going back to Dobrushin \cite{Dobrushin} and the
@@ -234,8 +234,8 @@ Definition~\ref{def:selfcontained}, and the lasting artifact of the exercise.
 
 We describe the activity as a \emph{formalization game} because the framing is precise enough to be load-bearing.
 There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
-win condition (no \lean{sorry}, a clean axiom footprint), and a reusability grade
-(whether the won development yields a self-contained layer). And there are three
+win condition (no \lean{sorry}, a clean axiom footprint), and a payoff beyond
+winning --- whether the won development yields a \emph{self-contained layer}. And there are three
 phases, each rewarding a different strategy: a player who opens well can still lose
 the endgame. The game is a \emph{lens}; the body of the paper runs the derivation
 and marks at each stage what the finished proof hides, while the mathematics carries
@@ -383,11 +383,11 @@ window is short, and the continuity hypotheses concern the solution's \emph{own}
 Chaining short windows to arbitrary $T$, as the well-posedness construction does for its flow,
 is not formalized for this bridge; it is future work.
 
-This introduction has stated the two guarantees --- the win condition and the
-reusability grade --- set down in mathematics
+This introduction has stated the two checks --- the win condition and the
+self-contained layer --- set down in mathematics
 exactly what we formalized, and placed the work among its neighbors; the rest of
 the paper is the method and its evidence. Section~\ref{sec:game} sets out the game
---- its win condition, its reusability grade, the three phases, and the
+--- its win condition, its payoff (the self-contained layer), the three phases, and the
 $\mathrm{L}/\mathrm{P}/\mathrm{M}/\mathrm{B}$ framework of standing guidance the
 human accumulates. Section~\ref{sec:casestudy}
 is the heart of the paper: Dobrushin's derivation, run as a formalization in its
@@ -408,10 +408,10 @@ seminars and discussions.
 \section{The formalization game}\label{sec:game}
 % ============================================================================
 
-\subsection{Objective, win condition, reusability grade}
+\subsection{Objective, win condition, self-contained layer}
 
-The substance of the \emph{formalization game} is its win condition and its
-reusability grade. It is played on three objects: a source mathematics document (a
+The substance of the \emph{formalization game} is its win condition and the
+self-contained layer a win can export. It is played on three objects: a source mathematics document (a
 \LaTeX{} paper), a Lean~4 development $\mathcal{L}$ under construction, and a
 standing instruction file $\mathcal{G}$ governing the agent's behavior. A
 distinguished set of \emph{target theorems} $\Theta \subseteq \mathcal{L}$ encodes
@@ -436,14 +436,14 @@ depends on; a footprint of exactly \lean{propext}, \lean{Classical.choice}, and
 and any fourth name is a loss a build-success check would miss. The win condition
 is ``compiles \emph{and} the foundations are clean,'' not ``compiles.''
 
-This certifies a theorem soundly \emph{relative to its own statement}; it does not
-certify that the statement says what was meant. That second responsibility,
+This certifies a theorem soundly \emph{relative to its statement as written}; it does
+not certify that the written statement is the theorem intended. That second responsibility,
 statement-faithfulness, is the human's, discharged in the early game through
 definitional scoping and atom-level signature reading.
 
 We define reusability as the existence of a \emph{self-contained layer}: a
 subset of the development the ambient library could absorb with no trace of the
-problem it came from, graded pass/fail by checks the library defines, not us.
+problem it came from, checked pass/fail by criteria the library defines, not us.
 
 \begin{definition}[Self-contained layer]\label{def:selfcontained}
 A won game exports one or more \emph{self-contained layers}. A subset
@@ -473,7 +473,7 @@ dead code.
 A layer passing (Q1)--(Q4) is \emph{self-contained}, separated from the
 problem-specific development through an interface of width $w$. The \emph{size}
 of $\mathcal{L}_{\mathrm{gen}}$, as a fraction of $\mathcal{L}$, is reported
-descriptively, not as the grade. We claim reusability in this precise, certified
+descriptively, not as a criterion. We claim reusability in this precise, certified
 sense, and distinguish it from demonstrated \emph{reuse}, which we do not assert.
 \end{definition}
 
@@ -535,18 +535,22 @@ interface from discharging it --- and the interface is what every later phase is
 written against, so errors caught here are cheap and the same errors caught in the
 endgame are not.
 
-\subsubsection{Mid game: human-judgment decomposition}
-In the mid game the player repeatedly \emph{decomposes} a sorried statement into
+\subsubsection{Mid game: steering the decomposition}
+In the mid game the target's sorried statement is repeatedly \emph{decomposed} into
 smaller sorried sub-statements, each heuristically easier, until the leaves are
-within the agent's reach. In this game, \textbf{decomposition was the part of the
-loop that most demanded human judgment}: the agent could prove a well-specified
-sub-lemma, but chose poorly \emph{where} to cut and which of several equivalent
-routes the library could support --- acts of mathematical taste. The observation is
-time-stamped (this system, this moment; decomposition is exactly the frontier
-systems improve at fastest), not a permanent division of labor. In the case study the decisive mid-game choices
-were of this kind --- which face of the distance to argue the stability estimate
-in, a call that meant returning to the source's own formulation, and which form of
-its underlying inequality the encoding could support (Section~\ref{ssec:dynamical-core}).
+within the agent's reach. The splitting itself is delegable --- a
+\emph{sorry-decomposer} sub-agent does exactly that (Section~\ref{sec:casestudy})
+--- which is what isolates the mid game's real demand: \textbf{steering, not
+splitting, was the part of the loop that most demanded human judgment}. The agent
+could prove a well-specified sub-lemma and split an oversized one; what it did not
+supply was the judgment of \emph{where} to cut, which of several equivalent routes
+the library could support, and when to abandon a route --- acts of mathematical
+taste. The observation is time-stamped (this system, this moment; autonomous
+steering is exactly the frontier systems improve at fastest), not a permanent
+division of labor. In the case study the decisive steering was of this kind ---
+which face of the distance to argue the stability estimate in, a call that meant
+returning to the source's own formulation, and which form of its underlying
+inequality the encoding could support (Section~\ref{ssec:dynamical-core}).
 
 This is also where the loop \emph{learns}: a recurring pattern --- more often a
 recurring \emph{failure} --- is distilled into a strategy and written into
@@ -556,7 +560,7 @@ game rather than a fixed prompt.
 \begin{quote}\itshape
 The mid-game risk is choosing a decomposition the library cannot support, or one
 that multiplies rather than reduces difficulty. The dominant strategy is
-human-selected decomposition --- cut where the mathematician sees tractability ---
+human-steered decomposition --- cut where the mathematician sees tractability ---
 combined with encoding each hard-won heuristic into $\mathcal{G}$ so it is reused,
 not re-derived.
 \end{quote}
@@ -608,7 +612,7 @@ well-posedness core, to the weak-to-Lagrangian bridge, each interface locked and
 driven down before the front advances: the early-game API-lock discipline made visible. The
 total never runs away, because the game is a sequence of bounded burndowns, not one
 accumulating debt; and the flat stretch between the figure's two games, at zero live
-\lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the grade
+\lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the layer
 without reopening a goal.
 
 \begin{figure}[t]
@@ -672,7 +676,7 @@ strategy, so the file tracks the novelty of the tactical terrain crossed rather 
 size of the proof obligation.
 
 % ============================================================================
-\section{The Dobrushin derivation, formalized}\label{sec:casestudy}
+\section{The mean-field derivation, formalized}\label{sec:casestudy}
 % ============================================================================
 
 We played the game on Dobrushin's derivation \cite{Dobrushin} of the Vlasov
@@ -755,7 +759,7 @@ $\top$ had changed earlier in the library's history; the stale idiom still
 compiles); a nonzero real-analytic function cannot have compact support, so the
 test class had quietly collapsed to $\{0\}$ and the weak-solution hypothesis was
 \emph{vacuously} true. The build stayed green throughout: the axiom footprint
-certifies a proof relative to its statement, and cannot see that the statement had
+certifies a proof relative to the statement as written, and cannot see that the statement had
 become empty. A thirty-second \lean{\#check} caught the collapse, and the fix
 (\lean{ContDiff ℝ (⊤ : ℕ∞)}, the $C^\infty$ element written above) restored the
 class at twelve sites --- the clearest instance in the development of the boundary
@@ -819,7 +823,7 @@ facts, and the $c$-transform into the duality \leanlink{wasserstein1\_eq\_coupli
 the single optimal-transport line \lean{dobrushin} consumes. It is the clearest case
 in the development of the machine carrying a hard, unglamorous build to the end.
 
-\subsection{The dynamical core and its decomposition}\label{ssec:dynamical-core}
+\subsection{The dynamical core}\label{ssec:dynamical-core}
 
 \noindent\emph{Hard: the stability estimate. Unlocked by: a human redirection --- back to Dobrushin's own coupling formulation.}
 
@@ -980,7 +984,7 @@ passes Mathlib's environment-linter suite ($16$ linters) with zero warnings (Q3)
 The Q3 pass is annotated: seven declarations carry disclosed
 \lean{@[nolint unusedArguments]} for interface arguments retained for caller
 uniformity; eighteen genuinely-unused instance arguments were removed.
-The whole grade is one re-runnable block:
+The whole certificate is one re-runnable block:
 \begin{center}\small
 \begin{tabular}{ll}
 \hline
@@ -1006,7 +1010,7 @@ The reported width is the honest one, not the smallest achievable: five supersed
 declarations sit just outside the reachable core, and the interface names they still
 use raise $w$ from a possible $17$ to $22$; pruning them is signature-touching ---
 it re-triggers the full certification chain --- so $22$ stands. The size row,
-likewise, is descriptive rather than the grade (Definition~\ref{def:selfcontained}).
+likewise, is descriptive rather than part of the certificate (Definition~\ref{def:selfcontained}).
 
 % ============================================================================
 \section{Assessment and outlook}\label{sec:assessment}
@@ -1087,7 +1091,7 @@ itself.}
 \subsection{What generalizes}
 
 The three-phase structure and the strategy taxonomy (Section~\ref{sec:game}) are not
-specific to kinetic theory: the definitional-scoping, decomposition, and
+specific to kinetic theory: the definitional-scoping, decomposition-steering, and
 library-gap-triage risks should recur in any formalization of research analysis,
 where the rate-limiting resource is the ambient library's functional-analytic
 coverage. Of the four strategy series, the P- and B-series are domain-independent,
@@ -1099,8 +1103,8 @@ instructions.
 
 \subsection{Limitations}
 
-The reusability grade (Definition~\ref{def:selfcontained}) is a pass/fail
-certificate rather than a number, and we have applied it to a single development;
+The self-contained-layer check (Definition~\ref{def:selfcontained}) is pass/fail
+rather than a number, and we have applied it to a single development;
 the open question is not whether a fraction generalizes but whether its four
 checks (Q1)--(Q4) transfer cleanly to other projects. Even in
 this case the extracted layer still imports Mathlib wholesale rather than the
