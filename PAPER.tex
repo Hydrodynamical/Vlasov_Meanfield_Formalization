@@ -907,11 +907,9 @@ target theorems' footprint was already clean of it.
 The construction of Section~\ref{ssec:dynamical-core} produces a solution of a
 special form --- a pushforward of the datum along the characteristic flow ---
 whereas well-posedness (Theorem~\ref{thm:wp}) asserts uniqueness among \emph{all}
-distributional solutions. Reconciling the two is the superposition principle
-(Theorem~\ref{thm:superposition}): under $\mathrm{AssW2}$, every weak solution with
-finite first moments is Lagrangian, the two notions coincide, and the unique
-solution is a pushforward of its datum along its flow. What the result turns on is,
-once again, a \emph{definition} --- the regularity class of the potential. It costs
+distributional solutions. The superposition principle
+(Theorem~\ref{thm:superposition}) reconciles the two, and what it turns on is, once
+again, a \emph{definition} --- the regularity class of the potential. It costs
 exactly one degree beyond \lean{AssW}; the two standing assumptions sit a single
 field apart:
 \begin{leancode}
@@ -924,41 +922,33 @@ class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where   -- C², one 
 \end{leancode}
 
 This is the one subsection where the Lean is not confirmation standing beside the
-mathematics but the mathematical content itself. The proof reduces uniqueness for
-the nonlinear equation to uniqueness for the \emph{linear} continuity equation
-$\partial_t f + \mathrm{div}_{(x,v)}(b_f\,f)=0$ with the frozen field
-$b_f(t,x,v)=(v,-(\nabla W*\rho_t)(x))$ --- both $f$ and the pushforward along the
-frozen flow solve it with the same datum --- and proves the linear uniqueness by the
-\emph{dual transported test function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$,
-constant along characteristics. For $\psi(s,\cdot)$ to be an admissible $C^1$ test
-function the flow $\Phi$ must be $C^1$ in its initial point $z$, and that single
-requirement is exactly what $\mathrm{AssW2}$ buys and $\mathrm{AssW}$ does not: at
-the bare $C^{1,1}$ the flow is only bi-Lipschitz, the chain-rule identity holds
-merely Lebesgue-a.e.\ rather than $f_t$-a.e., and the representation needs the full
-superposition theorem of Ambrosio \cite{AGS}. (Dobrushin sidesteps the equivalence
-by taking the Lagrangian representation as the \emph{definition} of solution, which
-is why the marquee theorems need only \lean{AssW}, and only this bridge to \emph{all}
-weak solutions pays for \lean{AssW2}.)
+mathematics but the content itself. The proof reduces uniqueness for the nonlinear
+equation to uniqueness for the \emph{linear} continuity equation with the field
+frozen at $\rho_t$ --- both $f$ and the flow-pushforward solve it with the same
+datum --- and proves the linear uniqueness by the \emph{dual transported test
+function} $\psi(s,z):=\varphi(\Phi_{s\to T}(z))$, constant along characteristics.
+For $\psi(s,\cdot)$ to be an admissible $C^1$ test function the flow must be $C^1$
+in its initial point, and that single requirement is exactly what $\mathrm{AssW2}$
+buys and $\mathrm{AssW}$ does not: at the bare $C^{1,1}$ the flow is only
+bi-Lipschitz, the chain-rule identity holds merely Lebesgue-a.e.\ rather than
+$f_t$-a.e., and the representation needs the full superposition theorem of Ambrosio
+\cite{AGS}. (Dobrushin sidesteps the equivalence by taking the Lagrangian
+representation as the \emph{definition} of solution, which is why the marquee
+theorems need only \lean{AssW} and only this bridge pays for \lean{AssW2}.)
 
-That $C^1$ dependence of the flow on its initial point is the \emph{variational
-equation} --- absent from the ambient library, supplied in house as
-\leanlink{charFlow\_hasFDerivAt\_in\_initialPoint}, whose signature is the
-regularity ladder in a single line: a $C^1$ input (the \lean{AssW2} field), a
-\lean{HasFDerivAt} conclusion. Here formalization did not merely \emph{certify} a
-known argument; it \emph{sharpened} it, forcing the exact degree of smoothness the
-superposition principle needs out of the prose and onto a type class, where a
-referee reads it off.
-
-Two kinds of work met in this one theorem. The \emph{decision} --- that the
-superposition principle turns on exactly $C^1$ regularity of the flow in its initial
-point, and hence on $\mathrm{AssW2}$ and not $\mathrm{AssW}$ --- was the
-mathematician's, the kind of call the certificate then pins to a type class one line
-from its neighbor. The \emph{construction} behind the signature --- a fundamental
-matrix $\dot M = A(s,z)\,M$, solved by Picard iteration, then Fr\'echet differentiation
-under the integral --- was some fifteen commits of largely mechanical proof the
-library did not shorten, and the agent carried it. This is the division of labor at
-the resolution of a single theorem: a short human insight fixing what to prove, a long
-machine effort discharging it.
+That $C^1$ dependence is the \emph{variational equation} --- absent from the
+ambient library, supplied in house as
+\leanlink{charFlow\_hasFDerivAt\_in\_initialPoint}: a $C^1$ input (the \lean{AssW2}
+field), a \lean{HasFDerivAt} conclusion, the regularity ladder in one signature.
+Formalization here did not merely \emph{certify} a known argument; it
+\emph{sharpened} it, forcing the exact degree of smoothness out of the prose and
+onto a type class, where a referee reads it off. The \emph{decision} that
+superposition turns on exactly this, and hence on $\mathrm{AssW2}$, was the
+mathematician's; the \emph{construction} --- a fundamental matrix
+$\dot M = A(s,z)\,M$ by Picard iteration, then Fr\'echet differentiation under the
+integral --- was some fifteen commits of mechanical proof the library did not
+shorten, and the agent carried it: the division of labor at the resolution of a
+single theorem.
 
 \subsection{The reusability outcome}\label{ssec:reuse}
 
