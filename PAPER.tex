@@ -327,10 +327,19 @@ class of Definition~\ref{def:Lagrangian} is \leanlink{vlasovWellPosedness\_uniqu
 statement. It follows for $L>0$ from the stability estimate below; the degenerate $L=0$ case
 (constant force) is explicit, so uniqueness holds at every $L$.
 
-Solutions depend stably on their data. The relevant distance is the Wasserstein-1
-(Kantorovich--Rubinstein) metric $\Wone$ on $\mathcal{P}_1$: dually a supremum over $1$-Lipschitz
-test functions, primally an infimum over couplings, the two equal by Kantorovich--Rubinstein
-duality \cite{Villani,AGS}.
+Solutions depend stably on their data; the relevant distance is the Wasserstein-1
+(Kantorovich--Rubinstein) metric on $\mathcal{P}_1$.
+\begin{definition}[\leanlink{wasserstein1}]\label{def:w1}
+  For $\mu,\nu \in \mathcal{P}_1(\R^d\times\R^d)$,
+  \[
+    \Wone(\mu,\nu) \;:=\; \sup_{\mathrm{Lip}(f)\le 1}\Big(\int f\,d\mu - \int f\,d\nu\Big)
+    \;=\; \inf_{\pi\in\Pi(\mu,\nu)} \int \mathrm{dist}(z_1,z_2)\,d\pi ,
+  \]
+  the supremum over $1$-Lipschitz $f:\R^d\times\R^d\to\R$ and the infimum over the set
+  $\Pi(\mu,\nu)$ of \emph{couplings} --- probability measures on the product with marginals
+  $\mu$ and $\nu$. The supremum is the \emph{dual} face, the infimum the \emph{primal};
+  they agree by Kantorovich--Rubinstein duality \cite{Villani,AGS}.
+\end{definition}
 \begin{theorem}[Dobrushin stability \cite{Dobrushin}, \leanlink{dobrushin}]\label{thm:dob}
   Let $W$ satisfy Assumption~\ref{ass:1}. Any two Lagrangian solutions $f,g$ with
   finite first moment at every time are stable in $\Wone$ at an exponential rate,
@@ -762,7 +771,7 @@ $C^\infty$ element written above) restored the class at twelve sites.
 
 \subsection{Wasserstein-1, in two faces}\label{ssec:wasserstein}
 The distance that organizes everything to follow is the Wasserstein-1 metric
-$\Wone$, the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
+$\Wone$ (Definition~\ref{def:w1}), the optimal-transport cost for ground cost $c=\mathrm{dist}$. The
 development carries it in two faces with a bridge between them: the \emph{dual} face
 is a supremum over $1$-Lipschitz tests, the \emph{primal} face an infimum over
 couplings, and Kantorovich--Rubinstein duality equates them.
@@ -1263,8 +1272,11 @@ The marquee results are stated as mathematics in the introduction
 ellipsis (\lean{…}) marks elided technical hypotheses, each annotated in an adjacent
 comment; in particular, \lean{meanFieldLimit} takes the Dobrushin stability constant for
 the empirical curves as an explicit hypothesis. The
-assumption classes \leanlink{AssW} and \leanlink{AssW2} and the weak-solution predicate
-\leanlink{IsVlasovSolution} appear in the body (Sections~\ref{ssec:newton-to-weak}
+assumption classes \leanlink{AssW} and \leanlink{AssW2}, the weak-solution predicate
+\leanlink{IsVlasovSolution}, and the two faces of the Wasserstein-1 metric
+(\leanlink{wasserstein1}, \leanlink{wasserstein1\_coupling}, bridged by
+\leanlink{wasserstein1\_eq\_coupling}) appear in the body
+(Sections~\ref{ssec:newton-to-weak}, \ref{ssec:wasserstein},
 and~\ref{ssec:superposition}), where their exact form is part of the argument.
 
 \noindent The \emph{Lagrangian solution} predicate (Definition~\ref{def:Lagrangian}):
