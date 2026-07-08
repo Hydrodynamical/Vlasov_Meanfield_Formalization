@@ -78,8 +78,8 @@ coupling-gluing construction) separates into a self-contained layer
 (Definition~\ref{def:selfcontained}) that compiles against Mathlib alone: about a
 sixth of the development ($49$ of $299$ declarations), behind a $22$-declaration
 interface with no reverse dependency. The headline theorems ran in about a week, the
-full development in about a month. We report the quantitative claims as observations of
-one game, not as general laws.
+full development in about a month, on a flat-rate \$200-per-month subscription. We report
+the quantitative claims as observations of one game, not as general laws.
 \end{abstract}
 
 \tableofcontents
@@ -690,10 +690,9 @@ machinery is spent.
 The endgame's library-building --- the general mathematics the ambient library
 lacked --- is marked where it arises rather than gathered into a section of its own.
 
-% TODO(author): insert the exact DIRECTOR model-version string + approximate token/dollar
-% cost. (The delegated sub-agent model id, claude-sonnet-4-6, is already filled from logs.)
 The agent system was Claude Code, Anthropic's agentic coding environment, driving a
-frontier Claude model (the Opus tier). The human and the model alternated moves in
+frontier Claude model --- Opus 4.7, then 4.8, as the build spanned the upgrade. The
+human and the model alternated moves in
 an interactive session, and mechanical, well-scoped sub-tasks were delegated to
 specialized sub-agents --- a \emph{sorry-prover} (close a single \lean{sorry} by
 search against the local Mathlib), a \emph{sorry-decomposer} (split one oversized
@@ -1051,7 +1050,8 @@ the commit record next.
 
 The well-posedness and stability marquee --- from the first translated theorem to the
 certified stability estimate --- ran in about a week; the full development, with the
-superposition follow-on, spanned about a month. The claim is not raw speed but
+superposition follow-on, spanned about a month, on a flat-rate subscription ---
+Anthropic's \$200-per-month Max plan, no per-token billing. The claim is not raw speed but
 the \emph{mode} that makes it possible: a human mathematician as strategic director
 over an AI execution engine, the division Section~\ref{sec:casestudy} marked stage
 by stage.
