@@ -15,7 +15,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-HTML = ROOT / "formalize/phase-d/blueprint-demo/blueprint/web/dep_graph_document.html"
+HTML = ROOT / "formalize/certification/blueprint-demo/blueprint/web/dep_graph_document.html"
 OUTDIR = Path(__file__).resolve().parent
 DOT = OUTDIR / "blueprint_depgraph.dot"
 PDF = OUTDIR / "blueprint_depgraph.pdf"

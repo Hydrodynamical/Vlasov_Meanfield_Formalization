@@ -39,7 +39,7 @@ So the partition is made honest by being **explicit, external, and auditable**:
                   actually lives in a pure-general, import-clean sub-library you could lift
                   out and `import` as-is.  The in-environment proxy is module-purity +
                   import-fixpoint, below.  The EXTERNAL certification is the sibling package
-                  `formalize/phase-d/ot-standalone/` actually building the realized modules
+                  `formalize/certification/ot-standalone/` actually building the realized modules
                   against Mathlib ALONE ("compiles in isolation", not "the import graph
                   looks clean").
 

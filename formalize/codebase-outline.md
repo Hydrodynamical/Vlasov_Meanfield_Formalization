@@ -110,39 +110,39 @@ Legend: green (#a8e6a8) = all proved within node scope; no yellow, red, or purpl
 
 | tex label | kind | math statement | Lean declaration | location | status |
 |---|---|---|---|---|---|
-| `eq:HN` | equation | Mean-field Hamiltonian H_N(X,V) = kinetic + (1/N) potential | [`hamiltonianN`](Vlasov/Vlasov/Basic.lean#L55) | `Basic.lean:L55` | proved |
-| `eq:newton` | equation | Mean-field Newton ODE: ẋ_i = v_i, v̇_i = -(1/N)Σ ∇W(x_i-x_j) | [`IsNewtonSolution`](Vlasov/Vlasov/Basic.lean#L72) | `Basic.lean:L72` | proved |
-| `ass:W` | assumption | W in C^{1,1}: differentiable, even, Lip(∇W) < ∞ | [`AssW`](Vlasov/Vlasov/Basic.lean#L90) | `Basic.lean:L90` | proved |
-| `ass:W2` | assumption | AssW + ∇W in C^1 (W in C^2, Hessian bounded by L) | [`AssW2`](Vlasov/Vlasov/Basic.lean#L110) | `Basic.lean:L110` | proved |
+| `eq:HN` | equation | Mean-field Hamiltonian H_N(X,V) = kinetic + (1/N) potential | [`hamiltonianN`](../Vlasov/Vlasov/Basic.lean#L55) | `Basic.lean:L55` | proved |
+| `eq:newton` | equation | Mean-field Newton ODE: ẋ_i = v_i, v̇_i = -(1/N)Σ ∇W(x_i-x_j) | [`IsNewtonSolution`](../Vlasov/Vlasov/Basic.lean#L72) | `Basic.lean:L72` | proved |
+| `ass:W` | assumption | W in C^{1,1}: differentiable, even, Lip(∇W) < ∞ | [`AssW`](../Vlasov/Vlasov/Basic.lean#L90) | `Basic.lean:L90` | proved |
+| `ass:W2` | assumption | AssW + ∇W in C^1 (W in C^2, Hessian bounded by L) | [`AssW2`](../Vlasov/Vlasov/Basic.lean#L110) | `Basic.lean:L110` | proved |
 
 ### §2 The Empirical Measure
 
 | tex label | kind | math statement | Lean declaration | location | status |
 |---|---|---|---|---|---|
-| `def:empirical` | definition | Empirical measure μ^N[X,V] = (1/N) Σ δ_{(x_i,v_i)} | [`empiricalMeasure`](Vlasov/Vlasov/Basic.lean#L198) | `Basic.lean:L198` | proved |
-| `prop:weak` | proposition | Weak evolution of empirical measure with remainder bound | [`weakEvolutionEmpiricalMeasure`](Vlasov/Vlasov/Basic.lean#L571) | `Basic.lean:L571` | proved |
-| `eq:weak-eq` | equation | Weak PDE: d/dt⟨μ,φ⟩ = ⟨μ, v·∇_xφ - (∇W*ρ)·∇_vφ⟩ + R_N | [`WeakEvolutionEq`](Vlasov/Vlasov/Basic.lean#L686) | `Basic.lean:L686` | proved |
-| `cor:empirical-vlasov` | corollary | Under AssW, remainder vanishes: empirical measure solves Vlasov distributionally | [`empiricalMeasureSolvesVlasov`](Vlasov/Vlasov/Basic.lean#L708) | `Basic.lean:L708` | proved |
+| `def:empirical` | definition | Empirical measure μ^N[X,V] = (1/N) Σ δ_{(x_i,v_i)} | [`empiricalMeasure`](../Vlasov/Vlasov/Basic.lean#L198) | `Basic.lean:L198` | proved |
+| `prop:weak` | proposition | Weak evolution of empirical measure with remainder bound | [`weakEvolutionEmpiricalMeasure`](../Vlasov/Vlasov/Basic.lean#L571) | `Basic.lean:L571` | proved |
+| `eq:weak-eq` | equation | Weak PDE: d/dt⟨μ,φ⟩ = ⟨μ, v·∇_xφ - (∇W*ρ)·∇_vφ⟩ + R_N | [`WeakEvolutionEq`](../Vlasov/Vlasov/Basic.lean#L686) | `Basic.lean:L686` | proved |
+| `cor:empirical-vlasov` | corollary | Under AssW, remainder vanishes: empirical measure solves Vlasov distributionally | [`empiricalMeasureSolvesVlasov`](../Vlasov/Vlasov/Basic.lean#L708) | `Basic.lean:L708` | proved |
 
 ### §3 The Vlasov Equation
 
 | tex label | kind | math statement | Lean declaration | location | status |
 |---|---|---|---|---|---|
-| `eq:vlasov` | equation | Nonlinear Vlasov PDE: ∂_tf + v·∇_xf - (∇W*ρ_t)·∇_vf = 0 | [`IsVlasovSolution`](Vlasov/Vlasov/Basic.lean#L763) | `Basic.lean:L763` | proved |
-| `thm:vlasov-wp` | theorem | Existence and uniqueness for Vlasov with finite-moment datum | [`vlasovWellPosedness`](Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12517) | `OT/CharacteristicFlow.lean:L12517` | proved |
-| `def:weak-sol` | definition | Weak (Eulerian) solution: narrowly continuous f with distributional PDE | [`IsVlasovSolutionOn`](Vlasov/Vlasov/OT/CharacteristicFlow.lean#L1282) | `OT/CharacteristicFlow.lean:L1282` | proved |
-| `def:lagrangian-sol` | definition | Lagrangian solution: weak solution with characteristic flow representation | [`IsLagrangianVlasovSolution`](Vlasov/Vlasov/Basic.lean#L860) | `Basic.lean:L860` | proved |
-| `eq:char` | equation | Characteristic / mean-field ODE: Ẋ = V, V̇ = -(∇W*ρ_t)(X) | [`IsCharacteristicFlow`](Vlasov/Vlasov/Basic.lean#L808) | `Basic.lean:L808` | proved |
-| `thm:weak-lagrangian` | theorem | Under AssW2: every weak solution is Lagrangian (superposition principle) | [`weak_isLagrangianVlasovSolutionOn`](Vlasov/Vlasov/OT/WeakToLagrangian.lean#L4541) | `OT/WeakToLagrangian.lean:L4541` | proved |
+| `eq:vlasov` | equation | Nonlinear Vlasov PDE: ∂_tf + v·∇_xf - (∇W*ρ_t)·∇_vf = 0 | [`IsVlasovSolution`](../Vlasov/Vlasov/Basic.lean#L763) | `Basic.lean:L763` | proved |
+| `thm:vlasov-wp` | theorem | Existence and uniqueness for Vlasov with finite-moment datum | [`vlasovWellPosedness`](../Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12517) | `OT/CharacteristicFlow.lean:L12517` | proved |
+| `def:weak-sol` | definition | Weak (Eulerian) solution: narrowly continuous f with distributional PDE | [`IsVlasovSolutionOn`](../Vlasov/Vlasov/OT/CharacteristicFlow.lean#L1282) | `OT/CharacteristicFlow.lean:L1282` | proved |
+| `def:lagrangian-sol` | definition | Lagrangian solution: weak solution with characteristic flow representation | [`IsLagrangianVlasovSolution`](../Vlasov/Vlasov/Basic.lean#L860) | `Basic.lean:L860` | proved |
+| `eq:char` | equation | Characteristic / mean-field ODE: Ẋ = V, V̇ = -(∇W*ρ_t)(X) | [`IsCharacteristicFlow`](../Vlasov/Vlasov/Basic.lean#L808) | `Basic.lean:L808` | proved |
+| `thm:weak-lagrangian` | theorem | Under AssW2: every weak solution is Lagrangian (superposition principle) | [`weak_isLagrangianVlasovSolutionOn`](../Vlasov/Vlasov/OT/WeakToLagrangian.lean#L4541) | `OT/WeakToLagrangian.lean:L4541` | proved |
 | `rem:weak-lagrangian-reg` | remark | AssW2 buys C^1-in-z flow; bare C^{1,1} gives only Lipschitz (Ambrosio needed) | — (no Lean realisation; expository) | — | — |
 
 ### §4 The Mean-Field Limit: Dobrushin's Theorem
 
 | tex label | kind | math statement | Lean declaration | location | status |
 |---|---|---|---|---|---|
-| `thm:dobrushin` | theorem | Dobrushin (1979): W_1(f_t,g_t) ≤ e^{Ct} W_1(f_0,g_0) for all t ≥ 0 | [`dobrushin`](Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12907) | `OT/CharacteristicFlow.lean:L12907` | proved |
-| `eq:dobrushin` | equation | Exponential W_1 stability estimate (reusable predicate form) | [`DobrushinStabilityEstimate`](Vlasov/Vlasov/Basic.lean#L1604) | `Basic.lean:L1604` | proved |
-| `cor:mfl` | corollary | Mean-field limit: sup_{t∈[0,T]} W_1(μ^N_t, f_t) → 0 as N → ∞ | [`meanFieldLimit`](Vlasov/Vlasov/Basic.lean#L1628) | `Basic.lean:L1628` | proved |
+| `thm:dobrushin` | theorem | Dobrushin (1979): W_1(f_t,g_t) ≤ e^{Ct} W_1(f_0,g_0) for all t ≥ 0 | [`dobrushin`](../Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12907) | `OT/CharacteristicFlow.lean:L12907` | proved |
+| `eq:dobrushin` | equation | Exponential W_1 stability estimate (reusable predicate form) | [`DobrushinStabilityEstimate`](../Vlasov/Vlasov/Basic.lean#L1604) | `Basic.lean:L1604` | proved |
+| `cor:mfl` | corollary | Mean-field limit: sup_{t∈[0,T]} W_1(μ^N_t, f_t) → 0 as N → ∞ | [`meanFieldLimit`](../Vlasov/Vlasov/Basic.lean#L1628) | `Basic.lean:L1628` | proved |
 
 ### §5 Hamiltonian Structure of the Limit
 

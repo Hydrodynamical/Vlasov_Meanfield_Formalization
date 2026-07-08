@@ -15,7 +15,7 @@ The Lean toolchain is pinned by `lean-toolchain` (v4.29.1) and Mathlib by
 `lake-manifest.json`. To check the axiom-footprint certificate:
 
 ```bash
-lake env lean ../formalize/phase-d/footprint-check.lean
+lake env lean ../formalize/certification/footprint-check.lean
 ```
 
 ## Modules

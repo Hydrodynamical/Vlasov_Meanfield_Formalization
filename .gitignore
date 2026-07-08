@@ -24,7 +24,7 @@ STYLE.md
 /AUDIT.md
 /REVISIONS.txt
 
-# Rebuildable phase-d outputs
-formalize/phase-d/ot-standalone/build.log
-formalize/phase-d/blueprint-demo/blueprint/src/print.pdf
+# Rebuildable certification-tooling outputs
+formalize/certification/ot-standalone/build.log
+formalize/certification/blueprint-demo/blueprint/src/print.pdf
 

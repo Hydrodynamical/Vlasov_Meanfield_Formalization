@@ -135,7 +135,7 @@ Procedure:
 
    | tex label | kind | math statement | Lean declaration | location | status |
    |---|---|---|---|---|---|
-   | `<label>` | <kind> | <one-line summary> | [`<name>`](Vlasov/Vlasov/<file>#L<line>) | `<file>:<line>` | <status emoji> |
+   | `<label>` | <kind> | <one-line summary> | [`<name>`](../Vlasov/Vlasov/<file>#L<line>) | `<file>:<line>` | <status emoji> |
    ```
 
    For the "math statement" column: use the environment's `[caption]`

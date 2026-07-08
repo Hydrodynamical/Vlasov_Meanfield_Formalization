@@ -59,7 +59,7 @@ run_cmd do
           if ¬ deps.contains tag then deps := deps.push tag
       lines := lines.push s!"{modTag modName}|{nm}|{String.intercalate "," deps.toList}"
       count := count + 1
-  IO.FS.writeFile "phase_d_deps.txt" (String.intercalate "\n" lines.toList ++ "\n")
-  logInfo s!"wrote {count} project declarations to phase_d_deps.txt"
+  IO.FS.writeFile "depgraph-deps.txt" (String.intercalate "\n" lines.toList ++ "\n")
+  logInfo s!"wrote {count} project declarations to depgraph-deps.txt"
 
 end PhaseDDeps

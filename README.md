@@ -30,7 +30,7 @@ correspondence table is
 ```bash
 cd Vlasov
 lake build
-lake env lean ../formalize/phase-d/footprint-check.lean
+lake env lean ../formalize/certification/footprint-check.lean
 ```
 
 The second command is the certificate. For each of the three headline theorems
@@ -57,7 +57,7 @@ LuaLaTeX with the JuliaMono font is required (the Lean listings use it).
 | Path | Contents |
 |---|---|
 | [`Vlasov/`](Vlasov/) | the Lean package — see its [README](Vlasov/README.md) for the module map |
-| [`formalize/`](formalize/) | the build record: pipeline docs, per-session agent logs, plan sidecars, certification tooling ([`phase-d/`](formalize/phase-d/)), and the retrospective data and scripts behind the paper's figures ([`retrospective/`](formalize/retrospective/)) |
+| [`formalize/`](formalize/) | the build record: pipeline docs, per-session agent logs, plan sidecars, certification tooling ([`certification/`](formalize/certification/)), and the retrospective data and scripts behind the paper's figures ([`retrospective/`](formalize/retrospective/)) |
 | [`CLAUDE.md`](CLAUDE.md) | the standing instruction file $\mathcal{G}$ of the paper — the lesson series (L/P/M/B) accumulated across the build |
 | [`.claude/agents/`](.claude/agents/) | the eight sub-agent specifications |
 | [`formalize.sh`](formalize.sh) | the driver script coordinating the sub-agents |

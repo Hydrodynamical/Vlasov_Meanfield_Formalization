@@ -16,12 +16,12 @@ footprint, revert that move and diagnose — do not patch forward.
 ## Method (robust instrument, not text-grep)
 
 Declaration-level dependency graph extracted from Lean's own environment via a
-meta-program (`formalize/phase-d/depgraph-tool.lean`): for each declaration in
+meta-program (`formalize/certification/depgraph-tool.lean`): for each declaration in
 the project modules, `ConstantInfo.type/value?.getUsedConstants` filtered to
 project declarations, tagged by defining module. Raw graph (230 decls):
-`formalize/phase-d/phase_d_deps.txt`, format `MODTAG|declname|dep_tag:dep,...`.
-Re-run after any move with `lake env lean formalize/phase-d/depgraph-tool.lean`
-(writes `phase_d_deps.txt` in cwd) to re-verify the graph against the build —
+`formalize/certification/depgraph-deps.txt`, format `MODTAG|declname|dep_tag:dep,...`.
+Re-run after any move with `lake env lean formalize/certification/depgraph-tool.lean`
+(writes `depgraph-deps.txt` in cwd) to re-verify the graph against the build —
 the build is the oracle; grep was used only to cross-reference docstring `[General OT]` markings.
 
 ## Module-level DAG (verified — no back-edges)
@@ -148,7 +148,7 @@ confirm the graph still matches intent.
 ## Resume note (status + next-session ordering)
 
 **Done (committed, footprint `[propext, Classical.choice, Quot.sound]` held at each step):**
-- `d7df18c` — this diagnostic + graph + tool. Reusable check: `formalize/phase-d/footprint-check.lean`.
+- `d7df18c` — this diagnostic + graph + tool. Reusable check: `formalize/certification/footprint-check.lean`.
 - `ed667c3` — **move 1**: `Base/Geometry.lean` (PhysSpace, PhaseSpace) extracted; Basic imports it.
 - `a9c000d` — **move 2**: OT-generic core (`wassersteinCost`/`wasserstein1`/`wassersteinBar` + lemmas +
   firstMoment helper) → `OT/Wasserstein.lean` (imports Mathlib only — fully generic). Basic 2658→2015 lines.
@@ -182,7 +182,7 @@ Every name is descriptive-statement-shape. The bridge `wasserstein1_eq_coupling`
   caught it; the chained footprint check was STALE (move-1 oleans, build had failed) — a passing check against a
   failed build is NOT certification. Revert → re-diagnose (L1520) → redo. Re-run the check only after the build
   it certifies succeeds.
-- *Authoritative graph over grep*: the straggler self-containment check used `phase_d_deps.txt` (ground-truth
+- *Authoritative graph over grep*: the straggler self-containment check used `depgraph-deps.txt` (ground-truth
   decl graph), not text-grep — grep over-matched `AssW`/`empirical`/`gradW` in docstring prose; the graph showed
   clean OT-only deps. Trusting the grep would have wrongly blocked a clean move.
 
