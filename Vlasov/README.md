@@ -1,13 +1,31 @@
-# Vlasov
+# Vlasov — the Lean package
 
-## GitHub configuration
+The Lean 4 / Mathlib development for
+[Mathematician in the Loop](../README.md): the mean-field derivation of the
+Vlasov equation, formalized. Zero `sorry`; the three headline theorems carry
+the axiom footprint `[propext, Classical.choice, Quot.sound]`.
 
-To set up your new GitHub repository, follow these steps:
+## Build
 
-* Under your repository name, click **Settings**.
-* In the **Actions** section of the sidebar, click "General".
-* Check the box **Allow GitHub Actions to create and approve pull requests**.
-* Click the **Pages** section of the settings sidebar.
-* In the **Source** dropdown menu, select "GitHub Actions".
+```bash
+lake build
+```
 
-After following the steps above, you can remove this section from the README file.
+The Lean toolchain is pinned by `lean-toolchain` (v4.29.1) and Mathlib by
+`lake-manifest.json`. To check the axiom-footprint certificate:
+
+```bash
+lake env lean ../formalize/phase-d/footprint-check.lean
+```
+
+## Modules
+
+| Module | Contents |
+|---|---|
+| [`Vlasov/Base/Geometry.lean`](Vlasov/Base/Geometry.lean) | phase-space geometry: `PhysSpace`, `PhaseSpace` |
+| [`Vlasov/OT/Wasserstein.lean`](Vlasov/OT/Wasserstein.lean) | `wasserstein1` via the Kantorovich–Rubinstein dual, and its metric API |
+| [`Vlasov/OT/Coupling.lean`](Vlasov/OT/Coupling.lean) | couplings, transport cost, the duality bridge `wasserstein1_eq_coupling` |
+| [`Vlasov/OT/CharacteristicFlow.lean`](Vlasov/OT/CharacteristicFlow.lean) | characteristic flows; `vlasovWellPosedness`, `dobrushin`, `meanFieldLimit_coupling` |
+| [`Vlasov/OT/WeakToLagrangian.lean`](Vlasov/OT/WeakToLagrangian.lean) | the superposition principle: `weak_isLagrangianVlasovSolutionOn` |
+| [`Vlasov/Mathlib/ODE/PicardLindelof.lean`](Vlasov/Mathlib/ODE/PicardLindelof.lean) | Picard–Lindelöf supplement |
+| [`Vlasov/Basic.lean`](Vlasov/Basic.lean) | particle systems, `empiricalMeasure`, weak solutions, `meanFieldLimit` |
