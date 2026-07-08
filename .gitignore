@@ -10,3 +10,21 @@
 # Personal writing style guide (not project-wide)
 STYLE.md
 
+# LaTeX build artifacts (root-anchored: formalize/logs/*.log stay tracked)
+/*.aux
+/*.fdb_latexmk
+/*.fls
+/*.log
+/*.out
+/*.toc
+/*.synctex.gz
+
+# Local working notes and reference PDFs (never published)
+/Dobrushin79.pdf
+/AUDIT.md
+/REVISIONS.txt
+
+# Rebuildable phase-d outputs
+formalize/phase-d/ot-standalone/build.log
+formalize/phase-d/blueprint-demo/blueprint/src/print.pdf
+
