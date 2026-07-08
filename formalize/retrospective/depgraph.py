@@ -7,15 +7,15 @@ d3-graphviz from a DOT string embedded in `dep_graph_document.html`
 (`.renderDot(`...`)`). We pull that exact string out, swap the transparent
 background for white (for print), and render with graphviz `dot`.
 
-Run from repo root:  python3 Vlasov/formalize/retrospective/depgraph.py
+Run from repo root:  python3 formalize/retrospective/depgraph.py
 Requires graphviz (`dot`).
 """
 import re
 import subprocess
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-HTML = ROOT / "Vlasov/formalize/phase-d/blueprint-demo/blueprint/web/dep_graph_document.html"
+ROOT = Path(__file__).resolve().parents[2]
+HTML = ROOT / "formalize/phase-d/blueprint-demo/blueprint/web/dep_graph_document.html"
 OUTDIR = Path(__file__).resolve().parent
 DOT = OUTDIR / "blueprint_depgraph.dot"
 PDF = OUTDIR / "blueprint_depgraph.pdf"

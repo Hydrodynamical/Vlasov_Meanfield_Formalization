@@ -240,4 +240,4 @@ extensions beyond the current scope, not unproved obligations:
 Inputs: `formalize/vlasov.tex`, `Vlasov/Vlasov/Basic.lean`, `Vlasov/Vlasov/OT/Wasserstein.lean`,
 `Vlasov/Vlasov/OT/Coupling.lean`, `Vlasov/Vlasov/OT/CharacteristicFlow.lean`,
 `Vlasov/Vlasov/OT/WeakToLagrangian.lean`, `Vlasov/Vlasov/Mathlib/ODE/PicardLindelof.lean`,
-`Vlasov/formalize/plans/*.json`, `lake build` output. Generated: 2026-06-23T00:00:00Z.*
+`formalize/plans/*.json`, `lake build` output. Generated: 2026-06-23T00:00:00Z.*

@@ -60,7 +60,7 @@ Procedure:
      section each declaration belongs to.
 
 4. **Load decomposition sidecars**.
-   Glob `<project root>/Vlasov/formalize/plans/*.json` if present. For
+   Glob `<project root>/formalize/plans/*.json` if present. For
    each, read with `cat` (use `jq` only if both `which jq` returns 0
    AND the file parses as valid JSON via `jq -e .`; otherwise fall back
    to a simple `grep`-based extraction). Build a map:
@@ -167,7 +167,7 @@ Procedure:
    the comment block immediately preceding the sorry'd declaration; if
    none, write `(see docstring)`.
 
-10. **Write the output file** to `<project root>/Vlasov/formalize/codebase-outline.md`.
+10. **Write the output file** to `<project root>/formalize/codebase-outline.md`.
     File structure:
 
     ```
@@ -208,7 +208,7 @@ Procedure:
 
     *Produced by the `codebase-outliner` agent. Re-invoke to refresh.
     Inputs: `formalize/vlasov.tex`, `Vlasov/Vlasov/*.lean`,
-    `Vlasov/formalize/plans/*.json`, `lake build` output. Generated:
+    `formalize/plans/*.json`, `lake build` output. Generated:
     <ISO timestamp>.*
     ```
 

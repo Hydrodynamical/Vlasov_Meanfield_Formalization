@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T00:00:00Z",
+  "generated_by": "sorry-decomposer",
+  "parent": {
+    "name": "Vlasov.exists_finiteRange_map_cost_le",
+    "kind": "theorem",
+    "tex_label": null,
+    "file": "Vlasov/OT/Coupling.lean",
+    "line": 544
+  },
+  "helpers": [
+    {
+      "name": "Vlasov.finiteRange_approxMap_measurable",
+      "file": "Vlasov/OT/Coupling.lean",
+      "line": 487,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasurableSet.biUnion",
+        "Set.finite_range"
+      ],
+      "one_line_math": "Given a measurable disjoint partition As covering univ with representatives as, the truncated step map T (x = as n if x in As n for n < N, else x0) is measurable with finite range; uses piecewise-measurability of indicator-indexed functions."
+    },
+    {
+      "name": "Vlasov.lintegral_ofReal_ne_top_of_integrable_nonneg",
+      "file": "Vlasov/OT/Coupling.lean",
+      "line": 504,
+      "difficulty": 2,
+      "deps": [],
+      "mathlib_hints": [
+        "hasFiniteIntegral_iff_ofReal",
+        "Integrable.hasFiniteIntegral",
+        "lintegral_ofReal_ne_top_iff_integrable"
+      ],
+      "one_line_math": "Integrable f + ae-nonneg implies the lintegral of ENNReal.ofReal(f) is finite (not top); extracted from hasFiniteIntegral_iff_ofReal."
+    },
+    {
+      "name": "Vlasov.lintegral_ofReal_tail_tendsto_zero",
+      "file": "Vlasov/OT/Coupling.lean",
+      "line": 514,
+      "difficulty": 2,
+      "deps": ["Vlasov.lintegral_ofReal_ne_top_of_integrable_nonneg"],
+      "mathlib_hints": [
+        "MeasureTheory.tendsto_setLIntegral_zero"
+      ],
+      "one_line_math": "If integral of ofReal(f) is finite and the measure of (S n)^c tends to zero, then the integral of ofReal(f) over (S n)^c also tends to zero (absolute continuity of the Lebesgue integral)."
+    },
+    {
+      "name": "Vlasov.lintegral_ofReal_kept_cells_le",
+      "file": "Vlasov/OT/Coupling.lean",
+      "line": 528,
+      "difficulty": 3,
+      "deps": [],
+      "mathlib_hints": [
+        "MeasureTheory.lintegral_iUnion",
+        "MeasureTheory.lintegral_biUnion_finset",
+        "ENNReal.ofReal_le_ofReal",
+        "MeasureTheory.measure_univ"
+      ],
+      "one_line_math": "If c(x, T x) <= delta for all x in the N kept cells and mu is a probability measure, then the lintegral of ofReal(c(x, T x)) over the kept cells union is at most ofReal(delta).",
+      "proof_sketch": "apply lintegral_biUnion_finset + on each cell use lintegral_mono then bound by delta * mu(As n); sum over n < N uses mu(univ) = 1"
+    }
+  ],
+  "residual_glue": {
+    "file": "Vlasov/OT/Coupling.lean",
+    "line": 544,
+    "branch_label": "target body",
+    "composition": [
+      "Vlasov.finiteRange_approxMap_measurable",
+      "Vlasov.lintegral_ofReal_ne_top_of_integrable_nonneg",
+      "Vlasov.lintegral_ofReal_tail_tendsto_zero",
+      "Vlasov.lintegral_ofReal_kept_cells_le"
+    ],
+    "strategy": "Get dist-diameter partition via SeparableSpace.exists_measurable_partition_diam_le; build finiteRange map; show lintegral ofReal(c x0) is finite; extract N making tail cost <= eps/2 via ENNReal.tendsto_nhds_zero; decompose total via lintegral_add_compl; kept cells via lintegral_ofReal_kept_cells_le (residual sorry: establish c(x, T x) <= eps/2 from diameter bound - needs hc_le_dist or c-ball partition); tail via hN.",
+    "tactic_sketch": "haveI := inferInstance; obtain As partition; have hfint from helper; extract N; obtain T from finiteRange helper; rw lintegral_add_compl; gcongr; [apply lintegral_ofReal_kept_cells_le; sorry (c vs dist gap)], [setLIntegral_congr_fun + hN]"
+  }
+}

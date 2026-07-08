@@ -121,7 +121,7 @@ echo '#print axioms Vlasov.weak_isLagrangianVlasovSolutionOn' | lake env lean --
 
 **Regenerate the blueprint (A4–A6).**
 ```bash
-cd Vlasov/formalize/phase-d/blueprint-demo
+cd formalize/phase-d/blueprint-demo
 lake build :blueprint                 # extract nodes + dependency graph from Lean
 git init -q .                         # leanblueprint resolves the project root via git toplevel
 leanblueprint web                     # → blueprint/web/  (run twice to settle refs)

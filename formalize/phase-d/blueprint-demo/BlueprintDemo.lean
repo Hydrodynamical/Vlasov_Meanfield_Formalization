@@ -16,7 +16,7 @@ the rendered blueprint.  Tagging is done via `attribute [blueprint …]` here in
 Dependency edges between nodes are collected automatically from the actual Lean proof terms,
 so tagging a connected set of declarations makes the graph wire itself.
 
-The node set follows `Vlasov/formalize/codebase-outline.md` (the "Mathematical ↔ Lean
+The node set follows `formalize/codebase-outline.md` (the "Mathematical ↔ Lean
 correspondence" table): assumptions, the Vlasov / characteristic-flow predicates, the marquee
 well-posedness + Dobrushin results, the optimal-transport core (W₁ via KR duality, couplings,
 triangle, finiteness), and the weak ⟹ Lagrangian bridge (the superposition principle).

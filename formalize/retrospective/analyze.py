@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 
-OUT = "Vlasov/formalize/retrospective"
+OUT = "formalize/retrospective"
 PROD_RE = re.compile(r"^Vlasov/Vlasov/.*\.lean$")
 SORRY_RE = re.compile(r"\bsorry\b")
 LESSON_RE = re.compile(r"^###\s+([LPMB])(\d+)\.", re.MULTILINE)
