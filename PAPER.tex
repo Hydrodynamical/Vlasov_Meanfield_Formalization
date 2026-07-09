@@ -10,6 +10,8 @@
 \usepackage{graphicx}
 \graphicspath{{formalize/retrospective/}}
 \usepackage[section]{placeins}   % keep figures within the section that references them
+\usepackage{needspace}             % keep short verbatim blocks on one page
+\setcounter{tocdepth}{2}           % subsections in the TOC; subsubsections would push it to two pages
 \usepackage{fontspec}              % requires lualatex/xelatex
 \setmonofont{JuliaMono}[Scale=MatchLowercase]  % faithful Lean Unicode in \texttt and code
 \usepackage{fancyvrb}
@@ -416,13 +418,6 @@ method: the discipline that kept it sound at speed, the timeframe and division o
 what generalizes, and the limits of one run, closing with the next target and
 with what should outlast the tools.
 
-\paragraph{Acknowledgements.}
-I thank the Stanford mathematics department for its hospitality and vibrant
-community; Fred Rajasekaran for intriguing discussions about formalization;
-Eleny Ionel for organizing last quarter's mathematics colloquium talks, which
-kept us current with the latest developments in AI for mathematics; and the
-Stanford Learning Seminar on Mathematics and Computation for its wonderful
-seminars and discussions.
 % ============================================================================
 \section{The formalization game}\label{sec:game}
 % ============================================================================
@@ -615,24 +610,13 @@ The case study of Section~\ref{sec:casestudy} left a complete, machine-readable 
 every move is a version-control commit, so the game's state --- its \lean{sorry} count, its
 standing instruction file $\mathcal{G}$, its file structure --- can be reconstructed at any
 point of its $362$-commit history.\footnote{Reproducible scripts and the raw data are in
-the development's \lean{formalize/retrospective} directory. ``Live \lean{sorry}'' counts the
-token after stripping Lean line- and block-comments --- the word appears constantly in
-prose and docstrings, so an unstripped count is meaningless; the count reaching $0$ at the
-final commit, where the build is independently known clean, validates the strip. The
-production library is the Lean package source, excluding the throwaway development scratch
-file. The commit classification is a heuristic over commit-message intent.}
-
-Three series, read off that record, turn the claims of this section and the next into data. The first is
-the \lean{sorry} front: Figure~\ref{fig:sorry} plots the live count per source file, and
-the three-phase rhythm is visible in it directly. Open goals stay concentrated in a single
-\emph{active leaf} --- one production file at a time carries the bulk of the \lean{sorry}s,
-and the front migrates from the basic objects, through the characteristic-flow
-well-posedness core, to the weak-to-Lagrangian bridge, each interface locked and its goals
-driven down before the front advances: the early-game API-lock discipline made visible. The
-total never runs away, because the game is a sequence of bounded burndowns, not one
-accumulating debt; and the flat stretch between the figure's two games, at zero live
-\lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the layer
-without reopening a goal.
+the development's \lean{formalize/retrospective} directory.} Three conventions fix what
+the figures count: ``live \lean{sorry}'' counts the token after stripping Lean line- and
+block-comments (the word appears constantly in prose and docstrings, so an unstripped
+count is meaningless; the count reaching $0$ at the final commit, where the build is
+independently known clean, validates the strip); the production library is the Lean
+package source, excluding the throwaway development scratch file; and the commit
+classification of Section~\ref{ssec:timeframe} is a heuristic over commit-message intent.
 
 \begin{figure}[t]
 \centering
@@ -646,22 +630,23 @@ separated by the zero-\lean{sorry} reusability extraction.}
 \label{fig:sorry}
 \end{figure}
 
+\needspace{10\baselineskip}
+Three series, read off that record, turn the claims of this section and the next into data. The first is
+the \lean{sorry} front: Figure~\ref{fig:sorry} plots the live count per source file, and
+the three-phase rhythm is visible in it directly. Open goals stay concentrated in a single
+\emph{active leaf} --- one production file at a time carries the bulk of the \lean{sorry}s,
+and the front migrates from the basic objects, through the characteristic-flow
+well-posedness core, to the weak-to-Lagrangian bridge, each interface locked and its goals
+driven down before the front advances: the early-game API-lock discipline made visible. The
+total never runs away, because the game is a sequence of bounded burndowns, not one
+accumulating debt; and the flat stretch between the figure's two games, at zero live
+\lean{sorry}, is the reusability extraction of Section~\ref{ssec:reuse}, banking the layer
+without reopening a goal.
+
 \subsection{The strategy framework}\label{sec:strategies}
 
 The standing instruction file accumulated its lessons in four series, which operate
 at genuinely different levels with different triggers for ``this rule applies.''
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{lessons_cumulative.png}
-\caption{From the case study of Section~\ref{sec:casestudy}: named strategies present in the
-standing instruction file $\mathcal{G}$ across its $36$ revisions, by series (L/P/M/B). The
-staircase shape --- flats punctuated by jumps at specific failures --- is the signature of
-strategies earned rather than designed. The total grows $4\to34$; the four-series taxonomy
-crystallizes in one revision, and the process (P) series jumps by four in the aftermath of
-the cascade frictions of Section~\ref{sec:phases}.}
-\label{fig:lessons}
-\end{figure}
 
 \begin{description}[leftmargin=2em,style=nextline]
 \item[L-series --- Lean / agent-tool lessons.] Idioms, elaborator quirks,
@@ -693,6 +678,18 @@ frictions the three phases above describe. The closing growth is the tool-lesson
 alone: through the superposition follow-on it is Lean idioms that accumulate, not new
 strategy, so the file tracks the novelty of the tactical terrain crossed rather than the
 size of the proof obligation.
+
+\begin{figure}[!b]
+\centering
+\includegraphics[width=\textwidth]{lessons_cumulative.png}
+\caption{From the case study of Section~\ref{sec:casestudy}: named strategies present in the
+standing instruction file $\mathcal{G}$ across its $36$ revisions, by series (L/P/M/B). The
+staircase shape --- flats punctuated by jumps at specific failures --- is the signature of
+strategies earned rather than designed. The total grows $4\to34$; the four-series taxonomy
+crystallizes in one revision, and the process (P) series jumps by four in the aftermath of
+the cascade frictions of Section~\ref{sec:phases}.}
+\label{fig:lessons}
+\end{figure}
 
 % ============================================================================
 \section{The mean-field derivation, formalized}\label{sec:casestudy}
@@ -757,6 +754,7 @@ the statement (\leanlink{weakEvolutionEmpiricalMeasure}) returns it explicitly, 
 value and bound as conjuncts, and evenness collapses it in the corollary
 \leanlink{empiricalMeasureSolvesVlasov}.
 
+\needspace{12\baselineskip}
 What was not routine is the definition the theorem quantifies over. The
 weak-solution predicate ranges over the $C^\infty$ compactly supported test
 functions:
@@ -939,6 +937,7 @@ toward \emph{all} weak solutions is the superposition principle
 again, a \emph{definition} --- the regularity class of the potential. It costs
 exactly one degree beyond \lean{AssW}; the two standing assumptions sit a single
 field apart:
+\needspace{9\baselineskip}
 \begin{leancode}
 class AssW (W : PhysSpace d → ℝ) : Prop where            -- C^{1,1}
   differentiable : Differentiable ℝ W
@@ -1004,7 +1003,9 @@ passes Mathlib's environment-linter suite ($16$ linters) with zero warnings (Q3)
 The Q3 pass is annotated: seven declarations carry disclosed
 \lean{@[nolint unusedArguments]} for interface arguments retained for caller
 uniformity; eighteen genuinely-unused instance arguments were removed.
-The whole certificate is one re-runnable block:
+
+\needspace{12\baselineskip}
+\noindent The whole certificate is one re-runnable block:
 \begin{center}\small
 \begin{tabular}{ll}
 \hline
@@ -1180,6 +1181,14 @@ game does not break --- the same checks score the new arrangement. That is what
 the framing is for: a way to state what was attempted, what was won, and what
 was left behind that stays meaningful while the tools underneath it turn over.
 
+\paragraph{Acknowledgements.}
+I thank the Stanford mathematics department for its hospitality and vibrant
+community; Fred Rajasekaran for intriguing discussions about formalization;
+Eleny Ionel for organizing last quarter's mathematics colloquium talks, which
+kept us current with the latest developments in AI for mathematics; and the
+Stanford Learning Seminar on Mathematics and Computation for its wonderful
+seminars and discussions.
+
 % ============================================================================
 \appendix
 % ============================================================================
@@ -1197,6 +1206,7 @@ bridged by \leanlink{wasserstein1\_eq\_coupling}) appear in the body
 (Sections~\ref{ssec:wasserstein} and~\ref{ssec:superposition}), where their exact
 form is part of the argument.
 
+\needspace{11\baselineskip}
 \noindent The \emph{weak solution} predicate (Definition~\ref{def:weak-Vlasov}); its
 test class is the subject of Section~\ref{ssec:newton-to-weak}:
 \begin{leancode}
@@ -1209,6 +1219,7 @@ def IsVlasovSolution (gradW : PhysSpace d → PhysSpace d)
       WeakEvolutionEq gradW f φ gradXφ gradVφ (fun _ => 0)
 \end{leancode}
 
+\needspace{11\baselineskip}
 \noindent The \emph{Lagrangian solution} predicate (Definition~\ref{def:Lagrangian}):
 \begin{leancode}
 def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
@@ -1220,6 +1231,7 @@ def IsLagrangianVlasovSolution (gradW : PhysSpace d → PhysSpace d)
     (∀ s, AEMeasurable (fun z => (charX s z, charV s z)) (f 0))
 \end{leancode}
 
+\needspace{20\baselineskip}
 \noindent \emph{Global well-posedness} and its per-window uniqueness (Theorem~\ref{thm:wp}):
 \begin{leancode}
 theorem vlasovWellPosedness (W : PhysSpace d → ℝ) [AssW W]
@@ -1242,6 +1254,7 @@ theorem vlasovWellPosedness_uniqueness (W : PhysSpace d → ℝ) [AssW W]
     : ∀ t ∈ Set.Icc (0:ℝ) T, f t = g t
 \end{leancode}
 
+\needspace{14\baselineskip}
 \noindent \emph{Dobrushin stability} (Theorem~\ref{thm:dob}):
 \begin{leancode}
 theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
@@ -1257,6 +1270,7 @@ theorem dobrushin (W : PhysSpace d → ℝ) [AssW W]
         ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0)
 \end{leancode}
 
+\needspace{17\baselineskip}
 \noindent The \emph{mean-field limit} (Corollary~\ref{cor:mfl}):
 \begin{leancode}
 theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL …)
@@ -1275,6 +1289,7 @@ theorem meanFieldLimit (W : PhysSpace d → ℝ) [AssW W] (gradW …) (L) (hL �
       wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)) atTop (nhds 0)
 \end{leancode}
 
+\needspace{21\baselineskip}
 \noindent The \emph{superposition principle} (Theorem~\ref{thm:superposition}), its
 hypotheses reproduced complete --- nothing elided:
 \begin{leancode}
@@ -1309,6 +1324,7 @@ series, lightly abridged, shows the form: each names a failure mode, its fix, an
 the generalization that makes it reusable, and each was \emph{earned} from a
 specific failure during the game.
 
+\needspace{16\baselineskip}
 \noindent An \emph{L-series} (Lean-idiom) lesson:
 \begin{leancode}
 ### L10. `ring` requires `CommRing`; additive-group goals are `abel` territory
@@ -1327,6 +1343,7 @@ type-check "is this a CommRing?"  If not — and for phase-space differences it 
 is — go straight to `abel`.  Avoids the build-fail-then-fix loop.
 \end{leancode}
 
+\needspace{14\baselineskip}
 \noindent A \emph{P-series} (process) lesson:
 \begin{leancode}
 ### P10. Build-permits vs. audit-certifies — a green build permits many stories
@@ -1343,6 +1360,7 @@ certify it "complete" on a green build alone.  The certifying instrument is
 Green build is a precondition, not a proof.
 \end{leancode}
 
+\needspace{18\baselineskip}
 \noindent An \emph{M-series} (mathematical-structure) lesson:
 \begin{leancode}
 ### M3/M4. Artifact smallness-constraints dissolve under the moving boundary
@@ -1364,6 +1382,7 @@ for large L.  Certify by instantiating the formerly forbidden value and confirmi
 it typechecks, not by a green build with the binder gone.
 \end{leancode}
 
+\needspace{12\baselineskip}
 \noindent A \emph{B-series} (bridging-architecture) lesson:
 \begin{leancode}
 ### B3. Conjunct shape: bounded below by the consumer, above by the producers
