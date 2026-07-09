@@ -16,8 +16,9 @@ the rendered blueprint.  Tagging is done via `attribute [blueprint …]` here in
 Dependency edges between nodes are collected automatically from the actual Lean proof terms,
 so tagging a connected set of declarations makes the graph wire itself.
 
-The node set and its narrative order follow the companion paper (PAPER.tex, "Mathematician
-in the Loop"): the Newton-to-Vlasov derivation, the Kantorovich–Rubinstein $W_1$ distance,
+The node set and its narrative order follow the companion paper (PAPER.tex, "A Formalization
+of the Mean-Field Derivation of the Vlasov Equation"): the Newton-to-Vlasov derivation, the
+Kantorovich–Rubinstein $W_1$ distance,
 well-posedness, Dobrushin stability and the mean-field limit, and the weak ⟹ Lagrangian
 superposition principle.  Where a node corresponds to a numbered statement of the paper,
 the paper's number appears in its title.
