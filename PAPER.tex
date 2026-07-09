@@ -1,5 +1,6 @@
-% Build: latexmk -lualatex -interaction=nonstopmode -halt-on-error PAPER.tex
-% Engine: LuaLaTeX (required: fontspec + the JuliaMono font, used by the Lean listings)
+% Build: latexmk -xelatex -interaction=nonstopmode -halt-on-error PAPER.tex
+% Engine: XeLaTeX (arXiv-compatible). All fonts ship with TeX Live: the Lean listings
+% use DejaVu Sans Mono by filename, with ⨆/⨅ mapped to math glyphs — nothing to install.
 \documentclass[11pt]{article}
 
 \usepackage[margin=1in]{geometry}
@@ -12,11 +13,20 @@
 \usepackage[section]{placeins}   % keep figures within the section that references them
 \usepackage{needspace}             % keep short verbatim blocks on one page
 \setcounter{tocdepth}{2}           % subsections in the TOC; subsubsections would push it to two pages
-\usepackage{fontspec}              % requires lualatex/xelatex
-\setmonofont{JuliaMono}[Scale=MatchLowercase]  % faithful Lean Unicode in \texttt and code
+\usepackage{fontspec}              % requires xelatex/lualatex
+\setmonofont{DejaVuSansMono.ttf}[  % from TeX Live (kpathsea filename lookup) — Lean Unicode in \texttt and code
+  BoldFont       = DejaVuSansMono-Bold.ttf,
+  ItalicFont     = DejaVuSansMono-Oblique.ttf,
+  BoldItalicFont = DejaVuSansMono-BoldOblique.ttf,
+  Scale          = MatchLowercase]
+\usepackage{stmaryrd}              % \bigsqcap, for ⨅
+\usepackage{newunicodechar}        % DejaVu Sans Mono lacks only Lean's ⨆/⨅ — map to math glyphs
+\newunicodechar{⨆}{\ensuremath{\bigsqcup}}
+\newunicodechar{⨅}{\ensuremath{\bigsqcap}}
 \usepackage{fancyvrb}
 \DefineVerbatimEnvironment{leancode}{Verbatim}%
-  {frame=single,framesep=4pt,fontsize=\small,xleftmargin=3pt,xrightmargin=3pt}
+  {frame=single,framesep=4pt,fontsize=\small,xleftmargin=3pt,xrightmargin=3pt,%
+   codes={\catcode`⨆=\active \catcode`⨅=\active}}  % keep the two mapped chars live in verbatim
 \usepackage{hyperref}
 \usepackage{xurl}  % allow long URLs to break across lines
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}

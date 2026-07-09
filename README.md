@@ -53,11 +53,12 @@ green build alone is not the certificate; the axiom footprint is.
 ## Build the paper
 
 ```bash
-latexmk -lualatex -interaction=nonstopmode -halt-on-error PAPER.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error PAPER.tex
 ```
 
-LuaLaTeX with the JuliaMono font is required (the Lean listings use it).
-`PAPER.pdf` is checked in, so this step is optional.
+XeLaTeX is required (the Lean listings use `fontspec`); all fonts ship with
+TeX Live, so nothing needs installing. `PAPER.pdf` is checked in, so this
+step is optional.
 
 ## What else is here
 
