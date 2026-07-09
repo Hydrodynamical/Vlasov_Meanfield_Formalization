@@ -40,8 +40,10 @@
 \newcommand{\Wone}{W_1}
 \newcommand{\Wbar}{\overline{W}}
 \newcommand{\lean}[1]{\texttt{#1}}
-\newcommand{\leanbaseurl}{}   % set to the repo/blueprint base URL to activate links; empty = styled text only
-\newcommand{\leanlink}[1]{\ifx\leanbaseurl\empty\lean{#1}\else\href{\leanbaseurl/#1}{\lean{#1}}\fi}
+% doc-gen4 find endpoint: resolves \leanbaseurl/Vlasov.<name> to the declaration's page.
+% Empty \leanbaseurl = styled text only, no links.
+\newcommand{\leanbaseurl}{https://hydrodynamical.github.io/Vlasov\_Meanfield\_Formalization/docs/find/\#doc}
+\newcommand{\leanlink}[1]{\ifx\leanbaseurl\empty\lean{#1}\else\href{\leanbaseurl/Vlasov.#1}{\lean{#1}}\fi}
 \newcommand{\printaxioms}{\lean{\#print axioms}}
 \newcommand{\cleanfootprint}{\lean{[propext, Classical.choice, Quot.sound]}}
 
