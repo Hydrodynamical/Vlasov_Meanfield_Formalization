@@ -1,9 +1,14 @@
-name: Deploy blueprint to GitHub Pages
+name: Deploy blueprint + docs to GitHub Pages
 
-# Serves the committed blueprint site (formalize/certification/blueprint-demo/
-# blueprint/web/) at the repo's GitHub Pages URL. The site is static and
-# checked in, so no Lean or LaTeX toolchain runs here — regeneration stays a
-# local step (lake build :blueprint && leanblueprint web).
+# Composes the Pages site from two sources:
+#   site root  <- formalize/certification/blueprint-demo/blueprint/web/  (committed)
+#   site /docs <- doc-gen4 API docs, downloaded from the `docs-v1` release asset
+#                 (1.2 GB built site; too large for git, essentially immutable
+#                 since the Lean development is frozen and certified).
+# Regeneration of either piece stays a local step:
+#   blueprint: cd formalize/certification/blueprint-demo && lake build :blueprint && leanblueprint web
+#   docs:      cd formalize/certification/docbuild && lake build Vlasov:docs
+#              then upload .lake/build/doc as a new release asset.
 
 on:
   push:
@@ -30,9 +35,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Assemble site (blueprint at root, doc-gen4 docs under /docs)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site/docs
+          cp -R formalize/certification/blueprint-demo/blueprint/web/. _site/
+          gh release download docs-v1 --pattern 'vlasov-docs-*.tar.gz' --output docs.tar.gz
+          tar -xzf docs.tar.gz -C _site/docs --strip-components=1
+          test -f _site/docs/find/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: formalize/certification/blueprint-demo/blueprint/web
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

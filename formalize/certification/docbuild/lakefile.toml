@@ -1,0 +1,19 @@
+# Doc-gen4 documentation build for the Vlasov package (sibling package, same
+# pattern as ../blueprint-demo: requires Vlasov by path so the production
+# lakefile stays untouched). Build:
+#   cd formalize/certification/docbuild && lake build Vlasov:docs
+# Output: .lake/build/doc/
+#
+# Ordering matters: the Vlasov require comes LAST so that its (Mathlib's)
+# pinned versions of shared dependencies take precedence over doc-gen4's.
+name = "docbuild"
+defaultTargets = []
+
+[[require]]
+name = "doc-gen4"
+git = "https://github.com/leanprover/doc-gen4"
+rev = "v4.29.1"
+
+[[require]]
+name = "Vlasov"
+path = "../../../Vlasov"

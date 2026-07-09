@@ -28,3 +28,6 @@ STYLE.md
 formalize/certification/ot-standalone/build.log
 formalize/certification/blueprint-demo/blueprint/src/print.pdf
 
+
+# docbuild local artifacts
+formalize/certification/docbuild/docs-build.log
