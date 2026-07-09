@@ -1,26 +1,102 @@
-/* This file contains CSS tweaks for this blueprint.
- * As an example, we included CSS rules that put
- * a vertical line on the left of theorem statements
- * and proofs.
- * */
+/* CSS tweaks for this blueprint.
+ *
+ * Styled to match the author's homepage (hydrodynamical.github.io):
+ * Arial on light gray (#F2F2F2), near-black green text (#1A2622),
+ * a forest-green header bar (#2D402C) with olive (#647345) accents,
+ * and the same earthy link colors throughout.
+ */
 
-div.theorem_thmcontent {
-	border-left: .15rem solid black;
+/* ---- base: flat light-gray page, Arial, dark-green-black text ---------- */
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #F2F2F2;
+  color: #1A2622;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1A2622;
+}
+
+div.content, div.content-wrapper, nav.toc, .toc ul li, .toc ul li.current {
+  background-color: #F2F2F2;
+}
+
+::selection {
+  background: #2D402C;
+  color: #F2F2F2;
+}
+
+/* ---- links: unvisited forest green, visited olive, hover gray ---------- */
+
+a:link { color: #2D402C; }
+a:visited { color: #647345; }
+a:hover { color: #A6A6A6; }
+a:active { color: #8DA656; }
+
+/* ---- header bar = the homepage's navbar -------------------------------- */
+
+body > header, header {
+  background: #2D402C;
+  color: #F2F2F2;
+}
+
+h1#doc_title, #doc_title a, #doc_title a:visited,
+header a:link, header a:visited {
+  color: #F2F2F2;
+}
+
+header a:hover { color: #A6A6A6; }
+
+/* ---- table of contents sidebar ----------------------------------------- */
+
+nav.toc { border-right: 1px solid #2D402C; }
+
+.toc ul a, .local_toc ul a, ul.breadcrumbs a { color: #2D402C; }
+
+.toc ul a:hover, .local_toc ul a:hover {
+  background: #647345;
+  color: #F2F2F2;
+}
+
+span.expand-toc, svg.close-toc { color: #2D402C; }
+
+/* ---- bottom prev/up/next bar ------------------------------------------- */
+
+nav.prev_up_next { background: #2D402C; }
+
+nav.prev_up_next a:link, nav.prev_up_next a:visited { color: #F2F2F2; }
+
+nav.prev_up_next a:hover { background: #647345; color: #F2F2F2; }
+
+/* ---- theorem statements and proofs: green rules instead of black ------- */
+
+div.theorem_thmcontent,
 div.proposition_thmcontent {
-	border-left: .15rem solid black;
+  border-left: .15rem solid #2D402C;
 }
 
-div.lemma_thmcontent {
-	border-left: .1rem solid black;
-}
-
+div.lemma_thmcontent,
 div.corollary_thmcontent {
-	border-left: .1rem solid black;
+  border-left: .1rem solid #2D402C;
+}
+
+div.definition_thmcontent,
+div.assumption_thmcontent {
+  border-left: .1rem solid #647345;
 }
 
 div.proof_content {
-	border-left: .08rem solid grey;
+  border-left: .08rem solid #647345;
 }
 
+/* ---- modals (dependency-graph node popups) ------------------------------ */
+
+div.modal-content header { background: #2D402C; color: #F2F2F2; }
+div.modal-content header h1 { color: #F2F2F2; }
+div.modal-content header button.closebtn { color: #F2F2F2; }
+
+/* ---- code blocks -------------------------------------------------------- */
+
+pre.verbatim { background-color: #E8EAE4; }
