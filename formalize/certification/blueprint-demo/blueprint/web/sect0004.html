@@ -12,9 +12,9 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Well-posedness and Dobrushin stability</title>
+<title>Dobrushin stability and the mean-field limit</title>
 <link rel="next" href="sect0005.html" title="The superposition principle: weak ⇒ Lagrangian" />
-<link rel="prev" href="sect0003.html" title="The characteristic flow and the Vlasov equation" />
+<link rel="prev" href="sect0003.html" title="The characteristic flow and well-posedness" />
 <link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
@@ -32,16 +32,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class="">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class="">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class="">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class=" active current">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class="">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -55,120 +55,15 @@
 
 
 <div class="main-text">
-<h1 id="a0000000005">4 Well-posedness and Dobrushin stability</h1>
-<p>The two marquee results: forward well-posedness for the nonlinear Vlasov equation, and Dobrushin’s exponential \(W_1\)-stability estimate. Both are axiom-clean (\([\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]\)). </p>
-<div class="theorem_thmwrapper theorem-style-plain" id="thm:vlasov-wp">
-  <div class="theorem_thmheading">
-    <span class="theorem_thmcaption">
-    Theorem
-    </span>
-    <span class="theorem_thmlabel">27</span>
-    <span class="theorem_thmtitle">Vlasov well-posedness</span>
-    <div class="thm_header_extras">
-
-    
-    ✓
-        </div>
-    <div class="thm_header_hidden_extras">
-
-    <a class="icon proof" href="sect0004.html#thm:vlasov-wp">#</a>
-    
-    <a class="icon proof" href="sect0004.html#a0000000019"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
-</a>
-    
-    
-    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
-</button>
-        <div class="modal-container">
-      <div class="modal-content">
-        <header>
-          <h1>Uses</h1>
-          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
-</button>
-        </header>
-        
-        <ul class="uses">
-          
-          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
-          
-          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 26</a></li>
-          
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
-          
-          <li><a href="sect0002.html#ot:w1-fin">Theorem 17</a></li>
-          
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
-          
-          <li><a href="sect0002.html#ot:w1-tri">Theorem 15</a></li>
-          
-          <li><a href="sect0001.html#def:lagrangian-sol">Definition 6</a></li>
-          
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
-          
-          <li><a href="sect0001.html#def:vlasov-sol">Definition 5</a></li>
-          
-          <li><a href="sect0001.html#def:char-flow">Definition 4</a></li>
-          
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
-          
-          <li><a href="sect0002.html#ot:w1-self">Theorem 13</a></li>
-          
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
-          
-          <li><a href="sect0002.html#ot:w1-comm">Theorem 14</a></li>
-          
-        </ul>
-    
-      </div>
-    </div>
-
-    
-    
-    <button class="modal lean">L∃∀N</button>
-        <div class="modal-container">
-      <div class="modal-content">
-        <header>
-          <h1>Lean declarations</h1>
-          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
-</button>
-        </header>
-        
-        <ul class="uses">
-          
-          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.vlasovWellPosedness" class="lean_decl">Vlasov.vlasovWellPosedness</a></li>
-          
-        </ul>
-    
-      </div>
-    </div>
-
-    
-        </div>
-  </div>
-  <div class="theorem_thmcontent">
-  <p>    <b class="bfseries">Forward well-posedness.</b> Under \(\mathrm{AssW}\), for any finite-first-moment probability datum \(f_0\) there exists a unique forward-in-time Lagrangian Vlasov solution with initial datum \(f_0\). Existence is by Banach fixed point on the \(W_1\)-sup metric (Picard iteration), extended to arbitrary \(T\) by window gluing; uniqueness is per-window. Axiom-clean: \([\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]\). </p>
-
-  </div>
-</div>
-<div class="proof_wrapper" id="a0000000019">
-  <div class="proof_heading">
-    <span class="proof_caption">
-    Proof
-    </span>
-    <span class="expand-proof">▼</span>
-  </div>
-  <div class="proof_content">
-  <p> Freeze the field and run Picard iteration on the curve of measures: on a short window the solution map is a contraction in the \(W_1\)-sup metric (ratio controlled by \(\mathrm{Lip}(\nabla W)\cdot T\)), so Banach’s fixed-point theorem yields a unique local Lagrangian solution. Arbitrary horizons follow by gluing windows; uniqueness is per-window from the same contraction. </p>
-
-  </div>
-</div>
+<h1 id="a0000000005">4 Dobrushin stability and the mean-field limit</h1>
+<p>Dobrushin’s 1979 theorem: two Lagrangian solutions separate at most exponentially in \(W_1\), at the explicit rate \(C = 2\max (1,L)\). The proof is his own coupling argument, followed piece for piece — couple the data optimally, push the coupling forward along the pair of flows, bound the force difference by the coupling cost, and close with a Gronwall inequality in mild form. Applied with one solution the empirical measure of the Newton dynamics — an exact weak solution by Chapter&#160;1 — the estimate yields the mean-field limit: propagation of chaos in quantitative \(W_1\) form. </p>
 <div class="theorem_thmwrapper theorem-style-plain" id="thm:dobrushin">
   <div class="theorem_thmheading">
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">28</span>
-    <span class="theorem_thmtitle">Dobrushin stability (1979)</span>
+    <span class="theorem_thmlabel">33</span>
+    <span class="theorem_thmtitle">Dobrushin stability (1979) — Theorem 1.5 of the paper</span>
     <div class="thm_header_extras">
 
     
@@ -178,7 +73,7 @@
 
     <a class="icon proof" href="sect0004.html#thm:dobrushin">#</a>
     
-    <a class="icon proof" href="sect0004.html#a0000000020"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0004.html#a0000000029"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -196,29 +91,29 @@
           
           <li><a href="sect0001.html#ass:W">Definition 1</a></li>
           
-          <li><a href="sect0001.html#def:lagrangian-sol">Definition 6</a></li>
+          <li><a href="sect0001.html#def:lagrangian-sol">Definition 11</a></li>
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:w1-le-coupling">Theorem 21</a></li>
+          <li><a href="sect0002.html#ot:w1-le-coupling">Theorem 26</a></li>
           
-          <li><a href="sect0002.html#ot:w1-coupling">Definition 20</a></li>
+          <li><a href="sect0002.html#ot:w1-coupling">Definition 25</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
-          <li><a href="sect0002.html#ot:w1-eq-coupling">Theorem 23</a></li>
+          <li><a href="sect0002.html#ot:w1-eq-coupling">Theorem 28</a></li>
           
-          <li><a href="sect0001.html#def:vlasov-sol">Definition 5</a></li>
+          <li><a href="sect0001.html#def:vlasov-sol">Definition 9</a></li>
           
-          <li><a href="sect0001.html#def:char-flow">Definition 4</a></li>
+          <li><a href="sect0001.html#def:char-flow">Definition 10</a></li>
           
-          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 26</a></li>
+          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 31</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -249,11 +144,15 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    <b class="bfseries">Dobrushin’s theorem.</b> Under \(\mathrm{AssW}\), any two Lagrangian Vlasov solutions obey the exponential \(W_1\)-stability estimate \(W_1(f_t, g_t) \le e^{Ct}\,  W_1(f_0, g_0)\) for all \(t \ge 0\), where \(C\) depends on \(\mathrm{Lip}(\nabla W)\). Proved via the optimal-coupling Gronwall argument. Axiom-clean. </p>
+  <p>    Let \(W\) satisfy Assumption 1. Any two Lagrangian solutions \(f, g\) with finite first moment at every time are stable in \(W_1\) at an exponential rate: </p>
+<div class="displaymath" id="a0000000030">
+  \[  W_1(f_t, g_t) \; \le \;  e^{C t}\,  W_1(f_0, g_0), \qquad t \ge 0,  \]
+</div>
+<p> with the explicit rate \(C = 2\max (1, L)\). </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000020">
+<div class="proof_wrapper" id="a0000000029">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -261,7 +160,165 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Couple the two solutions optimally at each time. The coupling cost obeys the Gronwall inequality \(\tfrac {\mathrm{d}}{\mathrm{d}t}W_1(f_t,g_t)\le C\, W_1(f_t,g_t)\), with \(C\) governed by \(\mathrm{Lip}(\nabla W)\); integrating gives the exponential estimate. </p>
+  <p> Dobrushin’s own coupling argument, followed piece for piece. Couple the data \(\varepsilon \)-optimally and push the coupling forward along the pair of characteristic flows; the force difference at coupled points is bounded by the coupling cost (the force-versus-metric estimate), the mild integral form of the trajectories turns this into a Gronwall inequality for the transported cost, and integrating gives the exponential estimate. Kantorovich–Rubinstein duality converts between the coupling cost and the \(W_1\) distance at both ends. </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:dobrushin-estimate">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">34</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0004.html#def:dobrushin-estimate">#</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.DobrushinStabilityEstimate" class="lean_decl">Vlasov.DobrushinStabilityEstimate</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>   The stability estimate packaged as a reusable predicate on a pair of measure curves: \(W_1(f_t, g_t) \le e^{Ct}\,  W_1(f_0, g_0)\) for all \(t \ge 0\). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="cor:mean-field-limit">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">35</span>
+    <span class="theorem_thmtitle">Mean-field limit — Corollary 1.6 of the paper</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0004.html#cor:mean-field-limit">#</a>
+    
+    <a class="icon proof" href="sect0004.html#a0000000031"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+          <li><a href="sect0001.html#def:newton">Definition 3</a></li>
+          
+          <li><a href="sect0001.html#def:empirical-curve">Definition 5</a></li>
+          
+          <li><a href="sect0004.html#def:dobrushin-estimate">Definition 34</a></li>
+          
+          <li><a href="sect0001.html#def:lagrangian-sol">Definition 11</a></li>
+          
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
+          
+          <li><a href="sect0001.html#def:empirical">Definition 4</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.meanFieldLimit" class="lean_decl">Vlasov.meanFieldLimit</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    Let \(f\) be the Vlasov solution with datum \(f_0\) and let \(\mu ^N_t\) be the empirical measures of \(N\) particles evolving by Newton’s equations. Assume the Dobrushin estimate holds for every pair \((\mu ^N, f)\) with one constant \(C\) — Theorem 1.5 supplies it, each empirical curve being a Lagrangian solution with the rate uniform in \(N\), and the Lean takes it as an explicit hypothesis rather than re-deriving it. If the initial empirical measures converge, \(W_1(\mu ^N_0, f_0) \to 0\), then for every \(T {\gt} 0\) </p>
+<div class="displaymath" id="a0000000032">
+  \[  \sup _{t \in [0,T]} W_1(\mu ^N_t, f_t) \; \longrightarrow \;  0 \qquad (N \to \infty ).  \]
+</div>
+<p> Propagation of chaos for the Vlasov equation, in its quantitative \(W_1\) form. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000031">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p>For each \(N\) the stability estimate lifts to the window supremum, \(\sup _{t \le T} W_1(\mu ^N_t, f_t) \le e^{CT}\,  W_1(\mu ^N_0, f_0)\), and the right-hand side tends to \(0\) by the assumed initial convergence. </p>
 
   </div>
 </div>
@@ -272,7 +329,7 @@
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0003.html" title="The characteristic flow and the Vlasov equation"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+  <a href="sect0003.html" title="The characteristic flow and well-posedness"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
 </a>
   <a href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
 </a>

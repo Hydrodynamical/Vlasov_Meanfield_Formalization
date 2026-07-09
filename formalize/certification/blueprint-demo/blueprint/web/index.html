@@ -13,7 +13,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The Vlasov mean-field derivation: a Lean blueprint</title>
-<link rel="next" href="sect0001.html" title="Standing assumptions and basic objects" />
+<link rel="next" href="sect0001.html" title="From Newton to the Vlasov equation" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
 <link rel="stylesheet" href="styles/blueprint.css" />
@@ -29,16 +29,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class="">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class="">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class="">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class="">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class="">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -101,20 +101,30 @@
 
 
 
+
+
+
+
+
+
+
+<p>This blueprint is a reader’s map of a Lean&#160;4 / Mathlib formalization of the mean-field derivation of the Vlasov equation: forward well-posedness, Dobrushin’s 1979 stability estimate, the mean-field limit, and a short-window superposition principle (weak solutions are Lagrangian). The statements on the cards below are extracted from the elaborated Lean proof terms, and the edges of the <a href ="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/dep_graph_document.html">dependency graph</a> are computed from the proofs themselves, not asserted. Where a card corresponds to a numbered statement of the companion paper, the paper’s number appears in its title. The three apex theorems — well-posedness, Dobrushin stability, and the superposition principle — each carry the axiom footprint \([\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]\): Lean’s three standard axioms, no <span class="ttfamily">sorry</span>, no project-specific axioms. </p>
+<p>Companion artifacts: the <a href ="https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization/blob/main/PAPER.pdf">paper</a> (<em>Mathematician in the Loop</em>), the <a href ="https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization">repository</a>, and the <a href ="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/">API documentation</a> — every declaration, searchable, with source links to the exact commit. Each card’s “Lean declarations” button resolves to its API page. </p>
+
 </div> <!--main-text -->
 <nav class=local_toc>
 <ul>
   <li>	
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
   </li>
   <li>	
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
   </li>
   <li>	
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
   </li>
   <li>	
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
   </li>
   <li>	
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -126,7 +136,7 @@
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Standing assumptions and basic objects"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sect0001.html" title="From Newton to the Vlasov equation"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

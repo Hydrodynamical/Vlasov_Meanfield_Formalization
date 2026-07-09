@@ -13,8 +13,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The Kantorovich–Rubinstein \(W_1\) distance</title>
-<link rel="next" href="sect0003.html" title="The characteristic flow and the Vlasov equation" />
-<link rel="prev" href="sect0001.html" title="Standing assumptions and basic objects" />
+<link rel="next" href="sect0003.html" title="The characteristic flow and well-posedness" />
+<link rel="prev" href="sect0001.html" title="From Newton to the Vlasov equation" />
 <link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
@@ -32,16 +32,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class="">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class=" active current">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class="">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class="">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class="">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -56,13 +56,13 @@
 
 <div class="main-text">
 <h1 id="a0000000003">2 The Kantorovich–Rubinstein \(W_1\) distance</h1>
-<p>The Wasserstein-\(1\) distance is defined via its Kantorovich–Rubinstein dual sup-formula. This makes the easy (non-expansion) direction immediate and provides the metric in which Dobrushin stability and Picard iteration are run. Kantorovich–Rubinstein duality (the duality theorem below) identifies it with the optimal coupling cost. </p>
+<p>Solutions depend stably on their data, and the right distance is the Wasserstein-\(1\) metric. The development defines \(W_1\) by its dual sup-formula (Definition&#160;1.4 of the paper), which makes the non-expansion estimates — the workhorses of the dynamical chapters — immediate. The primal (coupling) face, on which Dobrushin’s argument runs, is recovered by Kantorovich–Rubinstein duality: the hard direction is built from finite transport problems by cone separation, with no compactness of the ambient space and no attained optimum anywhere — every bound in the development is \(\varepsilon \)-optimal. </p>
 <div class="definition_thmwrapper theorem-style-definition" id="ot:wcost">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">7</span>
+    <span class="definition_thmlabel">12</span>
     <div class="thm_header_extras">
 
     
@@ -96,7 +96,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>  The cost-generic Wasserstein functional \(W_c(\mu ,\nu ) := \sup \{ \int \varphi \, \mathrm{d}\mu - \int \psi \, \mathrm{d}\nu \} \) over the \(c\)-admissible dual pairs. </p>
+  <p>  The cost-generic Wasserstein functional \(W_c(\mu ,\nu ) := \sup \{ \int \varphi \, \mathrm{d}\mu - \int \psi \, \mathrm{d}\nu \} \) over the \(c\)-admissible dual pairs (\(\varphi (x) - \psi (y) \le c(x,y)\)). The \(W_1\) distance is its specialization to the metric ground cost \(c = \mathrm{dist}\). </p>
 
   </div>
 </div>
@@ -105,7 +105,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">8</span>
+    <span class="theorem_thmlabel">13</span>
     <div class="thm_header_extras">
 
     
@@ -115,7 +115,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:wcost-self">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000007"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000015"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -131,7 +131,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -166,7 +166,7 @@
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000007">
+<div class="proof_wrapper" id="a0000000015">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -183,7 +183,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">9</span>
+    <span class="theorem_thmlabel">14</span>
     <div class="thm_header_extras">
 
     
@@ -193,7 +193,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:wcost-comm">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000008"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000016"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -209,7 +209,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -240,11 +240,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Symmetry: \(W_c(\mu ,\nu ) = W_c(\nu ,\mu )\). </p>
+  <p>   Symmetry: \(W_c(\mu ,\nu ) = W_c(\nu ,\mu )\) for a symmetric cost. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000008">
+<div class="proof_wrapper" id="a0000000016">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -261,7 +261,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">10</span>
+    <span class="theorem_thmlabel">15</span>
     <div class="thm_header_extras">
 
     
@@ -271,7 +271,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:wcost-tri">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000009"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000017"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -287,7 +287,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -318,11 +318,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Triangle inequality for \(W_c\). </p>
+  <p>   The triangle inequality for \(W_c\). </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000009">
+<div class="proof_wrapper" id="a0000000017">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -339,7 +339,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">11</span>
+    <span class="theorem_thmlabel">16</span>
     <div class="thm_header_extras">
 
     
@@ -349,7 +349,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:wcost-lip">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000010"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000018"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -365,7 +365,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -396,11 +396,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Non-expansion of \(W_c\) under a \(1\)-Lipschitz pushforward. </p>
+  <p>   Non-expansion of \(W_c\) under a \(1\)-Lipschitz pushforward: \(W_c(T_\# \mu , T_\# \nu ) \le W_c(\mu ,\nu )\). </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000010">
+<div class="proof_wrapper" id="a0000000018">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -408,7 +408,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p>If \(T\) is \(1\)-Lipschitz then \(\varphi \circ T\) is \(c\)-admissible whenever \(\varphi \) is; substituting into the dual sup for \(T_\# \mu ,T_\# \nu \) recovers the dual functional for \(\mu ,\nu \), so the value cannot increase. </p>
+  <p>If \(T\) is \(1\)-Lipschitz then \(\varphi \circ T\) is \(c\)-admissible whenever \(\varphi \) is; substituting into the dual supremum for \(T_\# \mu ,T_\# \nu \) recovers the dual functional for \(\mu ,\nu \), so the value cannot increase. </p>
 
   </div>
 </div>
@@ -417,7 +417,8 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">12</span>
+    <span class="definition_thmlabel">17</span>
+    <span class="definition_thmtitle">Definition 1.4 of the paper — the Kantorovich–Rubinstein distance</span>
     <div class="thm_header_extras">
 
     
@@ -440,7 +441,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -471,7 +472,11 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The Kantorovich–Rubinstein \(W_1\) distance, defined via the dual sup-formula \(W_1(\mu ,\nu ) = \sup \{ \int \varphi \, \mathrm{d}\mu - \int \varphi \, \mathrm{d}\nu : \mathrm{Lip}(\varphi ) \le 1\} \). </p>
+  <p>    For probability measures \(\mu , \nu \) with finite first moment, </p>
+<div class="displaymath" id="a0000000019">
+  \[  W_1(\mu ,\nu ) \; :=\;  \sup _{\mathrm{Lip}(\varphi ) \le 1} \Big( \int \varphi \, \mathrm{d}\mu - \int \varphi \, \mathrm{d}\nu \Big),  \]
+</div>
+<p> the <em>dual</em> face of Definition 1.4 of the paper. The <em>primal</em> (coupling) face and the equality between them are the duality theorem closing this chapter. Neither optimum is attained anywhere in the development — every bound is \(\varepsilon \)-optimal. </p>
 
   </div>
 </div>
@@ -480,7 +485,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">13</span>
+    <span class="theorem_thmlabel">18</span>
     <div class="thm_header_extras">
 
     
@@ -490,7 +495,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-self">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000011"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000020"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -506,9 +511,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-self">Theorem 8</a></li>
+          <li><a href="sect0002.html#ot:wcost-self">Theorem 13</a></li>
           
         </ul>
     
@@ -543,7 +548,7 @@
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000011">
+<div class="proof_wrapper" id="a0000000020">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -560,7 +565,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">14</span>
+    <span class="theorem_thmlabel">19</span>
     <div class="thm_header_extras">
 
     
@@ -570,7 +575,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-comm">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000012"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000021"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -586,9 +591,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-comm">Theorem 9</a></li>
+          <li><a href="sect0002.html#ot:wcost-comm">Theorem 14</a></li>
           
         </ul>
     
@@ -623,7 +628,7 @@
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000012">
+<div class="proof_wrapper" id="a0000000021">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -640,7 +645,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">15</span>
+    <span class="theorem_thmlabel">20</span>
     <div class="thm_header_extras">
 
     
@@ -650,7 +655,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-tri">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000013"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000022"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -666,9 +671,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-tri">Theorem 10</a></li>
+          <li><a href="sect0002.html#ot:wcost-tri">Theorem 15</a></li>
           
         </ul>
     
@@ -699,11 +704,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Triangle inequality for \(W_1\). </p>
+  <p>   The triangle inequality for \(W_1\). </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000013">
+<div class="proof_wrapper" id="a0000000022">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -720,7 +725,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">16</span>
+    <span class="theorem_thmlabel">21</span>
     <div class="thm_header_extras">
 
     
@@ -730,7 +735,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-lip">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000014"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000023"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -746,9 +751,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-lip">Theorem 11</a></li>
+          <li><a href="sect0002.html#ot:wcost-lip">Theorem 16</a></li>
           
         </ul>
     
@@ -779,11 +784,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   \(W_1\) non-expansion under a \(1\)-Lipschitz pushforward (the easy KR direction at the metric level). </p>
+  <p>   Non-expansion of \(W_1\) under a \(1\)-Lipschitz pushforward — the workhorse estimate for transporting mass along flows. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000014">
+<div class="proof_wrapper" id="a0000000023">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -800,7 +805,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">17</span>
+    <span class="theorem_thmlabel">22</span>
     <div class="thm_header_extras">
 
     
@@ -810,7 +815,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-fin">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000015"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000024"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -826,9 +831,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -859,11 +864,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Finiteness: a measure with finite first moment has \(W_1(\mu ,\nu ) {\lt} \infty \). </p>
+  <p>   Finiteness: if \(\mu \) and \(\nu \) have finite first moment then \(W_1(\mu ,\nu ) {\lt} \infty \). </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000015">
+<div class="proof_wrapper" id="a0000000024">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -871,7 +876,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> A \(1\)-Lipschitz test normalized by \(\varphi (0)=0\) obeys \(|\varphi (x)|\le \| x\| \), so the dual functional is bounded by \(\int \| x\| \, \mathrm{d}\mu +\int \| x\| \, \mathrm{d}\nu \); finiteness of the first moments bounds \(W_1\). </p>
+  <p> A \(1\)-Lipschitz test normalized by \(\varphi (0)=0\) obeys \(|\varphi (x)|\le \| x\| \), so the dual functional is bounded by \(\int \| x\| \, \mathrm{d}\mu +\int \| x\| \, \mathrm{d}\nu \). </p>
 
   </div>
 </div>
@@ -880,7 +885,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">18</span>
+    <span class="definition_thmlabel">23</span>
     <div class="thm_header_extras">
 
     
@@ -914,7 +919,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>  A coupling \(\pi \) of \(\mu \) and \(\nu \): a measure on the product with the correct marginals. </p>
+  <p>  A coupling \(\pi \) of \(\mu \) and \(\nu \): a probability measure on the product space whose marginals are \(\mu \) and \(\nu \). The set of couplings is the domain of the primal face of \(W_1\). </p>
 
   </div>
 </div>
@@ -923,7 +928,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">19</span>
+    <span class="definition_thmlabel">24</span>
     <div class="thm_header_extras">
 
     
@@ -946,7 +951,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
         </ul>
     
@@ -977,7 +982,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The Monge–Kantorovich (coupling) cost \(\int \mathrm{dist}\, \mathrm{d}\pi \) over couplings \(\pi \). </p>
+  <p>   The Monge–Kantorovich (primal) cost: \(\inf _\pi \int \mathrm{dist}\, \mathrm{d}\pi \) over couplings \(\pi \) of \(\mu \) and \(\nu \). </p>
 
   </div>
 </div>
@@ -986,7 +991,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">20</span>
+    <span class="definition_thmlabel">25</span>
     <div class="thm_header_extras">
 
     
@@ -1009,7 +1014,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
         </ul>
     
@@ -1040,7 +1045,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   \(W_1\) expressed via the infimum over couplings. </p>
+  <p>   \(W_1\) expressed via the infimum over couplings — the primal face of Definition 1.4. </p>
 
   </div>
 </div>
@@ -1049,7 +1054,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">21</span>
+    <span class="theorem_thmlabel">26</span>
     <div class="thm_header_extras">
 
     
@@ -1059,7 +1064,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-le-coupling">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000016"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000025"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -1075,13 +1080,13 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1-coupling">Definition 20</a></li>
+          <li><a href="sect0002.html#ot:w1-coupling">Definition 25</a></li>
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
         </ul>
     
@@ -1112,11 +1117,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Dual \(\le \) coupling: the KR-dual \(W_1\) is at most any coupling cost. </p>
+  <p>   The easy direction of duality: the dual value is at most any coupling cost. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000016">
+<div class="proof_wrapper" id="a0000000025">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -1124,7 +1129,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> For any coupling \(\pi \) and \(1\)-Lipschitz \(\varphi \), \(\int \varphi \, \mathrm{d}\mu -\int \varphi \, \mathrm{d}\nu =\int (\varphi (x)-\varphi (y))\, \mathrm{d}\pi \le \int \mathrm{dist}(x,y)\, \mathrm{d}\pi \); sup over \(\varphi \) and inf over \(\pi \) give the easy KR inequality. </p>
+  <p> For any coupling \(\pi \) and \(1\)-Lipschitz \(\varphi \), \(\int \varphi \, \mathrm{d}\mu -\int \varphi \, \mathrm{d}\nu =\int (\varphi (x)-\varphi (y))\, \mathrm{d}\pi \le \int \mathrm{dist}(x,y)\, \mathrm{d}\pi \); take the supremum over \(\varphi \) and the infimum over \(\pi \). </p>
 
   </div>
 </div>
@@ -1133,7 +1138,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">22</span>
+    <span class="theorem_thmlabel">27</span>
     <div class="thm_header_extras">
 
     
@@ -1143,7 +1148,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:coupling-le-dual">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000017"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000026"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -1159,15 +1164,15 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:wcost">Definition 7</a></li>
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-coupling">Definition 19</a></li>
+          <li><a href="sect0002.html#ot:wcost-coupling">Definition 24</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-comm">Theorem 9</a></li>
+          <li><a href="sect0002.html#ot:wcost-comm">Theorem 14</a></li>
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-tri">Theorem 10</a></li>
+          <li><a href="sect0002.html#ot:wcost-tri">Theorem 15</a></li>
           
         </ul>
     
@@ -1198,11 +1203,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   The hard KR direction: the optimal coupling cost is at most the dual value. </p>
+  <p>   The hard direction of duality: the optimal coupling cost is at most the dual value. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000017">
+<div class="proof_wrapper" id="a0000000026">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -1210,7 +1215,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> The hard direction of Kantorovich–Rubinstein duality: the optimal coupling cost is bounded by the dual value, via a minimax / Hahn–Banach separation argument exhibiting a coupling whose cost matches the dual supremum. </p>
+  <p> By reduction to finite transport problems: restrict to finite-range approximations, exhibit an \(\varepsilon \)-optimal coupling for each finite problem via cone-separation (the hyperplane separation theorem, Farkas duality), and transfer the bound to arbitrary marginals by a disintegration and triangle argument. No compactness of the ambient space is used, and no optimum is ever attained. </p>
 
   </div>
 </div>
@@ -1219,7 +1224,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">23</span>
+    <span class="theorem_thmlabel">28</span>
+    <span class="theorem_thmtitle">Kantorovich–Rubinstein duality</span>
     <div class="thm_header_extras">
 
     
@@ -1229,7 +1235,7 @@
 
     <a class="icon proof" href="sect0002.html#ot:w1-eq-coupling">#</a>
     
-    <a class="icon proof" href="sect0002.html#a0000000018"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0002.html#a0000000027"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -1245,17 +1251,17 @@
         
         <ul class="uses">
           
-          <li><a href="sect0002.html#ot:w1-coupling">Definition 20</a></li>
+          <li><a href="sect0002.html#ot:w1-coupling">Definition 25</a></li>
           
-          <li><a href="sect0002.html#ot:w1">Definition 12</a></li>
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
           
-          <li><a href="sect0002.html#ot:w1-le-coupling">Theorem 21</a></li>
+          <li><a href="sect0002.html#ot:w1-le-coupling">Theorem 26</a></li>
           
-          <li><a href="sect0002.html#ot:coupling">Definition 18</a></li>
+          <li><a href="sect0002.html#ot:coupling">Definition 23</a></li>
           
-          <li><a href="sect0002.html#ot:coupling-le-dual">Theorem 22</a></li>
+          <li><a href="sect0002.html#ot:coupling-le-dual">Theorem 27</a></li>
           
-          <li><a href="sect0002.html#ot:wcost-coupling">Definition 19</a></li>
+          <li><a href="sect0002.html#ot:wcost-coupling">Definition 24</a></li>
           
         </ul>
     
@@ -1286,11 +1292,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   Kantorovich–Rubinstein duality: \(W_1\) equals the optimal coupling cost (both directions unified). </p>
+  <p>    At the metric ground cost, for probability measures with finite first moment on a Polish-type space, the dual and primal faces agree: \(W_1(\mu ,\nu ) = \inf _\pi \int \mathrm{dist}\, \mathrm{d}\pi \). This is the bridge on which the Dobrushin argument crosses between the two faces of Definition 1.4. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000018">
+<div class="proof_wrapper" id="a0000000027">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -1298,7 +1304,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Combine the easy inequality (dual \(\le \) coupling) (dual \(\le \) coupling) with the hard inequality (coupling \(\le \) dual) (coupling \(\le \) dual); equality is Kantorovich–Rubinstein duality. </p>
+  <p> Combine the easy inequality (dual \(\le \) any coupling cost) with the hard inequality (optimal coupling cost \(\le \) dual); equality is Kantorovich–Rubinstein duality. </p>
 
   </div>
 </div>
@@ -1309,11 +1315,11 @@
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Standing assumptions and basic objects"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+  <a href="sect0001.html" title="From Newton to the Vlasov equation"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
 </a>
   <a href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
 </a>
-  <a href="sect0003.html" title="The characteristic flow and the Vlasov equation"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sect0003.html" title="The characteristic flow and well-posedness"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

@@ -35,7 +35,7 @@ no project-specific axioms**. The entire production library is **0 live `sorry`*
 | **A1** | Lean formalization (source) | `Vlasov/Vlasov/{Basic, OT/Wasserstein, OT/Coupling, OT/CharacteristicFlow, OT/WeakToLagrangian, Mathlib/ODE/PicardLindelof}.lean` | Lean 4 | **22,099 LOC**, 0 sorry |
 | **A2** | Axiom certification | `#print axioms` on the 3 marquee/bridge theorems | build-time check | `[propext, Classical.choice, Quot.sound]` |
 | **A3** | Codebase outline | `formalize/codebase-outline.md` | Markdown (Mermaid graph + math↔Lean table) | 17 KB; 14 nodes / 21 edges; auto-generated |
-| **A4** | Blueprint source | `formalize/certification/blueprint-demo/{BlueprintDemo.lean, blueprint/src/}` | Lean tags + LaTeX skeleton | 39 tagged nodes, 22 proof sketches |
+| **A4** | Blueprint source | `formalize/certification/blueprint-demo/{BlueprintDemo.lean, blueprint/src/}` | Lean tags + LaTeX skeleton | 46 tagged nodes, 25 proof sketches; paper-numbered titles |
 | **A5** | Blueprint — web | `formalize/certification/blueprint-demo/blueprint/web/` | self-contained HTML + JS/WASM | 1.9 MB; interactive dependency graph; 22 proof blocks; tracked in git |
 | **A6** | Blueprint — PDF | `formalize/certification/blueprint-demo/blueprint/print/print.pdf` | PDF (xelatex) | 73 KB, 8 pp.; regenerable |
 | **A7** | Agentic tooling | `.claude/agents/*.md`, `formalize.sh` | agent specs + driver | 8 specialized sub-agents |

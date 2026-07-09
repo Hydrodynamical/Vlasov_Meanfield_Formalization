@@ -13,7 +13,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The superposition principle: weak \(\Rightarrow \) Lagrangian</title>
-<link rel="prev" href="sect0004.html" title="Well-posedness and Dobrushin stability" />
+<link rel="prev" href="sect0004.html" title="Dobrushin stability and the mean-field limit" />
 <link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
@@ -31,16 +31,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class="">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class="">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class="">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class="">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class=" active current">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -55,13 +55,77 @@
 
 <div class="main-text">
 <h1 id="a0000000006">5 The superposition principle: weak \(\Rightarrow \) Lagrangian</h1>
-<p>Under \(\mathrm{AssW2}\), every weak solution is Lagrangian. The argument freezes the field at \(\rho ^f\), establishes the \(C^1\) dependence of the flow on its initial point via the variational (fundamental-matrix) equation, enlarges the test class to \(C^1_c\), and closes by a diagonal chain-rule / dual-transport argument culminating in the apex theorem (the superposition principle). </p>
+<p>Uniqueness in Theorem&#160;1.3 is uniqueness among <em>Lagrangian</em> solutions. Ruling out phantom weak solutions — distributional solutions not transported by any flow — is the superposition principle, proved here on a short window at the cost of one degree of regularity (Assumption&#160;2). The argument freezes the field at the solution’s own marginal, establishes the \(C^1\) dependence of the flow on its initial point via the variational equation, enlarges the test class from \(C^\infty _c\) to \(C^1_c\) to admit transported tests, and closes with a diagonal chain rule: differentiating \(\int \psi _s\, \mathrm{d}f_s\) through both moving arguments, the transport identity and the weak PDE cancel exactly. </p>
+<div class="definition_thmwrapper theorem-style-definition" id="ass:W2">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">36</span>
+    <span class="definition_thmtitle">Assumption 2 of the paper (\(\mathrm{AssW2}\))</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0005.html#ass:W2">#</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.AssW2" class="lean_decl">Vlasov.AssW2</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>    In addition to Assumption 1, let \(\nabla W \in C^1\) (equivalently \(W \in C^2\)). One degree of regularity beyond Assumption 1, spent to make the phase-space field \(C^1\) in space — exactly what the variational equation for the flow’s derivative in its initial point requires. Only the superposition principle carries this assumption. </p>
+
+  </div>
+</div>
 <div class="definition_thmwrapper theorem-style-definition" id="def:fundamental-matrix">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">29</span>
+    <span class="definition_thmlabel">37</span>
     <div class="thm_header_extras">
 
     
@@ -95,7 +159,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>  The canonical Dyson-series solution \(M(t)\) of the matrix variational equation \(\dot M = A(s)\, M\), \(M(0) = I\); continuous in both time and the parameter, providing the derivative of the flow with respect to its initial point. </p>
+  <p>  The canonical Dyson-series solution \(M(t)\) of the matrix variational equation \(\dot M = A(s)\, M\), \(M(0) = I\), continuous jointly in time and the parameter. It provides the candidate derivative of the flow with respect to its initial point — constructed explicitly rather than chosen, so that its regularity in the parameter is provable. </p>
 
   </div>
 </div>
@@ -104,7 +168,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">30</span>
+    <span class="theorem_thmlabel">38</span>
     <div class="thm_header_extras">
 
     
@@ -114,7 +178,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:charflow-fderiv-fundamental">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000021"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000033"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -130,9 +194,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
         </ul>
     
@@ -163,11 +227,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   The flow’s Fréchet derivative in its initial point is assembled from the Dyson-series fundamental matrix \(M(t)\). </p>
+  <p>   The flow’s Fréchet derivative in its initial point is the Dyson-series fundamental matrix \(M(t)\) evaluated along the trajectory. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000021">
+<div class="proof_wrapper" id="a0000000033">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -175,7 +239,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Both the trajectory difference \(u_h(s)=\Phi _s(z+h)-\Phi _s(z)\) and its linearization \(M(s)h\) solve the linear ODE \(\dot w=A(s)w\) with the same initial value \(h\); a Gronwall estimate on approximate trajectories bounds their gap by the first-order Taylor remainder of \(b\), which is \(o(\| h\| )\) uniformly over the compact flow image. Hence \(\Phi _t(z+h)-\Phi _t(z)-M(t)h=o(\| h\| )\). </p>
+  <p> Both the trajectory difference \(u_h(s)=\Phi _s(z+h)-\Phi _s(z)\) and its linearization \(M(s)h\) solve the linear ODE \(\dot w=A(s)w\) up to the first-order Taylor remainder of the field, which is \(o(\| h\| )\) uniformly over the compact flow image; a Gronwall estimate on approximate trajectories bounds their gap, giving \(\Phi _t(z+h)-\Phi _t(z)-M(t)h=o(\| h\| )\). </p>
 
   </div>
 </div>
@@ -184,8 +248,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">31</span>
-    <span class="theorem_thmtitle">Variational equation (#3)</span>
+    <span class="theorem_thmlabel">39</span>
+    <span class="theorem_thmtitle">The variational equation</span>
     <div class="thm_header_extras">
 
     
@@ -195,7 +259,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:variational-eq">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000022"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000034"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -211,13 +275,13 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 37</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
-          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 38</a></li>
           
         </ul>
     
@@ -248,11 +312,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    <b class="bfseries">Variational equation.</b> The map \(z \mapsto \Phi _t(z)\) is Fréchet differentiable in the initial point \(z\), with derivative solving the linearized equation \(\dot M = (D_z b)\, M\). The research-grade core of the bridge, closed via a Gronwall difference-quotient estimate. </p>
+  <p>    The map \(z \mapsto \Phi _t(z)\) is Fréchet differentiable in the initial point, with derivative solving the linearized (variational) equation \(\dot M = (D_z b)\, M\), \(M(0)=I\), and depending continuously on \(z\). The research-grade core of the bridge. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000022">
+<div class="proof_wrapper" id="a0000000034">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -260,7 +324,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Construct \(M\) as the Dyson series the fundamental matrix \(M\) and prove its joint \((t,z)\)-continuity by a parameter Weierstrass \(M\)-test; the difference-quotient bound the difference-quotient Gronwall bound then identifies \(M(t)\) as the Fréchet derivative of \(z\mapsto \Phi _t(z)\), depending continuously on \(z\). </p>
+  <p> Construct the fundamental matrix explicitly as a Dyson series and prove its joint \((t,z)\)-continuity by a parameter Weierstrass \(M\)-test; the difference-quotient Gronwall bound then identifies \(M(t)\) as the Fréchet derivative of \(z\mapsto \Phi _t(z)\). </p>
 
   </div>
 </div>
@@ -269,7 +333,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">32</span>
+    <span class="theorem_thmlabel">40</span>
     <div class="thm_header_extras">
 
     
@@ -279,7 +343,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:charflow-inverse-joint">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000023"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000035"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -295,15 +359,15 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 37</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
-          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 38</a></li>
           
-          <li><a href="sect0005.html#thm:variational-eq">Theorem 31</a></li>
+          <li><a href="sect0005.html#thm:variational-eq">Theorem 39</a></li>
           
         </ul>
     
@@ -334,11 +398,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   The two-time flow \((s,z) \mapsto \Phi _{s \to t}(z)\) and its inverse are jointly \(C^1\) on the window, supplying the jointly-smooth inverse map used to transport test functions. </p>
+  <p>   The two-time flow \((s,z) \mapsto \Phi _{s \to t}(z)\) and its inverse are jointly \(C^1\) on the window — the jointly-smooth change of variables used to transport test functions along characteristics. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000023">
+<div class="proof_wrapper" id="a0000000035">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -346,7 +410,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> A lower Gronwall bound makes \(\Phi _t\) antilipschitz, hence injective with closed range; the inverse function theorem gives open range, so by connectedness \(\Phi _t\) is a \(C^1\) diffeomorphism. Applying the IFT to the space-time chart \((s,z)\mapsto (s,\Phi _s z)\) (block-triangular, invertible derivative) makes the inverse jointly \(C^1\), hence so is \(\Phi _{s\to t}=\Phi _t\circ \Phi _s^{-1}\). </p>
+  <p> A lower Gronwall bound makes \(\Phi _t\) antilipschitz, hence injective with closed range; the inverse function theorem gives open range, so by connectedness \(\Phi _t\) is a \(C^1\) diffeomorphism. Applying the inverse function theorem to the space-time chart \((s,z)\mapsto (s,\Phi _s z)\) — block-triangular, invertible derivative — makes the inverse jointly \(C^1\), hence so is \(\Phi _{s\to t}=\Phi _t\circ \Phi _s^{-1}\). </p>
 
   </div>
 </div>
@@ -355,8 +419,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">33</span>
-    <span class="theorem_thmtitle">Test-class enlargement (#4)</span>
+    <span class="theorem_thmlabel">41</span>
+    <span class="theorem_thmtitle">Test-class enlargement</span>
     <div class="thm_header_extras">
 
     
@@ -366,7 +430,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:test-c1c">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000024"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000036"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -382,9 +446,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -415,11 +479,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    The weak-solution test class is enlarged from \(C_c^\infty \) to \(C^1_c\) by mollification and a uniform dominated-convergence argument. Needed because the transported test \(\psi _s = \varphi \circ \Phi _{s \to t}\) is only \(C^1_c\). </p>
+  <p>    The weak-solution test class is enlarged from \(C_c^\infty \) to \(C^1_c\). Needed because the transported test \(\psi _s = \varphi \circ \Phi _{s \to t}\) is only \(C^1_c\) — the flow is once, not infinitely, differentiable in space. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000024">
+<div class="proof_wrapper" id="a0000000036">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -427,7 +491,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p>Mollify the \(C^1_c\) test \(\chi \) by a shrinking \(C^\infty \) bump \(\chi _n=\rho _n\star \chi \) and apply the \(C^\infty _c\) weak equation to each. Pass to the limit using \(\chi _n\to \chi \) and the <em>uniform</em> convergence \(\nabla \chi _n\to \nabla \chi \) (the analytic core), with the field bound providing a uniform dominating function. </p>
+  <p>Mollify the \(C^1_c\) test \(\chi \) by a shrinking smooth bump, \(\chi _n=\rho _n\star \chi \), and apply the \(C^\infty _c\) weak equation to each. Pass to the limit using \(\chi _n\to \chi \) and the <em>uniform</em> convergence \(\nabla \chi _n\to \nabla \chi \) (the analytic core of the step), the field bound providing a uniform dominating function. </p>
 
   </div>
 </div>
@@ -436,7 +500,7 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">34</span>
+    <span class="theorem_thmlabel">42</span>
     <div class="thm_header_extras">
 
     
@@ -446,7 +510,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:transport-identity">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000025"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000037"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -462,7 +526,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
         </ul>
     
@@ -493,11 +557,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>   The dual transport identity: the transported test satisfies \(\partial _s \psi _s + D\psi _s \cdot b_s = 0\) along the flow. </p>
+  <p>   The dual transport identity: the transported test \(\psi _s = \varphi \circ \Phi _{s \to t}\) satisfies \(\partial _s \psi _s + D\psi _s \cdot b_s = 0\) along the flow — the dual of the pushforward chain rule. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000025">
+<div class="proof_wrapper" id="a0000000037">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -505,7 +569,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p>Set \(z_0=\Psi _s w\), so \(w=\Phi _s z_0\). Then \(\psi _{s'}(\Phi _{s'}z_0)=\varphi (\Phi _t z_0)\) is constant in \(s'\); differentiating this composite at \(s'=s\) and applying the chain rule splits as \(\partial _s\psi _s(w)+(D\psi _s(w))\, b_s(w)=0\). This is the dual of the pushforward chain rule. </p>
+  <p>Set \(z_0=\Psi _s w\), so \(w=\Phi _s z_0\). Then \(\psi _{s'}(\Phi _{s'}z_0)=\varphi (\Phi _t z_0)\) is constant in \(s'\); differentiating this composite at \(s'=s\) and splitting by the chain rule gives \(\partial _s\psi _s(w)+(D\psi _s(w))\, b_s(w)=0\). </p>
 
   </div>
 </div>
@@ -514,8 +578,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">35</span>
-    <span class="theorem_thmtitle">Diagonal chain rule (#6a)</span>
+    <span class="theorem_thmlabel">43</span>
+    <span class="theorem_thmtitle">The diagonal chain rule</span>
     <div class="thm_header_extras">
 
     
@@ -525,7 +589,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:diagonal-chain-rule">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000026"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000038"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -541,15 +605,15 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
-          <li><a href="sect0005.html#thm:transport-identity">Theorem 34</a></li>
+          <li><a href="sect0005.html#thm:transport-identity">Theorem 42</a></li>
           
-          <li><a href="sect0005.html#thm:test-c1c">Theorem 33</a></li>
+          <li><a href="sect0005.html#thm:test-c1c">Theorem 41</a></li>
           
         </ul>
     
@@ -580,11 +644,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    The diagonal chain rule: \(\frac{\mathrm{d}}{\mathrm{d}s} \int \psi _s\, \mathrm{d}f_s = 0\) for \(s \in (0,T)\), combining the transport identity with the weak PDE on the enlarged \(C^1_c\) test class. </p>
+  <p>    \(\dfrac {\mathrm{d}}{\mathrm{d}s} \int \psi _s\, \mathrm{d}f_s = 0\) for \(s \in (0,T)\): differentiating through both the moving test function and the moving measure, the transport identity and the weak PDE cancel exactly. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000026">
+<div class="proof_wrapper" id="a0000000038">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -592,7 +656,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Split \(I(\sigma )=\int \psi _\sigma \, \mathrm{d}f_\sigma =B(\sigma )+q(\sigma )\) with \(B\) the fixed-integrand part (derivative \(V_b\) from the \(C^1_c\) weak equation the \(C^1_c\)-extended weak equation) and \(q(\sigma )=\int (\psi _\sigma -\psi _s)\, \mathrm{d}f_\sigma \). A little-o argument gives \(q'(s)=-V_b\): the remainder splits into a uniform-differentiability term (Heine–Cantor over the fixed compact carrying the moving supports) and a narrow-continuity term. The transport identity the transport identity forces \(V_b=-\int \partial _s\psi _s\, \mathrm{d}f_s\), so the two cancel and \(I'(s)=0\). </p>
+  <p> Split \(I(\sigma )=\int \psi _\sigma \, \mathrm{d}f_\sigma =B(\sigma )+q(\sigma )\), with \(B\) the fixed-integrand part — its derivative \(V_b\) supplied by the weak equation on the enlarged \(C^1_c\) test class — and \(q(\sigma )=\int (\psi _\sigma -\psi _s)\, \mathrm{d}f_\sigma \). A little-\(o\) argument gives \(q'(s)=-V_b\): the remainder splits into a uniform-differentiability term (Heine–Cantor over the fixed compact carrying the moving supports) and a narrow-continuity term. The transport identity forces \(V_b=-\int \partial _s\psi _s\, \mathrm{d}f_s\), so the two contributions cancel and \(I'(s)=0\). </p>
 
   </div>
 </div>
@@ -601,8 +665,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">36</span>
-    <span class="theorem_thmtitle">Dual core</span>
+    <span class="theorem_thmlabel">44</span>
+    <span class="theorem_thmtitle">The dual core</span>
     <div class="thm_header_extras">
 
     
@@ -612,7 +676,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:dual-core">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000027"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000039"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -628,21 +692,21 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0001.html#ass:W2">Definition 2</a></li>
+          <li><a href="sect0005.html#ass:W2">Definition 36</a></li>
           
-          <li><a href="sect0005.html#def:fundamental-matrix">Definition 29</a></li>
+          <li><a href="sect0005.html#def:fundamental-matrix">Definition 37</a></li>
           
-          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 30</a></li>
+          <li><a href="sect0005.html#thm:charflow-fderiv-fundamental">Theorem 38</a></li>
           
-          <li><a href="sect0005.html#thm:charflow-inverse-joint">Theorem 32</a></li>
+          <li><a href="sect0005.html#thm:charflow-inverse-joint">Theorem 40</a></li>
           
-          <li><a href="sect0005.html#thm:diagonal-chain-rule">Theorem 35</a></li>
+          <li><a href="sect0005.html#thm:diagonal-chain-rule">Theorem 43</a></li>
           
         </ul>
     
@@ -673,11 +737,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    The dual core: \(\int \varphi \, \mathrm{d}f_T = \int \varphi \, \mathrm{d}g_T\) for all \(C_c^\infty \) test functions \(\varphi \), where \(g = (\Phi )_\#  f_0\) is the frozen-field pushforward. Hence \(f_T = g_T\) by measure extensionality. </p>
+  <p>    \(\int \varphi \, \mathrm{d}f_T = \int \varphi \, \mathrm{d}g_T\) for every \(C_c^\infty \) test function \(\varphi \), where \(g = (\Phi )_\#  f_0\) is the pushforward of the initial datum along the frozen-field flow. Hence \(f_T = g_T\) by measure extensionality. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000027">
+<div class="proof_wrapper" id="a0000000039">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -685,7 +749,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> By the diagonal chain rule the map \(s\mapsto \int \psi _s\, \mathrm{d}f_s\) has zero derivative on \((0,T)\), hence is constant. Evaluating at the endpoints (\(\psi _t=\varphi \), \(\psi _0=\varphi \circ \Phi _t\)) gives \(\int \varphi \, \mathrm{d}f_T=\int \varphi \circ \Phi _t\, \mathrm{d}f_0=\int \varphi \, \mathrm{d}g_T\) for the pushforward \(g=(\Phi _t)_\# f_0\). Ranging over \(\varphi \in C_c^\infty \) and measure extensionality give \(f_T=g_T\). </p>
+  <p> By the diagonal chain rule the map \(s\mapsto \int \psi _s\, \mathrm{d}f_s\) has zero derivative on \((0,T)\), hence is constant. Evaluating at the endpoints — \(\psi _T=\varphi \) and \(\psi _0=\varphi \circ \Phi _T\) — gives \(\int \varphi \, \mathrm{d}f_T=\int \varphi \circ \Phi _T\, \mathrm{d}f_0 =\int \varphi \, \mathrm{d}g_T\). Ranging over \(\varphi \in C_c^\infty \) and measure extensionality give \(f_T=g_T\). </p>
 
   </div>
 </div>
@@ -694,8 +758,8 @@
     <span class="theorem_thmcaption">
     Theorem
     </span>
-    <span class="theorem_thmlabel">37</span>
-    <span class="theorem_thmtitle">Superposition principle</span>
+    <span class="theorem_thmlabel">45</span>
+    <span class="theorem_thmtitle">The superposition principle — Theorem 1.7 of the paper</span>
     <div class="thm_header_extras">
 
     
@@ -705,7 +769,7 @@
 
     <a class="icon proof" href="sect0005.html#thm:weak-lagrangian">#</a>
     
-    <a class="icon proof" href="sect0005.html#a0000000028"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+    <a class="icon proof" href="sect0005.html#a0000000040"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
 </a>
     
     
@@ -721,19 +785,19 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 26</a></li>
+          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 31</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
-          <li><a href="sect0001.html#ass:W2">Definition 2</a></li>
+          <li><a href="sect0005.html#ass:W2">Definition 36</a></li>
           
-          <li><a href="sect0003.html#def:vlasov-field">Definition 24</a></li>
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
           
           <li><a href="sect0001.html#ass:W">Definition 1</a></li>
           
-          <li><a href="sect0005.html#thm:dual-core">Theorem 36</a></li>
+          <li><a href="sect0005.html#thm:dual-core">Theorem 44</a></li>
           
         </ul>
     
@@ -764,11 +828,11 @@
         </div>
   </div>
   <div class="theorem_thmcontent">
-  <p>    <b class="bfseries">Weak \(\Rightarrow \) Lagrangian.</b> Under \(\mathrm{AssW2}\), every weak Vlasov solution on a window is Lagrangian: it coincides with the pushforward of its initial datum along the characteristic flow it generates. The apex of the bridge. </p>
+  <p>    Let \(W\) satisfy Assumption 2 and let \(T {\gt} 0\) satisfy \(L\, T^2 {\lt} 1\). Every weak solution on \([0,T]\) whose first moments are uniformly bounded on the window and whose force field is regular — \((\nabla W * \rho _t)(x)\) continuous in \(t\) for each \(x\), with jointly continuous spatial derivative — is Lagrangian on \([0,T]\): it coincides with the pushforward of its initial datum along the characteristic flow it generates. Weak solutions cannot branch away from the Lagrangian one on the window. </p>
 
   </div>
 </div>
-<div class="proof_wrapper" id="a0000000028">
+<div class="proof_wrapper" id="a0000000040">
   <div class="proof_heading">
     <span class="proof_caption">
     Proof
@@ -776,7 +840,7 @@
     <span class="expand-proof">▼</span>
   </div>
   <div class="proof_content">
-  <p> Freeze the field at \(\rho ^f\) and build its characteristic flow \(\Phi \); the pushforward \(g=(\Phi _t)_\# f_0\) is Lagrangian by construction and solves the same frozen linear equation. The dual core the dual core shows \(f_T=g_T\), so \(f\) coincides with its own characteristic pushforward and is therefore Lagrangian. </p>
+  <p> Freeze the field at \(\rho ^f\) and build its characteristic flow \(\Phi \); the pushforward \(g=(\Phi _t)_\# f_0\) is Lagrangian by construction and solves the same frozen linear equation. The dual core shows \(f_T=g_T\) for every window endpoint, so \(f\) coincides with its own characteristic pushforward and is therefore Lagrangian. </p>
 
   </div>
 </div>
@@ -787,7 +851,7 @@
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0004.html" title="Well-posedness and Dobrushin stability"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+  <a href="sect0004.html" title="Dobrushin stability and the mean-field limit"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
 </a>
   <a href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
 </a>

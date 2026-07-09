@@ -12,8 +12,8 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The characteristic flow and the Vlasov equation</title>
-<link rel="next" href="sect0004.html" title="Well-posedness and Dobrushin stability" />
+<title>The characteristic flow and well-posedness</title>
+<link rel="next" href="sect0004.html" title="Dobrushin stability and the mean-field limit" />
 <link rel="prev" href="sect0002.html" title="The Kantorovich–Rubinstein W1 distance" />
 <link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
 <link rel="stylesheet" href="styles/theme-white.css" />
@@ -32,16 +32,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class="">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class="">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class=" active current">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class="">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class="">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -55,14 +55,14 @@
 
 
 <div class="main-text">
-<h1 id="a0000000004">3 The characteristic flow and the Vlasov equation</h1>
-<p>The phase-space velocity field \(b\) generates the characteristic flow. Localized (\(\_ \mathrm{On}\)) predicates on a window \([0,T]\) carry the analysis through the Picard construction and the weak \(\Rightarrow \) Lagrangian bridge. </p>
+<h1 id="a0000000004">3 The characteristic flow and well-posedness</h1>
+<p>The Vlasov equation transports mass along the characteristic system \(\dot X = V\), \(\dot V = -(\nabla W * \rho _t)(X)\). Existence is a fixed-point argument in the space of measure curves: freeze the field, solve the frozen linear problem by transporting the datum along its flow, and contract in the \(W_1\)-sup metric on a short window. Windows of a fixed length depending only on \(L\) then glue to arbitrary horizons, so no smallness of the interaction is required — Theorem&#160;1.3 holds at every Lipschitz constant. </p>
 <div class="definition_thmwrapper theorem-style-definition" id="def:vlasov-field">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">24</span>
+    <span class="definition_thmlabel">29</span>
     <div class="thm_header_extras">
 
     
@@ -85,7 +85,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -116,7 +116,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The phase-space velocity field \(b(t,x,v) = (v,\, -(\nabla W * \rho _t)(x))\) generating the characteristic flow. </p>
+  <p>   The phase-space velocity field \(b(t,x,v) = \big(v,\;  -(\nabla W * \rho _t)(x)\big)\) generating the characteristic flow. Under Assumption 1 it is Lipschitz in the phase variable, with constant governed by \(\max (1, L)\). </p>
 
   </div>
 </div>
@@ -125,7 +125,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">25</span>
+    <span class="definition_thmlabel">30</span>
     <div class="thm_header_extras">
 
     
@@ -148,7 +148,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -179,7 +179,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The window-localized weak Vlasov solution predicate on \([0,T]\): the distributional PDE holds on the open time interval, with narrow continuity up to the boundary. </p>
+  <p>   The window-localized weak-solution predicate on \([0,T]\): the distributional Vlasov equation holds on the open time interval, with narrow continuity up to the boundary. Local existence lives on windows; the global theorem glues them. </p>
 
   </div>
 </div>
@@ -188,7 +188,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">26</span>
+    <span class="definition_thmlabel">31</span>
     <div class="thm_header_extras">
 
     
@@ -211,9 +211,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 25</a></li>
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -244,7 +244,112 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The window-localized Lagrangian solution predicate on \([0,T]\): a weak solution on the window together with a characteristic-flow witness. </p>
+  <p>   The window-localized Lagrangian-solution predicate on \([0,T]\): a weak solution on the window together with a characteristic-flow witness transporting the initial datum. </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:vlasov-wp">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">32</span>
+    <span class="theorem_thmtitle">Global well-posedness — Theorem 1.3 of the paper</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0003.html#thm:vlasov-wp">#</a>
+    
+    <a class="icon proof" href="sect0003.html#a0000000028"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+          <li><a href="sect0003.html#def:lagrangian-sol-on">Definition 31</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-field">Definition 29</a></li>
+          
+          <li><a href="sect0002.html#ot:w1-fin">Theorem 22</a></li>
+          
+          <li><a href="sect0002.html#ot:wcost">Definition 12</a></li>
+          
+          <li><a href="sect0002.html#ot:w1-tri">Theorem 20</a></li>
+          
+          <li><a href="sect0001.html#def:lagrangian-sol">Definition 11</a></li>
+          
+          <li><a href="sect0002.html#ot:w1">Definition 17</a></li>
+          
+          <li><a href="sect0001.html#def:vlasov-sol">Definition 9</a></li>
+          
+          <li><a href="sect0001.html#def:char-flow">Definition 10</a></li>
+          
+          <li><a href="sect0003.html#def:vlasov-sol-on">Definition 30</a></li>
+          
+          <li><a href="sect0002.html#ot:w1-self">Theorem 18</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
+          
+          <li><a href="sect0002.html#ot:w1-comm">Theorem 19</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.vlasovWellPosedness" class="lean_decl">Vlasov.vlasovWellPosedness</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    Let \(W\) satisfy Assumption 1 and let \(f_0\) be a probability measure with finite first moment. The forward Cauchy problem is well-posed: there exists a <em>single</em> curve \(f : [0,\infty ) \to \mathcal{P}_1(\mathbb {R}^d \times \mathbb {R}^d)\) with datum \(f(0) = f_0\) and finite first moment at every \(t \ge 0\), which is a Lagrangian solution on every window \([0,T]\); and on each window it is the <em>unique</em> Lagrangian solution with that datum. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000028">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Freeze the field and run Picard iteration on curves of measures: on a short window the solution map is a contraction in the \(W_1\)-sup metric, with ratio controlled by \(L \cdot T\), so Banach’s fixed-point theorem yields a unique local Lagrangian solution. Windows of a fixed length depending only on \(L\) are then glued to reach arbitrary horizons — no smallness of \(L\) is required. Per-window uniqueness follows from the stability estimate of the next chapter for \(L {\gt} 0\), and is explicit in the degenerate constant-force case \(L = 0\). </p>
 
   </div>
 </div>
@@ -259,7 +364,7 @@
 </a>
   <a href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
 </a>
-  <a href="sect0004.html" title="Well-posedness and Dobrushin stability"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sect0004.html" title="Dobrushin stability and the mean-field limit"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

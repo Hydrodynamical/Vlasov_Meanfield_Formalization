@@ -5,25 +5,58 @@
 
 \input{../../.lake/build/blueprint/library/BlueprintDemo}
 
-\chapter{Standing assumptions and basic objects}
+This blueprint is a reader's map of a Lean~4 / Mathlib formalization of the mean-field
+derivation of the Vlasov equation: forward well-posedness, Dobrushin's 1979 stability
+estimate, the mean-field limit, and a short-window superposition principle (weak solutions
+are Lagrangian). The statements on the cards below are extracted from the elaborated Lean
+proof terms, and the edges of the
+\href{https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/dep_graph_document.html}{dependency
+graph} are computed from the proofs themselves, not asserted. Where a card corresponds to a
+numbered statement of the companion paper, the paper's number appears in its title. The
+three apex theorems --- well-posedness, Dobrushin stability, and the superposition
+principle --- each carry the axiom footprint
+$[\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]$: Lean's three standard
+axioms, no \texttt{sorry}, no project-specific axioms.
 
-The interaction potential $W$ governs the mean-field force.  Two standing assumptions are
-used: $\mathrm{AssW}$ ($C^{1,1}$) for the marquee well-posedness and stability results, and the
-strengthened $\mathrm{AssW2}$ ($C^2$) for the weak $\Rightarrow$ Lagrangian bridge.
+Companion artifacts:
+the \href{https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization/blob/main/PAPER.pdf}{paper}
+(\emph{Mathematician in the Loop}),
+the \href{https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization}{repository},
+and the \href{https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/}{API
+documentation} --- every declaration, searchable, with source links to the exact commit.
+Each card's ``Lean declarations'' button resolves to its API page.
+
+\chapter{From Newton to the Vlasov equation}
+
+The derivation opens with $N$ identical particles in $\mathbb{R}^d$ under the mean-field
+force $-\frac{1}{N}\sum_j \nabla W$. The empirical measure of the particle system is not
+merely close to a solution of the limit equation: under the standing evenness assumption
+it \emph{is} one, exactly, for every $N$. The chapter records the standing assumption, the
+particle system, the computation that exposes the $O(1/N)$ diagonal remainder, the
+cancellation that kills it, and the two solution concepts --- weak and Lagrangian --- whose
+relation the rest of the development settles.
 
 \inputleannode{ass:W}
-\inputleannode{ass:W2}
+\inputleannode{def:hamiltonian}
+\inputleannode{def:newton}
+\inputleannode{def:empirical}
+\inputleannode{def:empirical-curve}
+\inputleannode{prop:weak-evolution}
+\inputleannode{cor:empirical-vlasov}
 \inputleannode{def:convolve}
-\inputleannode{def:char-flow}
 \inputleannode{def:vlasov-sol}
+\inputleannode{def:char-flow}
 \inputleannode{def:lagrangian-sol}
 
 \chapter[The Kantorovich--Rubinstein W1 distance]{The Kantorovich--Rubinstein $W_1$ distance}
 
-The Wasserstein-$1$ distance is defined via its Kantorovich--Rubinstein dual sup-formula.  This
-makes the easy (non-expansion) direction immediate and provides the metric in which Dobrushin
-stability and Picard iteration are run.  Kantorovich--Rubinstein duality (the duality theorem below)
-identifies it with the optimal coupling cost.
+Solutions depend stably on their data, and the right distance is the Wasserstein-$1$
+metric. The development defines $W_1$ by its dual sup-formula (Definition~1.4 of the
+paper), which makes the non-expansion estimates --- the workhorses of the dynamical
+chapters --- immediate. The primal (coupling) face, on which Dobrushin's argument runs, is
+recovered by Kantorovich--Rubinstein duality: the hard direction is built from finite
+transport problems by cone separation, with no compactness of the ambient space and no
+attained optimum anywhere --- every bound in the development is $\varepsilon$-optimal.
 
 \inputleannode{ot:wcost}
 \inputleannode{ot:wcost-self}
@@ -43,33 +76,47 @@ identifies it with the optimal coupling cost.
 \inputleannode{ot:coupling-le-dual}
 \inputleannode{ot:w1-eq-coupling}
 
-\chapter{The characteristic flow and the Vlasov equation}
+\chapter{The characteristic flow and well-posedness}
 
-The phase-space velocity field $b$ generates the characteristic flow.  Localized ($\_\mathrm{On}$)
-predicates on a window $[0,T]$ carry the analysis through the Picard construction and the
-weak $\Rightarrow$ Lagrangian bridge.
+The Vlasov equation transports mass along the characteristic system
+$\dot X = V$, $\dot V = -(\nabla W * \rho_t)(X)$. Existence is a fixed-point argument in
+the space of measure curves: freeze the field, solve the frozen linear problem by
+transporting the datum along its flow, and contract in the $W_1$-sup metric on a short
+window. Windows of a fixed length depending only on $L$ then glue to arbitrary horizons,
+so no smallness of the interaction is required --- Theorem~1.3 holds at every Lipschitz
+constant.
 
 \inputleannode{def:vlasov-field}
 \inputleannode{def:vlasov-sol-on}
 \inputleannode{def:lagrangian-sol-on}
-
-\chapter{Well-posedness and Dobrushin stability}
-
-The two marquee results: forward well-posedness for the nonlinear Vlasov equation, and
-Dobrushin's exponential $W_1$-stability estimate.  Both are axiom-clean
-($[\mathtt{propext}, \mathtt{Classical.choice}, \mathtt{Quot.sound}]$).
-
 \inputleannode{thm:vlasov-wp}
+
+\chapter{Dobrushin stability and the mean-field limit}
+
+Dobrushin's 1979 theorem: two Lagrangian solutions separate at most exponentially in
+$W_1$, at the explicit rate $C = 2\max(1,L)$. The proof is his own coupling argument,
+followed piece for piece --- couple the data optimally, push the coupling forward along the
+pair of flows, bound the force difference by the coupling cost, and close with a Gronwall
+inequality in mild form. Applied with one solution the empirical measure of the Newton
+dynamics --- an exact weak solution by Chapter~1 --- the estimate yields the mean-field
+limit: propagation of chaos in quantitative $W_1$ form.
+
 \inputleannode{thm:dobrushin}
+\inputleannode{def:dobrushin-estimate}
+\inputleannode{cor:mean-field-limit}
 
 \chapter[The superposition principle: weak implies Lagrangian]{The superposition principle: weak $\Rightarrow$ Lagrangian}
 
-Under $\mathrm{AssW2}$, every weak solution is Lagrangian.  The argument freezes the field at
-$\rho^f$, establishes the $C^1$ dependence of the flow on its initial point via the variational
-(fundamental-matrix) equation, enlarges the test class to $C^1_c$, and closes by a diagonal
-chain-rule / dual-transport argument culminating in the apex
-theorem (the superposition principle).
+Uniqueness in Theorem~1.3 is uniqueness among \emph{Lagrangian} solutions. Ruling out
+phantom weak solutions --- distributional solutions not transported by any flow --- is the
+superposition principle, proved here on a short window at the cost of one degree of
+regularity (Assumption~2). The argument freezes the field at the solution's own marginal,
+establishes the $C^1$ dependence of the flow on its initial point via the variational
+equation, enlarges the test class from $C^\infty_c$ to $C^1_c$ to admit transported tests,
+and closes with a diagonal chain rule: differentiating $\int \psi_s\,\mathrm{d}f_s$ through
+both moving arguments, the transport identity and the weak PDE cancel exactly.
 
+\inputleannode{ass:W2}
 \inputleannode{def:fundamental-matrix}
 \inputleannode{thm:charflow-fderiv-fundamental}
 \inputleannode{thm:variational-eq}

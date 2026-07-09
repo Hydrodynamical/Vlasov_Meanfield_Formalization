@@ -12,7 +12,7 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Standing assumptions and basic objects</title>
+<title>From Newton to the Vlasov equation</title>
 <link rel="next" href="sect0002.html" title="The Kantorovich–Rubinstein W1 distance" />
 <link rel="prev" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
 <link rel="up" href="index.html" title="The Vlasov mean-field derivation: a Lean blueprint" />
@@ -32,16 +32,16 @@
 <nav class="toc">
 <ul class="sub-toc-0">
 <li class=" active current">
-  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">Standing assumptions and basic objects</span></a>
+  <a href="sect0001.html"><span class="toc_ref">1</span> <span class="toc_entry">From Newton to the Vlasov equation</span></a>
  </li>
 <li class="">
   <a href="sect0002.html"><span class="toc_ref">2</span> <span class="toc_entry">The Kantorovich–Rubinstein W1 distance</span></a>
  </li>
 <li class="">
-  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and the Vlasov equation</span></a>
+  <a href="sect0003.html"><span class="toc_ref">3</span> <span class="toc_entry">The characteristic flow and well-posedness</span></a>
  </li>
 <li class="">
-  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Well-posedness and Dobrushin stability</span></a>
+  <a href="sect0004.html"><span class="toc_ref">4</span> <span class="toc_entry">Dobrushin stability and the mean-field limit</span></a>
  </li>
 <li class="">
   <a href="sect0005.html"><span class="toc_ref">5</span> <span class="toc_entry">The superposition principle: weak implies Lagrangian</span></a>
@@ -55,15 +55,15 @@
 
 
 <div class="main-text">
-<h1 id="a0000000002">1 Standing assumptions and basic objects</h1>
-<p>The interaction potential \(W\) governs the mean-field force. Two standing assumptions are used: \(\mathrm{AssW}\) (\(C^{1,1}\)) for the marquee well-posedness and stability results, and the strengthened \(\mathrm{AssW2}\) (\(C^2\)) for the weak \(\Rightarrow \) Lagrangian bridge. </p>
+<h1 id="a0000000002">1 From Newton to the Vlasov equation</h1>
+<p>The derivation opens with \(N\) identical particles in \(\mathbb {R}^d\) under the mean-field force \(-\frac{1}{N}\sum _j \nabla W\). The empirical measure of the particle system is not merely close to a solution of the limit equation: under the standing evenness assumption it <em>is</em> one, exactly, for every \(N\). The chapter records the standing assumption, the particle system, the computation that exposes the \(O(1/N)\) diagonal remainder, the cancellation that kills it, and the two solution concepts — weak and Lagrangian — whose relation the rest of the development settles. </p>
 <div class="definition_thmwrapper theorem-style-definition" id="ass:W">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
     <span class="definition_thmlabel">1</span>
-    <span class="definition_thmtitle">Standing assumption \(\mathrm{AssW}\)</span>
+    <span class="definition_thmtitle">Assumption 1 of the paper (\(\mathrm{AssW}\))</span>
     <div class="thm_header_extras">
 
     
@@ -97,17 +97,16 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   The interaction potential \(W : \mathbb {R}^d \to \mathbb {R}\) is in \(C^{1,1}\): continuously differentiable, even (\(W(-x) = W(x)\)), with globally Lipschitz gradient \(\nabla W\) (Lipschitz constant \(L := \mathrm{Lip}(\nabla W) {\lt} \infty \)). </p>
+  <p>   Let \(W : \mathbb {R}^d \to \mathbb {R}\) be an even function of class \(C^{1,1}\): differentiable, with a globally Lipschitz gradient of constant \(L := \mathrm{Lip}(\nabla W) {\lt} \infty \). This assumption is in force throughout. Evenness gives \(\nabla W(0) = 0\) — the cancellation that makes the empirical measure an <em>exact</em> weak solution below. </p>
 
   </div>
 </div>
-<div class="definition_thmwrapper theorem-style-definition" id="ass:W2">
+<div class="definition_thmwrapper theorem-style-definition" id="def:hamiltonian">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
     <span class="definition_thmlabel">2</span>
-    <span class="definition_thmtitle">Strengthened assumption \(\mathrm{AssW2}\)</span>
     <div class="thm_header_extras">
 
     
@@ -115,7 +114,148 @@
         </div>
     <div class="thm_header_hidden_extras">
 
-    <a class="icon proof" href="sect0001.html#ass:W2">#</a>
+    <a class="icon proof" href="sect0001.html#def:hamiltonian">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.hamiltonianN" class="lean_decl">Vlasov.hamiltonianN</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  The mean-field Hamiltonian of \(N\) identical unit-mass particles, </p>
+<div class="displaymath" id="a0000000007">
+  \[  H_N(X,V) \; =\;  \sum _{i=1}^{N} \frac{|v_i|^2}{2} \; +\;  \frac{1}{N} \sum _{1 \le i {\lt} j \le N} W(x_i - x_j).  \]
+</div>
+<p> The \(1/N\) scaling keeps the kinetic and potential energies of the same order as \(N \to \infty \). </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:newton">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">3</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#def:newton">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.IsNewtonSolution" class="lean_decl">Vlasov.IsNewtonSolution</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  Newton’s equations for \(N\) particles under the mean-field force: </p>
+<div class="displaymath" id="a0000000008">
+  \[  \dot x_i = v_i, \qquad \dot v_i = -\frac{1}{N} \sum _{j \ne i} \nabla W(x_i - x_j), \qquad i = 1, \dots , N.  \]
+</div>
+<p> A solution is a curve \((X,V) : \mathbb {R} \to (\mathbb {R}^d \times \mathbb {R}^d)^N\) satisfying both systems at every time. </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:empirical">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">4</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#def:empirical">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.empiricalMeasure" class="lean_decl">Vlasov.empiricalMeasure</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  The empirical measure of a configuration \((X,V) \in (\mathbb {R}^d \times \mathbb {R}^d)^N\): </p>
+<div class="displaymath" id="a0000000009">
+  \[  \mu ^N[X,V] \; :=\;  \frac{1}{N} \sum _{i=1}^{N} \delta _{(x_i,\, v_i)},  \]
+</div>
+<p> a probability measure on phase space. </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:empirical-curve">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">5</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#def:empirical-curve">#</a>
     
     
     <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
@@ -130,7 +270,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          <li><a href="sect0001.html#def:empirical">Definition 4</a></li>
           
         </ul>
     
@@ -150,7 +290,7 @@
         
         <ul class="uses">
           
-          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.AssW2" class="lean_decl">Vlasov.AssW2</a></li>
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.empiricalMeasureCurve" class="lean_decl">Vlasov.empiricalMeasureCurve</a></li>
           
         </ul>
     
@@ -161,7 +301,185 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>    \(\mathrm{AssW}\) together with \(\nabla W \in C^1\) (so \(W \in C^2\), Hessian bounded). This is what makes the phase-space field \(C^1\) in space, which the variational equation for the flow’s dependence on its initial point requires. Only the weak \(\Rightarrow \) Lagrangian bridge carries \(\mathrm{AssW2}\). </p>
+  <p>   The curve of empirical measures \(t \mapsto \mu ^N_t\) carried by a solution of Newton’s equations. </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="prop:weak-evolution">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">6</span>
+    <span class="theorem_thmtitle">Weak evolution of the empirical measure</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#prop:weak-evolution">#</a>
+    
+    <a class="icon proof" href="sect0001.html#a0000000010"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+          <li><a href="sect0001.html#def:newton">Definition 3</a></li>
+          
+          <li><a href="sect0001.html#def:empirical-curve">Definition 5</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
+          
+          <li><a href="sect0001.html#def:empirical">Definition 4</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.weakEvolutionEmpiricalMeasure" class="lean_decl">Vlasov.weakEvolutionEmpiricalMeasure</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    Along any Newton solution, for every test function \(\varphi \in C_c^\infty (\mathbb {R}^d \times \mathbb {R}^d)\) the pairing \(t \mapsto \langle \mu ^N_t, \varphi \rangle \) is differentiable and </p>
+<div class="displaymath" id="a0000000011">
+  \[  \frac{\mathrm{d}}{\mathrm{d}t} \langle \mu ^N_t, \varphi \rangle \; =\;  \big\langle \mu ^N_t,\;  v \cdot \nabla _x \varphi - (\nabla W * \rho ^N_t) \cdot \nabla _v \varphi \big\rangle \; +\;  R_N,  \]
+</div>
+<p> where the remainder is the diagonal correction \(R_N = \frac{1}{N^2} \sum _i \nabla W(0) \cdot \nabla _v \varphi (x_i, v_i)\), of size \(|R_N| \le \frac{1}{N} \| \nabla W\| _\infty \| \nabla _v \varphi \| _\infty \). </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000010">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Differentiate the pairing along the trajectories and apply the chain rule with Newton’s equations. Completing the interaction sum \(\sum _{j \ne i}\) to \(\sum _j\) produces exactly the diagonal term \(\nabla W(0)\), and the stated bound follows from the sup-norms of \(\nabla W\) and \(\nabla _v \varphi \). </p>
+
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-plain" id="cor:empirical-vlasov">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">7</span>
+    <span class="theorem_thmtitle">An exact weak solution</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#cor:empirical-vlasov">#</a>
+    
+    <a class="icon proof" href="sect0001.html#a0000000012"><svg  class="icon icon-cogs "><use xlink:href="symbol-defs.svg#icon-cogs"></use></svg>
+</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#ass:W">Definition 1</a></li>
+          
+          <li><a href="sect0001.html#def:newton">Definition 3</a></li>
+          
+          <li><a href="sect0001.html#def:empirical-curve">Definition 5</a></li>
+          
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
+          
+          <li><a href="sect0001.html#prop:weak-evolution">Theorem 6</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.empiricalMeasureSolvesVlasov" class="lean_decl">Vlasov.empiricalMeasureSolvesVlasov</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>    Under Assumption 1 the remainder vanishes identically: \(W\) even forces \(\nabla W(0) = 0\), so the empirical measure of every Newton solution satisfies the distributional Vlasov equation <em>exactly</em> — not merely up to an \(O(1/N)\) error. This is the sense in which the particle system already solves the limit equation. </p>
+
+  </div>
+</div>
+<div class="proof_wrapper" id="a0000000012">
+  <div class="proof_heading">
+    <span class="proof_caption">
+    Proof
+    </span>
+    <span class="expand-proof">▼</span>
+  </div>
+  <div class="proof_content">
+  <p> Evenness of \(W\) gives \(\nabla W(0) = 0\), which kills the diagonal correction in the weak-evolution identity. </p>
 
   </div>
 </div>
@@ -170,7 +488,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">3</span>
+    <span class="definition_thmlabel">8</span>
     <div class="thm_header_extras">
 
     
@@ -204,70 +522,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>  The convolution of a vector field \(k : \mathbb {R}^d \to \mathbb {R}^d\) with a finite measure \(\rho \): \((k * \rho )(x) := \int k(x - y)\, \mathrm{d}\rho (y)\). The Vlasov force is \(\nabla W * \rho _t\). </p>
-
-  </div>
-</div>
-<div class="definition_thmwrapper theorem-style-definition" id="def:char-flow">
-  <div class="definition_thmheading">
-    <span class="definition_thmcaption">
-    Definition
-    </span>
-    <span class="definition_thmlabel">4</span>
-    <div class="thm_header_extras">
-
-    
-    ✓
-        </div>
-    <div class="thm_header_hidden_extras">
-
-    <a class="icon proof" href="sect0001.html#def:char-flow">#</a>
-    
-    
-    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
-</button>
-        <div class="modal-container">
-      <div class="modal-content">
-        <header>
-          <h1>Uses</h1>
-          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
-</button>
-        </header>
-        
-        <ul class="uses">
-          
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
-          
-        </ul>
-    
-      </div>
-    </div>
-
-    
-    
-    <button class="modal lean">L∃∀N</button>
-        <div class="modal-container">
-      <div class="modal-content">
-        <header>
-          <h1>Lean declarations</h1>
-          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
-</button>
-        </header>
-        
-        <ul class="uses">
-          
-          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.IsCharacteristicFlow" class="lean_decl">Vlasov.IsCharacteristicFlow</a></li>
-          
-        </ul>
-    
-      </div>
-    </div>
-
-    
-        </div>
-  </div>
-  <div class="definition_thmcontent">
-  <p>   A characteristic flow \(\Phi \) for the field driven by \(\rho \): \(\dot X = V\), \(\dot V = -(\nabla W * \rho _t)(X)\), the mean-field ODE along which mass is transported. </p>
+  <p>  The convolution of a vector field \(k : \mathbb {R}^d \to \mathbb {R}^d\) with a finite measure \(\rho \): \((k * \rho )(x) := \int k(x - y)\, \mathrm{d}\rho (y)\). The Vlasov force is \(\nabla W * \rho _t\), with \(\rho _t\) the spatial marginal of \(f_t\). </p>
 
   </div>
 </div>
@@ -276,7 +531,8 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">5</span>
+    <span class="definition_thmlabel">9</span>
+    <span class="definition_thmtitle">Weak (Eulerian) solution</span>
     <div class="thm_header_extras">
 
     
@@ -299,7 +555,7 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:convolve">Definition 3</a></li>
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
           
         </ul>
     
@@ -330,7 +586,78 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   A weak (Eulerian) Vlasov solution: a narrowly continuous curve of probability measures \(f_t\) satisfying the distributional PDE \(\partial _t f + v \cdot \nabla _x f - (\nabla W * \rho _t) \cdot \nabla _v f = 0\) tested against \(C_c^\infty \) functions. </p>
+  <p>    A <em>weak</em> solution of the Vlasov equation is a curve \(f : t \mapsto f_t\) of probability measures with finite first moment, narrowly continuous in time, such that for every \(\varphi \in C_c^\infty (\mathbb {R}^d \times \mathbb {R}^d)\) the map \(t \mapsto \langle f_t, \varphi \rangle \) is differentiable with </p>
+<div class="displaymath" id="a0000000013">
+  \[  \frac{\mathrm{d}}{\mathrm{d}t} \langle f_t, \varphi \rangle \; =\;  \big\langle f_t,\;  v \cdot \nabla _x \varphi - (\nabla W * \rho _t) \cdot \nabla _v \varphi \big\rangle .  \]
+</div>
+<p> (Definition&#160;[IsVlasovSolution] of the paper, Section 1.3.) </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:char-flow">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">10</span>
+    <div class="thm_header_extras">
+
+    
+    ✓
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="sect0001.html#def:char-flow">#</a>
+    
+    
+    <button class="modal"><svg  class="icon icon-mindmap "><use xlink:href="symbol-defs.svg#icon-mindmap"></use></svg>
+</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Uses</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="sect0001.html#def:convolve">Definition 8</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/find/#doc/Vlasov.IsCharacteristicFlow" class="lean_decl">Vlasov.IsCharacteristicFlow</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>   A characteristic flow for the field driven by \(\rho \): a map \(\Phi = (X,V)\) solving the mean-field ODE </p>
+<div class="displaymath" id="a0000000014">
+  \[  \dot X(t,z) = V(t,z), \qquad \dot V(t,z) = -(\nabla W * \rho _t)\big(X(t,z)\big), \qquad \Phi (0,z) = z,  \]
+</div>
+<p> the system along which the Vlasov equation transports mass. </p>
 
   </div>
 </div>
@@ -339,7 +666,8 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">6</span>
+    <span class="definition_thmlabel">11</span>
+    <span class="definition_thmtitle">Lagrangian solution</span>
     <div class="thm_header_extras">
 
     
@@ -362,9 +690,9 @@
         
         <ul class="uses">
           
-          <li><a href="sect0001.html#def:vlasov-sol">Definition 5</a></li>
+          <li><a href="sect0001.html#def:vlasov-sol">Definition 9</a></li>
           
-          <li><a href="sect0001.html#def:char-flow">Definition 4</a></li>
+          <li><a href="sect0001.html#def:char-flow">Definition 10</a></li>
           
         </ul>
     
@@ -395,7 +723,7 @@
         </div>
   </div>
   <div class="definition_thmcontent">
-  <p>   A Lagrangian Vlasov solution: a weak solution that admits a characteristic flow representation, i.e. \(f_t = (\Phi _t)_\#  f_0\) for a flow \(\Phi \) driven by \(\rho ^f\). </p>
+  <p>    A <em>Lagrangian</em> solution is a weak solution \(f\) for which there exists a characteristic flow \(\Phi \) driven by its own marginal \(\rho ^f\) with \(f_t = (\Phi _t)_\#  f_0\) for every \(t\) — the solution is transported by the flow it generates. Every Lagrangian solution is weak by definition; the converse is the superposition principle (Theorem 1.7 of the paper, the final chapter). </p>
 
   </div>
 </div>
