@@ -558,7 +558,7 @@ already moved it back).
 
   ```bash
   grep -rnE "^(theorem|lemma|def|abbrev) NNReal\.eq_zero_or_pos\b|^(theorem|lemma) eq_zero_or_pos\b" \
-      /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/ 2>/dev/null | head -3
+      Vlasov/.lake/packages/mathlib/Mathlib/Data/NNReal/ 2>/dev/null | head -3
   ```
 
   If the grep returns ZERO matches: **do not write the edit**. The

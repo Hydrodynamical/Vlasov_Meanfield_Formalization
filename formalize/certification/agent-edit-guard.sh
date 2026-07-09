@@ -22,7 +22,7 @@
 # Exit 0 = clean. Exit 1 = had to act / found a problem (investigate before build).
 
 set -uo pipefail
-ROOT="${1:-/Users/jkmiller/Documents/Claude/Projects/Vlasov}"
+ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 SRC="$ROOT/Vlasov/Vlasov"
 acted=0
 

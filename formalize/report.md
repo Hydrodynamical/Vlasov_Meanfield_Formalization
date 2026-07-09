@@ -1,8 +1,8 @@
 # Formalization coverage report
 
 Generated: 2026-05-27T03:36:42Z
-Source outline: /Users/jkmiller/Documents/Claude/Projects/Vlasov/formalize/structure.md
-Lean file: /Users/jkmiller/Documents/Claude/Projects/Vlasov/Vlasov/Vlasov/Basic.lean
+Source outline: formalize/structure.md
+Lean file: Vlasov/Vlasov/Basic.lean
 
 ## Build status
 - Result: success
