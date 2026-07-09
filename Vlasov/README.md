@@ -8,6 +8,7 @@ the axiom footprint `[propext, Classical.choice, Quot.sound]`.
 ## Build
 
 ```bash
+lake exe cache get   # pull precompiled Mathlib (skipping this compiles Mathlib from source)
 lake build
 ```
 

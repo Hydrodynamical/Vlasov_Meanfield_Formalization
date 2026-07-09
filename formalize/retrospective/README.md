@@ -64,9 +64,10 @@ lessons) — a quantified measure of the explicit-learning loop, distinct from t
 The faithful dependency graph the LeanArchitect/leanblueprint pipeline renders —
 edges read directly from the elaborated Lean proof terms. The web output draws it
 client-side (d3-graphviz from a DOT string in
-`blueprint-demo/blueprint/web/dep_graph_document.html`); `depgraph.py` pulls that
+`formalize/certification/blueprint-demo/blueprint/web/dep_graph_document.html`);
+`depgraph.py` pulls that
 exact DOT out, swaps the transparent background for white, and renders a static
-vector PDF (+ PNG preview) with graphviz `dot`. 37 nodes, 57 edges. Box = def /
+vector PDF (+ PNG preview) with graphviz `dot`. 45 nodes, 69 edges. Box = def /
 assumption, ellipse = theorem; dashed edge = statement-level use, solid =
 proof-level use; green = formalized (`leanok`). Included in `PAPER.tex` as the
 human-auditable cross-check of the OT-layer / kinetic-content separation.

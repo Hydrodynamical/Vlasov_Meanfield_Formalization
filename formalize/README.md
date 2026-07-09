@@ -5,6 +5,17 @@ Mathlib statement skeleton with `sorry` proofs — and then incrementally
 discharges those sorries one at a time. Designed for [vlasov.tex](vlasov.tex);
 generalizes to other analysis/PDE papers with minor edits to the agents.
 
+> **This directory is the whole build record**, of which the pipeline below is
+> one part. Also here: [ARTIFACTS.md](ARTIFACTS.md) (the full artifact
+> inventory and trust story — start there for an overview),
+> [codebase-outline.md](codebase-outline.md) (mathematics ↔ Lean
+> correspondence), [certification/](certification/) (footprint checker,
+> layer-separation tooling, blueprint site, doc-gen4 build),
+> [retrospective/](retrospective/) (the data and scripts behind the paper's
+> figures), [planning/](planning/) (session-planning documents),
+> [logs/](logs/) (verbatim per-session agent transcripts), and
+> [plans/](plans/) (decomposition-plan sidecars).
+
 ## Pipeline
 
 Two flows share the same five agents:
