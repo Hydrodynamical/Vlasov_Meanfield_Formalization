@@ -9,6 +9,9 @@ AI-assisted, in about a month, framed as a formalization game.
 - **Paper**: [PAPER.pdf](PAPER.pdf) (source: [PAPER.tex](PAPER.tex))
 - **Lean development**: [`Vlasov/`](Vlasov/) — about 22,000 lines, zero
   `sorry`, Lean v4.29.1 + Mathlib (both pinned)
+- **Blueprint site**: [hydrodynamical.github.io/Vlasov_Meanfield_Formalization](https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/)
+  — the development as an annotated dependency graph, statements extracted
+  from the Lean proofs
 
 ## The theorems
 
