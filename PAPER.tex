@@ -47,7 +47,11 @@
 \newcommand{\printaxioms}{\lean{\#print axioms}}
 \newcommand{\cleanfootprint}{\lean{[propext, Classical.choice, Quot.sound]}}
 
-\title{\textbf{A Formalization of the Mean-Field Derivation\\ of the Vlasov Equation}\\[2pt]
+\title{\textbf{A Formalization of the Mean-Field Derivation\\ of the Vlasov Equation}\thanks{The
+  development is public. Source:
+  \url{https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization}. Blueprint site
+  and API documentation:
+  \url{https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/}.}\\[2pt]
 \large Mathematician in the loop: AI-assisted Lean formalization as a strategy game}
 
 \author{Joseph K. Miller\thanks{%
@@ -274,15 +278,10 @@ with $\rho_t$ the spatial marginal. Figure~\ref{fig:depgraph} is a roadmap of wh
 \centering
 \includegraphics[width=\textwidth]{blueprint_depgraph.pdf}
 \caption{A roadmap of the development: the project blueprint's dependency graph,
-auto-extracted from the elaborated Lean proof terms. Box nodes are definitions and
-assumptions, ellipse nodes are theorems; dashed edges are statement-level dependencies
-and solid edges proof-level dependencies; green marks a fully formalized (\lean{leanok})
-node. The optimal-transport layer (the \lean{wcost}/\lean{w1}/\lean{coupling}
-family) feeds the marquee \lean{dobrushin}; the kinetic and weak-to-Lagrangian content
-feeds \lean{vlasov-wp} and \lean{weak-lagrangian}. The three apex theorems
-\lean{vlasov-wp}, \lean{dobrushin}, and \lean{weak-lagrangian} each carry the clean
-axiom footprint \cleanfootprint{}. There is no edge from the kinetic content back into
-the optimal-transport layer.}
+auto-extracted from the elaborated Lean proof terms --- boxes are definitions,
+ellipses theorems, green fully formalized. The interactive version, with statements
+and proof sketches on every node, is at
+\href{https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/}{\nolinkurl{hydrodynamical.github.io/Vlasov_Meanfield_Formalization}}.}
 \label{fig:depgraph}
 \end{figure}
 
