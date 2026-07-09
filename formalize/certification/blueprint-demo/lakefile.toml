@@ -3,7 +3,7 @@ defaultTargets = ["BlueprintDemo"]
 
 [[require]]
 name = "Vlasov"
-path = "../../.."
+path = "../../../Vlasov"
 
 [[require]]
 name = "LeanArchitect"

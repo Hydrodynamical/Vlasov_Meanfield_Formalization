@@ -16,7 +16,7 @@
    "name": "Vlasov",
    "manifestFile": "lake-manifest.json",
    "inherited": false,
-   "dir": "../../..",
+   "dir": "../../../Vlasov",
    "configFile": "lakefile.toml"},
   {"url": "https://github.com/mhuisi/lean4-cli",
    "type": "git",
