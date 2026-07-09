@@ -73,8 +73,8 @@ The case study is a complete, axiom-clean formalization of well-posedness for th
 nonlinear Vlasov equation via Dobrushin's mean-field route --- existence, uniqueness, the
 stability estimate and mean-field limit, and a short-window superposition principle
 (weak solutions are Lagrangian). The human's
-role is to direct, not to write proofs: to scope the definitions, steer the
-decompositions, and triage the library's gaps; the agent executes. The check certifies the
+role here was to direct, not to write proofs: to scope the definitions, steer the
+decompositions, and triage the library's gaps; the AI agent executed. The formalization certifies the
 proof of each statement as written; whether the written statement is the intended
 theorem stays the mathematician's judgment. The optimal-transport
 machinery the derivation forced us to build (in particular, properties of the Wasserstein-$1$ 
@@ -84,7 +84,7 @@ sixth of the development ($49$ of $299$ declarations), behind a $22$-declaration
 interface with no reverse dependency. The headline theorems ran in about a week, the
 full development in about a month. We report
 the quantitative claims as observations of one game, not as general laws. The game's
-rules name no particular system, so the framing is meant to outlast the tools of any
+rules name no particular system, so the methodological framing is meant to outlast the tools of any
 one run.
 \end{abstract}
 
@@ -122,31 +122,36 @@ statement-faithfulness with the mathematician. Reuse is answered by a
 behind a small interface, that builds against the ambient library alone --- which
 certifies that what remains is absorbable rather than disposable. Both are stated
 precisely in Section~\ref{sec:game} (Definitions~\ref{def:win}
-and~\ref{def:selfcontained}); the case study is read through them.
+and~\ref{def:selfcontained}).
 
 We put both to the test by doing the work and reporting what it required. We
-formalized a genuine result from kinetic theory --- Dobrushin's derivation of the
+formalized a genuine result from kinetic theory --- Dobrushin's derivation of the nonlinear
 Vlasov equation, a classical passage from the motion of many interacting particles to
 the nonlinear equation governing their average --- in Lean, over about a month. We did not write the Lean
 ourselves: a human mathematician directed an AI system, which wrote the proofs, while
 the mathematician decided what to prove, how to cut each hard theorem into reachable
 pieces, and when to abandon a line that was not working.
 
-The win condition is met here, and the development yields a self-contained layer;
-the case study shows what each does and does not cover. The first is discharged by the machine: \printaxioms{} reports
+The win condition was met here, and the development yields a self-contained layer. 
+The first is discharged by the machine: \printaxioms{} reports
 the target theorems depend on Lean's foundations alone. What it cannot supply is the
-other half --- that each statement as written is the theorem intended --- and the case study marks
-where the mathematician supplied it. Two interventions carry the mark: a test class
-that had silently collapsed, leaving a key statement vacuously true behind a green
-build, caught by a human read (Section~\ref{ssec:newton-to-weak}); and one degree of
-regularity deliberately spent to make a uniqueness argument go through
-(Section~\ref{ssec:superposition}) --- both the mathematician's, both executed by
-the AI. The layer is delivered in turn: the general mathematics
-the argument demanded separates cleanly from the problem-specific development
-(Section~\ref{ssec:reuse}), fit for the ambient library. That the marked
-interventions are the mathematician's is not incidental --- the judgment behind them
-accumulates, in a standing guidance file built as play proceeds
-(Section~\ref{sec:strategies}).
+other half --- that each statement as written is the theorem intended --- nor the
+judgment that carried the proofs; the case study marks both, stage by stage. Getting
+the solution concept right (Section~\ref{ssec:newton-to-weak}): the weak-solution
+test class had silently collapsed, leaving a key statement vacuously true behind a
+green build, caught by a human read. Building the distance
+(Section~\ref{ssec:wasserstein}): the duality bridging its two faces was absent from
+the library, won by human-steered search and agent throughput. The stability
+estimate (Section~\ref{ssec:dynamical-core}): read in the dual face it appears to
+need an attainment theorem the library lacks; a human redirection, back to
+Dobrushin's own coupling formulation, removed the need. The superposition principle
+(Section~\ref{ssec:superposition}): one degree of regularity deliberately spent to
+make uniqueness go through --- a human typeclass decision, the construction the
+agent's. The layer is delivered in turn: the general mathematics the argument
+demanded separates cleanly from the problem-specific development
+(Section~\ref{ssec:reuse}), fit for the ambient library. The human side of each
+unlock is not incidental --- that judgment accumulates, in a standing guidance file
+built as play proceeds (Section~\ref{sec:strategies}).
 
 \subsection{Related work}
 This work borders three recent lines: the end-to-end formalization of known-hard
@@ -191,7 +196,13 @@ mathematician (using, among other tools, Claude Code and Aristotle) --- the same
 domain and broadly the same mode as here, but a static characterization rather
 than the dynamic well-posedness, stability, the limit, and
 superposition principle \cite{AGS} we formalize, and without the methodological
-apparatus we foreground. Contemporaneously, Armstrong and Kempe \cite{DGNM}
+apparatus we foreground. In mathematical physics more broadly, Douglas, Hoback,
+Mei, and Nissim \cite{QFTFormalization} formalized the free bosonic quantum field
+theory in four dimensions against the Glimm--Jaffe axioms in Lean~4, as a proof of
+concept for AI-assisted formalization of extended mathematical-physics arguments;
+their original release assumed three classical results (Minlos' theorem among
+them) as disclosed placeholders --- the deferred gap of Section~\ref{sec:phases},
+since discharged. Contemporaneously, Armstrong and Kempe \cite{DGNM}
 formalized the core interior De Giorgi--Nash--Moser regularity theory for
 uniformly elliptic divergence-form equations in Lean~4 --- to their knowledge the
 first machine-checked formalization of a major theorem in modern PDE regularity ---
@@ -199,10 +210,9 @@ likewise carried out with extensive use of large language models under close
 human supervision. Their account, like ours, locates the decisive human
 contributions in detailed proof blueprints, careful interface design, and
 validation against the checked artifact.
-The ``Agentic Researcher'' guide of Zimmer et al.\
-\cite{AgenticResearcher} gives agentic-research guidance with norms
-encoded as prompt ``commandments,'' a close parallel to our standing-instruction
-file; and Avigad \cite{Avigad} argues that mathematicians should actively deploy
+Zimmer et al.\ \cite{AgenticResearcher} encode agentic-research norms as prompt
+``commandments,'' a close parallel to our standing-instruction file; and Avigad
+\cite{Avigad} argues that mathematicians should actively deploy
 and shape these tools rather than merely react to them --- a call to which this
 paper is a concrete response. What distinguishes the present work against this
 backdrop is the target it runs on: a \emph{dynamical} result for a nonlinear
@@ -1425,6 +1435,9 @@ over-strong-but-unsupplyable shape before the edit, not mid-break.
 \bibitem{IlinVML} V.~Ilin,
   \emph{Semi-autonomous formalization of the Vlasov--Maxwell--Landau
   equilibrium}, arXiv:2603.15929 (2026).
+
+\bibitem{QFTFormalization} M.~R.~Douglas, S.~Hoback, A.~Mei, R.~Nissim,
+  \emph{Formalization of QFT}, arXiv:2603.15770 (2026).
 
 \bibitem{DGNM} S.~Armstrong, J.~Kempe,
   \emph{Formalization of De Giorgi--Nash--Moser theory in Lean},
