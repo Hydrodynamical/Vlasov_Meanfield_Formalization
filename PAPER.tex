@@ -235,7 +235,10 @@ There is a definite objective (turn the \LaTeX{} into Lean), a machine-checkable
 win condition (no \lean{sorry}, a clean axiom footprint), and a payoff beyond
 winning --- whether the won development yields a \emph{self-contained layer}. And there are three
 phases, each rewarding a different strategy: a player who opens well can still lose
-the endgame. The game is a \emph{lens}; the body of the paper runs the derivation
+the endgame. The framing is also built to outlast its tools: the rules name no
+particular system and no division of labor, so what was attempted and what was won
+stays meaningful as the machines underneath turn over
+(Section~\ref{sec:assessment}). The game is a \emph{lens}; the body of the paper runs the derivation
 and marks at each stage what the finished proof hides, while the mathematics carries
 the weight.
 
@@ -402,7 +405,8 @@ mathematical order --- from the particle system to the limiting equation, throug
 core estimates, to the gaps where the library ran out --- marking at each stage where
 the mathematics was hard and who unlocked it. Section~\ref{sec:assessment} assesses the
 method: the discipline that kept it sound at speed, the timeframe and division of labor,
-what generalizes, and the limits of one run, closing with the next target.
+what generalizes, and the limits of one run, closing with the next target and
+with what should outlast the tools.
 
 \paragraph{Acknowledgements.}
 I thank the Stanford mathematics department for its hospitality and vibrant
@@ -1058,7 +1062,7 @@ but diagnosing and reverting it is a judgment the human retains. This
 delegation-under-recertification is the operational form of the division of labor read off
 the commit record next.
 
-\subsection{Timeframe and the division of labor}
+\subsection{Timeframe and the division of labor}\label{ssec:timeframe}
 
 The well-posedness and stability marquee --- from the first translated theorem to the
 certified stability estimate --- ran in about a week; the full development, with the
@@ -1138,6 +1142,35 @@ brackets on $(\R^d\times\R^d)^N$, is not formalized here; it is the subject of
 covers the dynamics but not the geometric structure of the limit. Marking that
 boundary is the same statement-side discipline the paper runs on: say exactly what
 is proved.
+
+Beyond the next target is a practical question: how a working mathematician
+should use these tools, given how fast they change. The premise is churn. The
+agent system named in Section~\ref{sec:casestudy} will be superseded, perhaps
+before this paper is refereed; the L-series lessons will age with the elaborator
+they describe; the timeframe of Section~\ref{ssec:timeframe} is a single
+observation about tools that no longer exist in that form. Nothing in this paper
+should be read as advice about a particular system.
+
+What ages more slowly is the craft. An analyst's working knowledge, beyond the
+theorems, is a repertoire of moves --- integrate by parts and see what the
+boundary term costs, split near field from far, trace a constant to see whether
+it is structural or an artifact --- none of them theorems, all of them learned
+from advisors and from failure, most of them older than the problems they are
+currently applied to. The lessons of Section~\ref{sec:strategies} are knowledge
+of the same kind, for a newer practice. They were earned the same way, and we
+expect them to transfer the same way: not as a method to follow but as a
+repertoire to draw on. We expect hybrid arrangements of this general shape ---
+a mathematician directing, machines executing, the division shifting as the
+machines improve --- to become a normal part of how analysis is done.
+
+The game itself should age slowest of all, because its rules mention no
+particular tool and no particular division of labor. The objective, the win
+condition, and the layer are defined against the kernel and the ambient library;
+\printaxioms{} does not care who made the moves. If the steering of
+Section~\ref{sec:phases} migrates from the mathematician to the machine, the
+game does not break --- the same checks score the new arrangement. That is what
+the framing is for: a way to state what was attempted, what was won, and what
+was left behind that stays meaningful while the tools underneath it turn over.
 
 % ============================================================================
 \appendix
