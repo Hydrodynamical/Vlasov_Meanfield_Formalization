@@ -1,4 +1,4 @@
-# Mathematician in the Loop
+# A Formalization of the Mean-Field Derivation of the Vlasov Equation
 
 A Lean 4 / Mathlib formalization of the mean-field derivation of the Vlasov
 equation — forward well-posedness, Dobrushin's 1979 stability estimate, the

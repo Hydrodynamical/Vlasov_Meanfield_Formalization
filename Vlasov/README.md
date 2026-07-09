@@ -1,7 +1,7 @@
 # Vlasov — the Lean package
 
 The Lean 4 / Mathlib development for
-[Mathematician in the Loop](../README.md): the mean-field derivation of the
+[the mean-field formalization project](../README.md): the mean-field derivation of the
 Vlasov equation, formalized. Zero `sorry`; the three headline theorems carry
 the axiom footprint `[propext, Classical.choice, Quot.sound]`.
 
