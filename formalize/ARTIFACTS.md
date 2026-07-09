@@ -41,6 +41,7 @@ no project-specific axioms**. The entire production library is **0 live `sorry`*
 | **A7** | Agentic tooling | `.claude/agents/*.md`, `formalize.sh` | agent specs + driver | 8 specialized sub-agents |
 | **A8** | Mathematical source | `formalize/vlasov.tex` | LaTeX | the human-readable theorem statements (`ass:W2`, `thm:weak-lagrangian`) |
 | **A9** | Process record | `CLAUDE.md` | Markdown | the discipline/lessons framework (L/P/M/B-series) guiding the agentic workflow |
+| **A10** | API documentation — doc-gen4 | build pkg `formalize/certification/docbuild/`; served at Pages `/docs` from the `docs-v1` release asset | HTML site | 1.2 GB built (59 MB gzipped); `find/#doc/<name>` endpoint; per-declaration source links at the pinned commit |
 
 Machine-readable blueprint data (queryable node graph: statement, proof, `uses`/`proofUses` edges,
 Lean source location) is emitted at

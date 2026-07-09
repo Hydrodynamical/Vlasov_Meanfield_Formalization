@@ -12,6 +12,9 @@ AI-assisted, in about a month, framed as a formalization game.
 - **Blueprint site**: [hydrodynamical.github.io/Vlasov_Meanfield_Formalization](https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/)
   — the development as an annotated dependency graph, statements extracted
   from the Lean proofs
+- **API documentation**: [the same site, under /docs](https://hydrodynamical.github.io/Vlasov_Meanfield_Formalization/docs/index.html)
+  — doc-gen4 pages for every declaration, searchable, with source links to
+  the exact commit
 
 ## The theorems
 
