@@ -313,6 +313,15 @@ An alternative notion of solution of \eqref{eqn:Vlasov-Intro} is a \emph{Lagrang
   \varphi\circ\Phi\,d\mu$ for every bounded continuous $\varphi$.
 \end{definition}
 
+\noindent The Lean predicates are leaner than the prose: \leanlink{IsVlasovSolution} states
+exactly the differentiability and the derivative identity, for a curve of measures over all
+of $\R$, and \leanlink{IsLagrangianVlasovSolution} adds the flow witness
+(Appendix~\ref{app:formal}); membership in $\mathcal{P}_1$, the window, and continuity in
+time are imposed where they are consumed, as explicit hypotheses of the theorems.
+Theorem~\ref{thm:superposition} quantifies over the windowed variant
+\lean{IsVlasovSolutionOn}, with continuity in time tested against compactly supported
+continuous functions --- equivalent to narrow continuity for probability-valued curves.
+
 Every Lagrangian solution is weak, by definition. The converse --- that every weak solution
 is Lagrangian --- is the substantive direction: the classical superposition principle \cite{AGS}. We
 prove a short-window version under the strengthened assumption $\mathrm{AssW2}$ introduced below

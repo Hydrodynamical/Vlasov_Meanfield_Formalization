@@ -99,14 +99,16 @@ attribute [blueprint "def:convolve"
 
 attribute [blueprint "def:vlasov-sol"
   (title := /-- Weak (Eulerian) solution -/)
-  (statement := /-- A \emph{weak} solution of the Vlasov equation is a curve
-    $f : t \mapsto f_t$ of probability measures with finite first moment, narrowly continuous
-    in time, such that for every $\varphi \in C_c^\infty(\mathbb{R}^d \times \mathbb{R}^d)$
-    the map $t \mapsto \langle f_t, \varphi \rangle$ is differentiable with
+  (statement := /-- A \emph{weak} solution of the Vlasov equation: a curve $t \mapsto f_t$ of
+    measures such that for every $\varphi \in C_c^\infty(\mathbb{R}^d \times \mathbb{R}^d)$
+    the map $t \mapsto \langle f_t, \varphi \rangle$ is differentiable at every
+    $t \in \mathbb{R}$ with
     \[ \frac{\mathrm{d}}{\mathrm{d}t} \langle f_t, \varphi \rangle
        \;=\; \big\langle f_t,\; v \cdot \nabla_x \varphi
        - (\nabla W * \rho_t) \cdot \nabla_v \varphi \big\rangle . \]
-    (Definition~[IsVlasovSolution] of the paper, Section 1.3.) -/)]
+    The predicate states exactly this identity; membership in $\mathcal{P}_1$, windows, and
+    continuity in time enter as explicit hypotheses of the theorems that consume it
+    (cf.\ the definition in Section 1.3 of the paper, whose prose imposes them up front). -/)]
   Vlasov.IsVlasovSolution
 
 attribute [blueprint "def:char-flow"
@@ -226,9 +228,10 @@ attribute [blueprint "def:vlasov-field"
   Vlasov.vlasovVectorField
 
 attribute [blueprint "def:vlasov-sol-on"
-  (statement := /-- The window-localized weak-solution predicate on $[0,T]$: the
-    distributional Vlasov equation holds on the open time interval, with narrow continuity up
-    to the boundary.  Local existence lives on windows; the global theorem glues them. -/)]
+  (statement := /-- The window-localized weak-solution predicate: the distributional Vlasov
+    equation holds on the open interval $(0,T)$.  The predicate carries only the PDE;
+    continuity in time, where needed, is a separate hypothesis (as in Theorem 1.7 of the
+    paper).  Local existence lives on windows; the global theorem glues them. -/)]
   Vlasov.IsVlasovSolutionOn
 
 attribute [blueprint "def:lagrangian-sol-on"
