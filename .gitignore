@@ -18,6 +18,7 @@ STYLE.md
 /*.out
 /*.toc
 /*.synctex.gz
+/*.xdv
 
 # Local working notes and reference PDFs (never published)
 /Dobrushin79.pdf
