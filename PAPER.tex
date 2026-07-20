@@ -170,7 +170,7 @@ built as play proceeds (Section~\ref{sec:strategies}).
 
 \subsection{Related work}
 This work borders three recent lines: the end-to-end formalization of known-hard
-results, the autonomous proof-search agents, and first-hand methodological accounts
+results, the autonomous proof-search agents, and first-hand accounts
 of AI-assisted mathematics.
 
 The first is the now-established tradition of formalizing a substantial,
@@ -204,7 +204,7 @@ the paper. The autonomous systems do exhibit exactly the failure mode the win co
 (Definition~\ref{def:win}) is built to catch --- a renamed \lean{sorry}, a hallucinated
 lemma cited as settled --- documented by the systems' own authors \cite{AlphaProofNexus}.
 
-Closest to this paper are \emph{first-hand} methodological accounts of AI-assisted
+Closest to this paper are \emph{first-hand} accounts of AI-assisted
 research mathematics. Ilin \cite{IlinVML} semi-autonomously formalized a
 Vlasov--Maxwell--Landau \emph{equilibrium} in Lean~4 under a single supervising
 mathematician (using, among other tools, Claude Code and Aristotle) --- the same
@@ -225,6 +225,16 @@ likewise carried out with extensive use of large language models under close
 human supervision. Their account, like ours, locates the decisive human
 contributions in detailed proof blueprints, careful interface design, and
 validation against the checked artifact.
+In harmonic analysis, de~Dios~Pont, Taylor, and coauthors have posted a series
+of papers pairing new theorems with Lean~4 formalizations: stable phase
+retrieval in two settings \cite{STFTPhaseRetrieval,PhaseRetrievalSpans}, a
+negative answer to the existence problem for regular Gabor frames
+\cite{GaborFrames}, and an answer to a question of Strichartz on Fourier frames
+for Cantor measures \cite{CantorFourierFrames}. There the formalization
+certifies mathematics that is new --- two of the papers
+\cite{STFTPhaseRetrieval,PhaseRetrievalSpans} report proofs developed in
+interplay with LLMs --- and the last of the series was posted the same day as
+the present paper.
 Zimmer et al.\ \cite{AgenticResearcher} encode agentic-research norms as prompt
 ``commandments,'' a close parallel to our standing-instruction file; and Avigad
 \cite{Avigad} argues that mathematicians should actively deploy
@@ -240,8 +250,11 @@ between particles is. Where the force is smooth, the passage to the limiting
 equation is classical, going back to Dobrushin \cite{Dobrushin} and the
 Braun--Hepp--Neunzert line \cite{BraunHepp,Neunzert} (with the later surveys
 \cite{Spohn,Golse}). Where the force is singular, as in gravitation or
-electrostatics, the same passage is a celebrated open problem, settled so far only
-in softened cases \cite{hauray-jabin,lazarovici-pickl,serfaty-coulomb}. We formalize the smooth
+electrostatics, the same passage from the second-order Newtonian dynamics is a
+celebrated open problem, settled so far only in softened cases
+\cite{hauray-jabin,lazarovici-pickl,feistl-held-pickl,feistl-held-pickl-2d};
+its first-order analogue is settled for Coulomb and Riesz interactions
+\cite{serfaty-coulomb,nguyen-rosenzweig-serfaty,nguyen-serfaty}. We formalize the smooth
 end, and chose it deliberately: it is where a reusable library can be built. Closing
 the singular frontier is a problem of mathematics, not of proof engineering --- the
 missing ingredient is new analysis, and the most a mature library could offer there
@@ -1468,6 +1481,22 @@ over-strong-but-unsupplyable shape before the edit, not mid-break.
   \emph{Formalization of De Giorgi--Nash--Moser theory in Lean},
   arXiv:2604.05984 (2026).
 
+\bibitem{STFTPhaseRetrieval} S.~Bertolini, J.~de~Dios~Pont, B.~Pineau,
+  J.~P.~G.~Ramos, M.~A.~Taylor, \emph{$L^2$-stability for STFT phase
+  retrieval}, arXiv:2605.20527 (2026).
+
+\bibitem{PhaseRetrievalSpans} P.~Abdalla, J.~de~Dios~Pont, J.~P.~G.~Ramos,
+  M.~A.~Taylor, \emph{Stable phase retrieval for spans of independent random
+  variables}, arXiv:2607.06693 (2026).
+
+\bibitem{GaborFrames} J.~de~Dios~Pont, L.~Liehr, M.~A.~Taylor,
+  \emph{On the existence problem of regular Gabor frames},
+  arXiv:2606.26052 (2026).
+
+\bibitem{CantorFourierFrames} J.~de~Dios~Pont, L.~Liehr, M.~A.~Taylor,
+  \emph{Cantor measures with odd base do not admit Fourier frames},
+  arXiv:2607.08656 (2026).
+
 \bibitem{AgenticResearcher} M.~Zimmer, N.~Pelleriti, C.~Roux, S.~Pokutta,
   \emph{The Agentic Researcher: a practical guide to AI-assisted research in
   mathematics and machine learning}, arXiv:2603.15914 (2026).
@@ -1513,10 +1542,30 @@ D.~Lazarovici, P.~Pickl,
 \emph{A mean field limit for the Vlasov--Poisson system},
 Arch. Ration. Mech. Anal. \textbf{225} (2017), 1201--1231.
 
+\bibitem{feistl-held-pickl}
+M.~Feistl-Held, P.~Pickl,
+\emph{On the mean-field limit for the Vlasov--Poisson system},
+arXiv:2504.01471 (2025).
+
+\bibitem{feistl-held-pickl-2d}
+M.~Feistl-Held, P.~Pickl,
+\emph{On the mean-field limit for the Vlasov--Poisson system in two dimensions},
+arXiv:2509.17821 (2025).
+
 \bibitem{serfaty-coulomb}
 S.~Serfaty,
 \emph{Mean field limit for Coulomb-type flows},
 Duke Math. J. \textbf{169} (2020), no.~15, 2887--2935.
+
+\bibitem{nguyen-rosenzweig-serfaty}
+Q.-H.~Nguyen, M.~Rosenzweig, S.~Serfaty,
+\emph{Mean-field limits of Riesz-type singular flows},
+Ars Inven.\ Anal.\ (2022), Paper No.~4, 45~pp.
+
+\bibitem{nguyen-serfaty}
+Q.-H.~Nguyen, S.~Serfaty,
+\emph{Singular mean-field limits via a multiscale mollification metric},
+arXiv:2607.10686 (2026).
 
 \bibitem{MNPRS} J.~K.~Miller, A.~R.~Nahmod, N.~Pavlovi\'c, M.~Rosenzweig,
   G.~Staffilani, \emph{A rigorous derivation of the Hamiltonian structure for the
