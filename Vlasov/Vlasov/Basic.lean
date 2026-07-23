@@ -252,6 +252,7 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
   rw [integral_finset_sum_measure (fun i _ => integrable_dirac (by simp))]
   simp [integral_dirac, ENNReal.toReal_natCast, smul_eq_mul]
 
+omit [NeZero d] in
 /-- For a smooth test function φ, the chain rule gives: the map `t ↦ φ(X t i, V t i)` has
 derivative `⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨a t i, gradVφ (X t i, V t i)⟩` at t,
 where `a t i` is the acceleration vector at particle i and time t.
@@ -363,7 +364,8 @@ lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
     HasDerivAt.fun_sum (fun i _ => h_each i)
   exact h_sum.const_mul (1 / (N : ℝ))
 
-/-- Convolution of the kernel `gradW` against the spatial marginal of the
+omit [NeZero d] in
+/-- Convolution of the kernel `gradW` against the spatial marginal ofthe
 empirical measure unfolds to the explicit finite sum
 `(1/N) • Σⱼ gradW(X t i − X t j)`.  This separates the measure-pushforward /
 Dirac-integration machinery from the algebraic "add and subtract the diagonal"
@@ -489,7 +491,8 @@ lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
   -- Goal is now an equation in two structural sums; ring closes the scalar identity.
   ring
 
-/-- The remainder bound: for the diagonal correction `r = (1/N²) * Σᵢ ⟨gradW 0, gradVφ(zᵢ)⟩`,
+omit [NeZero d] in
+/-- The remainder bound: for the diagonal correction `r = (1/N²) * Σᵢ⟨gradW 0, gradVφ(zᵢ)⟩`,
 we have `|r| ≤ (1/N) * (⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)`, using
 `abs_inner_le_norm` on each summand and the fact that the sum has N terms.
 
@@ -1527,7 +1530,7 @@ reverse-Fatou difference-quotient interchange.  Proof: apply Mathlib's
 `Q ≤ G`. -/
 lemma gronwall_mild_le (Q : ℝ → ℝ) (q0 K T : ℝ) (hK : 0 ≤ K) (hq0 : 0 ≤ q0)
     (hQcont : Continuous Q) (hQnn : ∀ t, 0 ≤ Q t)
-    (hmild : ∀ t ∈ Set.Icc 0 T, Q t ≤ q0 + K * ∫ s in (0:ℝ)..t, Q s) :
+    (hmild : ∀ t ∈ Set.Icc 0 T, Q t ≤ q0 + K * ∫ s in (0 : ℝ)..t, Q s) :
     ∀ t ∈ Set.Icc 0 T, Q t ≤ q0 * Real.exp (K * t) := by
   set G : ℝ → ℝ := fun t => q0 + K * ∫ s in (0:ℝ)..t, Q s with hGdef
   have hG_deriv : ∀ t, HasDerivAt G (K * Q t) t := by
@@ -1543,7 +1546,7 @@ lemma gronwall_mild_le (Q : ℝ → ℝ) (q0 K T : ℝ) (hK : 0 ≤ K) (hq0 : 0 
     intro t ht
     have hint : 0 ≤ ∫ s in (0:ℝ)..t, Q s :=
       intervalIntegral.integral_nonneg ht.1 (fun s _ => hQnn s)
-    show 0 ≤ q0 + K * ∫ s in (0:ℝ)..t, Q s
+    change 0 ≤ q0 + K * ∫ s in (0 : ℝ)..t, Q s
     positivity
   have hG0 : G 0 = q0 := by simp [hGdef]
   intro t ht
@@ -1610,6 +1613,7 @@ def DobrushinStabilityEstimate
 
 /-! ## §13 Corollary (Mean-field limit)  (`tex: cor:mfl`) -/
 
+omit [NeZero d] in
 /-- (tex: cor:mfl)
 Mean-field limit theorem.
 

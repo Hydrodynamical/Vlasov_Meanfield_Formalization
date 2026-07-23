@@ -4049,13 +4049,6 @@ theorem dualCore_main
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (hflow : IsCharacteristicFlowOn gradW (fun t => spatialMarginal (f t)) charX charV
       (Set.Ioo 0 T) Set.univ)
-    (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
-    (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
-    (hderivIco : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
-      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
-        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z))
-        (Set.Ici s) s)
     (t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
     (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
     (Ψ : ℝ → PhaseSpace d → PhaseSpace d)
@@ -4095,8 +4088,8 @@ theorem dualCore_main
       simp only [hI_def, if_neg (ne_of_gt hs'.1)]
   -- continuity on Icc 0 t
   have hcont : ContinuousOn I (Set.Icc (0 : ℝ) t) :=
-    transportedIntegral_continuousOn gradW f T hf_weak hf_mom hf_narrow charX charV hflow t ht φ hφ hφc
-      Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 L hflowjoint hanti
+    transportedIntegral_continuousOn gradW f T hf_weak hf_mom hf_narrow charX charV hflow t ht
+      φ hφ hφc Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 L hflowjoint hanti
   -- constancy: I 0 = I t
   have hconst : I 0 = I t := transportedIntegral_const_On ht.1 hcont hderiv
   rw [hI0, hIt] at hconst
@@ -4245,6 +4238,7 @@ theorem frozenFlow_inverse_On
 -- LHS continuity at T via narrow continuity (hf_narrow); RHS via filter-DCT against the fixed
 -- measure f 0 (joint flow continuity for measurability + per-z continuity for the pointwise limit).
 open Filter Topology in
+omit [NeZero d] in
 theorem dualCore_terminal
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
@@ -4353,11 +4347,7 @@ theorem weak_eq_frozenField_pushforward_dualCore
       (Set.Ioo 0 T) Set.univ)
     (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
     (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
-    (hderivIco : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
-      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
-        (vlasovVectorField gradW (fun t => spatialMarginal (f t)) s (charX s z, charV s z))
-        (Set.Ici s) s) :
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
     ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ φ : PhaseSpace d → ℝ,
       ContDiff ℝ (⊤ : ℕ∞) φ → HasCompactSupport φ →
       ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
@@ -4369,7 +4359,7 @@ theorem weak_eq_frozenField_pushforward_dualCore
     obtain ⟨Ψ, hl, hr, hc, hΦ, hfj, ha⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
       hf_cont hf_cont_deriv charX charV hflow hcontIcc τ hτ
     exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
-      M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco τ hτ φ hφ hφc
+      M_ρ hM_ρ_nn hM_ρ charX charV hflow τ hτ φ hφ hφc
       Ψ hl hr hc hΦ hfj ha
   -- joint flow continuity (τ-independent; extract from one interior frozenFlow call)
   have hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
@@ -4515,7 +4505,7 @@ theorem weak_eq_frozenField_pushforward_On
   refine measure_eq_of_forall_Cc_integral_eq (fun φ hφ hφc => ?_)
   rw [integral_map hΦt_aem hφ.continuous.aestronglyMeasurable]
   exact weak_eq_frozenField_pushforward_dualCore W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow
-    hf_cont hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc hderivIco t ht φ hφ hφc
+    hf_cont hf_cont_deriv M_ρ hM_ρ_nn hM_ρ charX charV hflow hinit hcontIcc t ht φ hφ hφc
 
 /-- **Weak ⟹ Lagrangian on `[0,T]`** (tex: thm:weak-lagrangian).
 

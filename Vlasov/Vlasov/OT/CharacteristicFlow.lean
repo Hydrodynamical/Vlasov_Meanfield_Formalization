@@ -7611,11 +7611,8 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     haveI hP1 : IsProbabilityMeasure (ρ_lim.ρ t) := ρ_lim.isProb t
     haveI hP2 : IsProbabilityMeasure (Measure.map (fun z => charX t z) f₀) :=
       Measure.isProbabilityMeasure_map (hCI_lim.1 t ht)
-    have hint1 : Integrable (fun y : PhysSpace d => ‖y‖) (ρ_lim.ρ t) := ρ_lim.yIntegrable t ht
-    have hint2 : Integrable (fun y : PhysSpace d => ‖y‖)
-        (Measure.map (fun z => charX t z) f₀) := hCI_lim.2.2.1 t ht
     refine (wasserstein1_eq_zero_iff_measure_eq (ρ_lim.ρ t)
-      (Measure.map (fun z => charX t z) f₀) hint1 hint2).mp ?_
+      (Measure.map (fun z => charX t z) f₀)).mp ?_
     -- Per-`n` triangle bound: `W₁ ≤ A n + ofReal (Dn n · q)`, both legs → 0.
     have h_le_seq : ∀ n, wasserstein1 (ρ_lim.ρ t) (Measure.map (fun z => charX t z) f₀)
         ≤ wasserstein1 ((x (n+1)).ρ t) (ρ_lim.ρ t) + ENNReal.ofReal (Dn n * q) := by

@@ -552,13 +552,10 @@ equality holds for every bounded continuous function `f : α →ᵇ ℝ`.
   `tendsto_lintegral_thickenedIndicator_of_isClosed` gives `μ F = ν F`.
 * Closed sets form a π-system generating the Borel σ-algebra, so `μ = ν` by
   `ext_of_generate_finite`; equality of all BC integrals is then immediate. -/
-@[nolint unusedArguments] -- `_hμ_int`/`_hν_int`: W₁ moment-hypothesis interface, unused here
 theorem integral_boundedContinuous_eq_of_integral_lipschitz_eq
     {α : Type*}
     [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (_hμ_int : Integrable (fun y : α => ‖y‖) μ)
-    (_hν_int : Integrable (fun y : α => ‖y‖) ν)
     (_h_1lip : ∀ (f : α → ℝ), LipschitzWith 1 f →
                Integrable f μ → Integrable f ν →
                ∫ x, f x ∂μ = ∫ x, f x ∂ν) :
@@ -643,9 +640,7 @@ lemma wasserstein1_eq_zero_iff_measure_eq
     {α : Type*}
     [MeasurableSpace α] [NormedAddCommGroup α] [BorelSpace α]
     [HasOuterApproxClosed α]
-    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    (hμ_int : Integrable (fun y : α => ‖y‖) μ)
-    (hν_int : Integrable (fun y : α => ‖y‖) ν) :
+    (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] :
     wasserstein1 μ ν = 0 ↔ μ = ν := by
   constructor
   · -- Forward (substantive): W₁=0 → μ=ν.
@@ -684,7 +679,7 @@ lemma wasserstein1_eq_zero_iff_measure_eq
     -- See `integral_boundedContinuous_eq_of_integral_lipschitz_eq` above.
     have h_bc_eq :
         ∀ (f : BoundedContinuousFunction α ℝ), ∫ x, f x ∂μ = ∫ x, f x ∂ν :=
-      integral_boundedContinuous_eq_of_integral_lipschitz_eq μ ν hμ_int hν_int h_1lip_eq
+      integral_boundedContinuous_eq_of_integral_lipschitz_eq μ ν h_1lip_eq
     -- Step 3 (Mathlib `ext_of_forall_integral_eq_of_IsFiniteMeasure`): BC equality → μ=ν.
     exact ext_of_forall_integral_eq_of_IsFiniteMeasure h_bc_eq
   · -- Backward (trivial): μ=ν → W₁=0, via the property `wasserstein1_self`.
@@ -827,9 +822,8 @@ lemma wasserstein1_le_liminf_of_narrow
 /-- For C > 0 and 0 ≤ s ≤ t, we have
 ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)).
 This is the monotonicity of the exponential bound in time. -/
-@[nolint unusedArguments] -- `_hs`: exp-bound family signature symmetry, unused
 lemma wasserstein1_ofReal_exp_monotone
-    (C : ℝ) (hC : 0 < C) (s t : ℝ) (_hs : 0 ≤ s) (hst : s ≤ t) :
+    (C : ℝ) (hC : 0 < C) (s t : ℝ) (hst : s ≤ t) :
     ENNReal.ofReal (Real.exp (C * s)) ≤ ENNReal.ofReal (Real.exp (C * t)) := by
   apply ENNReal.ofReal_le_ofReal
   exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)

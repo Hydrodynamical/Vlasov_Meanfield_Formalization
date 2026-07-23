@@ -270,10 +270,9 @@ coupling `π₃` of `(μ, ν)` whose cost is at most the sum of the two costs (g
 triangle `c x z ≤ c x y + c y z`).  The load-bearing facts are the two marginals
 (`map fst π₃ = μ` via `fst_compProd`; `map snd π₃ = ν` via `snd_compProd` + the
 `bind`/`map`/`comap` law). -/
-@[nolint unusedArguments] -- `_hc_nonneg`: ground-cost interface, unused (gluing uses hc_triangle)
 theorem exists_coupling_glue
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (c : α → α → ℝ)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν ρ : Measure α) [IsProbabilityMeasure μ]
@@ -382,7 +381,7 @@ coupling cost.**  Gluing of couplings through a common middle measure
 (`exists_coupling_glue`), then the `iInf` arithmetic. -/
 theorem wassersteinCost_coupling_triangle
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
-    (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y)
+    (c : α → α → ℝ)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν ρ : Measure α) [IsProbabilityMeasure μ]
@@ -417,7 +416,7 @@ theorem wassersteinCost_coupling_triangle
     obtain ⟨h, hcost⟩ := hπ
     exact ⟨π, h, hcost⟩
   obtain ⟨π₃, h₃, hcost⟩ :=
-    exists_coupling_glue c hc_nonneg hc_triangle hc_meas μ ν ρ π₁ h₁ π₂ h₂
+    exists_coupling_glue c hc_triangle hc_meas μ ν ρ π₁ h₁ π₂ h₂
   calc wassersteinCost_coupling c μ ν
       ≤ ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₃ :=
         iInf_le_of_le π₃ (iInf_le_of_le h₃ le_rfl)
@@ -459,12 +458,10 @@ Given a measurable pairwise-disjoint partition `As : ℕ → Set α` covering `u
 representatives `as : ℕ → α` and a fallback point `x₀`, the truncated step map
 `T x = as n` when `x ∈ As n` for some `n < N`, `T x = x₀` otherwise, is measurable
 and has finite range contained in `{as n | n < N} ∪ {x₀}`. -/
-@[nolint unusedArguments] -- `_hAs_cover`: partition interface, unused in measurability proof
 lemma finiteRange_approxMap_measurable
     {α : Type*} [MeasurableSpace α]
     (As : ℕ → Set α) (hAs_mble : ∀ n, MeasurableSet (As n))
-    (_hAs_cover : ⋃ n, As n = Set.univ)
-    (_hAs_disj : Pairwise fun n m => Disjoint (As n) (As m))
+    (hAs_disj : Pairwise fun n m => Disjoint (As n) (As m))
     (as : ℕ → α) (x₀ : α) (N : ℕ) :
     ∃ T : α → α,
       Measurable T ∧
@@ -540,7 +537,7 @@ lemma finiteRange_approxMap_measurable
     intro n hn x hx
     refine hkept (List.range N) x n (List.mem_range.mpr hn) hx (fun m hm hxm => ?_)
     by_contra hmn
-    exact absurd hx (Set.disjoint_left.mp (_hAs_disj hmn) hxm)
+    exact absurd hx (Set.disjoint_left.mp (hAs_disj hmn) hxm)
   · -- tail
     intro x hx
     refine htail (List.range N) x (fun m hm hxm => ?_)
@@ -575,13 +572,12 @@ For a step map `T` with `T x = as n` on `As n` (for `n < N`), where we have a po
 bound `∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ` (established from the cell diameter), the
 lintegral of `ENNReal.ofReal (c x (T x))` over the kept cells is at most `ENNReal.ofReal δ`
 since `μ univ = 1`. -/
-@[nolint unusedArguments] -- `_hc_nonneg`/`_hAs_mble`/`_hδ`: kept-cells interface, unused
 lemma lintegral_ofReal_kept_cells_le
     {α : Type*} [MeasurableSpace α]
     {μ : Measure α} [IsProbabilityMeasure μ]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
-    (As : ℕ → Set α) (_hAs_mble : ∀ n, MeasurableSet (As n))
-    (N : ℕ) (δ : ℝ) (_hδ : 0 < δ)
+    (c : α → α → ℝ)
+    (As : ℕ → Set α)
+    (N : ℕ) (δ : ℝ)
     (T : α → α)
     (hcT_le : ∀ n < N, ∀ x ∈ As n, c x (T x) ≤ δ) :
     ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ
@@ -639,13 +635,10 @@ lemma measure_compl_biUnion_range_tendsto_zero
 For a probability measure with finite first moment, the transport cost to a
 finite-range pushforward can be made arbitrarily small (partition into
 small-diameter cells + finite-moment tail control). -/
-@[nolint unusedArguments] -- `_hc_self`/`_hc_symm`/`_hc_cont`: foundationB caller interface, unused
 theorem exists_finiteRange_map_cost_le
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (_hc_self : ∀ x, c x x = 0)
-    (_hc_symm : ∀ x y, c x y = c y x)
-    (_hc_cont : Continuous (fun p : α × α => c p.1 p.2))
+    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y)
     (hc_le_dist : ∀ x y, c x y ≤ dist x y)
     (μ : Measure α) [IsProbabilityMeasure μ] (x₀ : α)
     (_hμ_cm : Integrable (fun y => c y x₀) μ)
@@ -683,7 +676,7 @@ theorem exists_finiteRange_map_cost_le
   -- Step 6: build finite-range step map T sending each kept cell `As n` to its
   -- representative `as n` (and the tail to `x₀`).
   obtain ⟨T, hT_mble, hT_fin, hT_kept, hT_tail⟩ :=
-    finiteRange_approxMap_measurable As hAs_mble hAs_cover hAs_disj as x₀ N
+    finiteRange_approxMap_measurable As hAs_mble hAs_disj as x₀ N
   refine ⟨T, hT_mble, hT_fin, ?_⟩
   -- Step 7: decompose the total lintegral into kept + tail parts
   have hS_mble : MeasurableSet (⋃ n ∈ Finset.range N, As n) :=
@@ -695,7 +688,7 @@ theorem exists_finiteRange_map_cost_le
   -- Step 8a: bound kept cells via the kept-cell lemma
   have hkept : ∫⁻ x in ⋃ n ∈ Finset.range N, As n, ENNReal.ofReal (c x (T x)) ∂μ ≤
       ENNReal.ofReal (ε / 2) :=
-    lintegral_ofReal_kept_cells_le c _hc_nonneg As hAs_mble N (ε / 2) (half_pos _hε) T
+    lintegral_ofReal_kept_cells_le c As N (ε / 2) T
       (fun n hn x hx => by
         rw [hT_kept n hn x hx]
         have hxn : (As n).Nonempty := ⟨x, hx⟩
@@ -1332,10 +1325,9 @@ supports and `c` a (pseudo)metric cost, the c-transform
 (from `u a − c a b ≤ −v b`), so `∫u dμ' + ∫v dν' ≤ ∫g dμ' − ∫g dν'`.  **This is where
 `hc_triangle`/`hc_symm` are load-bearing** — it converts the Farkas dual *pair* into the
 single 1-Lipschitz potential the Kantorovich dual sup ranges over. -/
-@[nolint unusedArguments] -- `_hc_nonneg`: ground-cost interface, unused (uses hc_self/symm)
 theorem cTransform_dual_witness
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
-    (c : α → α → ℝ) (_hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
+    (c : α → α → ℝ) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
@@ -1453,7 +1445,7 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     finiteRange_transportation_dual c hc_nonneg μ ν T S hT hS hTfin hSfin (η : ℝ)
       (by exact_mod_cast hη)
   obtain ⟨g, hg_adm, hg_val⟩ :=
-    cTransform_dual_witness c hc_nonneg hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS
+    cTransform_dual_witness c hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS
       hTfin hSfin u v hu hv hdual
   calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
       ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
@@ -1646,18 +1638,18 @@ theorem wassersteinCost_coupling_le_dual
   refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
   have hε4 : (0 : ℝ) < (ε : ℝ) / 4 := by positivity
   obtain ⟨T, hT, hTfin, hTcost⟩ :=
-    exists_finiteRange_map_cost_le c hc_nonneg hc_self hc_symm hc_cont hc_le_dist μ x₀ hμ_cm
+    exists_finiteRange_map_cost_le c hc_nonneg hc_le_dist μ x₀ hμ_cm
       ((ε : ℝ) / 4) hε4
   obtain ⟨S, hS, hSfin, hScost⟩ :=
-    exists_finiteRange_map_cost_le c hc_nonneg hc_self hc_symm hc_cont hc_le_dist ν x₀ hν_cm
+    exists_finiteRange_map_cost_le c hc_nonneg hc_le_dist ν x₀ hν_cm
       ((ε : ℝ) / 4) hε4
   haveI : IsProbabilityMeasure (Measure.map T μ) := Measure.isProbabilityMeasure_map hT.aemeasurable
   haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
   set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
   -- triangle through the two approximants
-  have htri1 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle hc_cont.measurable
+  have htri1 := wassersteinCost_coupling_triangle c hc_triangle hc_cont.measurable
     μ ν (Measure.map T μ)
-  have htri2 := wassersteinCost_coupling_triangle c hc_nonneg hc_triangle hc_cont.measurable
+  have htri2 := wassersteinCost_coupling_triangle c hc_triangle hc_cont.measurable
     (Measure.map T μ) ν (Measure.map S ν)
   -- the two outer transport terms are ≤ q
   have hμμ' : wassersteinCost_coupling c μ (Measure.map T μ) ≤ q :=
