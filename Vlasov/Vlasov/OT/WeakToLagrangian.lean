@@ -365,6 +365,7 @@ lemma transportedIntegral_const_On {h : ℝ → ℝ} {T : ℝ} (hT : 0 < T)
   · exact (sub_eq_zero.mp h1).symm
   · exact absurd h2 (ne_of_gt (by linarith : (0 : ℝ) < T - 0))
 
+omit [NeZero d] in
 /-- **C2 #9 — `C_c^∞` test functions determine a finite measure.**
 
 If `∫ φ dμ = ∫ φ dν` for every smooth compactly-supported `φ`, then `μ = ν` (finite measures on
@@ -451,7 +452,8 @@ lemma measure_eq_of_forall_Cc_integral_eq {μ ν : Measure (PhaseSpace d)}
     simpa only [hgn_eq] using hconv_ν
   exact tendsto_nhds_unique hconv_μ hμν
 
-/-- Convenience extractor: under `[AssW2 W]`, a gradient field `gradW = ∇W` is `C¹`.
+omit [NeZero d] in
+/-- Convenience extractor: under `[AssW2 W]`, a gradient field `gradW= ∇W` is `C¹`.
 
 `AssW2.gradContDiff` gives `ContDiff ℝ 1 (fun x => fderiv ℝ W x)`; composing with the (smooth,
 linear) Riesz isometry `gradient W x = (toDual ℝ _).symm (fderiv ℝ W x)` and rewriting by `hgradW`
@@ -481,6 +483,7 @@ of `s ↦ ∫ ψ_s dμ_s`) are realized against the two-time-flow representation
 and proven below (`weakEvolution_test_C1c_On`, `transportedTest_transport_identity`,
 `transportedIntegral_hasDerivAt_zero`). -/
 
+omit [NeZero d] in
 /-- **C3 F1 — the convolution force field is `C¹` in space (Fréchet derivative under the
 integral).**  For `gradW ∈ C¹` (and `L`-Lipschitz, a probability measure `ρ` with the kernel
 integrable), `x ↦ ∫ y, gradW (x − y) ∂ρ` is Fréchet-differentiable with derivative
@@ -568,6 +571,7 @@ theorem vlasovVectorField_hasFDerivAt_in_z
   have hprod := h1.prodMk h2.neg
   simpa only [vlasovVectorField] using hprod
 
+omit [NeZero d] in
 /-- **C3 F1c — the convolution derivative is continuous in space.**  `x ↦ ∫ y, fderiv ℝ gradW
 (x − y) ∂ρ` (the Fréchet derivative of the convolution field, F1) is continuous, by dominated
 convergence: the integrand is continuous in `x` and bounded by `‖fderiv gradW‖ ≤ L` (a constant,
@@ -596,14 +600,14 @@ theorem convolveFunctionMeasure_fderiv_continuous
 noncomputable def picardIter {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) : ℕ → ℝ → E
   | 0, _ => x₀
-  | (n + 1), t => ∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)
+  | (n + 1), t => ∫ s in (0 : ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)
 
 @[simp] lemma picardIter_zero {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (t : ℝ) : picardIter 𝒜 x₀ 0 t = x₀ := rfl
 
 lemma picardIter_succ {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (n : ℕ) (t : ℝ) :
-    picardIter 𝒜 x₀ (n + 1) t = ∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s) := rfl
+    picardIter 𝒜 x₀ (n + 1) t = ∫ s in (0 : ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s) := rfl
 
 /-- **C3 V1c-engine — the Picard iterates are continuous and satisfy the geometric
 `(Kt)ⁿ/n!`-bound on `[0,T]`.**  Proved by simultaneous induction (continuity feeds
@@ -633,12 +637,12 @@ lemma picardIter_continuousOn_and_bound {E : Type*} [NormedAddCommGroup E] [Norm
       rw [Set.uIcc_of_le hT] at hcp
       exact hcp
     · intro t ht
-      have ht0 : (0:ℝ) ≤ t := ht.1
+      have ht0 : (0 : ℝ) ≤ t := ht.1
       have htT : t ≤ T := ht.2
-      have h_ptwise : ∀ s ∈ Set.Icc (0:ℝ) t,
+      have h_ptwise : ∀ s ∈ Set.Icc (0 : ℝ) t,
           ‖𝒜 s (picardIter 𝒜 x₀ n s)‖ ≤ K * (K * s) ^ n / n.factorial * ‖x₀‖ := by
         intro s hs
-        have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨hs.1, le_trans hs.2 htT⟩
+        have hsT : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, le_trans hs.2 htT⟩
         calc ‖𝒜 s (picardIter 𝒜 x₀ n s)‖
             ≤ ‖𝒜 s‖ * ‖picardIter 𝒜 x₀ n s‖ := (𝒜 s).le_opNorm _
           _ ≤ K * ((K * s) ^ n / n.factorial * ‖x₀‖) :=
@@ -653,10 +657,10 @@ lemma picardIter_continuousOn_and_bound {E : Type*} [NormedAddCommGroup E] [Norm
         rw [Set.uIcc_of_le ht0]
         exact (hg_cont.mono (Set.Icc_subset_Icc_right htT)).norm
       calc ‖picardIter 𝒜 x₀ (n + 1) t‖
-          = ‖∫ s in (0:ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)‖ := by rw [picardIter_succ]
-        _ ≤ ∫ s in (0:ℝ)..t, ‖𝒜 s (picardIter 𝒜 x₀ n s)‖ :=
+          = ‖∫ s in (0 : ℝ)..t, 𝒜 s (picardIter 𝒜 x₀ n s)‖ := by rw [picardIter_succ]
+        _ ≤ ∫ s in (0 : ℝ)..t, ‖𝒜 s (picardIter 𝒜 x₀ n s)‖ :=
             intervalIntegral.norm_integral_le_integral_norm ht0
-        _ ≤ ∫ s in (0:ℝ)..t, K * (K * s) ^ n / n.factorial * ‖x₀‖ :=
+        _ ≤ ∫ s in (0 : ℝ)..t, K * (K * s) ^ n / n.factorial * ‖x₀‖ :=
             intervalIntegral.integral_mono_on ht0 hLHS_int hRHS_int h_ptwise
         _ = (K * t) ^ (n + 1) / (n + 1).factorial * ‖x₀‖ := by
             have hpow : ∀ s : ℝ, K * (K * s) ^ n / n.factorial * ‖x₀‖
@@ -679,7 +683,7 @@ lemma picardSum_continuousOn {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ
     (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K) :
     ContinuousOn (fun t => ∑' n, picardIter 𝒜 x₀ n t) (Set.Icc 0 T) := by
   have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
-  have hbd : ∀ (n : ℕ) (t : ℝ), t ∈ Set.Icc (0:ℝ) T →
+  have hbd : ∀ (n : ℕ) (t : ℝ), t ∈ Set.Icc (0 : ℝ) T →
       ‖picardIter 𝒜 x₀ n t‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
     intro n t ht
     refine le_trans ((hcb n).2 t ht) ?_
@@ -710,8 +714,8 @@ lemma picardSum_continuous_param
     {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
     (h𝒜_cont : Continuous (fun p : Z × ℝ => 𝒜 p.1 p.2))
-    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K)
-    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜 z s‖ ≤ K)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     Continuous (fun z => ∑' n, picardIter (𝒜 z) x₀ n t) := by
   -- (1) joint continuity of each Picard iterate on `Z × ℝ`.
   have hiter_cont : ∀ n, Continuous (fun p : Z × ℝ => picardIter (𝒜 p.1) x₀ n p.2) := by
@@ -724,11 +728,11 @@ lemma picardSum_continuous_param
       have hg : Continuous (Function.uncurry fun z v => 𝒜 z v (picardIter (𝒜 z) x₀ n v)) :=
         h𝒜_cont.clm_apply ih
       have hpp := intervalIntegral.continuous_parametric_primitive_of_continuous
-        (μ := volume) (a₀ := (0:ℝ)) hg
+        (μ := volume) (a₀ := (0 : ℝ)) hg
       simp only [picardIter_succ]
       exact hpp
   -- (2) per-`z` slice continuity + the `z`-independent M-test bound.
-  have h𝒜cont_z : ∀ z, ContinuousOn (𝒜 z) (Set.Icc (0:ℝ) T) := fun z =>
+  have h𝒜cont_z : ∀ z, ContinuousOn (𝒜 z) (Set.Icc (0 : ℝ) T) := fun z =>
     (h𝒜_cont.comp (continuous_const.prodMk continuous_id)).continuousOn
   have hbd : ∀ (n : ℕ) (z : Z), z ∈ (Set.univ : Set Z) →
       ‖picardIter (𝒜 z) x₀ n t‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
@@ -736,7 +740,7 @@ lemma picardSum_continuous_param
     have hb := (picardIter_continuousOn_and_bound (𝒜 z) x₀ T hT K hK (h𝒜cont_z z)
       (h𝒜_bound z) n).2 t ht
     refine le_trans hb ?_
-    have hKt : (0:ℝ) ≤ K * t := mul_nonneg hK ht.1
+    have hKt : (0 : ℝ) ≤ K * t := mul_nonneg hK ht.1
     have hle : K * t ≤ K * T := mul_le_mul_of_nonneg_left ht.2 hK
     gcongr
   have hsum : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
@@ -760,25 +764,25 @@ it is jointly continuous only on the window `[0,T]` (the flow `Φ_s z` is). -/
 lemma picardSum_continuous_param_Icc
     {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
-    (h𝒜_contOn : ContinuousOn (fun p : Z × ℝ => 𝒜 p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
-    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K)
-    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (h𝒜_contOn : ContinuousOn (fun p : Z × ℝ => 𝒜 p.1 p.2) (Set.univ ×ˢ Set.Icc (0 : ℝ) T))
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜 z s‖ ≤ K)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     Continuous (fun z => ∑' n, picardIter (𝒜 z) x₀ n t) := by
   set cl : ℝ → ℝ := fun s => ↑(Set.projIcc 0 T hT s) with hcl
   have hcl_cont : Continuous cl := continuous_subtype_val.comp continuous_projIcc
-  have hcl_mem : ∀ s, cl s ∈ Set.Icc (0:ℝ) T := fun s => (Set.projIcc 0 T hT s).2
-  have hcl_eq : ∀ s ∈ Set.Icc (0:ℝ) T, cl s = s := by
-    intro s hs; show (↑(Set.projIcc 0 T hT s) : ℝ) = s; rw [Set.projIcc_of_mem hT hs]
+  have hcl_mem : ∀ s, cl s ∈ Set.Icc (0 : ℝ) T := fun s => (Set.projIcc 0 T hT s).2
+  have hcl_eq : ∀ s ∈ Set.Icc (0 : ℝ) T, cl s = s := by
+    intro s hs; change (↑(Set.projIcc 0 T hT s) : ℝ) = s; rw [Set.projIcc_of_mem hT hs]
   set 𝒜c : Z → ℝ → (E →L[ℝ] E) := fun z s => 𝒜 z (cl s) with h𝒜c
   have h𝒜c_cont : Continuous (fun p : Z × ℝ => 𝒜c p.1 p.2) := by
     have hmap : Continuous (fun p : Z × ℝ => ((p.1, cl p.2) : Z × ℝ)) :=
       continuous_fst.prodMk (hcl_cont.comp continuous_snd)
-    have hmem : ∀ p : Z × ℝ, ((p.1, cl p.2) : Z × ℝ) ∈ Set.univ ×ˢ Set.Icc (0:ℝ) T :=
+    have hmem : ∀ p : Z × ℝ, ((p.1, cl p.2) : Z × ℝ) ∈ Set.univ ×ˢ Set.Icc (0 : ℝ) T :=
       fun p => ⟨Set.mem_univ _, hcl_mem p.2⟩
     exact h𝒜_contOn.comp_continuous hmap hmem
-  have h𝒜c_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜c z s‖ ≤ K :=
+  have h𝒜c_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜c z s‖ ≤ K :=
     fun z s _ => h𝒜_bound z (cl s) (hcl_mem s)
-  have hagree : ∀ (n : ℕ) (z : Z), ∀ s ∈ Set.Icc (0:ℝ) T,
+  have hagree : ∀ (n : ℕ) (z : Z), ∀ s ∈ Set.Icc (0 : ℝ) T,
       picardIter (𝒜c z) x₀ n s = picardIter (𝒜 z) x₀ n s := by
     intro n
     induction n with
@@ -787,7 +791,7 @@ lemma picardSum_continuous_param_Icc
       intro z s hs
       simp only [picardIter_succ]
       refine intervalIntegral.integral_congr (fun u hu => ?_)
-      have huIcc : u ∈ Set.Icc (0:ℝ) T := by
+      have huIcc : u ∈ Set.Icc (0 : ℝ) T := by
         rw [Set.uIcc_of_le hs.1] at hu; exact ⟨hu.1, le_trans hu.2 hs.2⟩
       have e1 : 𝒜c z u = 𝒜 z u := by simp only [h𝒜c, hcl_eq u huIcc]
       rw [e1, ih z u huIcc]
@@ -805,9 +809,9 @@ lemma picardSum_finset_recurrence
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
     (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K)
-    (N : ℕ) (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (N : ℕ) (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     ∑ n ∈ Finset.range (N + 1), picardIter 𝒜 x₀ n t
-      = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
+      = x₀ + ∫ s in (0 : ℝ)..t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
   have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
   have hint : ∀ n, IntervalIntegrable
       (fun s => 𝒜 s (picardIter 𝒜 x₀ n s)) volume 0 t := by
@@ -831,13 +835,13 @@ lemma picardSum_solves_integralEq
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
     (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K)
-    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     (∑' n, picardIter 𝒜 x₀ n t)
-      = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (∑' n, picardIter 𝒜 x₀ n s) := by
+      = x₀ + ∫ s in (0 : ℝ)..t, 𝒜 s (∑' n, picardIter 𝒜 x₀ n s) := by
   have hcb := picardIter_continuousOn_and_bound 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜
-  have ht0 : (0:ℝ) ≤ t := ht.1
+  have ht0 : (0 : ℝ) ≤ t := ht.1
   have htT : t ≤ T := ht.2
-  have hmaj : ∀ n, ∀ s ∈ Set.Icc (0:ℝ) T,
+  have hmaj : ∀ n, ∀ s ∈ Set.Icc (0 : ℝ) T,
       ‖picardIter 𝒜 x₀ n s‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
     intro n s hs
     refine le_trans ((hcb n).2 s hs) ?_
@@ -846,11 +850,11 @@ lemma picardSum_solves_integralEq
     gcongr
   have hmaj_summable : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
     (Real.summable_pow_div_factorial (K * T)).mul_right ‖x₀‖
-  have hsummable : ∀ s ∈ Set.Icc (0:ℝ) T, Summable (fun n => picardIter 𝒜 x₀ n s) := by
+  have hsummable : ∀ s ∈ Set.Icc (0 : ℝ) T, Summable (fun n => picardIter 𝒜 x₀ n s) := by
     intro s hs
     exact (hmaj_summable.of_nonneg_of_le (fun n => norm_nonneg _) (fun n => hmaj n s hs)).of_norm
   set C : ℝ := ∑' n, (K * T) ^ n / n.factorial * ‖x₀‖ with hC
-  have hSbound : ∀ N, ∀ s ∈ Set.Icc (0:ℝ) T,
+  have hSbound : ∀ N, ∀ s ∈ Set.Icc (0 : ℝ) T,
       ‖∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s‖ ≤ C := by
     intro N s hs
     refine le_trans (norm_sum_le _ _) ?_
@@ -861,8 +865,8 @@ lemma picardSum_solves_integralEq
       Filter.atTop (nhds (M t)) :=
     ((hsummable t ht).hasSum.tendsto_sum_nat).comp (Filter.tendsto_add_atTop_nat 1)
   have hRHS_int : Filter.Tendsto
-      (fun N => ∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s))
-      Filter.atTop (nhds (∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (M s))) := by
+      (fun N => ∫ s in Set.Ioc (0 : ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s))
+      Filter.atTop (nhds (∫ s in Set.Ioc (0 : ℝ) t, 𝒜 s (M s))) := by
     apply MeasureTheory.tendsto_integral_of_dominated_convergence (bound := fun _ => K * C)
     · intro N
       apply ContinuousOn.aestronglyMeasurable _ measurableSet_Ioc
@@ -871,16 +875,16 @@ lemma picardSum_solves_integralEq
     · exact integrableOn_const (hs := measure_Ioc_lt_top.ne)
     · intro N
       refine MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioc (fun s hs => ?_)
-      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
+      have hsT : s ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
       calc ‖𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s)‖
           ≤ ‖𝒜 s‖ * ‖∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s‖ := (𝒜 s).le_opNorm _
         _ ≤ K * C := mul_le_mul (hbound𝒜 s hsT) (hSbound N s hsT) (norm_nonneg _) hK
     · refine MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioc (fun s hs => ?_)
-      have hsT : s ∈ Set.Icc (0:ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
+      have hsT : s ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt hs.1, le_trans hs.2 htT⟩
       exact ((𝒜 s).continuous.tendsto (M s)).comp ((hsummable s hsT).hasSum.tendsto_sum_nat)
   rw [intervalIntegral.integral_of_le ht0]
   have hrec' : ∀ N, ∑ n ∈ Finset.range (N + 1), picardIter 𝒜 x₀ n t
-      = x₀ + ∫ s in Set.Ioc (0:ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
+      = x₀ + ∫ s in Set.Ioc (0 : ℝ) t, 𝒜 s (∑ n ∈ Finset.range N, picardIter 𝒜 x₀ n s) := by
     intro N
     rw [picardSum_finset_recurrence 𝒜 x₀ T hT K hK hcont𝒜 hbound𝒜 N t ht,
       intervalIntegral.integral_of_le ht0]
@@ -916,24 +920,24 @@ theorem exists_linearODE_solution_Icc
       ∀ t ∈ Set.Icc 0 T, HasDerivWithinAt M (𝒜 t (M t)) (Set.Icc 0 T) t := by
   obtain ⟨K, hbK⟩ := isCompact_Icc.exists_bound_of_continuousOn h𝒜
   have hK'0 : 0 ≤ max K 0 := le_max_right _ _
-  have hbound : ∀ t ∈ Set.Icc (0:ℝ) T, ‖𝒜 t‖ ≤ max K 0 :=
+  have hbound : ∀ t ∈ Set.Icc (0 : ℝ) T, ‖𝒜 t‖ ≤ max K 0 :=
     fun t ht => le_trans (hbK t ht) (le_max_left _ _)
   set M : ℝ → E := fun u => ∑' n, picardIter 𝒜 x₀ n u with hM
   have hMcont : ContinuousOn M (Set.Icc 0 T) :=
     picardSum_continuousOn 𝒜 x₀ T hT (max K 0) hK'0 h𝒜 hbound
-  have hMeq : ∀ t ∈ Set.Icc (0:ℝ) T, M t = x₀ + ∫ s in (0:ℝ)..t, 𝒜 s (M s) :=
+  have hMeq : ∀ t ∈ Set.Icc (0 : ℝ) T, M t = x₀ + ∫ s in (0 : ℝ)..t, 𝒜 s (M s) :=
     fun t ht => picardSum_solves_integralEq 𝒜 x₀ T hT (max K 0) hK'0 h𝒜 hbound t ht
   have hg_cont : ContinuousOn (fun s => 𝒜 s (M s)) (Set.Icc 0 T) := h𝒜.clm_apply hMcont
   refine ⟨M, ?_, hMcont, fun t ht => ?_⟩
   · rw [hMeq 0 ⟨le_refl 0, hT⟩, intervalIntegral.integral_same, add_zero]
-  · haveI : Fact (t ∈ Set.Icc (0:ℝ) T) := ⟨ht⟩
+  · haveI : Fact (t ∈ Set.Icc (0 : ℝ) T) := ⟨ht⟩
     have hg_int : IntervalIntegrable (fun s => 𝒜 s (M s)) volume 0 t := by
       apply ContinuousOn.intervalIntegrable
       rw [Set.uIcc_of_le ht.1]
       exact hg_cont.mono (Set.Icc_subset_Icc_right ht.2)
     have hg_meas : StronglyMeasurableAtFilter (fun s => 𝒜 s (M s)) (nhdsWithin t (Set.Icc 0 T)) :=
       ⟨Set.Icc 0 T, self_mem_nhdsWithin, hg_cont.aestronglyMeasurable measurableSet_Icc⟩
-    have hFTC : HasDerivWithinAt (fun u => ∫ s in (0:ℝ)..u, 𝒜 s (M s)) (𝒜 t (M t))
+    have hFTC : HasDerivWithinAt (fun u => ∫ s in (0 : ℝ)..u, 𝒜 s (M s)) (𝒜 t (M t))
         (Set.Icc 0 T) t :=
       intervalIntegral.integral_hasDerivWithinAt_right hg_int hg_meas (hg_cont t ht)
     exact (hFTC.const_add x₀).congr (fun y hy => hMeq y hy) (hMeq t ht)
@@ -955,6 +959,7 @@ lemma exists_fundamentalMatrix
   refine ⟨M, hM0, hMcont, fun t ht => ?_⟩
   simpa [ContinuousLinearMap.compL_apply] using hMderiv t ht
 
+omit [NeZero d] in
 /-- **C3 A-cont — the variational coefficient `A(s,z) = D_z b(s, Φ_s z)` is continuous in `s`.**
 `A(s,z)` is the F2 block CLM `(snd).prod(−(∫ fderiv gradW (charX s z − y) ∂ρ_s) ∘ fst)`; its only
 `s`-varying part is the convolution-derivative integral, continuous via `hρD_cont` composed with
@@ -965,19 +970,19 @@ lemma vlasovVariationalCoeff_continuousOn
     (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (z : PhaseSpace d)
-    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
+    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
     (hρD_cont : ContinuousOn
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
     ContinuousOn (fun s => (ContinuousLinearMap.snd ℝ (PhysSpace d) (PhysSpace d)).prod
       (-((∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)).comp
           (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))) (Set.Icc 0 T) := by
-  have hX : ContinuousOn (fun s => charX s z) (Set.Icc (0:ℝ) T) :=
+  have hX : ContinuousOn (fun s => charX s z) (Set.Icc (0 : ℝ) T) :=
     continuous_fst.comp_continuousOn hcontIcc
-  have hpair : ContinuousOn (fun s => ((s, charX s z) : ℝ × PhysSpace d)) (Set.Icc (0:ℝ) T) :=
+  have hpair : ContinuousOn (fun s => ((s, charX s z) : ℝ × PhysSpace d)) (Set.Icc (0 : ℝ) T) :=
     continuousOn_id.prodMk hX
   have hmaps : Set.MapsTo (fun s => ((s, charX s z) : ℝ × PhysSpace d))
-      (Set.Icc (0:ℝ) T) (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
+      (Set.Icc (0 : ℝ) T) (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
     fun s hs => ⟨hs, Set.mem_univ _⟩
   have hD : ContinuousOn (fun s => ∫ y, fderiv ℝ gradW (charX s z - y) ∂(ρ s)) (Set.Icc 0 T) :=
     hρD_cont.comp hpair hmaps
@@ -1028,11 +1033,11 @@ lemma vlasovField_taylorRemainder_uniform
     (ρ : ℝ → Measure (PhysSpace d)) [∀ s, IsProbabilityMeasure (ρ s)]
     (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (z : PhaseSpace d)
-    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
+    (hcontIcc : ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
     (hρD_cont : ContinuousOn
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d)))) :
-    ∀ η : ℝ, 0 < η → ∃ δ : ℝ, 0 < δ ∧ ∀ s ∈ Set.Icc (0:ℝ) T, ∀ w : PhaseSpace d,
+    ∀ η : ℝ, 0 < η → ∃ δ : ℝ, 0 < δ ∧ ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ w : PhaseSpace d,
       ‖w - (charX s z, charV s z)‖ ≤ δ →
       ‖vlasovVectorField gradW ρ s w - vlasovVectorField gradW ρ s (charX s z, charV s z)
         - (vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z))) (w - (charX s z, charV s z))‖
@@ -1046,7 +1051,8 @@ lemma vlasovField_taylorRemainder_uniform
   have hg_cont : Continuous (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d)) :=
     continuous_fst.prodMk (continuous_fst.comp continuous_snd)
   have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.1, p.2.1) : ℝ × PhysSpace d))
-      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))) (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d)))
+      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))) :=
     fun p hp => ⟨hp.1, Set.mem_univ _⟩
   have hD2 : ContinuousOn
       (fun p : ℝ × PhaseSpace d => ∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1))
@@ -1070,7 +1076,8 @@ lemma vlasovField_taylorRemainder_uniform
   set ball1 : Set (PhaseSpace d) := Metric.closedBall 0 1 with hball1
   have hmap : ContinuousOn (fun q : ℝ × PhaseSpace d => ((q.1, Φ q.1 + q.2) : ℝ × PhaseSpace d))
       (Set.Icc 0 T ×ˢ ball1) :=
-    continuousOn_fst.prodMk ((hcontIcc.comp continuousOn_fst (fun q hq => hq.1)).add continuousOn_snd)
+    continuousOn_fst.prodMk
+      ((hcontIcc.comp continuousOn_fst (fun q hq => hq.1)).add continuousOn_snd)
   set Γ : Set (ℝ × PhaseSpace d) :=
     (fun q : ℝ × PhaseSpace d => ((q.1, Φ q.1 + q.2) : ℝ × PhaseSpace d)) '' (Set.Icc 0 T ×ˢ ball1)
     with hΓ
@@ -1080,7 +1087,7 @@ lemma vlasovField_taylorRemainder_uniform
     rintro _ ⟨q, hq, rfl⟩; exact ⟨hq.1, Set.mem_univ _⟩
   have hUC : UniformContinuousOn (fun p => vlasovFieldJacobian gradW ρ p) Γ :=
     hΓcompact.uniformContinuousOn_of_continuous (hAj_cont.mono hΓsub)
-  have hmemΓ : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ e : PhaseSpace d, ‖e‖ ≤ 1 →
+  have hmemΓ : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ e : PhaseSpace d, ‖e‖ ≤ 1 →
       ((s, Φ s + e) : ℝ × PhaseSpace d) ∈ Γ := by
     intro s hs e he
     exact ⟨(s, e), ⟨hs, by simpa [hball1, Metric.mem_closedBall, dist_eq_norm] using he⟩, rfl⟩
@@ -1134,7 +1141,8 @@ lemma vlasovField_taylorRemainder_uniform
     rw [map_sub]; abel
   simpa only [hReq] using hmv
 
-/-- **C3 (shared) — joint continuity of the Jacobian** on `Icc 0 T ×ˢ univ` (used by V2's
+omit [NeZero d] in
+/-- **C3 (shared) — joint continuity of the Jacobian** on `Icc 0 T ×ˢuniv` (used by V2's
 `hA_contOn`).  The block CLM `vlasovFieldJacobian` is reassembled `inl∘snd + inr∘(·)` and its
 varying part is continuous via `hρD_cont`. -/
 lemma vlasovFieldJacobian_continuousOn
@@ -1175,14 +1183,14 @@ A generic upgrade: if `G z ·` is `ContinuousOn (Icc 0 T)` for each `z` and `z �
 lemma continuousOn_prod_of_lipschitz_continuousOn
     {Z E : Type*} [PseudoMetricSpace Z] [PseudoMetricSpace E]
     (G : Z → ℝ → E) (T C : ℝ)
-    (hlip : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ z₁ z₂, dist (G z₁ s) (G z₂ s) ≤ C * dist z₁ z₂)
-    (hcont : ∀ z, ContinuousOn (fun s => G z s) (Set.Icc (0:ℝ) T)) :
-    ContinuousOn (fun p : Z × ℝ => G p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+    (hlip : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂, dist (G z₁ s) (G z₂ s) ≤ C * dist z₁ z₂)
+    (hcont : ∀ z, ContinuousOn (fun s => G z s) (Set.Icc (0 : ℝ) T)) :
+    ContinuousOn (fun p : Z × ℝ => G p.1 p.2) (Set.univ ×ˢ Set.Icc (0 : ℝ) T) := by
   rw [Metric.continuousOn_iff]
   rintro ⟨z₀, s₀⟩ ⟨_, hs₀⟩ ε hε
   obtain ⟨δ₁, hδ₁, hcs⟩ :=
     (Metric.continuousWithinAt_iff).mp (hcont z₀ s₀ hs₀) (ε/2) (by positivity)
-  have hC1 : (0:ℝ) < |C| + 1 := by positivity
+  have hC1 : (0 : ℝ) < |C| + 1 := by positivity
   refine ⟨min δ₁ (ε / (2 * (|C| + 1))), by positivity, ?_⟩
   rintro ⟨z, s⟩ ⟨_, hs⟩ hd
   rw [Prod.dist_eq, max_lt_iff] at hd
@@ -1221,9 +1229,9 @@ lemma fundamentalMatrix_spec {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ
   have h𝒜cont : ContinuousOn (fun s => ContinuousLinearMap.compL ℝ F F F (A s)) (Set.Icc 0 T) :=
     (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA
   obtain ⟨KA, hKA⟩ :=
-    (isCompact_Icc (a := (0:ℝ)) (b := T)).exists_bound_of_continuousOn hA
-  have hK'0 : (0:ℝ) ≤ max KA 0 := le_max_right _ _
-  have hbound : ∀ t ∈ Set.Icc (0:ℝ) T, ‖ContinuousLinearMap.compL ℝ F F F (A t)‖ ≤ max KA 0 := by
+    (isCompact_Icc (a := (0 : ℝ)) (b := T)).exists_bound_of_continuousOn hA
+  have hK'0 : (0 : ℝ) ≤ max KA 0 := le_max_right _ _
+  have hbound : ∀ t ∈ Set.Icc (0 : ℝ) T, ‖ContinuousLinearMap.compL ℝ F F F (A t)‖ ≤ max KA 0 := by
     intro t ht
     have h1 : ‖ContinuousLinearMap.compL ℝ F F F (A t)‖ ≤ ‖A t‖ := by
       refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg _) (fun g => ?_)
@@ -1232,8 +1240,8 @@ lemma fundamentalMatrix_spec {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ
   have hMcont : ContinuousOn (fundamentalMatrix A) (Set.Icc 0 T) :=
     picardSum_continuousOn (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
       (ContinuousLinearMap.id ℝ F) T hT (max KA 0) hK'0 h𝒜cont hbound
-  have hMeq : ∀ t ∈ Set.Icc (0:ℝ) T, fundamentalMatrix A t = ContinuousLinearMap.id ℝ F
-      + ∫ s in (0:ℝ)..t, ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s) :=
+  have hMeq : ∀ t ∈ Set.Icc (0 : ℝ) T, fundamentalMatrix A t = ContinuousLinearMap.id ℝ F
+      + ∫ s in (0 : ℝ)..t, ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s) :=
     fun t ht => picardSum_solves_integralEq (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
       (ContinuousLinearMap.id ℝ F) T hT (max KA 0) hK'0 h𝒜cont hbound t ht
   have hg_cont : ContinuousOn
@@ -1241,7 +1249,7 @@ lemma fundamentalMatrix_spec {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ
     h𝒜cont.clm_apply hMcont
   refine ⟨?_, hMcont, fun t ht => ?_⟩
   · rw [hMeq 0 ⟨le_refl 0, hT⟩, intervalIntegral.integral_same, add_zero]
-  · haveI : Fact (t ∈ Set.Icc (0:ℝ) T) := ⟨ht⟩
+  · haveI : Fact (t ∈ Set.Icc (0 : ℝ) T) := ⟨ht⟩
     have hg_int : IntervalIntegrable
         (fun s => ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s)) volume 0 t := by
       apply ContinuousOn.intervalIntegrable
@@ -1251,7 +1259,8 @@ lemma fundamentalMatrix_spec {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ
         (nhdsWithin t (Set.Icc 0 T)) :=
       ⟨Set.Icc 0 T, self_mem_nhdsWithin, hg_cont.aestronglyMeasurable measurableSet_Icc⟩
     have hFTC : HasDerivWithinAt
-        (fun u => ∫ s in (0:ℝ)..u, ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s))
+        (fun u => ∫ s in (0 : ℝ)..u,
+          ContinuousLinearMap.compL ℝ F F F (A s) (fundamentalMatrix A s))
         (ContinuousLinearMap.compL ℝ F F F (A t) (fundamentalMatrix A t)) (Set.Icc 0 T) t :=
       intervalIntegral.integral_hasDerivWithinAt_right hg_int hg_meas (hg_cont t ht)
     have hHD := (hFTC.const_add (ContinuousLinearMap.id ℝ F)).congr
@@ -1264,15 +1273,15 @@ Specialises `picardSum_continuous_param_Icc` to `𝒜 := compL∘A`, `x₀ := id
 lemma fundamentalMatrix_continuous_param
     {Z F : Type*} [TopologicalSpace Z] [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
     (A : Z → ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
-    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
-    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ K)
-    (t : ℝ) (ht : t ∈ Set.Icc (0:ℝ) T) :
+    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0 : ℝ) T))
+    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖A z s‖ ≤ K)
+    (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
     Continuous (fun z => fundamentalMatrix (A z) t) := by
   have h𝒜_contOn : ContinuousOn
       (fun p : Z × ℝ => ContinuousLinearMap.compL ℝ F F F (A p.1 p.2))
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA_contOn
-  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T,
+  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T,
       ‖ContinuousLinearMap.compL ℝ F F F (A z s)‖ ≤ K := by
     intro z s hs
     refine le_trans ?_ (hA_bound z s hs)
@@ -1293,9 +1302,9 @@ lemma picardSum_continuous_param_joint
     {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
     (h𝒜_cont : Continuous (fun p : Z × ℝ => 𝒜 p.1 p.2))
-    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K) :
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜 z s‖ ≤ K) :
     ContinuousOn (fun p : Z × ℝ => ∑' n, picardIter (𝒜 p.1) x₀ n p.2)
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) := by
   have hiter_cont : ∀ n, Continuous (fun p : Z × ℝ => picardIter (𝒜 p.1) x₀ n p.2) := by
     intro n
     induction n with
@@ -1306,19 +1315,19 @@ lemma picardSum_continuous_param_joint
       have hg : Continuous (Function.uncurry fun z v => 𝒜 z v (picardIter (𝒜 z) x₀ n v)) :=
         h𝒜_cont.clm_apply ih
       have hpp := intervalIntegral.continuous_parametric_primitive_of_continuous
-        (μ := volume) (a₀ := (0:ℝ)) hg
+        (μ := volume) (a₀ := (0 : ℝ)) hg
       simp only [picardIter_succ]
       exact hpp
-  have h𝒜cont_z : ∀ z, ContinuousOn (𝒜 z) (Set.Icc (0:ℝ) T) := fun z =>
+  have h𝒜cont_z : ∀ z, ContinuousOn (𝒜 z) (Set.Icc (0 : ℝ) T) := fun z =>
     (h𝒜_cont.comp (continuous_const.prodMk continuous_id)).continuousOn
-  have hbd : ∀ (n : ℕ) (p : Z × ℝ), p ∈ Set.univ ×ˢ Set.Icc (0:ℝ) T →
+  have hbd : ∀ (n : ℕ) (p : Z × ℝ), p ∈ Set.univ ×ˢ Set.Icc (0 : ℝ) T →
       ‖picardIter (𝒜 p.1) x₀ n p.2‖ ≤ (K * T) ^ n / n.factorial * ‖x₀‖ := by
     intro n p hp
-    have hps : p.2 ∈ Set.Icc (0:ℝ) T := hp.2
+    have hps : p.2 ∈ Set.Icc (0 : ℝ) T := hp.2
     have hb := (picardIter_continuousOn_and_bound (𝒜 p.1) x₀ T hT K hK (h𝒜cont_z p.1)
       (h𝒜_bound p.1) n).2 p.2 hps
     refine le_trans hb ?_
-    have hKt : (0:ℝ) ≤ K * p.2 := mul_nonneg hK hps.1
+    have hKt : (0 : ℝ) ≤ K * p.2 := mul_nonneg hK hps.1
     have hle : K * p.2 ≤ K * T := mul_le_mul_of_nonneg_left hps.2 hK
     gcongr
   have hsum : Summable (fun n => (K * T) ^ n / n.factorial * ‖x₀‖) :=
@@ -1326,7 +1335,7 @@ lemma picardSum_continuous_param_joint
   have hunif : TendstoUniformlyOn
       (fun (u : Finset ℕ) (p : Z × ℝ) => ∑ n ∈ u, picardIter (𝒜 p.1) x₀ n p.2)
       (fun p => ∑' n, picardIter (𝒜 p.1) x₀ n p.2) Filter.atTop
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     tendstoUniformlyOn_tsum hsum hbd
   refine hunif.continuousOn ?_
   exact (Filter.Eventually.of_forall
@@ -1338,25 +1347,25 @@ global form applies, then transfer back by iterate-agreement on `[0,T]`. -/
 lemma picardSum_continuous_param_Icc_joint
     {Z E : Type*} [TopologicalSpace Z] [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : Z → ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
-    (h𝒜_contOn : ContinuousOn (fun p : Z × ℝ => 𝒜 p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
-    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜 z s‖ ≤ K) :
+    (h𝒜_contOn : ContinuousOn (fun p : Z × ℝ => 𝒜 p.1 p.2) (Set.univ ×ˢ Set.Icc (0 : ℝ) T))
+    (h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜 z s‖ ≤ K) :
     ContinuousOn (fun p : Z × ℝ => ∑' n, picardIter (𝒜 p.1) x₀ n p.2)
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) := by
   set cl : ℝ → ℝ := fun s => ↑(Set.projIcc 0 T hT s) with hcl
   have hcl_cont : Continuous cl := continuous_subtype_val.comp continuous_projIcc
-  have hcl_mem : ∀ s, cl s ∈ Set.Icc (0:ℝ) T := fun s => (Set.projIcc 0 T hT s).2
-  have hcl_eq : ∀ s ∈ Set.Icc (0:ℝ) T, cl s = s := by
-    intro s hs; show (↑(Set.projIcc 0 T hT s) : ℝ) = s; rw [Set.projIcc_of_mem hT hs]
+  have hcl_mem : ∀ s, cl s ∈ Set.Icc (0 : ℝ) T := fun s => (Set.projIcc 0 T hT s).2
+  have hcl_eq : ∀ s ∈ Set.Icc (0 : ℝ) T, cl s = s := by
+    intro s hs; change (↑(Set.projIcc 0 T hT s) : ℝ) = s; rw [Set.projIcc_of_mem hT hs]
   set 𝒜c : Z → ℝ → (E →L[ℝ] E) := fun z s => 𝒜 z (cl s) with h𝒜c
   have h𝒜c_cont : Continuous (fun p : Z × ℝ => 𝒜c p.1 p.2) := by
     have hmap : Continuous (fun p : Z × ℝ => ((p.1, cl p.2) : Z × ℝ)) :=
       continuous_fst.prodMk (hcl_cont.comp continuous_snd)
-    have hmem : ∀ p : Z × ℝ, ((p.1, cl p.2) : Z × ℝ) ∈ Set.univ ×ˢ Set.Icc (0:ℝ) T :=
+    have hmem : ∀ p : Z × ℝ, ((p.1, cl p.2) : Z × ℝ) ∈ Set.univ ×ˢ Set.Icc (0 : ℝ) T :=
       fun p => ⟨Set.mem_univ _, hcl_mem p.2⟩
     exact h𝒜_contOn.comp_continuous hmap hmem
-  have h𝒜c_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖𝒜c z s‖ ≤ K :=
+  have h𝒜c_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖𝒜c z s‖ ≤ K :=
     fun z s _ => h𝒜_bound z (cl s) (hcl_mem s)
-  have hagree : ∀ (n : ℕ) (z : Z), ∀ s ∈ Set.Icc (0:ℝ) T,
+  have hagree : ∀ (n : ℕ) (z : Z), ∀ s ∈ Set.Icc (0 : ℝ) T,
       picardIter (𝒜c z) x₀ n s = picardIter (𝒜 z) x₀ n s := by
     intro n
     induction n with
@@ -1365,7 +1374,7 @@ lemma picardSum_continuous_param_Icc_joint
       intro z s hs
       simp only [picardIter_succ]
       refine intervalIntegral.integral_congr (fun u hu => ?_)
-      have huIcc : u ∈ Set.Icc (0:ℝ) T := by
+      have huIcc : u ∈ Set.Icc (0 : ℝ) T := by
         rw [Set.uIcc_of_le hs.1] at hu; exact ⟨hu.1, le_trans hu.2 hs.2⟩
       have e1 : 𝒜c z u = 𝒜 z u := by simp only [h𝒜c, hcl_eq u huIcc]
       rw [e1, ih z u huIcc]
@@ -1382,15 +1391,15 @@ lemma picardSum_continuous_param_Icc_joint
 lemma fundamentalMatrix_continuous_param_joint
     {Z F : Type*} [TopologicalSpace Z] [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
     (A : Z → ℝ → (F →L[ℝ] F)) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
-    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0:ℝ) T))
-    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ K) :
+    (hA_contOn : ContinuousOn (fun p : Z × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc (0 : ℝ) T))
+    (hA_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖A z s‖ ≤ K) :
     ContinuousOn (fun p : Z × ℝ => fundamentalMatrix (A p.1) p.2)
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) := by
   have h𝒜_contOn : ContinuousOn
       (fun p : Z × ℝ => ContinuousLinearMap.compL ℝ F F F (A p.1 p.2))
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     (ContinuousLinearMap.compL ℝ F F F).continuous.comp_continuousOn hA_contOn
-  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T,
+  have h𝒜_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T,
       ‖ContinuousLinearMap.compL ℝ F F F (A z s)‖ ≤ K := by
     intro z s hs
     refine le_trans ?_ (hA_bound z s hs)
@@ -1412,14 +1421,14 @@ the heavy `vlasovFieldJacobian` integral in the Grönwall application). -/
 lemma gronwall_diffQuotient_bound
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (vlin : ℝ → (E →L[ℝ] E)) (K : NNReal) (hvlin_lip : ∀ s, LipschitzWith K (vlin s))
-    (uh mh Fuh : ℝ → E) (εf : ℝ) (T t : ℝ) (ht : t ∈ Set.Ioo (0:ℝ) T)
+    (uh mh Fuh : ℝ → E) (εf : ℝ) (T t : ℝ) (ht : t ∈ Set.Ioo (0 : ℝ) T)
     (huh_cont : ContinuousOn uh (Set.Icc 0 T)) (hmh_cont : ContinuousOn mh (Set.Icc 0 T))
-    (huh_deriv : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt uh (Fuh s) s)
-    (hmh_deriv : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s)
-    (hdefect : ∀ s ∈ Set.Ioo (0:ℝ) T, dist (Fuh s) (vlin s (uh s)) ≤ εf)
+    (huh_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) T, HasDerivAt uh (Fuh s) s)
+    (hmh_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s)
+    (hdefect : ∀ s ∈ Set.Ioo (0 : ℝ) T, dist (Fuh s) (vlin s (uh s)) ≤ εf)
     (h0 : uh 0 = mh 0) :
     dist (uh t) (mh t) ≤ gronwallBound 0 (K:ℝ) εf t := by
-  have hbound_s0 : ∀ s₀ ∈ Set.Ioo (0:ℝ) t,
+  have hbound_s0 : ∀ s₀ ∈ Set.Ioo (0 : ℝ) t,
       dist (uh t) (mh t) ≤ gronwallBound (dist (uh s₀) (mh s₀)) (K:ℝ) εf (t - s₀) := by
     intro s₀ hs₀
     have hIco_sub : Set.Ico s₀ t ⊆ Set.Ioo 0 T := fun s hs =>
@@ -1436,9 +1445,9 @@ lemma gronwall_diffQuotient_bound
       (fun s _ => le_of_eq (dist_self _)) (le_refl _)
     have hkey := key t ⟨hs₀.2.le, le_refl t⟩
     simpa only [add_zero] using hkey
-  haveI : (𝓝[Set.Ioo 0 t] (0:ℝ)).NeBot := left_nhdsWithin_Ioo_neBot ht.1
-  have hT0 : (0:ℝ) ≤ T := le_trans ht.1.le ht.2.le
-  have hsub_Icc : Set.Ioo (0:ℝ) t ⊆ Set.Icc 0 T := fun s hs => ⟨hs.1.le, le_trans hs.2.le ht.2.le⟩
+  haveI : (𝓝[Set.Ioo 0 t] (0 : ℝ)).NeBot := left_nhdsWithin_Ioo_neBot ht.1
+  have hT0 : (0 : ℝ) ≤ T := le_trans ht.1.le ht.2.le
+  have hsub_Icc : Set.Ioo (0 : ℝ) t ⊆ Set.Icc 0 T := fun s hs => ⟨hs.1.le, le_trans hs.2.le ht.2.le⟩
   have htend_uh : Tendsto uh (𝓝[Set.Ioo 0 t] 0) (𝓝 (uh 0)) :=
     (huh_cont 0 ⟨le_refl 0, hT0⟩).tendsto.mono_left (nhdsWithin_mono 0 hsub_Icc)
   have htend_mh : Tendsto mh (𝓝[Set.Ioo 0 t] 0) (𝓝 (mh 0)) :=
@@ -1515,7 +1524,7 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
   intro t ht
   set Kr : ℝ := ((max 1 L : NNReal) : ℝ) with hKr
   have hKr1 : (1:ℝ) ≤ Kr := by rw [hKr]; exact_mod_cast le_max_left 1 L
-  have hKrpos : (0:ℝ) < Kr := lt_of_lt_of_le one_pos hKr1
+  have hKrpos : (0 : ℝ) < Kr := lt_of_lt_of_le one_pos hKr1
   set Φ : ℝ → PhaseSpace d := fun s => (charX s z, charV s z) with hΦ
   have hF2 : ∀ s (w : PhaseSpace d),
       HasFDerivAt (vlasovVectorField gradW ρ s) (vlasovFieldJacobian gradW ρ (s, w)) w :=
@@ -1526,7 +1535,7 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
     with hvlin
   have hvlin_norm : ∀ s, ‖vlin s‖ ≤ Kr := by
     intro s
-    show ‖vlasovFieldJacobian gradW ρ (s, Φ s)‖ ≤ Kr
+    change ‖vlasovFieldJacobian gradW ρ (s, Φ s)‖ ≤ Kr
     rw [← (hF2 s (Φ s)).fderiv]
     exact norm_fderiv_le_of_lipschitz ℝ (hVF_lip s)
   have hvlin_lip : ∀ s, LipschitzWith (max 1 L) (vlin s) := by
@@ -1538,7 +1547,7 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
   clear_value vlin
   have h_init : ∀ z' : PhaseSpace d, (charX 0 z', charV 0 z') = z' := fun z' =>
     Prod.ext_iff.mpr ⟨(hflow.1 z' (Set.mem_univ z')).1, (hflow.1 z' (Set.mem_univ z')).2⟩
-  have h_derivAt : ∀ z', ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have h_derivAt : ∀ z', ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivAt (fun s => (charX s z', charV s z'))
         (vlasovVectorField gradW ρ s (charX s z', charV s z')) s := fun z' s hs =>
     HasDerivAt.prodMk (hflow.2.1 s hs z' (Set.mem_univ z')) (hflow.2.2 s hs z' (Set.mem_univ z'))
@@ -1571,9 +1580,9 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
   set εf : ℝ := η * Cexp * ‖h‖ with hεf
   have huh_cont : ContinuousOn uh (Set.Icc 0 T) := (hcontIcc (z + h)).sub (hcontIcc z)
   have hmh_cont : ContinuousOn mh (Set.Icc 0 T) := hMzcont.clm_apply continuousOn_const
-  have huh_bound : ∀ s ∈ Set.Icc (0:ℝ) T, ‖uh s‖ ≤ Cexp * ‖h‖ := by
+  have huh_bound : ∀ s ∈ Set.Icc (0 : ℝ) T, ‖uh s‖ ≤ Cexp * ‖h‖ := by
     intro s hs
-    show ‖(charX s (z + h), charV s (z + h)) - (charX s z, charV s z)‖ ≤ Cexp * ‖h‖
+    change ‖(charX s (z + h), charV s (z + h)) - (charX s z, charV s z)‖ ≤ Cexp * ‖h‖
     rw [← dist_eq_norm]
     calc dist ((charX s (z + h), charV s (z + h)) : PhaseSpace d) (charX s z, charV s z)
         ≤ dist (z + h) z * Real.exp (Kr * (s - 0)) := hgron s hs (z + h) z
@@ -1582,22 +1591,22 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
           refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg h)
           rw [hCexp]; exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hs.2 hKrpos.le)
       _ = Cexp * ‖h‖ := mul_comm _ _
-  have huh_derivAt : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt uh
+  have huh_derivAt : ∀ s ∈ Set.Ioo (0 : ℝ) T, HasDerivAt uh
       (vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
         - vlasovVectorField gradW ρ s (charX s z, charV s z)) s := fun s hs =>
     (h_derivAt (z + h) s hs).sub (h_derivAt z s hs)
-  have hmh_derivAt : ∀ s ∈ Set.Ioo (0:ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s := by
+  have hmh_derivAt : ∀ s ∈ Set.Ioo (0 : ℝ) T, HasDerivAt mh ((vlin s) (mh s)) s := by
     intro s hs
     have hMz_at : HasDerivAt Mz ((vlin s).comp (Mz s)) s := by
       simp only [hvlin]
       exact (hMzderiv s (Set.Ioo_subset_Icc_self hs)).hasDerivAt (Icc_mem_nhds hs.1 hs.2)
     have hck := hMz_at.clm_apply (hasDerivAt_const s h)
     simpa only [ContinuousLinearMap.comp_apply, map_zero, add_zero] using hck
-  have hdefect : ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have hdefect : ∀ s ∈ Set.Ioo (0 : ℝ) T,
       dist (vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
         - vlasovVectorField gradW ρ s (charX s z, charV s z)) (vlin s (uh s)) ≤ εf := by
     intro s hs
-    have hsIcc : s ∈ Set.Icc (0:ℝ) T := Set.Ioo_subset_Icc_self hs
+    have hsIcc : s ∈ Set.Icc (0 : ℝ) T := Set.Ioo_subset_Icc_self hs
     have huhs_le : ‖uh s‖ ≤ δη := le_trans (huh_bound s hsIcc) hCexph
     have hR := hδη s hsIcc (charX s (z + h), charV s (z + h)) huhs_le
     rw [dist_eq_norm]; simp only [hvlin]
@@ -1608,9 +1617,9 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
       _ ≤ η * (Cexp * ‖h‖) := mul_le_mul_of_nonneg_left (huh_bound s hsIcc) hη_pos.le
       _ = εf := by rw [hεf]; ring
   have huh0 : uh 0 = h := by
-    show (charX 0 (z + h), charV 0 (z + h)) - (charX 0 z, charV 0 z) = h
+    change (charX 0 (z + h), charV 0 (z + h)) - (charX 0 z, charV 0 z) = h
     rw [h_init (z + h), h_init z, add_sub_cancel_left]
-  have hmh0 : mh 0 = h := by show (Mz 0) h = h; rw [hMz0]; rfl
+  have hmh0 : mh 0 = h := by change (Mz 0) h = h; rw [hMz0]; rfl
   have hlim : dist (uh t) (mh t) ≤ gronwallBound 0 Kr εf t := by
     have := gronwall_diffQuotient_bound vlin (max 1 L) hvlin_lip uh mh
       (fun s => vlasovVectorField gradW ρ s (charX s (z + h), charV s (z + h))
@@ -1620,9 +1629,9 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
   have hgb_val : gronwallBound 0 Kr εf t = εf * Cgron := by
     rw [gronwallBound_of_K_ne_0 hKrpos.ne']; simp only [zero_mul, zero_add]; rw [hCgron]; ring
   have hηG : η * G ≤ c := by
-    rw [hη]; rw [div_mul_eq_mul_div, div_le_iff₀ (by linarith [hG_nonneg] : (0:ℝ) < G + 1)]
+    rw [hη]; rw [div_mul_eq_mul_div, div_le_iff₀ (by linarith [hG_nonneg] : (0 : ℝ) < G + 1)]
     nlinarith [hG_nonneg, hc.le]
-  show ‖(charX t (z + h), charV t (z + h)) - (charX t z, charV t z) - (Mz t) h‖ ≤ c * ‖h‖
+  change ‖(charX t (z + h), charV t (z + h)) - (charX t z, charV t z) - (Mz t) h‖ ≤ c * ‖h‖
   rw [show (charX t (z + h), charV t (z + h)) - (charX t z, charV t z) - (Mz t) h
       = uh t - mh t from rfl, ← dist_eq_norm]
   calc dist (uh t) (mh t)
@@ -1684,15 +1693,17 @@ theorem charFlow_hasFDerivAt_in_initialPoint
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
     ∃ Dflow : ℝ → PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d),
       (∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ z : PhaseSpace d,
         HasFDerivAt (fun w => (charX t w, charV t w)) (Dflow t z) z) ∧
       (∀ t ∈ Set.Ioo (0 : ℝ) T, Continuous (Dflow t)) := by
   -- **Reduction (Route A — explicit fundamental matrix, lesson L14).**  `M z := fundamentalMatrix
-  -- (A z)` with `A z s := vlasovFieldJacobian gradW ρ (s, Φ_s z)`; its ODE/continuity data come from
+  -- (A z)` with `A z s := vlasovFieldJacobian gradW ρ (s, Φ_s z)`; its ODE/continuity
+  -- data come from
   -- `fundamentalMatrix_spec` (feeds D1), and `z ↦ M z t` continuity (V2) from
-  -- `fundamentalMatrix_continuous_param` — the parameter-regularity an existential `choose` could not
+  -- `fundamentalMatrix_continuous_param` — the parameter-regularity an existential
+  -- `choose` could not
   -- supply.  `Dflow t z := fundamentalMatrix (A z) t`.
   set A : PhaseSpace d → ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
     fun z s => vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z)) with hA_def
@@ -1711,7 +1722,7 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     -- `hflow` + per-`z` continuity in `s`).
     have h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
       Prod.ext_iff.mpr ⟨(hflow.1 z (Set.mem_univ z)).1, (hflow.1 z (Set.mem_univ z)).2⟩
-    have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+    have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
         HasDerivWithinAt (fun s => (charX s z, charV s z))
           (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s := fun z s hs =>
       (HasDerivAt.prodMk (hflow.2.1 s hs z (Set.mem_univ z))
@@ -1739,7 +1750,7 @@ theorem charFlow_hasFDerivAt_in_initialPoint
     have hA_contOn : ContinuousOn (fun p : PhaseSpace d × ℝ => A p.1 p.2)
         (Set.univ ×ˢ Set.Icc 0 T) :=
       (vlasovFieldJacobian_continuousOn gradW ρ T hρD_cont).comp hg hmapsg
-    have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
+    have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
       intro z s _
       have heq : A z s = fderiv ℝ (vlasovVectorField gradW ρ s) (charX s z, charV s z) := by
         simp only [hA_def]
@@ -1908,7 +1919,7 @@ theorem exists_global_c1_inverse_of_antilipschitz
     (hM_cont : Continuous M)
     (hanti : AntilipschitzWith Ca Φ)
     (hlip : LipschitzWith Cl Φ) :
-    ∃ (Ψ : E → E) (e : ∀ z, E ≃L[ℝ] E),
+    ∃ (Ψ : E → E) (e : E → E ≃L[ℝ] E),
       (∀ z, ((e z : E →L[ℝ] E)) = M z) ∧
       Function.LeftInverse Ψ Φ ∧ Function.RightInverse Ψ Φ ∧
       LipschitzWith Ca Ψ ∧
@@ -2026,7 +2037,8 @@ open Filter Topology Asymptotics
 `ℝ × E` domain (Mathlib-absent).  A partial `s`-derivative `Ds p` at every point (`Ds` continuous)
 plus a partial `z`-derivative `Dz₀` at the base point ⇒ `f` is Fréchet-differentiable at `(s₀,z₀)`
 with total derivative `(h,k) ↦ h•Ds(s₀,z₀) + Dz₀ k`.  Proof: split the increment into an
-`s`-part (FTC `∫₀ʰ Ds(s₀+u,z₀+k)du ≈ h•Ds₀` by continuity of `Ds`) and a `z`-part (`= Dz₀ k + o(k)`).
+`s`-part (FTC `∫₀ʰ Ds(s₀+u,z₀+k)du ≈ h•Ds₀` by continuity of `Ds`) and a `z`-part
+(`= Dz₀ k + o(k)`).
 This is the keystone for the joint `(s,w)` regularity of the two-time flow `Φ_{s→t}`: the flow's
 partials are `M_s z` (jointly continuous, V2) in `z` and `b_s(Φ_s z)` in `s`.
 
@@ -2137,7 +2149,8 @@ hence in `U` and within the continuity radius `δ`).
 NOTE (consolidation TODO): the global `hasFDerivAt_of_continuous_partials` above is the `univ`
 special case of this; a follow-up cleanup should rewrite it as the one-line corollary
 `hasFDerivAt_of_continuous_partials_open isOpen_univ (Set.mem_univ _) (fun p _ => hDs p)
-hDs_cont.continuousOn hDz₀` to drop the duplicated proof.  **PR-ABLE** (the more general statement). -/
+hDs_cont.continuousOn hDz₀` to drop the duplicated proof.  **PR-ABLE** (the more
+general statement). -/
 theorem hasFDerivAt_of_continuous_partials_open
     {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
@@ -2256,16 +2269,16 @@ lemma charFlow_continuousOn_joint
     (h_int : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ s))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ) (hT : 0 ≤ T)
     (hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z)
-    (hcontIcc : ∀ z, ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T))
-    (hderiv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+    (hcontIcc : ∀ z, ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T))
+    (hderiv : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivWithinAt (fun s => (charX s z, charV s z))
         (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s) :
     ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := by
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := by
   have hgron := charFlow_lipschitzInZ_via_gronwall_Ioo gradW L hL ρ h_int charX charV T hT
     hinit hcontIcc hderiv
   have hjoint_zs : ContinuousOn (fun p : PhaseSpace d × ℝ => (charX p.2 p.1, charV p.2 p.1))
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) := by
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) := by
     refine continuousOn_prod_of_lipschitz_continuousOn (fun z s => (charX s z, charV s z)) T
       (Real.exp (((max 1 L : NNReal) : ℝ) * T)) (fun s hs z₁ z₂ => ?_) hcontIcc
     calc dist ((charX s z₁, charV s z₁) : PhaseSpace d) (charX s z₂, charV s z₂)
@@ -2276,9 +2289,9 @@ lemma charFlow_continuousOn_joint
           have hsT : s - 0 ≤ T := by simp only [sub_zero]; exact hs.2
           exact mul_le_mul_of_nonneg_left hsT (by positivity)
   have hswap : ContinuousOn (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
   have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     fun p hp => ⟨Set.mem_univ _, hp.1⟩
   exact hjoint_zs.comp hswap hmaps
 
@@ -2294,30 +2307,30 @@ lemma vlasovField_along_flow_continuousOn
     (hf_cont : ∀ x, Continuous (fun s => convolveFunctionMeasure gradW (ρ s) x))
     (charX charV : ℝ → PhaseSpace d → PhysSpace d) (T : ℝ)
     (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ)) :
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ)) :
     ContinuousOn (fun p : ℝ × PhaseSpace d =>
         vlasovVectorField gradW ρ p.1 (charX p.1 p.2, charV p.1 p.2))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := by
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := by
   have hcomp1 : ContinuousOn (fun p : ℝ × PhaseSpace d => charV p.1 p.2)
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := continuous_snd.comp_continuousOn hflowjoint
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := continuous_snd.comp_continuousOn hflowjoint
   have hcharX : ContinuousOn (fun p : ℝ × PhaseSpace d => charX p.1 p.2)
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := continuous_fst.comp_continuousOn hflowjoint
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := continuous_fst.comp_continuousOn hflowjoint
   have hconv_joint : ContinuousOn
       (fun p : PhysSpace d × ℝ => convolveFunctionMeasure gradW (ρ p.2) p.1)
-      (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     continuousOn_prod_of_lipschitz_continuousOn
       (fun (x : PhysSpace d) (s : ℝ) => convolveFunctionMeasure gradW (ρ s) x) T (L:ℝ)
       (fun s _ x₁ x₂ =>
         (convolveFunctionMeasure_lipschitz_in_x gradW L hL (ρ s) (h_int s)).dist_le_mul x₁ x₂)
       (fun x => (hf_cont x).continuousOn)
   have hg2 : ContinuousOn (fun p : ℝ × PhaseSpace d => ((charX p.1 p.2, p.1) : PhysSpace d × ℝ))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := hcharX.prodMk continuousOn_fst
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := hcharX.prodMk continuousOn_fst
   have hg2maps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((charX p.1 p.2, p.1) : PhysSpace d × ℝ))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0:ℝ) T) :=
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc (0 : ℝ) T) :=
     fun p hp => ⟨Set.mem_univ _, hp.1⟩
   have hconv_along : ContinuousOn
       (fun p : ℝ × PhaseSpace d => convolveFunctionMeasure gradW (ρ p.1) (charX p.1 p.2))
-      (Set.Icc (0:ℝ) T ×ˢ Set.univ) := hconv_joint.comp hg2 hg2maps
+      (Set.Icc (0 : ℝ) T ×ˢ Set.univ) := hconv_joint.comp hg2 hg2maps
   have heq : (fun p : ℝ × PhaseSpace d =>
         vlasovVectorField gradW ρ p.1 (charX p.1 p.2, charV p.1 p.2))
       = fun p => ((charV p.1 p.2),
@@ -2336,7 +2349,8 @@ concretely (`fundamentalMatrix (A z) s`), NOT routed through `#3`'s existential.
 The field `bfun` and matrix `Mfun` are made opaque locals (`clear_value`, the D1c lesson) so the
 gating unification stays syntactic and never unfolds the `vlasovVectorField`/`vlasovFieldJacobian`
 integrals — the per-point derivative facts are established in terms of them *before* clearing.
-`A` is kept transparent through the D1c call (whose coefficient is `vlasovFieldJacobian`) and cleared
+`A` is kept transparent through the D1c call (whose coefficient is
+`vlasovFieldJacobian`) and cleared
 only afterwards (before the projection-reduction defeqs).  No `maxHeartbeats` bump needed. -/
 theorem charFlow_hasFDerivAt_joint
     (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
@@ -2351,18 +2365,18 @@ theorem charFlow_hasFDerivAt_joint
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
     ∃ DΦ : ℝ × PhaseSpace d → (ℝ × PhaseSpace d →L[ℝ] PhaseSpace d),
-      (∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+      (∀ p ∈ Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
         HasFDerivAt (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) (DΦ p) p) ∧
-      ContinuousOn DΦ (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+      ContinuousOn DΦ (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := by
   set A : PhaseSpace d → ℝ → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
     fun z s => vlasovFieldJacobian gradW ρ (s, (charX s z, charV s z)) with hA_def
   have hAcont : ∀ z, ContinuousOn (A z) (Set.Icc 0 T) := fun z =>
     vlasovVariationalCoeff_continuousOn gradW ρ charX charV T z (hcontIcc z) hρD_cont
   have h_init : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
     Prod.ext_iff.mpr ⟨(hflow.1 z (Set.mem_univ z)).1, (hflow.1 z (Set.mem_univ z)).2⟩
-  have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have h_deriv : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivWithinAt (fun s => (charX s z, charV s z))
         (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s := fun z s hs =>
     (HasDerivAt.prodMk (hflow.2.1 s hs z (Set.mem_univ z))
@@ -2391,7 +2405,7 @@ theorem charFlow_hasFDerivAt_joint
       (Set.univ ×ˢ Set.Icc 0 T) (Set.Icc 0 T ×ˢ Set.univ) := fun p hp => ⟨hp.2, Set.mem_univ _⟩
   have hA_contOn : ContinuousOn (fun p : PhaseSpace d × ℝ => A p.1 p.2) (Set.univ ×ˢ Set.Icc 0 T) :=
     (vlasovFieldJacobian_continuousOn gradW ρ T hρD_cont).comp hg hmapsg
-  have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0:ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
+  have hA_bound : ∀ z, ∀ s ∈ Set.Icc (0 : ℝ) T, ‖A z s‖ ≤ ((max 1 L : NNReal) : ℝ) := by
     intro z s _
     have heq : A z s = fderiv ℝ (vlasovVectorField gradW ρ s) (charX s z, charV s z) := by
       simp only [hA_def]
@@ -2403,21 +2417,21 @@ theorem charFlow_hasFDerivAt_joint
       (Set.univ ×ˢ Set.Icc 0 T) :=
     fundamentalMatrix_continuous_param_joint A T hT.le ((max 1 L : NNReal) : ℝ) (by positivity)
       hA_contOn hA_bound
-  have hU_open : IsOpen (Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+  have hU_open : IsOpen (Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
     isOpen_Ioo.prod isOpen_univ
-  have hU_sub : Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ⊆ Set.Icc 0 T ×ˢ Set.univ :=
+  have hU_sub : Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ⊆ Set.Icc 0 T ×ˢ Set.univ :=
     Set.prod_mono Set.Ioo_subset_Icc_self (subset_refl _)
   -- matrix as a local (kept transparent for the D1c call, which needs `A`'s coefficient)
   set Mfun : ℝ × PhaseSpace d → (PhaseSpace d →L[ℝ] PhaseSpace d) :=
     fun p => fundamentalMatrix (A p.2) p.1 with hMfun_def
   -- z-partial at base via D1c — needs `A` TRANSPARENT (its coefficient is `vlasovFieldJacobian`).
-  have hDz_all : ∀ s₀ ∈ Set.Ioo (0:ℝ) T, ∀ z₀ : PhaseSpace d,
+  have hDz_all : ∀ s₀ ∈ Set.Ioo (0 : ℝ) T, ∀ z₀ : PhaseSpace d,
       HasFDerivAt (fun z => (charX s₀ z, charV s₀ z)) (Mfun (s₀, z₀)) z₀ := by
     intro s₀ hs₀ z₀
     obtain ⟨h0, hMcont, hMderiv⟩ := fundamentalMatrix_spec (A z₀) T hT.le (hAcont z₀)
     exact charFlow_hasFDerivAt_of_fundamentalMatrix gradW hgradW_C1 L hL ρ charX charV T hT hflow
       h_int hρD_cont z₀ hcontIcc (fundamentalMatrix (A z₀)) h0 hMcont hMderiv s₀ hs₀
-  have hDs_all : ∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+  have hDs_all : ∀ p ∈ Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
       HasDerivAt (fun s => ((charX s p.2, charV s p.2) : PhaseSpace d)) (bfun p) p.1 := by
     intro p hp'
     exact HasDerivAt.prodMk (hflow.2.1 p.1 hp'.1 p.2 (Set.mem_univ _))
@@ -2425,12 +2439,12 @@ theorem charFlow_hasFDerivAt_joint
   -- NOW make `A`/field/matrix opaque so the projection-reduction defeqs below never unfold the
   -- heavy `vlasovFieldJacobian`/`vlasovVectorField` integrals (D1c lesson).
   clear_value A bfun Mfun
-  have hM_sz : ContinuousOn Mfun (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+  have hM_sz : ContinuousOn Mfun (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := by
     rw [hMfun_def]
     have hswap : ContinuousOn (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
-        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := (continuous_snd.prodMk continuous_fst).continuousOn
     have hmaps : Set.MapsTo (fun p : ℝ × PhaseSpace d => ((p.2, p.1) : PhaseSpace d × ℝ))
-        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc 0 T) :=
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) (Set.univ ×ˢ Set.Icc 0 T) :=
       fun p hp => ⟨Set.mem_univ _, Set.Ioo_subset_Icc_self hp.1⟩
     exact hM_zs.comp hswap hmaps
   refine ⟨fun p => (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight (bfun p)
@@ -2442,7 +2456,7 @@ theorem charFlow_hasFDerivAt_joint
       hU_open ⟨hs₀, Set.mem_univ _⟩ hDs_all (hb_cont.mono hU_sub) (hDz_all s₀ hs₀ z₀)
   · have hT1 : ContinuousOn (fun p : ℝ × PhaseSpace d =>
         (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight (bfun p))
-        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := by
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := by
       have hc : Continuous (fun v : PhaseSpace d =>
           (ContinuousLinearMap.fst ℝ ℝ (PhaseSpace d)).smulRight v) :=
         (ContinuousLinearMap.smulRightL ℝ (ℝ × PhaseSpace d) (PhaseSpace d)
@@ -2450,7 +2464,7 @@ theorem charFlow_hasFDerivAt_joint
       exact hc.comp_continuousOn (hb_cont.mono hU_sub)
     have hT2 : ContinuousOn (fun p : ℝ × PhaseSpace d =>
         (Mfun p).comp (ContinuousLinearMap.snd ℝ ℝ (PhaseSpace d)))
-        (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
     exact hT1.add hT2
 
 /-- **Step 3 (iv-A) — the forward flow `(s,z) ↦ Φ_s z` is `ContDiffAt ℝ 1`** at each point of the
@@ -2469,19 +2483,20 @@ lemma charFlow_contDiffAt_joint
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
-    ∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
+    ∀ p ∈ Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
       ContDiffAt ℝ 1 (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) p := by
-  obtain ⟨DΦ, hFDeriv, hDΦ_cont⟩ := charFlow_hasFDerivAt_joint gradW hgradW_C1 L hL ρ charX charV T hT
+  obtain ⟨DΦ, hFDeriv, hDΦ_cont⟩ :=
+    charFlow_hasFDerivAt_joint gradW hgradW_C1 L hL ρ charX charV T hT
     hflow h_int hf_cont hρD_cont hcontIcc
-  have hU_open : IsOpen (Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+  have hU_open : IsOpen (Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
     isOpen_Ioo.prod isOpen_univ
   intro p hp
   have hmain : ContDiffAt ℝ ((0:ℕ) + 1)
       (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) p := by
     rw [contDiffAt_succ_iff_hasFDerivAt]
-    refine ⟨DΦ, ⟨Set.Ioo (0:ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, fun y hy => hFDeriv y hy⟩, ?_⟩
-    exact contDiffAt_zero.mpr ⟨Set.Ioo (0:ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, hDΦ_cont⟩
+    refine ⟨DΦ, ⟨Set.Ioo (0 : ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, fun y hy => hFDeriv y hy⟩, ?_⟩
+    exact contDiffAt_zero.mpr ⟨Set.Ioo (0 : ℝ) T ×ˢ Set.univ, hU_open.mem_nhds hp, hDΦ_cont⟩
   simpa using hmain
 
 open Filter Topology in
@@ -2499,7 +2514,8 @@ its invertible derivative family `e` (`= M_s z`, `#3`/D1c); here we upgrade to J
 regularity via the space-time chart.
 
 **Proof plan (atoms scouted + verified, 2026-06-16):**
-1. **Forward chart `Ξ : (s,z) ↦ (s, Φ_s z)` is `ContDiffAt ℝ 1` at each `(s₀,z₀) ∈ Ioo 0 T ×ˢ univ`.**
+1. **Forward chart `Ξ : (s,z) ↦ (s, Φ_s z)` is `ContDiffAt ℝ 1` at each
+   `(s₀,z₀) ∈ Ioo 0 T ×ˢ univ`.**
    `Φ := (charX·, charV·)` is jointly `C¹` (`charFlow_hasFDerivAt_joint`, item (iii) — `∃ DΦ`,
    `HasFDerivAt`-everywhere + `ContinuousOn DΦ`); lift to `ContDiffAt ℝ 1 Φ` via
    `contDiffAt_succ_iff_hasFDerivAt` (`Mathlib/.../ContDiff/Defs.lean:994`, `n := 0`: feed `DΦ`, the
@@ -2513,7 +2529,8 @@ regularity via the space-time chart.
    `ContDiffAt.hasStrictFDerivAt'`.
 3. **Local `C¹` inverse + patch.**  `ContDiffAt.to_localInverse`
    (`Mathlib/.../InverseFunctionTheorem/ContDiff.lean:66`) ⇒ `Ξ.localInverse` is `ContDiffAt ℝ 1` at
-   `Ξ(s₀,z₀) = (s₀, Φ_{s₀}z₀)`.  The global `(s,w)↦(s, Ψ_s w)` agrees with `Ξ.localInverse` on a nbhd
+   `Ξ(s₀,z₀) = (s₀, Φ_{s₀}z₀)`.  The global `(s,w)↦(s, Ψ_s w)` agrees with
+   `Ξ.localInverse` on a nbhd
    (both left-inverses; `Ξ` injective on `Ioo 0 T ×ˢ univ` since `s` is preserved + each `Φ_s`
    injective per Step 2) ⇒ `ContDiffAt.congr` ⇒ `(s,w)↦(s,Ψ_s w)` is `ContDiffAt ℝ 1` at each point
    ⇒ `ContDiffOn ℝ 1` (projecting off the `s` component, `ContDiffAt.snd`).
@@ -2534,11 +2551,11 @@ theorem charFlow_inverse_contDiffOn_joint
       (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(ρ p.1))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (hcontIcc : ∀ z : PhaseSpace d,
-      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0:ℝ) T)) :
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T)) :
     ∃ Ψ : ℝ → PhaseSpace d → PhaseSpace d,
-      (∀ s ∈ Set.Ioo (0:ℝ) T,
+      (∀ s ∈ Set.Ioo (0 : ℝ) T,
         Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
-      (∀ s ∈ Set.Ioo (0:ℝ) T,
+      (∀ s ∈ Set.Ioo (0 : ℝ) T,
         Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z))) ∧
       ContDiffOn ℝ 1 (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (Set.Ioo 0 T ×ˢ Set.univ) := by
   classical
@@ -2548,17 +2565,17 @@ theorem charFlow_inverse_contDiffOn_joint
     hflow h_int hf_cont hρD_cont hcontIcc
   have hstep2 := exists_charFlow_inverse_On gradW hgradW_C1 L hL ρ charX charV T hT
     hflow h_int hρD_cont hcontIcc
-  have hbij : ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have hbij : ∀ s ∈ Set.Ioo (0 : ℝ) T,
       Function.Bijective (fun z => ((charX s z, charV s z) : PhaseSpace d)) := by
     intro s hs
     obtain ⟨Ψ', e, _, hL', hR', _, _⟩ := hstep2 s hs
     exact ⟨hL'.injective, hR'.surjective⟩
   set Ψ : ℝ → PhaseSpace d → PhaseSpace d :=
     fun s => Function.invFun (fun z => (charX s z, charV s z)) with hΨ_def
-  have hLeft : ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have hLeft : ∀ s ∈ Set.Ioo (0 : ℝ) T,
       Function.LeftInverse (Ψ s) (fun z => (charX s z, charV s z)) :=
     fun s hs => Function.leftInverse_invFun (hbij s hs).1
-  have hRight : ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have hRight : ∀ s ∈ Set.Ioo (0 : ℝ) T,
       Function.RightInverse (Ψ s) (fun z => (charX s z, charV s z)) :=
     fun s hs => Function.rightInverse_invFun (hbij s hs).2
   refine ⟨Ψ, hLeft, hRight, ?_⟩
@@ -2587,19 +2604,19 @@ theorem charFlow_inverse_contDiffOn_joint
       = (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) :=
     hslice.unique (he_deriv z₀)
   have hslice_app : ∀ k : PhaseSpace d,
-      DΦ (pt.1, z₀) ((0:ℝ), k) = (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) k := by
+      DΦ (pt.1, z₀) ((0 : ℝ), k) = (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) k := by
     intro k
     have h1 : ((0 : PhaseSpace d →L[ℝ] ℝ).prod (ContinuousLinearMap.id ℝ (PhaseSpace d))) k
-        = ((0:ℝ), k) := by simp
+        = ((0 : ℝ), k) := by simp
     rw [← h1, ← ContinuousLinearMap.comp_apply, hcomp_eq]
   have hker : LinearMap.ker (DΞ : (ℝ × PhaseSpace d) →ₗ[ℝ] (ℝ × PhaseSpace d)) = ⊥ := by
     refine LinearMap.ker_eq_bot'.mpr (fun x hx => ?_)
-    have hxapp : (x.1, DΦ (pt.1, z₀) x) = ((0:ℝ), (0 : PhaseSpace d)) := by
-      have : DΞ x = ((0:ℝ), (0 : PhaseSpace d)) := hx
+    have hxapp : (x.1, DΦ (pt.1, z₀) x) = ((0 : ℝ), (0 : PhaseSpace d)) := by
+      have : DΞ x = ((0 : ℝ), (0 : PhaseSpace d)) := hx
       simpa [hDΞ_def, ContinuousLinearMap.prod_apply] using this
     have hx1 : x.1 = 0 := (Prod.ext_iff.mp hxapp).1
     have hx2 : DΦ (pt.1, z₀) x = 0 := (Prod.ext_iff.mp hxapp).2
-    have hxz : x = ((0:ℝ), x.2) := Prod.ext hx1 rfl
+    have hxz : x = ((0 : ℝ), x.2) := Prod.ext hx1 rfl
     have hez : (e z₀ : PhaseSpace d →L[ℝ] PhaseSpace d) x.2 = 0 := by
       rw [← hslice_app x.2, ← hxz]; exact hx2
     have : x.2 = 0 := by
@@ -2619,7 +2636,7 @@ theorem charFlow_inverse_contDiffOn_joint
   have hstrict := hΞ_cda.hasStrictFDerivAt' hΞ_hd' (one_ne_zero)
   have hloc : ∀ᶠ x in 𝓝 ((pt.1, z₀) : ℝ × PhaseSpace d),
       ((fun y : ℝ × PhaseSpace d => ((y.1, Ψ y.1 y.2) : ℝ × PhaseSpace d)) (Ξ x)) = x := by
-    have hIoo : ∀ᶠ x in 𝓝 ((pt.1, z₀) : ℝ × PhaseSpace d), x.1 ∈ Set.Ioo (0:ℝ) T :=
+    have hIoo : ∀ᶠ x in 𝓝 ((pt.1, z₀) : ℝ × PhaseSpace d), x.1 ∈ Set.Ioo (0 : ℝ) T :=
       continuous_fst.continuousAt.eventually_mem (isOpen_Ioo.mem_nhds hs₀)
     filter_upwards [hIoo] with x hx
     have hL2 : Ψ x.1 (charX x.1 x.2, charV x.1 x.2) = x.2 := hLeft x.1 hx x.2
@@ -2644,6 +2661,7 @@ The dual core's `s ↦ ∫ ψ_s d(f s)` argument rests on the backward-transport
 `C¹`).  Two deliverables, both taking the *outputs* of Step 3 (the inverse `Ψ` + the `C¹` terminal
 map `Φ_t`) as hypotheses rather than re-deriving them from the flow-construction data: -/
 
+omit [NeZero d] in
 /-- **Step 4 (4a) — the two-time flow `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹` is jointly `C¹`** on
 `Ioo 0 T ×ˢ univ`.
 
@@ -2790,6 +2808,7 @@ theorem transportedTest_transport_identity
 
 open Filter Topology Metric in
 open scoped Convolution in
+omit [NeZero d] in
 /-- Helper 1 — uniform mollification of a continuous, compactly-supported function.
 The mollified family `ρ_n ⋆ g` converges to `g` **uniformly** (not just pointwise), the
 load-bearing analytic input the `C¹_c` test-class enlargement (#4) needs.  Proof: uniform
@@ -2824,6 +2843,7 @@ theorem mollifier_tendstoUniformly {E : Type*}
 
 open Filter Topology Metric in
 open scoped Convolution in
+omit [NeZero d] in
 /-- Helper 2 — the mollified Fréchet derivative converges uniformly.
 `fderiv (ρ_n ⋆ χ) = ρ_n ⋆ (fderiv χ)` (convolution commutes onto the `C¹` factor via
 `HasCompactSupport.hasFDerivAt_convolution_right`, with `precompR` reconciled to `lsmul` on the
@@ -2860,7 +2880,8 @@ theorem mollifiedFDeriv_tendstoUniformly
       ((φ n).continuous_normed.locallyIntegrable) hχ_C1 z).fderiv, hbridge]
   have hgoal_eq :
       (fun n z => fderiv ℝ ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] χ) z)
-      = (fun n z => ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] fderiv ℝ χ) z) := by
+      = (fun n z =>
+          ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] fderiv ℝ χ) z) := by
     funext n; exact hfd n
   rw [hgoal_eq]
   exact mollifier_tendstoUniformly (fderiv ℝ χ) hdf_cont hdf_cs φ hφ
@@ -2888,7 +2909,8 @@ theorem weakEvolution_test_C1c_On
     HasDerivAt (fun σ => ∫ z, χ z ∂(f σ))
       (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXχ z)
              - @inner ℝ (PhysSpace d) _
-                (convolveFunctionMeasure gradW (spatialMarginal (f s)) z.1) (gradVχ z)) ∂(f s)) s := by
+                (convolveFunctionMeasure gradW (spatialMarginal (f s)) z.1)
+                (gradVχ z)) ∂(f s)) s := by
   classical
   haveI hHaar : (volume : Measure (PhaseSpace d)).IsAddHaarMeasure := by
     rw [show (volume : Measure (PhaseSpace d)) = (volume : Measure (PhysSpace d)).prod volume from
@@ -2918,16 +2940,17 @@ theorem weakEvolution_test_C1c_On
   set gVn : ℕ → PhaseSpace d → PhysSpace d :=
     fun n z => gradient (fun v => χn n (z.1, v)) z.2 with hgVn_def
   -- D_n: the C^∞ weak-evolution derivative, from hf_weak applied to χ_n
-  have hDn : ∀ n, ∀ σ ∈ Set.Ioo (0:ℝ) T, HasDerivAt (fun σ' => ∫ z, χn n z ∂(f σ'))
+  have hDn : ∀ n, ∀ σ ∈ Set.Ioo (0 : ℝ) T, HasDerivAt (fun σ' => ∫ z, χn n z ∂(f σ'))
       (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gXn n z)
              - @inner ℝ (PhysSpace d) _
-                (convolveFunctionMeasure gradW (spatialMarginal (f σ)) z.1) (gVn n z)) ∂(f σ)) σ := by
+                (convolveFunctionMeasure gradW (spatialMarginal (f σ)) z.1)
+                (gVn n z)) ∂(f σ)) σ := by
     intro n σ hσ
     have h := hf_weak (χn n) (hχn_smooth n) (hχn_cs n) (gXn n) (gVn n)
       (fun z => rfl) (fun z => rfl) σ hσ
     simpa using h
   -- pointwise convergence (0th order): ∫ χ_n d(f σ) → ∫ χ d(f σ)
-  have hfg : ∀ σ ∈ Set.Ioo (0:ℝ) T, Tendsto (fun n => ∫ z, χn n z ∂(f σ)) atTop
+  have hfg : ∀ σ ∈ Set.Ioo (0 : ℝ) T, Tendsto (fun n => ∫ z, χn n z ∂(f σ)) atTop
       (𝓝 (∫ z, χ z ∂(f σ))) := by
     intro σ hσ
     haveI : IsProbabilityMeasure (f σ) := (hf_mom σ (Set.Ioo_subset_Icc_self hσ)).1
@@ -2963,7 +2986,7 @@ theorem weakEvolution_test_C1c_On
   have hK_compact : IsCompact K := IsCompact.add hχc (isCompact_closedBall 0 1)
   obtain ⟨R0, hR0⟩ := (hK_compact.image continuous_norm).bddAbove
   set R_K := max R0 0 with hRK_def
-  have hR_K_nn : (0:ℝ) ≤ R_K := le_max_right _ _
+  have hR_K_nn : (0 : ℝ) ≤ R_K := le_max_right _ _
   have hR_K : ∀ z ∈ K, ‖z‖ ≤ R_K := fun z hz => le_trans (hR0 ⟨z, hz, rfl⟩) (le_max_left _ _)
   -- tsupport χ ⊆ K, and fderiv χ vanishes off K
   have htsuppχ_K : tsupport χ ⊆ K := by
@@ -3020,7 +3043,7 @@ theorem weakEvolution_test_C1c_On
   -- field: integrability, bound, continuity — all on the window
   set ε₀ : ℝ := ‖gradW 0‖ + (L : ℝ) * M_ρ with hε₀_def
   have hε₀_nn : 0 ≤ ε₀ := by positivity
-  have hfield_setup : ∀ σ ∈ Set.Icc (0:ℝ) T,
+  have hfield_setup : ∀ σ ∈ Set.Icc (0 : ℝ) T,
       (Integrable (fun y : PhysSpace d => ‖y‖) (spatialMarginal (f σ)))
       ∧ (∀ x : PhysSpace d, Integrable (fun y => gradW (x - y)) (spatialMarginal (f σ)))
       ∧ (∀ x : PhysSpace d,
@@ -3059,7 +3082,8 @@ theorem weakEvolution_test_C1c_On
         have h_mul := mul_le_mul_of_nonneg_left h_sub_le L.coe_nonneg
         linarith
       have h_dom_int : Integrable
-          (fun y : PhysSpace d => ‖gradW 0‖ + (L:ℝ) * ‖x‖ + (L:ℝ) * ‖y‖) (spatialMarginal (f σ)) := by
+          (fun y : PhysSpace d => ‖gradW 0‖ + (L:ℝ) * ‖x‖ + (L:ℝ) * ‖y‖)
+          (spatialMarginal (f σ)) := by
         have h_eq : (fun y : PhysSpace d => ‖gradW 0‖ + (L:ℝ) * ‖x‖ + (L:ℝ) * ‖y‖)
             = fun y => (‖gradW 0‖ + (L:ℝ) * ‖x‖) + (L:ℝ) * ‖y‖ := by funext y; ring
         rw [h_eq]; exact (integrable_const _).add (h_y_int.const_mul _)
@@ -3095,7 +3119,8 @@ theorem weakEvolution_test_C1c_On
             have h_int_le : ∫ y, ‖x - y‖ ∂(spatialMarginal (f σ)) ≤ ‖x‖ + M_ρ := by
               calc ∫ y, ‖x - y‖ ∂(spatialMarginal (f σ))
                   ≤ ∫ y, (‖x‖ + ‖y‖) ∂(spatialMarginal (f σ)) :=
-                    integral_mono h_sub_int ((integrable_const _).add h_y_int) (fun y => norm_sub_le x y)
+                    integral_mono h_sub_int ((integrable_const _).add h_y_int)
+                      (fun y => norm_sub_le x y)
                 _ = ‖x‖ + ∫ y, ‖y‖ ∂(spatialMarginal (f σ)) := by
                     rw [integral_add (integrable_const _) h_y_int]
                     simp [integral_const, measureReal_def, measure_univ]
@@ -3176,11 +3201,11 @@ theorem weakEvolution_test_C1c_On
     rw [Metric.tendstoUniformlyOn_iff]
     intro ε hε
     set C : ℝ := R_K + (ε₀ + (L:ℝ) * R_K) with hC_def
-    have hC_nn : (0:ℝ) ≤ C := by rw [hC_def]; positivity
+    have hC_nn : (0 : ℝ) ≤ C := by rw [hC_def]; positivity
     rw [Metric.tendstoUniformly_iff] at hH2
     filter_upwards [hH2 (ε/(C+1)) (by positivity)] with n hn
     intro σ hσ
-    have hσ' : σ ∈ Set.Icc (0:ℝ) T := Set.Ioo_subset_Icc_self hσ
+    have hσ' : σ ∈ Set.Icc (0 : ℝ) T := Set.Ioo_subset_Icc_self hσ
     haveI : IsProbabilityMeasure (f σ) := (hf_mom σ hσ').1
     obtain ⟨_, _, hbnd, hfc⟩ := hfield_setup σ hσ'
     -- L15: make the field opaque so defeq never unfolds its Bochner integral
@@ -3192,7 +3217,8 @@ theorem weakEvolution_test_C1c_On
       intro z
       have e1 : gXn n z = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm
           ((fderiv ℝ (χn n) z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))) := by
-        rw [hgXn_def]; simp only [gradient]; rw [hslice (χn n) ((hχn_smooth n).differentiable htop) z]
+        rw [hgXn_def]; simp only [gradient]
+        rw [hslice (χn n) ((hχn_smooth n).differentiable htop) z]
       have e2 : gradXχ z = (InnerProductSpace.toDual ℝ (PhysSpace d)).symm
           ((fderiv ℝ χ z).comp (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d))) := by
         rw [hgradXχ z]; simp only [gradient]; rw [hslice χ hχdiff z]
@@ -3262,7 +3288,7 @@ theorem weakEvolution_test_C1c_On
             le_trans (hbnd z.1) (by
               have : ‖z.1‖ ≤ R_K := le_trans (norm_fst_le z) (hR_K z hzK)
               gcongr)
-          have hfldz_nn : (0:ℝ) ≤ ε₀ + (L:ℝ) * R_K := by positivity
+          have hfldz_nn : (0 : ℝ) ≤ ε₀ + (L:ℝ) * R_K := by positivity
           rw [norm_sub_rev (gradVχ z)]
           exact mul_le_mul hfldz (le_trans (hVp z) (hfd_le z)) (norm_nonneg _) hfldz_nn
         calc |@inner ℝ (PhysSpace d) _ z.2 (gradXχ z - gXn n z)
@@ -3320,7 +3346,7 @@ theorem weakEvolution_test_C1c_On
           have := hpt z; rwa [Real.norm_eq_abs] at this
       _ = C * (ε/(C+1)) := by simp
       _ < ε := by
-          have h1 : (0:ℝ) < C + 1 := by positivity
+          have h1 : (0 : ℝ) < C + 1 := by positivity
           rw [← mul_div_assoc, div_lt_iff₀ h1]
           nlinarith [hε, hC_nn]
   -- assemble via the uniform-limit-of-derivatives theorem
@@ -3328,10 +3354,9 @@ theorem weakEvolution_test_C1c_On
 
 -- NC (consumption form): integral of a jointly-continuous, uniformly-compactly-supported
 -- family against the weak-solution measure curve is continuous in time.
+omit [NeZero d] in
 theorem vlasovSolutionOn_integral_continuousOn
-    (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
       ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
@@ -3348,14 +3373,14 @@ theorem vlasovSolutionOn_integral_continuousOn
     have hsub : tsupport (fun z => G a z) ⊆ K :=
       closure_minimal (fun z hz => by by_contra hzK; exact hz (hG_supp a z hzK)) hK.isClosed
     exact IsCompact.of_isClosed_subset hK (isClosed_tsupport _) hsub
-  have hGint : ∀ (a b : ℝ), b ∈ Set.Icc (0:ℝ) T → Integrable (fun z => G a z) (f b) := by
+  have hGint : ∀ (a b : ℝ), b ∈ Set.Icc (0 : ℝ) T → Integrable (fun z => G a z) (f b) := by
     intro a b hb
     haveI := (hf_mom b hb).1
     exact (hGs_cont a).integrable_of_hasCompactSupport (hGs_cs a)
   -- Uniform continuity of the uncurried G on the compact Icc 0 T ×ˢ K.
-  have hC : IsCompact (Set.Icc (0:ℝ) T ×ˢ K) := isCompact_Icc.prod hK
+  have hC : IsCompact (Set.Icc (0 : ℝ) T ×ˢ K) := isCompact_Icc.prod hK
   have hG_uc : UniformContinuousOn (fun p : ℝ × PhaseSpace d => G p.1 p.2)
-      (Set.Icc (0:ℝ) T ×ˢ K) :=
+      (Set.Icc (0 : ℝ) T ×ˢ K) :=
     hC.uniformContinuousOn_of_continuous hG_cont.continuousOn
   rw [Metric.uniformContinuousOn_iff] at hG_uc
   -- Main ε–δ.
@@ -3375,8 +3400,8 @@ theorem vlasovSolutionOn_integral_continuousOn
   have hpoint : ∀ z, |G s z - G s₀ z| ≤ ε/2 := by
     intro z
     by_cases hzK : z ∈ K
-    · have hp : ((s, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0:ℝ) T ×ˢ K := ⟨hs, hzK⟩
-      have hq : ((s₀, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0:ℝ) T ×ˢ K := ⟨hs₀, hzK⟩
+    · have hp : ((s, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0 : ℝ) T ×ˢ K := ⟨hs, hzK⟩
+      have hq : ((s₀, z) : ℝ × PhaseSpace d) ∈ Set.Icc (0 : ℝ) T ×ˢ K := ⟨hs₀, hzK⟩
       have hdpq : dist ((s, z) : ℝ × PhaseSpace d) (s₀, z) < δ₁ := by
         rw [Prod.dist_eq]
         exact max_lt hsd1 (by rw [dist_self]; exact hδ₁)
@@ -3462,7 +3487,7 @@ theorem transportedIntegral_hasDerivAt_zero
     HasDerivAt (fun σ => ∫ z, φ (charX t (Ψ σ z), charV t (Ψ σ z)) ∂(f σ)) 0 s := by
   classical
   have hsIoo : s ∈ Set.Ioo (0 : ℝ) T := ⟨hs.1, lt_trans hs.2 ht.2⟩
-  have hopen : IsOpen (Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
+  have hopen : IsOpen (Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d))) :=
     isOpen_Ioo.prod isOpen_univ
   -- the uncurried two-time test g and its slice ψ
   set g : ℝ × PhaseSpace d → ℝ :=
@@ -3475,7 +3500,7 @@ theorem transportedIntegral_hasDerivAt_zero
   ---------------------------------------------------------------------------
   -- closed neighbourhood [a,b] ⊂ Ioo 0 T of s
   obtain ⟨a, b, hab_lt, hs_ab, hab_sub⟩ :
-      ∃ a b, a < b ∧ s ∈ Set.Ioo a b ∧ Set.Icc a b ⊆ Set.Ioo (0:ℝ) T := by
+      ∃ a b, a < b ∧ s ∈ Set.Ioo a b ∧ Set.Icc a b ⊆ Set.Ioo (0 : ℝ) T := by
     refine ⟨s/2, (s+T)/2, by linarith [hsIoo.1, hsIoo.2],
       ⟨by linarith [hsIoo.1], by linarith [hsIoo.2]⟩, fun r hr => ⟨?_, ?_⟩⟩
     · linarith [hsIoo.1, hr.1]
@@ -3490,7 +3515,7 @@ theorem transportedIntegral_hasDerivAt_zero
   have hC_compact : IsCompact C := hφc.image hΨt_cont
   set K : Set (PhaseSpace d) :=
     (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2)) '' (Set.Icc a b ×ˢ C) with hK_def
-  have hsub_abC : Set.Icc a b ×ˢ C ⊆ Set.Icc (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) :=
+  have hsub_abC : Set.Icc a b ×ˢ C ⊆ Set.Icc (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) :=
     fun p hp => ⟨⟨(hab_sub hp.1).1.le, (hab_sub hp.1).2.le⟩, Set.mem_univ _⟩
   have hK_compact : IsCompact K :=
     (isCompact_Icc.prod hC_compact).image_of_continuousOn (hflowjoint.mono hsub_abC)
@@ -3506,10 +3531,10 @@ theorem transportedIntegral_hasDerivAt_zero
   -- the r-directional derivative DQ of ψ, and its properties
   set DQ : ℝ → PhaseSpace d → ℝ :=
     fun r z => fderiv ℝ g (r, z) ((1:ℝ), (0:PhaseSpace d)) with hDQ_def
-  have hg_hasfderiv : ∀ p ∈ Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
+  have hg_hasfderiv : ∀ p ∈ Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)),
       HasFDerivAt g (fderiv ℝ g p) p := fun p hp =>
     (hg_cd.differentiableOn_one.differentiableAt (hopen.mem_nhds hp)).hasFDerivAt
-  have hψ_deriv : ∀ r ∈ Set.Ioo (0:ℝ) T, ∀ z, HasDerivAt (fun r' => ψ r' z) (DQ r z) r := by
+  have hψ_deriv : ∀ r ∈ Set.Ioo (0 : ℝ) T, ∀ z, HasDerivAt (fun r' => ψ r' z) (DQ r z) r := by
     intro r hr z
     have hcurve : HasDerivAt (fun r' => ((r', z) : ℝ × PhaseSpace d)) ((1:ℝ), (0:PhaseSpace d)) r :=
       (hasDerivAt_id r).prodMk (hasDerivAt_const r z)
@@ -3532,22 +3557,23 @@ theorem transportedIntegral_hasDerivAt_zero
   have hDQ_zero : ∀ z ∉ K, DQ s z = 0 := by
     intro z hzK
     have h0 : HasDerivAt (fun r' => ψ r' z) 0 s := by
-      have hconst : (fun r' => ψ r' z) =ᶠ[𝓝 s] (fun _ => (0:ℝ)) := by
+      have hconst : (fun r' => ψ r' z) =ᶠ[𝓝 s] (fun _ => (0 : ℝ)) := by
         filter_upwards [isOpen_Ioo.mem_nhds hs_ab] with r' hr'
         by_contra h
         exact hzK (hsupp r' ⟨le_of_lt hr'.1, le_of_lt hr'.2⟩ z h)
-      exact (hasDerivAt_const s (0:ℝ)).congr_of_eventuallyEq hconst
+      exact (hasDerivAt_const s (0 : ℝ)).congr_of_eventuallyEq hconst
     exact (hψ_deriv s hsIoo z).unique h0
   ---------------------------------------------------------------------------
   -- continuity / integrability bookkeeping
-  have hψr_cont : ∀ r ∈ Set.Ioo (0:ℝ) T, Continuous (ψ r) := fun r hr =>
+  have hψr_cont : ∀ r ∈ Set.Ioo (0 : ℝ) T, Continuous (ψ r) := fun r hr =>
     hg_cd.continuousOn.comp_continuous (continuous_const.prodMk continuous_id)
       (fun w => ⟨hr, Set.mem_univ _⟩)
   have hψr_cs : ∀ r ∈ Set.Icc a b, HasCompactSupport (ψ r) := by
     intro r hr
     apply hK_compact.of_isClosed_subset (isClosed_tsupport _)
-    exact closure_minimal (fun z hz => hsupp r hr z (Function.mem_support.mp hz)) hK_compact.isClosed
-  have hψr_int : ∀ r ∈ Set.Icc a b, ∀ σ ∈ Set.Icc (0:ℝ) T, Integrable (ψ r) (f σ) := by
+    exact closure_minimal (fun z hz => hsupp r hr z (Function.mem_support.mp hz))
+      hK_compact.isClosed
+  have hψr_int : ∀ r ∈ Set.Icc a b, ∀ σ ∈ Set.Icc (0 : ℝ) T, Integrable (ψ r) (f σ) := by
     intro r hr σ hσ
     haveI := (hf_mom σ hσ).1
     exact (hψr_cont r (hab_sub hr)).integrable_of_hasCompactSupport (hψr_cs r hr)
@@ -3559,7 +3585,7 @@ theorem transportedIntegral_hasDerivAt_zero
     refine closure_minimal (fun z hz => ?_) hK_compact.isClosed
     by_contra hzK
     exact (Function.mem_support.mp hz) (hDQ_zero z hzK)
-  have hDQs_int : ∀ σ ∈ Set.Icc (0:ℝ) T, Integrable (DQ s) (f σ) := by
+  have hDQs_int : ∀ σ ∈ Set.Icc (0 : ℝ) T, Integrable (DQ s) (f σ) := by
     intro σ hσ
     haveI := (hf_mom σ hσ).1
     exact hDQs_cont.integrable_of_hasCompactSupport hDQs_cs
@@ -3567,17 +3593,20 @@ theorem transportedIntegral_hasDerivAt_zero
     (hf_narrow (DQ s) hDQs_cont hDQs_cs) s ⟨hsIoo.1.le, hsIoo.2.le⟩
   ---------------------------------------------------------------------------
   -- the two-sided ODE on Ioo (feeds 4b)
-  have hflow_ode : ∀ z : PhaseSpace d, ∀ s' ∈ Set.Ioo (0:ℝ) T,
+  have hflow_ode : ∀ z : PhaseSpace d, ∀ s' ∈ Set.Ioo (0 : ℝ) T,
       HasDerivAt (fun s'' => (charX s'' z, charV s'' z))
-        (vlasovVectorField gradW (fun τ => spatialMarginal (f τ)) s' (charX s' z, charV s' z)) s' := by
+        (vlasovVectorField gradW (fun τ => spatialMarginal (f τ)) s'
+          (charX s' z, charV s' z)) s' := by
     intro z s' hs'
     have hX := hflow.2.1 s' hs' z (Set.mem_univ z)
     have hV := hflow.2.2 s' hs' z (Set.mem_univ z)
     simpa [vlasovVectorField] using hX.prodMk hV
   ---------------------------------------------------------------------------
   -- the #4 derivative of the fixed-integrand integral  Bint σ = ∫ ψ_s d(f σ)
-  set gXψs : PhaseSpace d → PhysSpace d := fun z => gradient (fun x => ψ s (x, z.2)) z.1 with hgX_def
-  set gVψs : PhaseSpace d → PhysSpace d := fun z => gradient (fun v => ψ s (z.1, v)) z.2 with hgV_def
+  set gXψs : PhaseSpace d → PhysSpace d := fun z => gradient (fun x => ψ s (x, z.2)) z.1
+    with hgX_def
+  set gVψs : PhaseSpace d → PhysSpace d := fun z => gradient (fun v => ψ s (z.1, v)) z.2
+    with hgV_def
   set field_s : PhysSpace d → PhysSpace d :=
     fun x => convolveFunctionMeasure gradW (spatialMarginal (f s)) x with hfield_def
   have hψs_C1 : ContDiff ℝ 1 (ψ s) := by
@@ -3664,12 +3693,12 @@ theorem transportedIntegral_hasDerivAt_zero
     intro z
     have hσab' : σ ∈ Set.Icc a b := ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩
     have hs_ab' : s ∈ Set.Icc a b := ⟨le_of_lt hs_ab.1, le_of_lt hs_ab.2⟩
-    have hseg : Set.uIcc s σ ⊆ Set.Ioo (0:ℝ) T := fun r hr =>
+    have hseg : Set.uIcc s σ ⊆ Set.Ioo (0 : ℝ) T := fun r hr =>
       hab_sub (Set.uIcc_subset_Icc hs_ab' hσab' hr)
     by_cases hzK : z ∈ K
     · -- FTC route: ψ σ z - ψ s z - (σ-s) DQ_s z = ∫_s^σ (DQ_r z - DQ_s z)
       have hmapsTo : Set.MapsTo (fun r => ((r, z) : ℝ × PhaseSpace d)) (Set.uIcc s σ)
-          (Set.Ioo (0:ℝ) T ×ˢ Set.univ) := fun r hr => ⟨hseg hr, Set.mem_univ _⟩
+          (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := fun r hr => ⟨hseg hr, Set.mem_univ _⟩
       have hDQz_cont : ContinuousOn (fun r => DQ r z) (Set.uIcc s σ) :=
         hDQ_contOn.comp (continuous_id.prodMk continuous_const).continuousOn hmapsTo
       have hDQz_ii : IntervalIntegrable (fun r => DQ r z) volume s σ :=
@@ -3688,8 +3717,8 @@ theorem transportedIntegral_hasDerivAt_zero
         have habs : |r - s| ≤ |σ - s| := by
           rcases le_total s σ with hsσ | hσs
           · rw [Set.uIcc_of_le hsσ] at hr_uIcc
-            rw [abs_of_nonneg (by linarith [hr_uIcc.1] : (0:ℝ) ≤ r - s),
-                abs_of_nonneg (by linarith : (0:ℝ) ≤ σ - s)]
+            rw [abs_of_nonneg (by linarith [hr_uIcc.1] : (0 : ℝ) ≤ r - s),
+                abs_of_nonneg (by linarith : (0 : ℝ) ≤ σ - s)]
             linarith [hr_uIcc.2]
           · rw [Set.uIcc_of_ge hσs] at hr_uIcc
             rw [abs_of_nonpos (by linarith [hr_uIcc.2] : r - s ≤ 0),
@@ -3725,7 +3754,7 @@ theorem transportedIntegral_hasDerivAt_zero
       rw [isLittleO_iff]
       intro ε hε
       filter_upwards [hunif ε hε, isOpen_Ioo.mem_nhds hs_ab] with σ hunif_σ hσab
-      have hσIcc : σ ∈ Set.Icc (0:ℝ) T :=
+      have hσIcc : σ ∈ Set.Icc (0 : ℝ) T :=
         ⟨(hab_sub ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩).1.le,
           (hab_sub ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩).2.le⟩
       have hσab' : σ ∈ Set.Icc a b := ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩
@@ -3760,7 +3789,7 @@ theorem transportedIntegral_hasDerivAt_zero
     -- assemble: the leading function is eventually T1 + T2
     refine (hT1.add hT2).congr' ?_ (Eventually.of_forall fun _ => rfl)
     filter_upwards [isOpen_Ioo.mem_nhds hs_ab] with σ hσab
-    have hσIcc : σ ∈ Set.Icc (0:ℝ) T :=
+    have hσIcc : σ ∈ Set.Icc (0 : ℝ) T :=
       ⟨(hab_sub ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩).1.le,
         (hab_sub ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩).2.le⟩
     have hσab' : σ ∈ Set.Icc a b := ⟨le_of_lt hσab.1, le_of_lt hσab.2⟩
@@ -3790,7 +3819,6 @@ open Filter Topology in
 theorem transportedIntegral_continuousOn
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
-    (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
       ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
@@ -3816,13 +3844,13 @@ theorem transportedIntegral_continuousOn
     ContinuousOn (fun s => if s = 0 then ∫ z, φ (charX t z, charV t z) ∂(f 0)
         else ∫ z, φ (charX t (Ψ s z), charV t (Ψ s z)) ∂(f s)) (Set.Icc (0 : ℝ) t) := by
   classical
-  have hT0 : (0:ℝ) < T := lt_trans ht.1 ht.2
+  have hT0 : (0 : ℝ) < T := lt_trans ht.1 ht.2
   -- the terminal map and the transported integrand g = φ ∘ Φ_t
   have hΦt_cont : Continuous (fun z : PhaseSpace d => (charX t z, charV t z)) := hΦt_C1.continuous
   set g : PhaseSpace d → ℝ := fun z => φ (charX t z, charV t z) with hg_def
   have hg_cont : Continuous g := hφ.continuous.comp hΦt_cont
   -- Ψ_t continuous (t-slice of the joint C¹ inverse) and the support set S := Ψ_t '' (tsupport φ)
-  have htIoo : t ∈ Set.Ioo (0:ℝ) T := ht
+  have htIoo : t ∈ Set.Ioo (0 : ℝ) T := ht
   have hΨt_cont : Continuous (fun z => Ψ t z) := by
     have hcont_on : ContinuousOn (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
         (Set.Ioo 0 T ×ˢ Set.univ) := hΨ_C1.continuousOn
@@ -3897,19 +3925,20 @@ theorem transportedIntegral_continuousOn
     · -- s₀ = 0: the confinement seam
       subst hs₀
       rw [ContinuousAt]
-      have hval0 : Ĝ (0:ℝ) z₀ = g z₀ := by simp [hĜ_def]
-      change Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0:ℝ), z₀)) (𝓝 (Ĝ (0:ℝ) z₀))
+      have hval0 : Ĝ (0 : ℝ) z₀ = g z₀ := by simp [hĜ_def]
+      change Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ĝ (0 : ℝ) z₀))
       rw [hval0, Metric.tendsto_nhds]
       intro ε hε
       obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
       -- eventually: dist(p.2, z₀) < δ/2  and  exp(K u p.1)·dist(p.2, Φ_{u p.1} p.2) < δ/2
-      have hKpos : (0:ℝ) < δ/2 := by positivity
+      have hKpos : (0 : ℝ) < δ/2 := by positivity
       have hfact1 : ∀ᶠ p : ℝ × PhaseSpace d in 𝓝 (0, z₀), dist p.2 z₀ < δ/2 := by
         have : Tendsto (fun p : ℝ × PhaseSpace d => p.2) (𝓝 (0, z₀)) (𝓝 z₀) :=
           continuous_snd.continuousAt
         exact (Metric.tendsto_nhds.mp this) (δ/2) hKpos
       have hfact2 : ∀ᶠ p : ℝ × PhaseSpace d in 𝓝 (0, z₀),
-          Real.exp (((max 1 L : NNReal) : ℝ) * u p.1) * dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)
+          Real.exp (((max 1 L : NNReal) : ℝ) * u p.1) *
+            dist p.2 (charX (u p.1) p.2, charV (u p.1) p.2)
             < δ/2 := by
         have hd : Tendsto (fun p : ℝ × PhaseSpace d =>
             Real.exp (((max 1 L : NNReal) : ℝ) * u p.1)
@@ -3937,7 +3966,7 @@ theorem transportedIntegral_continuousOn
       · -- branch g (Ψ (min p.1 t) p.2)
         rw [not_le] at hps
         have humin : u p.1 = min p.1 t := hu_pos_of_pos p.1 hps
-        have hminIoo : min p.1 t ∈ Set.Ioo (0:ℝ) T :=
+        have hminIoo : min p.1 t ∈ Set.Ioo (0 : ℝ) T :=
           ⟨lt_min hps ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
         simp only [hĜ_def, if_neg (not_le.mpr hps)]
         apply hδg
@@ -3969,14 +3998,14 @@ theorem transportedIntegral_continuousOn
         simp only [hĜ_def, if_neg (not_le.mpr hp)]
       refine ContinuousAt.congr ?_ heq.symm
       -- continuity of g (Ψ (min p.1 t) p.2) at (s₀, z₀), s₀ > 0
-      have hmin_s₀ : min s₀ t ∈ Set.Ioo (0:ℝ) T :=
+      have hmin_s₀ : min s₀ t ∈ Set.Ioo (0 : ℝ) T :=
         ⟨lt_min hs₀ ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
       have hΨcont_at : ContinuousAt (fun p : ℝ × PhaseSpace d => Ψ (min p.1 t) p.2) (s₀, z₀) := by
         have hcont_on : ContinuousOn (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2)
             (Set.Ioo 0 T ×ˢ Set.univ) := hΨ_C1.continuousOn
         have hmapcont : Continuous (fun p : ℝ × PhaseSpace d => (min p.1 t, p.2)) :=
           ((continuous_fst.min continuous_const)).prodMk continuous_snd
-        have hopen : Set.Ioo (0:ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ∈
+        have hopen : Set.Ioo (0 : ℝ) T ×ˢ (Set.univ : Set (PhaseSpace d)) ∈
             𝓝 ((min s₀ t, z₀) : ℝ × PhaseSpace d) :=
           (isOpen_Ioo.prod isOpen_univ).mem_nhds ⟨hmin_s₀, Set.mem_univ _⟩
         have hca : ContinuousAt (fun p : ℝ × PhaseSpace d => Ψ p.1 p.2) (min s₀ t, z₀) :=
@@ -3985,7 +4014,8 @@ theorem transportedIntegral_continuousOn
       exact hg_cont.continuousAt.comp hΨcont_at
   -- (C) the fixed compact K_total containing all supports of Ĝ
   set Ktot : Set (PhaseSpace d) :=
-    (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S) with hKtot_def
+    (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S)
+    with hKtot_def
   have hKtot_compact : IsCompact Ktot :=
     (isCompact_Icc.prod hS_compact).image_of_continuousOn
       (hflowjoint.mono (Set.prod_mono (Set.Icc_subset_Icc_right ht.2.le) (Set.subset_univ S)))
@@ -4002,7 +4032,7 @@ theorem transportedIntegral_continuousOn
     · -- s > 0: Ĝ = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
       by_contra hgz
       rw [not_le] at hs
-      have hminIoo : min s t ∈ Set.Ioo (0:ℝ) T :=
+      have hminIoo : min s t ∈ Set.Ioo (0 : ℝ) T :=
         ⟨lt_min hs ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
       have hΨz_S : Ψ (min s t) z ∈ S := by
         by_contra hΨz
@@ -4012,7 +4042,7 @@ theorem transportedIntegral_continuousOn
       exact hz ⟨(min s t, Ψ (min s t) z),
         ⟨⟨(lt_min hs ht.1).le, min_le_right _ _⟩, hΨz_S⟩, hright⟩
   -- (D) apply NC and transfer to I on Icc 0 t
-  have hNC := vlasovSolutionOn_integral_continuousOn gradW f T hf_weak hf_mom hf_narrow Ĝ
+  have hNC := vlasovSolutionOn_integral_continuousOn f T hf_mom hf_narrow Ĝ
     hĜ_cont Ktot hKtot_compact hĜ_supp
   refine (hNC.mono (Set.Icc_subset_Icc_right ht.2.le)).congr ?_
   intro s hs
@@ -4021,7 +4051,7 @@ theorem transportedIntegral_continuousOn
     subst h0
     simp only [if_true]
     refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
-    simp only [hĜ_def, if_pos (le_refl (0:ℝ)), hg_def]
+    simp only [hĜ_def, if_pos (le_refl (0 : ℝ)), hg_def]
   · -- s > 0
     have hsne : s ≠ 0 := ne_of_gt h0
     have hsle : s ≤ t := hs.2
@@ -4031,19 +4061,13 @@ theorem transportedIntegral_continuousOn
 -- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +
 -- transportedIntegral_const_On + the endpoint identities.
 theorem dualCore_main
-    (W : PhysSpace d → ℝ) [AssW2 W]
-    (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
+    (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
-    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ) (hT : 0 < T)
+    (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
     (hf_weak : IsVlasovSolutionOn gradW f T)
     (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
     (hf_narrow : ∀ (g : PhaseSpace d → ℝ), Continuous g → HasCompactSupport g →
       ContinuousOn (fun s => ∫ z, g z ∂(f s)) (Set.Icc 0 T))
-    (hf_cont : ∀ x, Continuous
-      (fun t => convolveFunctionMeasure gradW (spatialMarginal (f t)) x))
-    (hf_cont_deriv : ContinuousOn
-      (fun p : ℝ × PhysSpace d => ∫ y, fderiv ℝ gradW (p.2 - y) ∂(spatialMarginal (f p.1)))
-      (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
@@ -4088,7 +4112,7 @@ theorem dualCore_main
       simp only [hI_def, if_neg (ne_of_gt hs'.1)]
   -- continuity on Icc 0 t
   have hcont : ContinuousOn I (Set.Icc (0 : ℝ) t) :=
-    transportedIntegral_continuousOn gradW f T hf_weak hf_mom hf_narrow charX charV hflow t ht
+    transportedIntegral_continuousOn gradW f T hf_mom hf_narrow charX charV hflow t ht
       φ hφ hφc Ψ hΨ_left hΨ_right hΨ_C1 hΦt_C1 L hflowjoint hanti
   -- constancy: I 0 = I t
   have hconst : I 0 = I t := transportedIntegral_const_On ht.1 hcont hderiv
@@ -4130,7 +4154,7 @@ theorem frozenFlow_inverse_On
   classical
   have hgradW_C1 : ContDiff ℝ 1 gradW := assW2_contDiff_gradW W gradW hgradW
   -- window force-integrability from finite moment + Lipschitz (h_int_helper template)
-  have h_int_win : ∀ s ∈ Set.Icc (0:ℝ) T, ∀ (x_pt : PhysSpace d),
+  have h_int_win : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
       Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f s)) := by
     intro s hs x_pt
     haveI : IsProbabilityMeasure (f s) := (hf_mom s hs).1
@@ -4217,7 +4241,7 @@ theorem frozenFlow_inverse_On
   -- joint flow continuity + antilipschitz (enrichment for #6b's s=0 endpoint)
   have hinit : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := fun z =>
     Prod.ext (hflow'.1 z (Set.mem_univ z)).1 (hflow'.1 z (Set.mem_univ z)).2
-  have h_deriv2 : ∀ z, ∀ s ∈ Set.Ioo (0:ℝ) T,
+  have h_deriv2 : ∀ z, ∀ s ∈ Set.Ioo (0 : ℝ) T,
       HasDerivAt (fun s' => (charX s' z, charV s' z))
         (vlasovVectorField gradW ρ' s (charX s z, charV s z)) s :=
     fun z s hs => (hflow'.2.1 s hs z (Set.mem_univ z)).prodMk (hflow'.2.2 s hs z (Set.mem_univ z))
@@ -4250,18 +4274,18 @@ theorem dualCore_terminal
     (hflowjoint : ContinuousOn (fun p : ℝ × PhaseSpace d => (charX p.1 p.2, charV p.1 p.2))
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhaseSpace d))))
     (φ : PhaseSpace d → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ) (hφc : HasCompactSupport φ)
-    (hIoo : ∀ t ∈ Set.Ioo (0:ℝ) T,
+    (hIoo : ∀ t ∈ Set.Ioo (0 : ℝ) T,
       ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0)) :
     ∫ z, φ z ∂(f T) = ∫ z, φ (charX T z, charV T z) ∂(f 0) := by
   classical
   haveI : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
   -- the limit filter, nonempty since T is a left limit point of Ioo 0 T
-  haveI hl_neBot : (𝓝[Set.Ioo (0:ℝ) T] T).NeBot := by
+  haveI hl_neBot : (𝓝[Set.Ioo (0 : ℝ) T] T).NeBot := by
     apply mem_closure_iff_nhdsWithin_neBot.mp
     rw [closure_Ioo (ne_of_lt hT)]
     exact ⟨hT.le, le_refl T⟩
   -- (1) LHS continuity at T (narrow continuity of f against φ)
-  have hClaim1 : Tendsto (fun t => ∫ z, φ z ∂(f t)) (𝓝[Set.Ioo (0:ℝ) T] T)
+  have hClaim1 : Tendsto (fun t => ∫ z, φ z ∂(f t)) (𝓝[Set.Ioo (0 : ℝ) T] T)
       (𝓝 (∫ z, φ z ∂(f T))) := by
     have hcwa : ContinuousWithinAt (fun s => ∫ z, φ z ∂(f s)) (Set.Icc 0 T) T :=
       (hf_narrow φ hφ.continuous hφc) T ⟨hT.le, le_refl T⟩
@@ -4271,11 +4295,11 @@ theorem dualCore_terminal
     obtain ⟨C, hC⟩ := (hφ.continuous.norm).bddAbove_range_of_hasCompactSupport hφc.norm
     exact ⟨C, fun z => hC ⟨z, rfl⟩⟩
   have hClaim2 : Tendsto (fun t => ∫ z, φ (charX t z, charV t z) ∂(f 0))
-      (𝓝[Set.Ioo (0:ℝ) T] T) (𝓝 (∫ z, φ (charX T z, charV T z) ∂(f 0))) := by
+      (𝓝[Set.Ioo (0 : ℝ) T] T) (𝓝 (∫ z, φ (charX T z, charV T z) ∂(f 0))) := by
     refine tendsto_integral_filter_of_dominated_convergence (fun _ => C) ?_ ?_ ?_ ?_
     · -- AEStronglyMeasurable eventually
       filter_upwards [self_mem_nhdsWithin] with t ht
-      have htIcc : t ∈ Set.Icc (0:ℝ) T := Set.Ioo_subset_Icc_self ht
+      have htIcc : t ∈ Set.Icc (0 : ℝ) T := Set.Ioo_subset_Icc_self ht
       have hslice : Continuous (fun z => (charX t z, charV t z)) :=
         hflowjoint.comp_continuous (continuous_const.prodMk continuous_id)
           (fun z => ⟨htIcc, Set.mem_univ _⟩)
@@ -4289,7 +4313,7 @@ theorem dualCore_terminal
         hφ.continuous.continuousAt.comp_continuousWithinAt hzcwa
       exact hcomp.tendsto.mono_left (nhdsWithin_mono T Set.Ioo_subset_Icc_self)
   -- (3) the two limits agree via hIoo, so the targets are equal
-  have hEqOn : (fun t => ∫ z, φ z ∂(f t)) =ᶠ[𝓝[Set.Ioo (0:ℝ) T] T]
+  have hEqOn : (fun t => ∫ z, φ z ∂(f t)) =ᶠ[𝓝[Set.Ioo (0 : ℝ) T] T]
       (fun t => ∫ z, φ (charX t z, charV t z) ∂(f 0)) := by
     filter_upwards [self_mem_nhdsWithin] with t ht using hIoo t ht
   exact tendsto_nhds_unique (hClaim1.congr' hEqOn) hClaim2
@@ -4353,12 +4377,12 @@ theorem weak_eq_frozenField_pushforward_dualCore
       ∫ z, φ z ∂(f t) = ∫ z, φ (charX t z, charV t z) ∂(f 0) := by
   intro t ht φ hφ hφc
   -- the Ioo dual core (this φ): frozenFlow inverse + dualCore_main per interior point
-  have hIoo : ∀ τ ∈ Set.Ioo (0:ℝ) T,
+  have hIoo : ∀ τ ∈ Set.Ioo (0 : ℝ) T,
       ∫ z, φ z ∂(f τ) = ∫ z, φ (charX τ z, charV τ z) ∂(f 0) := by
     intro τ hτ
     obtain ⟨Ψ, hl, hr, hc, hΦ, hfj, ha⟩ := frozenFlow_inverse_On W gradW hgradW L hL f T hT hf_mom
       hf_cont hf_cont_deriv charX charV hflow hcontIcc τ hτ
-    exact dualCore_main W gradW hgradW L hL f T hT hf_weak hf_mom hf_narrow hf_cont hf_cont_deriv
+    exact dualCore_main gradW L hL f T hf_weak hf_mom hf_narrow
       M_ρ hM_ρ_nn hM_ρ charX charV hflow τ hτ φ hφ hφc
       Ψ hl hr hc hΦ hfj ha
   -- joint flow continuity (τ-independent; extract from one interior frozenFlow call)

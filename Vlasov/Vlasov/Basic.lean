@@ -107,7 +107,7 @@ characteristic flow's C¹ dependence on its initial point (the variational equat
 Only the weak ⟹ Lagrangian bridge (`Vlasov/OT/WeakToLagrangian.lean`) carries `AssW2`; the
 marquee `vlasovWellPosedness` / `dobrushin` stay at the weaker `AssW` (arbitrary Lipschitz
 constant). -/
-class AssW2 (W : PhysSpace d → ℝ) extends AssW W : Prop where
+class AssW2 (W : PhysSpace d → ℝ) : Prop extends AssW W where
   /-- ∇W is continuously differentiable (equivalently `W ∈ C²`). -/
   gradContDiff : ContDiff ℝ 1 (fun x => fderiv ℝ W x)
 
@@ -240,6 +240,7 @@ noncomputable def spatialMarginal (μ : Measure (PhaseSpace d)) :
     Measure (PhysSpace d) :=
   Measure.map Prod.fst μ
 
+omit [NeZero d] in
 /-- The integral of a function φ against the empirical measure `empiricalMeasure N X V`
 equals `(1/N) * ∑ i, φ(X i, V i)`, by unfolding the weighted sum of Dirac masses. -/
 lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
@@ -313,6 +314,7 @@ lemma hasDerivAt_phi_along_trajectory (N : ℕ)
   rw [← map_add]
   simp [Prod.mk_add_mk]
 
+omit [NeZero d] in
 /-- The derivative of `t ↦ ∫ φ d(empiricalMeasureCurve N X V t)` equals the finite sum
 expression `(1/N) * Σᵢ [⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨aᵢ, gradVφ (X t i, V t i)⟩]`
 where `aᵢ = -(1/N) Σ_{j≠i} gradW(X t i - X t j)` is the Newton acceleration,
@@ -415,6 +417,7 @@ lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
   -- Normalize (1/(N:ℝ≥0∞)).toReal = 1/(N:ℝ); the .1 projection collapses on pairs.
   simp [ENNReal.toReal_natCast]
 
+omit [NeZero d] in
 /-- The remainder term `r` in the weak evolution identity equals
 `(1/N²) * Σᵢ ⟨gradW 0, gradVφ(X t i, V t i)⟩`: this is the diagonal correction
 obtained when extending the Newton-equation sum `Σ_{j≠i}` to all `j` (the diagonal
@@ -550,6 +553,7 @@ lemma diagonalCorrection_bound (N : ℕ) [NeZero N]
     _ = (1 / (N : ℝ)) * ((⨆ x, ‖gradW x‖) * (⨆ z, ‖gradVφ z‖)) := by
         field_simp
 
+omit [NeZero d] in
 /-- (tex: prop:weak)
 Weak evolution of the empirical measure.
 
@@ -702,6 +706,7 @@ def WeakEvolutionEq (gradW : PhysSpace d → PhysSpace d)
 
 /-! ## §7 Corollary (Empirical measure solves Vlasov)  (`tex: cor:empirical-vlasov`) -/
 
+omit [NeZero d] in
 /-- (tex: cor:empirical-vlasov)
 Under Assumption ass:W, the empirical measure μ_t^N satisfies the distributional
 Vlasov equation eq:vlasov with remainder R_N ≡ 0: for every φ ∈ C_c^∞(ℝ^d × ℝ^d),
