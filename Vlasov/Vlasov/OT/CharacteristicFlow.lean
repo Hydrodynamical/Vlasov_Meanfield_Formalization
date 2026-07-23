@@ -10798,46 +10798,13 @@ theorem vlasovWellPosedness_glue
     simp only [charX_next, charV_next, if_pos hT_pos.le]
     exact h_prev_ic z
 
-/-- **Forward iteration to arbitrary `T_target`.**
-
-Extends the local-existence theorem from its small-`T` smallness window
-to any `T_target > 0`, by iterating the local theorem with shifted initial
-data at a fixed step `T_0` depending only on `L` (no `L < 1` hypothesis).
-
-**Proof strategy**:
-
-1. Pick `T_0 := min(T_0_PL, T_0_con, T_0_env) / 2`, with `T_0_PL := 1/√L`
-   (the PL-buffer threshold for `L · T_0² < 1`), `T_0_con`/`T_0_env` the
-   contraction/envelope thresholds.  Each is positive for every `L > 0`, so
-   `T_0 > 0` and all three smallness constraints hold.
-
-2. Pick `N := ⌈T_target / T_0⌉₊` so that `N · T_0 ≥ T_target`.
-
-3. `Nat.rec` construction: a solution holding the conjuncts at `T = n·T_0`.
-   - Base case: apply `vlasovWellPosedness_local` directly.
-   - Step case (`n → n+1`): apply `vlasovWellPosedness_glue` to extend.
-
-4. Take `f := f_N` and verify the conjuncts for `T_target ≤ N · T_0` via
-   `IsLagrangianVlasovSolutionOn`'s monotonicity in `T` (project down). -/
-theorem vlasovWellPosedness_forward
-    {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
-    (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
-    (L : NNReal) (hL : LipschitzWith L gradW)
-    (hL_pos : (0 : ℝ) < L)
-    (f₀ : Measure (PhaseSpace d))
-    (hf₀ : HasFiniteFirstMoment f₀)
-    {T_target : ℝ} (hT_target : 0 < T_target) :
-    ∃ f : ℝ → Measure (PhaseSpace d),
-      f 0 = f₀ ∧
-      (∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t)) ∧
-      IsLagrangianVlasovSolutionOn gradW f T_target := by
-  -- T_0 must satisfy BOTH the PL-buffer constraint (`L·T_0² < 1`) AND the
-  -- contraction constraint (`L·(exp T_0 - 1)/(max 1 L) < 1`).  These are two
-  -- genuinely independent constraints from distinct sub-arguments;
-  -- T_0 = min(T_0_PL, T_0_con, T_0_env) / 2 with strict-inequality margin
-  -- lands all three.
+/-- For every positive Lipschitz constant there is a window length satisfying all
+three per-window smallness constraints — the PL buffer, the contraction, and the
+envelope closure.  Pure threshold arithmetic: `T_0 := min(1/√L, T_0_con, T_0_env)/2`
+with each threshold positive for every `L > 0` (no `L < 1` restriction). -/
+lemma exists_localSmallness_window (L : NNReal) (hL_pos : (0 : ℝ) < L) :
+    ∃ T_0 : ℝ, 0 < T_0 ∧ LocalSmallness_PL_buffer L T_0 ∧ LocalSmallness_contraction L T_0 ∧
+      (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1 := by
   let T_0_PL : ℝ := 1 / Real.sqrt L
   let T_0_con : ℝ := Real.log (max 1 (L : ℝ) / (L : ℝ) + 1) / max 1 (L : ℝ)
   let T_0_env : ℝ := Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) / (1 + (L : ℝ))
@@ -10909,23 +10876,16 @@ theorem vlasovWellPosedness_forward
       rwa [mul_div_cancel₀ _ hL_ne] at this
     rw [div_lt_one hK_pos]
     exact h_num_lt
-  -- **hB discharge at T_0** (envelope-closure `B(T_0) < 1`), CLOSED via the
-  -- `T_0_env` threshold added to the `min` above: `T_0 < T_0_env` gives
-  -- `(1+L)·T_0 < log(1 + (1+L)/L)`, hence `exp((1+L)·T_0) − 1 < (1+L)/L`, hence
-  -- `(L/(1+L))·(exp((1+L)·T_0) − 1) < (L/(1+L))·((1+L)/L) = 1`.  No `L`-restriction
-  -- beyond the `L < 1` already imposed by `T_0_PL` (this is a `T`-threshold).
   have hTL_T0_B :
       (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1 := by
     have hL_ne : (L : ℝ) ≠ 0 := ne_of_gt hL_pos
     have h_1L_ne : (1 + (L : ℝ)) ≠ 0 := ne_of_gt h_1L_pos
     have h_ratio_pos : (0 : ℝ) < (1 + (L : ℝ)) / (L : ℝ) := div_pos h_1L_pos hL_pos
     have h_arg_pos : (0 : ℝ) < 1 + (1 + (L : ℝ)) / (L : ℝ) := by linarith
-    -- T_0 < T_0_env (the new outer-min branch).
     have h_T_0_lt_env : T_0 < T_0_env := by
       change min (min T_0_PL T_0_con) T_0_env / 2 < T_0_env
       have h_min_le : min (min T_0_PL T_0_con) T_0_env ≤ T_0_env := min_le_right _ _
       linarith
-    -- (1+L)·T_0 < log(1 + (1+L)/L)  ( = (1+L)·T_0_env by the def of T_0_env).
     have h_lin_lt : (1 + (L : ℝ)) * T_0
         < Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) := by
       have h_env_eq : (1 + (L : ℝ)) * T_0_env
@@ -10937,7 +10897,6 @@ theorem vlasovWellPosedness_forward
       calc (1 + (L : ℝ)) * T_0
           < (1 + (L : ℝ)) * T_0_env := mul_lt_mul_of_pos_left h_T_0_lt_env h_1L_pos
         _ = Real.log (1 + (1 + (L : ℝ)) / (L : ℝ)) := h_env_eq
-    -- exp((1+L)·T_0) < 1 + (1+L)/L.
     have h_exp_lt : Real.exp ((1 + (L : ℝ)) * T_0)
         < 1 + (1 + (L : ℝ)) / (L : ℝ) := by
       calc Real.exp ((1 + (L : ℝ)) * T_0)
@@ -10951,6 +10910,47 @@ theorem vlasovWellPosedness_forward
         < (L : ℝ) / (1 + (L : ℝ)) * ((1 + (L : ℝ)) / (L : ℝ)) :=
           mul_lt_mul_of_pos_left h_diff_lt hcoef_pos
       _ = 1 := by field_simp
+  exact ⟨T_0, hT0_pos, hTL_T0_PL, hTL_T0_con, hTL_T0_B⟩
+
+/-- **Forward iteration to arbitrary `T_target`.**
+
+Extends the local-existence theorem from its small-`T` smallness window
+to any `T_target > 0`, by iterating the local theorem with shifted initial
+data at a fixed step `T_0` depending only on `L` (no `L < 1` hypothesis).
+
+**Proof strategy**:
+
+1. Pick `T_0 := min(T_0_PL, T_0_con, T_0_env) / 2`, with `T_0_PL := 1/√L`
+   (the PL-buffer threshold for `L · T_0² < 1`), `T_0_con`/`T_0_env` the
+   contraction/envelope thresholds.  Each is positive for every `L > 0`, so
+   `T_0 > 0` and all three smallness constraints hold.
+
+2. Pick `N := ⌈T_target / T_0⌉₊` so that `N · T_0 ≥ T_target`.
+
+3. `Nat.rec` construction: a solution holding the conjuncts at `T = n·T_0`.
+   - Base case: apply `vlasovWellPosedness_local` directly.
+   - Step case (`n → n+1`): apply `vlasovWellPosedness_glue` to extend.
+
+4. Take `f := f_N` and verify the conjuncts for `T_target ≤ N · T_0` via
+   `IsLagrangianVlasovSolutionOn`'s monotonicity in `T` (project down). -/
+theorem vlasovWellPosedness_forward
+    {d : ℕ} [NeZero d]
+    (W : PhysSpace d → ℝ) [AssW W]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW : ∀ x, gradW x = gradient W x)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (hL_pos : (0 : ℝ) < L)
+    (f₀ : Measure (PhaseSpace d))
+    (hf₀ : HasFiniteFirstMoment f₀)
+    {T_target : ℝ} (hT_target : 0 < T_target) :
+    ∃ f : ℝ → Measure (PhaseSpace d),
+      f 0 = f₀ ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) T_target, HasFiniteFirstMoment (f t)) ∧
+      IsLagrangianVlasovSolutionOn gradW f T_target := by
+  -- T_0 must satisfy the PL-buffer, contraction, and envelope constraints —
+  -- all supplied by the pure-arithmetic `exists_localSmallness_window`.
+  obtain ⟨T_0, hT0_pos, hTL_T0_PL, hTL_T0_con, hTL_T0_B⟩ :=
+    exists_localSmallness_window L hL_pos
   -- Step 2: N = ⌈T_target / T_0⌉₊ windows of size T_0 cover T_target.
   let N : ℕ := ⌈T_target / T_0⌉₊
   have hN_pos : 0 < N := by
@@ -12188,6 +12188,54 @@ theorem vlasovWellPosedness_uniqueness
 -- the per-`T_target` solutions, well-defined by the uniqueness agreement on
 -- overlaps.
 
+/-- `IsLagrangianVlasovSolutionOn` is antitone in the window length: a Lagrangian
+solution on `[0, T]` restricts to one on any `[0, T'] ⊆ [0, T]`. -/
+lemma IsLagrangianVlasovSolutionOn.mono_window
+    {d : ℕ} [NeZero d]
+    {gradW : PhysSpace d → PhysSpace d} {g : ℝ → Measure (PhaseSpace d)}
+    {T T' : ℝ} (h : IsLagrangianVlasovSolutionOn gradW g T) (hTT' : T' ≤ T) :
+    IsLagrangianVlasovSolutionOn gradW g T' := by
+  obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas, h_cont⟩ := h
+  refine ⟨?_, charX, charV, ?_, ?_, ?_⟩
+  · intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s hs
+    exact h_sol φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s
+      ⟨hs.1, lt_of_lt_of_le hs.2 hTT'⟩
+  · exact h_flow.mono (Set.Ioo_subset_Ioo le_rfl hTT') Set.Subset.rfl
+  · intro s hs; exact h_push s ⟨hs.1, le_trans hs.2 hTT'⟩
+  · refine ⟨?_, ?_⟩
+    · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hTT'⟩
+    · intro z; exact (h_cont z).mono (fun u hu => ⟨hu.1, le_trans hu.2 hTT'⟩)
+
+/-- Continuity (within a window, at a point) of `t ↦ ∫ g d(fcur t)` for a curve
+represented on the window as a flow pushforward: dominated convergence against
+the fixed `f₀`, then transfer along the representation. -/
+lemma integral_continuousWithinAt_of_flow_rep
+    {d : ℕ} [NeZero d]
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (fcur : ℝ → Measure (PhaseSpace d))
+    (Φ : ℝ → PhaseSpace d → PhaseSpace d)
+    (g : PhaseSpace d → ℝ) (hg_cont : Continuous g) (C : ℝ)
+    (hgC : ∀ z : PhaseSpace d, ‖g z‖ ≤ C)
+    (B t₀ : ℝ) (ht₀B : t₀ ∈ Set.Icc (0 : ℝ) B)
+    (h_integral_eq : ∀ t ∈ Set.Icc (0 : ℝ) B,
+      ∫ z, g z ∂(fcur t) = ∫ z, g (Φ t z) ∂f₀)
+    (h_aesm : ∀ t ∈ Set.Icc (0 : ℝ) B,
+      MeasureTheory.AEStronglyMeasurable (fun z => g (Φ t z)) f₀)
+    (h_ptcont : ∀ z, ContinuousWithinAt (fun t => Φ t z) (Set.Icc (0 : ℝ) B) t₀) :
+    ContinuousWithinAt (fun t => ∫ z, g z ∂(fcur t)) (Set.Icc (0 : ℝ) B) t₀ := by
+  have h_cont_flow : ContinuousWithinAt
+      (fun t => ∫ z, g (Φ t z) ∂f₀) (Set.Icc (0 : ℝ) B) t₀ := by
+    apply continuousWithinAt_of_dominated (μ := f₀) (bound := fun _ => C)
+    · exact Filter.Eventually.mono self_mem_nhdsWithin fun t ht => h_aesm t ht
+    · apply Filter.Eventually.mono self_mem_nhdsWithin; intro t _
+      exact Filter.Eventually.of_forall fun z => hgC _
+    · exact MeasureTheory.integrable_const C
+    · exact Filter.Eventually.of_forall fun z =>
+        hg_cont.continuousAt.comp_continuousWithinAt (h_ptcont z)
+  exact h_cont_flow.congr_of_eventuallyEq
+    (Filter.Eventually.mono self_mem_nhdsWithin fun t ht => h_integral_eq t ht)
+    (h_integral_eq t₀ ht₀B)
+
 /-- **Universal-in-`t` (forward) existence — bridge to the marquee form**.
 
 For any Lipschitz constant `L > 0`, produces a single `f : ℝ → Measure
@@ -12263,18 +12311,9 @@ theorem vlasovWellPosedness_universal_existence
     have hnm_cast : (n : ℝ) + 1 ≤ (m : ℝ) + 1 := by
       have : (n : ℝ) ≤ (m : ℝ) := Nat.cast_le.mpr hnm
       linarith
-    -- Restrict sol m from [0, m+1] to [0, n+1] via inline monotonicity
-    have h_sol_m_on_n : IsLagrangianVlasovSolutionOn gradW (sol m) ((n : ℝ) + 1) := by
-      obtain ⟨h_sol, charX, charV, h_flow, h_push, h_aemeas, h_cont⟩ := h_sol_lag m
-      refine ⟨?_, charX, charV, ?_, ?_, ?_⟩
-      · intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s hs
-        exact h_sol φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ s
-          ⟨hs.1, lt_of_lt_of_le hs.2 hnm_cast⟩
-      · exact h_flow.mono (Set.Ioo_subset_Ioo le_rfl hnm_cast) Set.Subset.rfl
-      · intro s hs; exact h_push s ⟨hs.1, le_trans hs.2 hnm_cast⟩
-      · refine ⟨?_, ?_⟩
-        · intro s hs; exact h_aemeas s ⟨hs.1, le_trans hs.2 hnm_cast⟩
-        · intro z; exact (h_cont z).mono (fun u hu => ⟨hu.1, le_trans hu.2 hnm_cast⟩)
+    -- Restrict sol m from [0, m+1] to [0, n+1] via window monotonicity
+    have h_sol_m_on_n : IsLagrangianVlasovSolutionOn gradW (sol m) ((n : ℝ) + 1) :=
+      (h_sol_lag m).mono_window hnm_cast
     -- Apply vlasovWellPosedness_uniqueness on window [0, n+1]
     exact vlasovWellPosedness_uniqueness W gradW hgradW L hL hL_pos f₀ hf₀
       (by linarith [Nat.cast_nonneg (α := ℝ) n] : (0 : ℝ) < (n : ℝ) + 1)
@@ -12408,30 +12447,17 @@ theorem vlasovWellPosedness_universal_existence
         exact integral_map (h_aemeas_N t ht_ext) hg_cont.measurable.aestronglyMeasurable
       have hIcc_mem : Set.Icc 0 (N : ℝ) ∈ nhdsWithin (0 : ℝ) (Set.Ici 0) :=
         Icc_mem_nhdsGE hN_cast_pos
-      have h_cont_charX : ContinuousWithinAt
-          (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) (Set.Icc 0 (N : ℝ)) 0 := by
-        apply continuousWithinAt_of_dominated (μ := f₀) (bound := fun _ => C)
-        · apply Filter.Eventually.mono self_mem_nhdsWithin
-          intro t ht_mem
-          exact (hg_cont.measurable.comp_aemeasurable
-            (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
-              (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
-        · apply Filter.Eventually.mono self_mem_nhdsWithin; intro t _
-          exact Filter.Eventually.of_forall fun z => hgC _
-        · exact integrable_const C
-        · apply Filter.Eventually.of_forall; intro z
-          apply hg_cont.continuousAt.comp_continuousWithinAt
-          exact ((h_boundary_N z).continuousWithinAt
-            ⟨le_refl 0, by linarith⟩).mono
-            (Set.Icc_subset_Icc le_rfl (by linarith))
-      have h_cont_Icc : ContinuousWithinAt
-          (fun t => ∫ z, g z ∂(f t)) (Set.Icc 0 (N : ℝ)) 0 :=
-        h_cont_charX.congr_of_eventuallyEq
-          (Filter.Eventually.mono self_mem_nhdsWithin (fun t ht => by
-            change ∫ z, g z ∂f t = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
-            exact h_integral_eq t ht))
-          (h_integral_eq 0 ⟨le_refl 0, hN_cast_pos.le⟩)
-      exact h_cont_Icc.mono_of_mem_nhdsWithin hIcc_mem
+      refine (integral_continuousWithinAt_of_flow_rep f₀ f
+        (fun t z => (charX_N t z, charV_N t z)) g hg_cont C hgC (N : ℝ) 0
+        ⟨le_refl 0, hN_cast_pos.le⟩ h_integral_eq ?_ ?_).mono_of_mem_nhdsWithin hIcc_mem
+      · intro t ht_mem
+        exact (hg_cont.measurable.comp_aemeasurable
+          (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
+            (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
+      · intro z
+        exact ((h_boundary_N z).continuousWithinAt
+          ⟨le_refl 0, by linarith⟩).mono
+          (Set.Icc_subset_Icc le_rfl (by linarith))
     · -- t₀ > 0: t₀ ∈ Ioi 0.  Use the interior flow continuity.
       -- Choose N so that t₀ is in the interior of [0, N].
       set N := ⌈t₀⌉₊ + 1 with hN_def
@@ -12462,39 +12488,19 @@ theorem vlasovWellPosedness_universal_existence
       -- The set Icc 0 N is a neighborhood of t₀ within Ici 0 (since 0 < t₀ < N).
       have hIcc_mem : Set.Icc 0 (N : ℝ) ∈ nhdsWithin t₀ (Set.Ici 0) := by
         apply nhdsWithin_le_nhds; exact Icc_mem_nhds ht₀_pos ht₀_lt_N
-      -- Show ContinuousWithinAt for (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) via DCT.
-      have h_cont_charX : ContinuousWithinAt
-          (fun t => ∫ z, g (charX_N t z, charV_N t z) ∂f₀) (Set.Icc 0 (N : ℝ)) t₀ := by
-        apply continuousWithinAt_of_dominated (μ := f₀) (bound := fun _ => C)
-        · -- AEStronglyMeasurable: t ↦ g (charX_N t z, charV_N t z) a.e. in z
-          apply Filter.Eventually.mono self_mem_nhdsWithin
-          intro t ht_mem
-          exact (hg_cont.measurable.comp_aemeasurable
-            (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
-              (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
-        · -- Bound: ‖g (charX_N t z, charV_N t z)‖ ≤ C a.e. in z, eventually in t
-          apply Filter.Eventually.mono self_mem_nhdsWithin; intro t _
-          exact Filter.Eventually.of_forall fun z => hgC _
-        · -- Integrable constant bound C w.r.t. f₀ (probability measure, hence finite)
-          exact integrable_const C
-        · -- Pointwise continuity: t ↦ g (charX_N t z, charV_N t z) continuous at t₀ in [0,N]
-          apply Filter.Eventually.of_forall; intro z
-          apply hg_cont.continuousAt.comp_continuousWithinAt
-          have ht₀_in_Ioo : t₀ ∈ Set.Ioo (0 : ℝ) ((N : ℝ) + 1) :=
-            ⟨ht₀_pos, by push_cast [hN_def]; linarith [Nat.le_ceil t₀]⟩
-          have hX_deriv := h_flow_N.2.1 t₀ ht₀_in_Ioo z (Set.mem_univ z)
-          have hV_deriv := h_flow_N.2.2 t₀ ht₀_in_Ioo z (Set.mem_univ z)
-          exact (hX_deriv.continuousAt.prodMk hV_deriv.continuousAt).continuousWithinAt
-      -- Transfer continuity from the charX version to the original via congr.
-      have h_cont_Icc : ContinuousWithinAt
-          (fun t => ∫ z, g z ∂(f t)) (Set.Icc 0 (N : ℝ)) t₀ :=
-        h_cont_charX.congr_of_eventuallyEq
-          (Filter.Eventually.mono self_mem_nhdsWithin (fun t ht => by
-            change ∫ z, g z ∂f t = ∫ z, g (charX_N t z, charV_N t z) ∂f₀
-            exact h_integral_eq t ht))
-          (h_integral_eq t₀ ⟨ht₀_pos.le, ht₀_lt_N.le⟩)
-      -- Lift ContinuousWithinAt from Icc 0 N to Ici 0 using hIcc_mem.
-      exact h_cont_Icc.mono_of_mem_nhdsWithin hIcc_mem
+      refine (integral_continuousWithinAt_of_flow_rep f₀ f
+        (fun t z => (charX_N t z, charV_N t z)) g hg_cont C hgC (N : ℝ) t₀
+        ⟨ht₀_pos.le, ht₀_lt_N.le⟩ h_integral_eq ?_ ?_).mono_of_mem_nhdsWithin hIcc_mem
+      · intro t ht_mem
+        exact (hg_cont.measurable.comp_aemeasurable
+          (h_sol_init N ▸ h_aemeas_N t ⟨ht_mem.1, le_trans ht_mem.2
+            (le_add_of_nonneg_right one_pos.le)⟩)).aestronglyMeasurable
+      · intro z
+        have ht₀_in_Ioo : t₀ ∈ Set.Ioo (0 : ℝ) ((N : ℝ) + 1) :=
+          ⟨ht₀_pos, by push_cast [hN_def]; linarith [Nat.le_ceil t₀]⟩
+        have hX_deriv := h_flow_N.2.1 t₀ ht₀_in_Ioo z (Set.mem_univ z)
+        have hV_deriv := h_flow_N.2.2 t₀ ht₀_in_Ioo z (Set.mem_univ z)
+        exact (hX_deriv.continuousAt.prodMk hV_deriv.continuousAt).continuousWithinAt
 
 /-! ## §10  Marquee theorem (tex: thm:vlasov-wp) -/
 
