@@ -10151,7 +10151,7 @@ private lemma vlasovGlue_diff_ne
     {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     (f_prev g : ℝ → Measure (PhaseSpace d))
-    {T : ℝ} (hT_pos : 0 < T) {T_0 : ℝ} (hT_0_pos : 0 < T_0)
+    {T T_0 : ℝ}
     (h_prev_vlasov : IsVlasovSolutionOn gradW f_prev T)
     (h_g_vlasov : IsVlasovSolutionOn gradW g T_0)
     (f_next : ℝ → Measure (PhaseSpace d))
@@ -10162,16 +10162,12 @@ private lemma vlasovGlue_diff_ne
     (gradXφ gradVφ : PhaseSpace d → PhysSpace d)
     (hgradXφ : ∀ z : PhaseSpace d, gradXφ z = gradient (fun x => φ (x, z.2)) z.1)
     (hgradVφ : ∀ z : PhaseSpace d, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) :
-    ∀ᶠ t' in nhds T, t' ≠ T → HasDerivAt
+    ∀ t' ∈ Set.Ioo (0 : ℝ) (T + T_0), t' ≠ T → HasDerivAt
       (fun s => ∫ z, φ z ∂f_next s)
       ((∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
               @inner ℝ (PhysSpace d) _
                 (convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1)
                 (gradVφ z)) ∂(f_next t')) + 0) t' := by
-  -- Use Ioo 0 (T + T_0) as the neighborhood
-  have hU_mem : Set.Ioo (0 : ℝ) (T + T_0) ∈ nhds T :=
-    Ioo_mem_nhds hT_pos (by linarith)
-  apply Filter.Eventually.mono hU_mem
   intro t' ht' ht'_ne
   rcases lt_or_gt_of_ne ht'_ne with ht'_lt | ht'_gt
   · -- t' < T: use h_prev_vlasov + bridge f_next = f_prev on left of T
@@ -10526,7 +10522,52 @@ private lemma vlasovGlue_flow_aemeasurable
     rw [hg_init, h_prev_push T hT_mem] at h_g_at_sT
     exact h_g_at_sT.comp_aemeasurable (h_prev_aemeas T hT_mem)
 
-set_option maxHeartbeats 1600000 in
+/-- Finite first moment of the glued solution on the extended window,
+piecewise from the two window moment hypotheses. -/
+private lemma vlasovGlue_moment
+    {d : ℕ} [NeZero d]
+    (f_prev g : ℝ → Measure (PhaseSpace d))
+    {T T_0 : ℝ}
+    (h_prev_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f_prev t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T_0, HasFiniteFirstMoment (g t))
+    (f_next : ℝ → Measure (PhaseSpace d))
+    (hf_next_le : ∀ s, s ≤ T → f_next s = f_prev s)
+    (hf_next_gt : ∀ s, T < s → f_next s = g (s - T)) :
+    ∀ t ∈ Set.Icc (0 : ℝ) (T + T_0), HasFiniteFirstMoment (f_next t) := by
+  intro t ht
+  by_cases ht_le : t ≤ T
+  · rw [hf_next_le t ht_le]
+    exact h_prev_mom t ⟨ht.1, ht_le⟩
+  · push Not at ht_le
+    rw [hf_next_gt t ht_le]
+    exact hg_mom (t - T) ⟨by linarith, by linarith [ht.2]⟩
+
+/-- FLAT uniform first-moment bound on the glued solution's spatial marginal:
+`max` of the two window envelopes, no cross-term. -/
+private lemma vlasovGlue_moment_flat
+    {d : ℕ} [NeZero d]
+    (f_prev g : ℝ → Measure (PhaseSpace d))
+    {T T_0 : ℝ}
+    (hM_prev : ∃ M : ℝ, 0 ≤ M ∧
+        ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f_prev t)) ≤ M)
+    (hg_mom_unif : ∃ M : ℝ, 0 ≤ M ∧
+        ∀ t ∈ Set.Icc (0 : ℝ) T_0, ∫ y, ‖y‖ ∂(spatialMarginal (g t)) ≤ M)
+    (f_next : ℝ → Measure (PhaseSpace d))
+    (hf_next_le : ∀ s, s ≤ T → f_next s = f_prev s)
+    (hf_next_gt : ∀ s, T < s → f_next s = g (s - T)) :
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ t ∈ Set.Icc (0 : ℝ) (T + T_0),
+        ∫ y, ‖y‖ ∂(spatialMarginal (f_next t)) ≤ M := by
+  obtain ⟨M_prev, hM_prev_nn, hM_prev_bd⟩ := hM_prev
+  obtain ⟨M_g, _hM_g_nn, hM_g_bd⟩ := hg_mom_unif
+  refine ⟨max M_prev M_g, le_trans hM_prev_nn (le_max_left _ _), fun t ht => ?_⟩
+  by_cases ht_le : t ≤ T
+  · rw [hf_next_le t ht_le]
+    exact le_trans (hM_prev_bd t ⟨ht.1, ht_le⟩) (le_max_left _ _)
+  · push Not at ht_le
+    rw [hf_next_gt t ht_le]
+    exact le_trans (hM_g_bd (t - T) ⟨by linarith, by linarith [ht.2]⟩) (le_max_right _ _)
+
 /-- **One-window glue step.**
 
 Given a solution `f_prev : ℝ → Measure (PhaseSpace d)` on `[0, T]`
@@ -10648,32 +10689,12 @@ theorem vlasovWellPosedness_glue
     simp only [f_next]
     have h0_le : (0 : ℝ) ≤ T := hT_pos.le
     simp [h0_le, h_prev_init]
-  · -- Conjunct (iii): HasFiniteFirstMoment on [0, T + T_0]
-    intro t ht
-    simp only [f_next]
-    by_cases ht_le : t ≤ T
-    · simp [ht_le]
-      exact h_prev_mom t ⟨ht.1, ht_le⟩
-    · simp [ht_le]
-      push Not at ht_le
-      apply hg_mom (t - T)
-      constructor
-      · linarith
-      · linarith [ht.2]
-  · -- Conjunct (iii′): FLAT uniform first-moment bound on the spatial marginal of f_next.
-    -- M_next := max M_prev M_g.  For t ≤ T, spatialMarginal (f_next t) = spatialMarginal (f_prev t)
-    -- (bounded by M_prev); for t > T, = spatialMarginal (g (t - T)) with t - T ∈ [0, T_0]
-    -- (bounded by M_g).  No cross-term.
-    obtain ⟨M_prev, hM_prev_nn, hM_prev_bd⟩ := hM_prev
-    obtain ⟨M_g, hM_g_nn, hM_g_bd⟩ := hg_mom_unif
-    refine ⟨max M_prev M_g, le_trans hM_prev_nn (le_max_left _ _), fun t ht => ?_⟩
-    simp only [f_next]
-    by_cases ht_le : t ≤ T
-    · simp only [ht_le, ↓reduceIte]
-      exact le_trans (hM_prev_bd t ⟨ht.1, ht_le⟩) (le_max_left _ _)
-    · simp only [ht_le, ↓reduceIte]
-      push Not at ht_le
-      refine le_trans (hM_g_bd (t - T) ⟨by linarith, by linarith [ht.2]⟩) (le_max_right _ _)
+  · -- Conjunct (iii): HasFiniteFirstMoment on [0, T + T_0] (hoisted helper)
+    exact vlasovGlue_moment f_prev g h_prev_mom hg_mom f_next
+      (fun s hs => if_pos hs) (fun s hs => if_neg (not_le.mpr hs))
+  · -- Conjunct (iii′): FLAT uniform first-moment bound (hoisted helper)
+    exact vlasovGlue_moment_flat f_prev g hM_prev hg_mom_unif f_next
+      (fun s hs => if_pos hs) (fun s hs => if_neg (not_le.mpr hs))
   · -- Conjunct (iv): IsLagrangianVlasovSolutionOn gradW f_next (T + T_0)
     refine ⟨?_, charX_next, charV_next, ?_, ?_, ?_⟩
     · -- IsVlasovSolutionOn gradW f_next (T + T_0)
@@ -10684,57 +10705,36 @@ theorem vlasovWellPosedness_glue
       -- at t = T use continuity of t ↦ ∫ φ ∂f_next t from both sides.
       have h_vlasov_glue : IsVlasovSolutionOn gradW f_next (T + T_0) := by
         intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t ht
+        -- Off-seam weak PDE at every t' ≠ T (hoisted helper); the two strict
+        -- branches consume it directly, the seam derives its eventual form.
+        have h_diff_ne := vlasovGlue_diff_ne gradW f_prev g
+          h_prev_vlasov h_g_vlasov f_next (fun s hs => if_pos hs)
+          (fun s hs => if_neg (not_le.mpr hs)) φ hφ_smooth hφ_compact
+          gradXφ gradVφ hgradXφ hgradVφ
         by_cases ht_lt : t < T
-        · -- t ∈ Ioo 0 T: use h_prev_vlasov (f_next = f_prev near t)
-          have ht_prev : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht.1, ht_lt⟩
-          -- f_next = f_prev on a neighborhood of t (since t < T)
-          have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t]
-              (fun s => ∫ z, φ z ∂f_prev s) := by
-            apply Filter.Eventually.mono (eventually_lt_nhds ht_lt)
-            intro s hs; simp [f_next, le_of_lt hs]
-          have h_fnext_t : f_next t = f_prev t := if_pos (le_of_lt ht_lt)
-          have h_deriv := h_prev_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
-              hgradXφ hgradVφ t ht_prev
-          rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero] at h_deriv
-          rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
-          exact h_deriv.congr_of_eventuallyEq h_ev
+        · -- t ∈ Ioo 0 T: off-seam weak PDE
+          rw [show (fun _ => (0 : ℝ)) t = 0 from rfl]
+          exact h_diff_ne t ht (ne_of_lt ht_lt)
         · by_cases ht_gt : T < t
-          · -- t ∈ Ioo T (T + T_0): use h_g_vlasov shifted by T
-            have ht_g : t - T ∈ Set.Ioo (0 : ℝ) T_0 := ⟨by linarith, by linarith [ht.2]⟩
-            -- f_next = g (· - T) on a neighborhood of t (since t > T)
-            have h_ev : (fun s => ∫ z, φ z ∂f_next s) =ᶠ[nhds t]
-                (fun s => ∫ z, φ z ∂g (s - T)) := by
-              apply Filter.Eventually.mono (eventually_gt_nhds ht_gt)
-              intro s hs; simp [f_next, not_le.mpr hs]
-            have h_fnext_t : f_next t = g (t - T) := if_neg (not_le.mpr ht_gt)
-            -- HasDerivAt for fun r => ∫ φ ∂g r at (t - T)
-            have h_g_deriv := h_g_vlasov φ hφ_smooth hφ_compact gradXφ gradVφ
-                hgradXφ hgradVφ (t - T) ht_g
-            rw [show (fun _ => (0 : ℝ)) (t - T) = 0 from rfl, add_zero] at h_g_deriv
-            -- Chain rule: HasDerivAt (fun s => ∫ φ ∂g (s - T)) at t
-            have h_sub : HasDerivAt (· - T) 1 t := (hasDerivAt_id' t).sub_const T
-            have h_chain : HasDerivAt (fun s => ∫ z, φ z ∂g (s - T))
-                (∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
-                  @inner ℝ (PhysSpace d) _
-                    (convolveFunctionMeasure gradW (spatialMarginal (g (t - T))) z.1)
-                    (gradVφ z)) ∂g (t - T)) t := by
-              have := HasDerivAt.comp_of_eq t h_g_deriv h_sub rfl
-              simpa [Function.comp, mul_one] using this
-            -- Match spatialMarginal (f_next t) with spatialMarginal (g (t - T))
-            rw [show (fun _ => (0 : ℝ)) t = 0 from rfl, add_zero, h_fnext_t]
-            exact h_chain.congr_of_eventuallyEq h_ev
+          · -- t ∈ Ioo T (T + T_0): off-seam weak PDE
+            rw [show (fun _ => (0 : ℝ)) t = 0 from rfl]
+            exact h_diff_ne t ht (ne_of_gt ht_gt)
           · -- t = T: boundary case via `hasDerivAt_of_hasDerivAt_of_ne_in_nhds`.
             -- Three sub-arguments: (1) HasDerivAt at every nearby t' ≠ T from the
-            -- strict-left/right work; (2) ContinuousAt of the integral function at T;
+            -- off-seam helper; (2) ContinuousAt of the integral function at T;
             -- (3) ContinuousAt of the derivative function at T.
             push Not at ht_gt
             have h_t_eq : t = T := le_antisymm ht_gt (not_lt.mp ht_lt)
-            -- Step 1: HasDerivAt at every nearby t' ≠ T (from the strict-left/right
-            -- work above).
-            have h_diff_ne := vlasovGlue_diff_ne gradW f_prev g hT_pos hT_0_pos
-              h_prev_vlasov h_g_vlasov f_next (fun s hs => if_pos hs)
-              (fun s hs => if_neg (not_le.mpr hs)) φ hφ_smooth hφ_compact
-              gradXφ gradVφ hgradXφ hgradVφ
+            -- Step 1: HasDerivAt at every nearby t' ≠ T, in eventual form.
+            have h_diff_ne_ev : ∀ᶠ t' in nhds T, t' ≠ T → HasDerivAt
+                (fun s => ∫ z, φ z ∂f_next s)
+                ((∫ z, (@inner ℝ (PhysSpace d) _ z.2 (gradXφ z) -
+                        @inner ℝ (PhysSpace d) _
+                          (convolveFunctionMeasure gradW (spatialMarginal (f_next t')) z.1)
+                          (gradVφ z)) ∂(f_next t')) + 0) t' := by
+              have hU_mem : Set.Ioo (0 : ℝ) (T + T_0) ∈ nhds T :=
+                Ioo_mem_nhds hT_pos (by linarith)
+              exact Filter.Eventually.mono hU_mem (fun t' ht' => h_diff_ne t' ht')
             -- Step 2: ContinuousAt of integral function at T.
             -- Decomposed into LEFT (Iic T) + RIGHT (Ici T) closes, joined via
             -- `Iic_union_Ici = univ`.
@@ -10818,7 +10818,7 @@ theorem vlasovWellPosedness_glue
               exact h_union.continuousAt Filter.univ_mem
             -- Step 4: Apply the localized helper.
             rw [h_t_eq]
-            exact hasDerivAt_of_hasDerivAt_of_ne_in_nhds h_diff_ne h_cont_f h_cont_g
+            exact hasDerivAt_of_hasDerivAt_of_ne_in_nhds h_diff_ne_ev h_cont_f h_cont_g
       exact h_vlasov_glue
     · -- IsCharacteristicFlowOn for the glued flow
       -- Sub-sorry: flow initial condition + HasDerivAt for piecewise flow
