@@ -7449,6 +7449,136 @@ private lemma picardFlow_clamp_bundle
     rw [h_rho_clamp s]
     exact h_int_ρ_lim (clampToIcc T s) x
 
+/-- **Sub-helper for `_picard_fixedPointFlow`** — the Picard fixed-point
+self-consistency equation.  For `t ∈ Icc 0 T`,
+
+`ρ_lim.extend t = spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)`,
+
+proved by the triangle through the iterates `x n`: the marginal-vs-limit leg
+tends to `0` by `h_tendsto`, the flow-pushforward leg is `≤ Dn n · q` by the
+pointwise contraction `picardLimit_flow_pointwise_contraction` (with
+`Dn n := (supW1On (Icc 0 T) (x n).ρ ρ_lim.ρ).toReal → 0` from the
+supW1On-Cauchy structure), and `picardLimit_fixed_point_eq` closes.  The
+contraction ratio `q` is threaded by its defining equation `hq_def`
+(let-bound parent supplies `rfl`). -/
+private lemma picardLimit_self_consistency
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
+    (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
+    {T : ℝ} (hT : 0 < T)
+    (m : ℝ → ℝ) (hMbar_nn : 0 ≤ m T)
+    (hMbar_mono : ∀ t ∈ Set.Icc (0 : ℝ) T, m t ≤ m T)
+    (q : ℝ) (hq_nn : 0 ≤ q) (hq_lt : q < 1)
+    (hq_def : q = gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L : ℝ) T)
+    (D₀ : ℝ) (hD₀_nn : 0 ≤ D₀)
+    (x : ℕ → VlasovMeasureCurve d T m)
+    (charXs charVs : ℕ → ℝ → PhaseSpace d → PhysSpace d)
+    (h_contract : ∀ k, supW1On (Set.Icc 0 T) (x k).ρ (x (k + 1)).ρ ≤
+      ENNReal.ofReal (q ^ k * D₀))
+    (h_flow : ∀ k,
+      IsCharacteristicFlowOn gradW (x k).extend (charXs k) (charVs k)
+        (Set.Ioo 0 T) Set.univ ∧
+      (∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+        HasDerivWithinAt (fun s => charXs k s z) (charVs k t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charVs k s z)
+          (-(convolveFunctionMeasure gradW ((x k).extend t) (charXs k t z)))
+          (Set.Icc 0 T) t) ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) T,
+        (x (k + 1)).ρ t = Measure.map (fun z : PhaseSpace d => charXs k t z) f₀))
+    (ρ_lim : VlasovMeasureCurve d T m)
+    (h_tendsto : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Filter.Tendsto (fun n => wasserstein1 ((x n).ρ t) (ρ_lim.ρ t))
+        Filter.atTop (nhds 0))
+    (charX charV : ℝ → PhaseSpace d → PhysSpace d)
+    (hflow_on_ρlim : IsCharacteristicFlowOn gradW ρ_lim.extend charX charV
+      (Set.Ioo 0 T) Set.univ)
+    (h_boundary_ρlim : ∀ z : PhaseSpace d, ∀ t ∈ Set.Icc (0 : ℝ) T,
+      HasDerivWithinAt (fun s => charX s z) (charV t z) (Set.Icc 0 T) t ∧
+      HasDerivWithinAt (fun s => charV s z)
+        (-(convolveFunctionMeasure gradW (ρ_lim.extend t) (charX t z)))
+        (Set.Icc 0 T) t)
+    (h_int_ρ_lim : ∀ t (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (ρ_lim.extend t)) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ρ_lim.extend t =
+      spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) := by
+  have he : ∀ (ν : VlasovMeasureCurve d T m) s, s ∈ Set.Icc (0 : ℝ) T →
+      ν.extend s = ν.ρ s := by
+    intro ν s hs
+    unfold VlasovMeasureCurve.extend clampToIcc; congr 1
+    rw [min_eq_left hs.2, max_eq_right hs.1]
+  have hMm : ∀ (ν : VlasovMeasureCurve d T m), ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ∫ y, ‖y‖ ∂(ν.extend t) ≤ m T :=
+    fun ν t _ => le_trans (VlasovMeasureCurve.extend_hasMoment hT.le ν t)
+      (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t))
+  have h_int_ext_gen : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ) (xp : PhysSpace d),
+      Integrable (fun y => gradW (xp - y)) (ν.extend t) := fun ν t xp =>
+    integrable_gradW_shift gradW L hL (ν.extend t)
+      (VlasovMeasureCurve.extend_yIntegrable hT.le ν t) xp
+  have hCI := fun k => envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le (x k)
+    (m T) hMbar_nn (hMm (x k)) (charXs k) (charVs k)
+    (h_flow k).1 (h_flow k).2.1 (h_int_ext_gen (x k))
+  have hCI_lim := envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le ρ_lim
+    (m T) hMbar_nn (hMm ρ_lim) charX charV hflow_on_ρlim h_boundary_ρlim h_int_ρ_lim
+  have h_marg : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
+        = Measure.map (fun z => charX s z) f₀ := by
+    intro s hs
+    have h_pair_meas := charFlow_measurable_via_gronwall gradW L hL ρ_lim.extend h_int_ρ_lim
+      charX charV T hT.le hCI_lim.2.2.2.1 hCI_lim.2.2.2.2.1 hCI_lim.2.2.2.2.2 s hs
+    unfold spatialMarginal vlasovSolutionViaPushforward
+    rw [Measure.map_map measurable_fst h_pair_meas]
+    rfl
+  have h_cauchy := picard_iterate_isCauchy_of_contraction
+    (Set.Icc (0 : ℝ) T) (fun n => (x n).ρ) q hq_nn hq_lt D₀ hD₀_nn h_contract
+  have h_uniform := picard_iterate_limit_uniform_tendsto
+    (Set.Icc (0 : ℝ) T) (fun n => (x n).ρ) ρ_lim.ρ h_cauchy h_tendsto
+  have h_sup_ne_top : ∀ n, supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ ≠ ⊤ :=
+    fun n => supW1On_ne_top_of_VlasovMeasureCurve (m T) hMbar_mono (x n) ρ_lim
+  have h_sup_tendsto : Filter.Tendsto
+      (fun n => supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ) Filter.atTop (nhds 0) := by
+    rw [ENNReal.tendsto_atTop_zero]
+    intro ε hε
+    obtain ⟨N, hN⟩ := h_uniform ε hε
+    refine ⟨N, fun n hn => ?_⟩
+    unfold supW1On
+    exact iSup_le fun s => iSup_le fun hs => hN n hn s hs
+  set Dn : ℕ → ℝ := fun n => (supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ).toReal with hDn_def
+  have hDn_nn : ∀ n, 0 ≤ Dn n := fun n => ENNReal.toReal_nonneg
+  have hDn_tendsto : Filter.Tendsto Dn Filter.atTop (nhds 0) := by
+    have h := (ENNReal.tendsto_toReal (show (0:ENNReal) ≠ ⊤ by simp)).comp h_sup_tendsto
+    rw [ENNReal.toReal_zero] at h
+    exact h
+  have h_W1_fin_curve : ∀ n, ∀ s ∈ Set.Icc (0 : ℝ) T,
+      wasserstein1 ((x n).extend s) (ρ_lim.extend s) ≠ ⊤ := by
+    intro n s hs
+    rw [he (x n) s hs, he ρ_lim s hs]
+    haveI := (x n).isProb s; haveI := ρ_lim.isProb s
+    exact wasserstein1_ne_top_of_finite_moment _ _
+      ((x n).yIntegrable s hs) (ρ_lim.yIntegrable s hs)
+  have h_W1_bound_curve : ∀ n, ∀ s ∈ Set.Icc (0 : ℝ) T,
+      (wasserstein1 ((x n).extend s) (ρ_lim.extend s)).toReal ≤ Dn n := by
+    intro n s hs
+    rw [he (x n) s hs, he ρ_lim s hs]
+    exact ENNReal.toReal_mono (h_sup_ne_top n)
+      (wasserstein1_le_supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ s hs)
+  have h_term2 : ∀ n t, t ∈ Set.Icc (0 : ℝ) T →
+      (wasserstein1 (Measure.map (fun z => charXs n t z) f₀)
+                    (Measure.map (fun z => charX t z) f₀)).toReal ≤ Dn n * q :=
+    fun n t ht => picardLimit_flow_pointwise_contraction gradW L hL f₀ hf₀_int hT
+      m hMbar_nn hMbar_mono (x n) ρ_lim (charXs n) (charVs n) charX charV
+      (h_flow n).1 (h_flow n).2.1 hflow_on_ρlim h_boundary_ρlim
+      (Dn n) (hDn_nn n) (h_W1_fin_curve n) (h_W1_bound_curve n) q hq_def t ht
+  intro t ht
+  rw [he ρ_lim t ht, h_marg t ht]
+  exact picardLimit_fixed_point_eq f₀ m x ρ_lim charXs charX
+    (fun n t' ht' => (h_flow n).2.2 t' ht') h_tendsto
+    (fun n t' ht' => (hCI n).1 t' ht') (fun t' ht' => hCI_lim.1 t' ht')
+    (fun n t' ht' => (hCI n).2.2.1 t' ht') (fun t' ht' => hCI_lim.2.2.1 t' ht')
+    Dn q (by simpa using hDn_tendsto.mul_const q) h_term2 t ht
+
 /-- **Sub-helper for `vlasovWellPosedness_local`** — the Picard fixed-point
 self-consistent flow.
 
@@ -7709,83 +7839,12 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   -- ============================================================
   have h_self_consist : ∀ t ∈ Set.Icc (0 : ℝ) T,
       ρ_lim.extend t =
-      spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) := by
-    -- The Picard fixed-point equation, via `picardLimit_fixed_point_eq` fed by
-    -- the pointwise contraction `picardLimit_flow_pointwise_contraction`.
-    have he : ∀ (ν : VlasovMeasureCurve d T m) s, s ∈ Set.Icc (0 : ℝ) T →
-        ν.extend s = ν.ρ s := by
-      intro ν s hs
-      unfold VlasovMeasureCurve.extend clampToIcc; congr 1
-      rw [min_eq_left hs.2, max_eq_right hs.1]
-    have hMm : ∀ (ν : VlasovMeasureCurve d T m), ∀ t ∈ Set.Icc (0 : ℝ) T,
-        ∫ y, ‖y‖ ∂(ν.extend t) ≤ m T :=
-      fun ν t _ => le_trans (VlasovMeasureCurve.extend_hasMoment hT.le ν t)
-        (hMbar_mono (clampToIcc T t) (clampToIcc_mem hT.le t))
-    have h_int_ext_gen : ∀ (ν : VlasovMeasureCurve d T m) (t : ℝ) (xp : PhysSpace d),
-        Integrable (fun y => gradW (xp - y)) (ν.extend t) := fun ν t xp =>
-      integrable_gradW_shift gradW L hL (ν.extend t)
-        (VlasovMeasureCurve.extend_yIntegrable hT.le ν t) xp
-    have hCI := fun k => envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le (x k)
-      (m T) hMbar_nn (hMm (x k)) (charXs k) (charVs k)
-      (h_flow k).1 (h_flow k).2.1 (h_int_ext_gen (x k))
-    have hCI_lim := envelopeStep_contractionInputs gradW L hL f₀ hf₀_int hT.le ρ_lim
-      (m T) hMbar_nn (hMm ρ_lim) charX charV hflow_on_ρlim h_boundary_ρlim h_int_ρ_lim
-    have h_marg : ∀ s ∈ Set.Icc (0 : ℝ) T,
-        spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
-          = Measure.map (fun z => charX s z) f₀ := by
-      intro s hs
-      have h_pair_meas := charFlow_measurable_via_gronwall gradW L hL ρ_lim.extend h_int_ρ_lim
-        charX charV T hT.le hCI_lim.2.2.2.1 hCI_lim.2.2.2.2.1 hCI_lim.2.2.2.2.2 s hs
-      unfold spatialMarginal vlasovSolutionViaPushforward
-      rw [Measure.map_map measurable_fst h_pair_meas]
-      rfl
-    have h_cauchy := picard_iterate_isCauchy_of_contraction
-      (Set.Icc (0 : ℝ) T) (fun n => (x n).ρ) q hq_nn hq_lt D₀ hD₀_nn h_contract
-    have h_uniform := picard_iterate_limit_uniform_tendsto
-      (Set.Icc (0 : ℝ) T) (fun n => (x n).ρ) ρ_lim.ρ h_cauchy h_tendsto
-    have h_sup_ne_top : ∀ n, supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ ≠ ⊤ :=
-      fun n => supW1On_ne_top_of_VlasovMeasureCurve (m T) hMbar_mono (x n) ρ_lim
-    have h_sup_tendsto : Filter.Tendsto
-        (fun n => supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ) Filter.atTop (nhds 0) := by
-      rw [ENNReal.tendsto_atTop_zero]
-      intro ε hε
-      obtain ⟨N, hN⟩ := h_uniform ε hε
-      refine ⟨N, fun n hn => ?_⟩
-      unfold supW1On
-      exact iSup_le fun s => iSup_le fun hs => hN n hn s hs
-    set Dn : ℕ → ℝ := fun n => (supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ).toReal with hDn_def
-    have hDn_nn : ∀ n, 0 ≤ Dn n := fun n => ENNReal.toReal_nonneg
-    have hDn_tendsto : Filter.Tendsto Dn Filter.atTop (nhds 0) := by
-      have h := (ENNReal.tendsto_toReal (show (0:ENNReal) ≠ ⊤ by simp)).comp h_sup_tendsto
-      rw [ENNReal.toReal_zero] at h
-      exact h
-    have h_W1_fin_curve : ∀ n, ∀ s ∈ Set.Icc (0 : ℝ) T,
-        wasserstein1 ((x n).extend s) (ρ_lim.extend s) ≠ ⊤ := by
-      intro n s hs
-      rw [he (x n) s hs, he ρ_lim s hs]
-      haveI := (x n).isProb s; haveI := ρ_lim.isProb s
-      exact wasserstein1_ne_top_of_finite_moment _ _
-        ((x n).yIntegrable s hs) (ρ_lim.yIntegrable s hs)
-    have h_W1_bound_curve : ∀ n, ∀ s ∈ Set.Icc (0 : ℝ) T,
-        (wasserstein1 ((x n).extend s) (ρ_lim.extend s)).toReal ≤ Dn n := by
-      intro n s hs
-      rw [he (x n) s hs, he ρ_lim s hs]
-      exact ENNReal.toReal_mono (h_sup_ne_top n)
-        (wasserstein1_le_supW1On (Set.Icc 0 T) (x n).ρ ρ_lim.ρ s hs)
-    have h_term2 : ∀ n t, t ∈ Set.Icc (0 : ℝ) T →
-        (wasserstein1 (Measure.map (fun z => charXs n t z) f₀)
-                      (Measure.map (fun z => charX t z) f₀)).toReal ≤ Dn n * q :=
-      fun n t ht => picardLimit_flow_pointwise_contraction gradW L hL f₀ hf₀_int hT
-        m hMbar_nn hMbar_mono (x n) ρ_lim (charXs n) (charVs n) charX charV
-        (h_flow n).1 (h_flow n).2.1 hflow_on_ρlim h_boundary_ρlim
-        (Dn n) (hDn_nn n) (h_W1_fin_curve n) (h_W1_bound_curve n) q rfl t ht
-    intro t ht
-    rw [he ρ_lim t ht, h_marg t ht]
-    exact picardLimit_fixed_point_eq f₀ m x ρ_lim charXs charX
-      (fun n t' ht' => (h_flow n).2.2 t' ht') h_tendsto
-      (fun n t' ht' => (hCI n).1 t' ht') (fun t' ht' => hCI_lim.1 t' ht')
-      (fun n t' ht' => (hCI n).2.2.1 t' ht') (fun t' ht' => hCI_lim.2.2.1 t' ht')
-      Dn q (by simpa using hDn_tendsto.mul_const q) h_term2 t ht
+      spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t) :=
+    -- Step 8 extracted as `picardLimit_self_consistency`; the let-bound `q`'s
+    -- defining equation is supplied by `rfl`.
+    picardLimit_self_consistency gradW L hL f₀ hf₀_int hT m hMbar_nn hMbar_mono
+      q hq_nn hq_lt rfl D₀ hD₀_nn x charXs charVs h_contract h_flow
+      ρ_lim h_tendsto charX charV hflow_on_ρlim h_boundary_ρlim h_int_ρ_lim
   -- ============================================================
   -- Step 9: Bundle with a CLAMPED flow `cX s := charX (clampToIcc T s)`.
   --
