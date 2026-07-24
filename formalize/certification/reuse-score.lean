@@ -53,8 +53,8 @@ namespace ReuseScore
 
 def projectModules : List Name :=
   [`Vlasov.Base.Geometry, `Vlasov.OT.Wasserstein, `Vlasov.OT.Coupling,
-   `Vlasov.Basic, `Vlasov.OT.CharacteristicFlow, `Vlasov.OT.WeakToLagrangian,
-   `Vlasov.Mathlib.ODE.PicardLindelof]
+   `Vlasov.Basic, `Vlasov.OT.CharacteristicFlow, `Vlasov.OT.WellPosedness,
+   `Vlasov.OT.WeakToLagrangian, `Vlasov.Mathlib.ODE.PicardLindelof]
 
 /-- Skip auto-generated / internal constants. -/
 def isReal (nm : Name) : Bool :=

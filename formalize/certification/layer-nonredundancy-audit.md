@@ -1,5 +1,18 @@
 # Q4 audit — non-redundancy of the self-contained layer $\mathcal{L}_{\mathrm{gen}}$ (Def 3.2)
 
+> **POST-STAGE-1 RE-RUN (2026-07-24, after the pool-compliance refactor + the
+> CharacteristicFlow → CharacteristicFlow/WellPosedness split).**  `reuse-score.lean`
+> (with `Vlasov.OT.WellPosedness` added to `projectModules`): partition WELL-FORMED,
+> S2 back-edges **0** (down-closed ✓), layer 49/49 distinct, **49/320 ≈ 15.3%**
+> potential, interface **w = 21** (down from 22 — the decomposition campaign's
+> dead-code deletion removed one specific-side reference; the split itself cannot
+> move `w`, it reorganizes only the specific side).  `Vlasov.OT.WellPosedness`:
+> 23 decls, 0 general — no layer leak.  Q4-A: **44/49** reachable from the four
+> marquees (project-wide 216/320); the 5 unreached (drift of the same character
+> the audit records below): the two vendored IPL confined variants,
+> `integral_boundedContinuous_eq_of_integral_lipschitz_eq`,
+> `wasserstein1_eq_zero_iff_measure_eq`, `wasserstein1_le_moments_sum`.
+
 > **OUTCOME (this audit motivated a redefinition).** Half A below found 11 of the original
 > 60 general decls unreachable from a target. In response, $\mathcal{L}_{\mathrm{gen}}$ was
 > **redefined to the 49-declaration reachable general core** (the 11 excluded: 6 deferred W̄
