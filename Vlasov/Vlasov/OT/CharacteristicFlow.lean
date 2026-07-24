@@ -11582,6 +11582,349 @@ private lemma dobrushinFlow_clamped_deriv
   rw [hb_id s hsIcc, hx]; exact hwithin'
 
 
+/-- First-moment transfer to the base: `∫ ‖proj ω‖ dπ₀` is finite when the
+pushed-forward marginal has a finite first moment. -/
+private lemma dobrushinFlow_proj_moment
+    {d : ℕ} [NeZero d] {Ω : Type*} [MeasurableSpace Ω]
+    (π₀ : Measure Ω) (proj : Ω → PhaseSpace d) (hproj : Measurable proj)
+    (μ0 : Measure (PhaseSpace d)) (hmarg : μ0 = Measure.map proj π₀)
+    (hmom : Integrable (fun z : PhaseSpace d => ‖z‖) μ0) :
+    Integrable (fun ω : Ω => ‖proj ω‖) π₀ := by
+  have hmap : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map proj π₀) := by
+    rw [← hmarg]; exact hmom
+  exact (integrable_map_measure continuous_norm.aestronglyMeasurable
+    hproj.aemeasurable).mp hmap
+
+/-- On `[0, T]` the clamped Vlasov field coincides with the genuine field. -/
+private lemma dobrushinFlow_clamped_field_id
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (T : ℝ) (clampT : ℝ → ℝ)
+    (hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s)
+    (μ : ℝ → Measure (PhaseSpace d))
+    (b : ℝ → PhaseSpace d → PhaseSpace d)
+    (hb : b = fun s => vlasovVectorField gradW (fun s => spatialMarginal (μ (clampT s))) s) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T,
+      b s = vlasovVectorField gradW (fun s => spatialMarginal (μ s)) s := by
+  intro s hs
+  have hmeas : spatialMarginal (μ (clampT s)) = spatialMarginal (μ s) := by
+    rw [hclampT_id s hs]
+  funext z; simp only [hb, vlasovVectorField, hmeas]
+
+/-- Moment-free dominator bound: the coupled trajectory difference is bounded
+by `e^{KT}(‖proj_f ω‖ + ‖proj_g ω‖) + (K_f + K_g)` on `[0, T]`. -/
+private lemma dobrushinFlow_dominator_bound
+    {d : ℕ} [NeZero d] {Ω : Type*}
+    (T : ℝ) (clampT : ℝ → ℝ)
+    (hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s)
+    (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (proj_f proj_g : Ω → PhaseSpace d)
+    (EKT K_f K_g : ℝ)
+    (hfnorm : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω : PhaseSpace d,
+      ‖(charX_f s ω, charV_f s ω)‖ ≤ EKT * ‖ω‖ + K_f)
+    (hgnorm : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω : PhaseSpace d,
+      ‖(charX_g s ω, charV_g s ω)‖ ≤ EKT * ‖ω‖ + K_g)
+    (X_f X_g : ℝ → Ω → PhaseSpace d)
+    (hX_f : X_f = fun s ω => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω)))
+    (hX_g : X_g = fun s ω => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω))) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω,
+      ‖X_f s ω - X_g s ω‖ ≤ EKT * ‖proj_f ω‖ + EKT * ‖proj_g ω‖ + (K_f + K_g) := by
+  intro s hs ω
+  have hclamp_eq : clampT s = s := hclampT_id s hs
+  have hXf : X_f s ω = (charX_f s (proj_f ω), charV_f s (proj_f ω)) := by
+    simp only [hX_f, hclamp_eq]
+  have hXg : X_g s ω = (charX_g s (proj_g ω), charV_g s (proj_g ω)) := by
+    simp only [hX_g, hclamp_eq]
+  rw [hXf, hXg]
+  calc ‖(charX_f s (proj_f ω), charV_f s (proj_f ω))
+          - (charX_g s (proj_g ω), charV_g s (proj_g ω))‖
+      ≤ ‖(charX_f s (proj_f ω), charV_f s (proj_f ω))‖
+          + ‖(charX_g s (proj_g ω), charV_g s (proj_g ω))‖ := norm_sub_le _ _
+    _ ≤ (EKT * ‖proj_f ω‖ + K_f) + (EKT * ‖proj_g ω‖ + K_g) := by
+        have hf_bd := hfnorm s hs (proj_f ω)
+        have hg_bd := hgnorm s hs (proj_g ω)
+        gcongr
+    _ = EKT * ‖proj_f ω‖ + EKT * ‖proj_g ω‖ + (K_f + K_g) := by ring
+
+/-- Global continuity in `s` of the integrated trajectory distance
+`s ↦ ∫ ‖X_f s − X_g s‖ dπ₀`, by moment-free dominated convergence (the clamp
+makes the integrand globally continuous per `ω` and globally dominated). -/
+private lemma dobrushinFlow_Q_continuous
+    {d : ℕ} [NeZero d] {Ω : Type*} [MeasurableSpace Ω]
+    (T : ℝ) (clampT : ℝ → ℝ) (hclampT_cont : Continuous clampT)
+    (hclampT_mem : ∀ s, clampT s ∈ Set.Icc (0 : ℝ) T)
+    (hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s)
+    (π₀ : Measure Ω)
+    (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (proj_f proj_g : Ω → PhaseSpace d)
+    (hcontIcc_f : ∀ z, ContinuousOn (fun s => (charX_f s z, charV_f s z)) (Set.Icc 0 T))
+    (hcontIcc_g : ∀ z, ContinuousOn (fun s => (charX_g s z, charV_g s z)) (Set.Icc 0 T))
+    (X_f X_g : ℝ → Ω → PhaseSpace d)
+    (hX_f : X_f = fun s ω => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω)))
+    (hX_g : X_g = fun s ω => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω)))
+    (hmeas_f : ∀ s, Measurable (X_f s)) (hmeas_g : ∀ s, Measurable (X_g s))
+    (dom : Ω → ℝ) (hdom_int : Integrable dom π₀)
+    (hdom : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω) :
+    Continuous (fun s => ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀) := by
+  have hXf_cont_glob : ∀ ω, Continuous (fun s => X_f s ω) := by
+    intro ω
+    have : Continuous (fun s => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω))) :=
+      (hcontIcc_f (proj_f ω)).comp_continuous hclampT_cont (fun s => hclampT_mem s)
+    simpa only [hX_f] using this
+  have hXg_cont_glob : ∀ ω, Continuous (fun s => X_g s ω) := by
+    intro ω
+    have : Continuous (fun s => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω))) :=
+      (hcontIcc_g (proj_g ω)).comp_continuous hclampT_cont (fun s => hclampT_mem s)
+    simpa only [hX_g] using this
+  refine continuous_of_dominated
+    (fun s => ((hmeas_f s).sub (hmeas_g s)).norm.aestronglyMeasurable)
+    (fun s => Filter.Eventually.of_forall (fun ω => ?_))
+    hdom_int
+    (Filter.Eventually.of_forall (fun ω => ((hXf_cont_glob ω).sub (hXg_cont_glob ω)).norm))
+  rw [Real.norm_of_nonneg (norm_nonneg _)]
+  have hcl : clampT s ∈ Set.Icc (0 : ℝ) T := hclampT_mem s
+  have hXf : X_f s ω = X_f (clampT s) ω := by
+    simp only [hX_f]; rw [hclampT_id (clampT s) hcl]
+  have hXg : X_g s ω = X_g (clampT s) ω := by
+    simp only [hX_g]; rw [hclampT_id (clampT s) hcl]
+  rw [hXf, hXg]; exact hdom (clampT s) hcl ω
+
+/-- **Cross-field bound**: the convolution-force difference of the two fields
+along the second trajectory is bounded by `(max 1 L)` times the integrated
+trajectory distance — established through the two marginal identities on the
+common base `π₀`, never forming `wasserstein1 (f s) (g s)`. -/
+private lemma dobrushinFlow_cross_field_bound
+    {d : ℕ} [NeZero d] {Ω : Type*} [MeasurableSpace Ω]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (T : ℝ) (clampT : ℝ → ℝ)
+    (hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s)
+    (π₀ : Measure Ω)
+    (f g : ℝ → Measure (PhaseSpace d))
+    (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (proj_f proj_g : Ω → PhaseSpace d)
+    (hproj_f : Measurable proj_f) (hproj_g : Measurable proj_g)
+    (hpush_f : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      f t = Measure.map (fun z => (charX_f t z, charV_f t z)) (f 0))
+    (haem_f : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => (charX_f s z, charV_f s z)) (f 0))
+    (hpush_g : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      g t = Measure.map (fun z => (charX_g t z, charV_g t z)) (g 0))
+    (haem_g : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      AEMeasurable (fun z : PhaseSpace d => (charX_g s z, charV_g s z)) (g 0))
+    (hf_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (f t))
+    (hg_mom : ∀ t ∈ Set.Icc (0 : ℝ) T, HasFiniteFirstMoment (g t))
+    (hmarg_f : f 0 = Measure.map proj_f π₀)
+    (hmarg_g : g 0 = Measure.map proj_g π₀)
+    (h_int_f : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (f t)))
+    (h_int_g : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x_pt : PhysSpace d),
+      Integrable (fun y => gradW (x_pt - y)) (spatialMarginal (g t)))
+    (hmeas_charf : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Measurable (fun z : PhaseSpace d => (charX_f s z, charV_f s z)))
+    (hmeas_charg : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Measurable (fun z : PhaseSpace d => (charX_g s z, charV_g s z)))
+    (X_f X_g : ℝ → Ω → PhaseSpace d)
+    (hX_f : X_f = fun s ω => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω)))
+    (hX_g : X_g = fun s ω => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω)))
+    (b_f b_g : ℝ → PhaseSpace d → PhaseSpace d)
+    (hb_f_id : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      b_f s = vlasovVectorField gradW (fun s => spatialMarginal (f s)) s)
+    (hb_g_id : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      b_g s = vlasovVectorField gradW (fun s => spatialMarginal (g s)) s)
+    (hmeas_f : ∀ s, Measurable (X_f s)) (hmeas_g : ∀ s, Measurable (X_g s))
+    (dom : Ω → ℝ) (hdom_int : Integrable dom π₀)
+    (hdom : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω) :
+    ∀ ω, ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ‖b_f s (X_g s ω) - b_g s (X_g s ω)‖ ≤
+        ((max 1 L : NNReal) : ℝ) * ∫ ω', ‖X_f s ω' - X_g s ω'‖ ∂π₀ := by
+  intro ω s hs
+  haveI : IsProbabilityMeasure (f s) := (hf_mom s hs).1
+  haveI : IsProbabilityMeasure (g s) := (hg_mom s hs).1
+  have hL_le_max : (L : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
+    rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_right _ _
+  set x : PhysSpace d := (X_g s ω).1 with hx_def
+  have hb_f_s := hb_f_id s hs
+  have hb_g_s := hb_g_id s hs
+  have h_form : b_f s (X_g s ω) - b_g s (X_g s ω) =
+      ((0 : PhysSpace d),
+       convolveFunctionMeasure gradW (spatialMarginal (g s)) x
+         - convolveFunctionMeasure gradW (spatialMarginal (f s)) x) := by
+    rw [hb_f_s, hb_g_s]
+    simp only [vlasovVectorField, Prod.mk_sub_mk, sub_self, hx_def]
+    refine Prod.ext rfl ?_
+    change -(convolveFunctionMeasure gradW (spatialMarginal (f s)) (X_g s ω).1)
+          - -(convolveFunctionMeasure gradW (spatialMarginal (g s)) (X_g s ω).1)
+        = convolveFunctionMeasure gradW (spatialMarginal (g s)) (X_g s ω).1
+          - convolveFunctionMeasure gradW (spatialMarginal (f s)) (X_g s ω).1
+    abel
+  rw [h_form, Prod.norm_def]
+  simp only [norm_zero]
+  rw [max_eq_right (norm_nonneg _)]
+  rw [dobrushinFlow_conv_pushforward gradW L hL T charX_g charV_g g (g 0)
+        hpush_g haem_g s hs x,
+      dobrushinFlow_conv_pushforward gradW L hL T charX_f charV_f f (f 0)
+        hpush_f haem_f s hs x]
+  have hmeas_charf_s : Measurable (fun z : PhaseSpace d => charX_f s z) :=
+    measurable_fst.comp (hmeas_charf s hs)
+  have hmeas_charg_s : Measurable (fun z : PhaseSpace d => charX_g s z) :=
+    measurable_fst.comp (hmeas_charg s hs)
+  have hmap_g : (∫ ω', gradW (x - charX_g s ω') ∂(g 0))
+      = ∫ ω, gradW (x - charX_g s (proj_g ω)) ∂π₀ := by
+    rw [hmarg_g]
+    exact integral_map hproj_g.aemeasurable
+      (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
+        hmeas_charg_s).aestronglyMeasurable)
+  have hmap_f : (∫ ω', gradW (x - charX_f s ω') ∂(f 0))
+      = ∫ ω, gradW (x - charX_f s (proj_f ω)) ∂π₀ := by
+    rw [hmarg_f]
+    exact integral_map hproj_f.aemeasurable
+      (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
+        hmeas_charf_s).aestronglyMeasurable)
+  rw [hmap_g, hmap_f]
+  have hint_g_π : Integrable (fun ω => gradW (x - charX_g s (proj_g ω))) π₀ := by
+    have hbase : Integrable (fun ω' => gradW (x - charX_g s ω')) (g 0) :=
+      dobrushinFlow_gradW_int_pushforward gradW L hL T charX_g charV_g g (g 0)
+        hpush_g haem_g h_int_g s hs x
+    rw [hmarg_g] at hbase
+    exact (integrable_map_measure
+      (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
+        hmeas_charg_s).aestronglyMeasurable) hproj_g.aemeasurable).mp hbase
+  have hint_f_π : Integrable (fun ω => gradW (x - charX_f s (proj_f ω))) π₀ := by
+    have hbase : Integrable (fun ω' => gradW (x - charX_f s ω')) (f 0) :=
+      dobrushinFlow_gradW_int_pushforward gradW L hL T charX_f charV_f f (f 0)
+        hpush_f haem_f h_int_f s hs x
+    rw [hmarg_f] at hbase
+    exact (integrable_map_measure
+      (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
+        hmeas_charf_s).aestronglyMeasurable) hproj_f.aemeasurable).mp hbase
+  rw [← integral_sub hint_g_π hint_f_π]
+  have h_pt : ∀ ω, ‖gradW (x - charX_g s (proj_g ω)) - gradW (x - charX_f s (proj_f ω))‖
+      ≤ (L : ℝ) * ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ := by
+    intro ω
+    have hd := hL.dist_le_mul (x - charX_g s (proj_g ω)) (x - charX_f s (proj_f ω))
+    rw [dist_eq_norm, dist_eq_norm] at hd
+    have hsub : (x - charX_g s (proj_g ω)) - (x - charX_f s (proj_f ω))
+        = charX_f s (proj_f ω) - charX_g s (proj_g ω) := by abel
+    rw [hsub] at hd; exact hd
+  have hf_phase_int : Integrable
+      (fun ω => ((charX_f s (proj_f ω), charV_f s (proj_f ω)) : PhaseSpace d)) π₀ := by
+    have hbase : Integrable (fun ω' : PhaseSpace d => (charX_f s ω', charV_f s ω')) (f 0) :=
+      dobrushinFlow_phase_int_pushforward T charX_f charV_f f (f 0)
+        hpush_f haem_f (fun t ht => (hf_mom t ht).2) s hs
+    rw [hmarg_f] at hbase
+    exact (integrable_map_measure (hmeas_charf s hs).aestronglyMeasurable
+      hproj_f.aemeasurable).mp hbase
+  have hg_phase_int : Integrable
+      (fun ω => ((charX_g s (proj_g ω), charV_g s (proj_g ω)) : PhaseSpace d)) π₀ := by
+    have hbase : Integrable (fun ω' : PhaseSpace d => (charX_g s ω', charV_g s ω')) (g 0) :=
+      dobrushinFlow_phase_int_pushforward T charX_g charV_g g (g 0)
+        hpush_g haem_g (fun t ht => (hg_mom t ht).2) s hs
+    rw [hmarg_g] at hbase
+    exact (integrable_map_measure (hmeas_charg s hs).aestronglyMeasurable
+      hproj_g.aemeasurable).mp hbase
+  have hnorm_int_le :
+      ‖∫ ω, (gradW (x - charX_g s (proj_g ω)) - gradW (x - charX_f s (proj_f ω))) ∂π₀‖
+        ≤ ∫ ω, (L : ℝ) * ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀ := by
+    refine le_trans (norm_integral_le_integral_norm _) ?_
+    refine integral_mono (hint_g_π.sub hint_f_π).norm ?_ h_pt
+    have hdiff_int : Integrable
+        (fun ω => charX_f s (proj_f ω) - charX_g s (proj_g ω)) π₀ :=
+      (hf_phase_int.fst).sub (hg_phase_int.fst)
+    exact (hdiff_int.norm.const_mul (L : ℝ))
+  refine le_trans hnorm_int_le ?_
+  rw [integral_const_mul]
+  have hpt2 : ∀ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ≤ ‖X_f s ω - X_g s ω‖ := by
+    intro ω
+    have hXf : X_f s ω = (charX_f s (proj_f ω), charV_f s (proj_f ω)) := by
+      simp only [hX_f, hclampT_id s hs]
+    have hXg : X_g s ω = (charX_g s (proj_g ω), charV_g s (proj_g ω)) := by
+      simp only [hX_g, hclampT_id s hs]
+    rw [hXf, hXg]
+    have hsplit : ((charX_f s (proj_f ω), charV_f s (proj_f ω)) : PhaseSpace d)
+          - (charX_g s (proj_g ω), charV_g s (proj_g ω)) =
+        ((charX_f s (proj_f ω) - charX_g s (proj_g ω)),
+          (charV_f s (proj_f ω) - charV_g s (proj_g ω))) := by
+      rw [Prod.mk_sub_mk]
+    rw [hsplit, Prod.norm_def]; exact le_max_left _ _
+  have hdiff_norm_int : Integrable
+      (fun ω => ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖) π₀ :=
+    ((hf_phase_int.fst).sub (hg_phase_int.fst)).norm
+  have hXdiff_norm_int : Integrable (fun ω => ‖X_f s ω - X_g s ω‖) π₀ :=
+    Integrable.mono' hdom_int
+      ((hmeas_f s).sub (hmeas_g s)).norm.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hdom s hs ω)
+  have hQ_le : ∫ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀
+      ≤ ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
+    integral_mono hdiff_norm_int hXdiff_norm_int hpt2
+  calc (L : ℝ) * ∫ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀
+      ≤ (L : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
+        mul_le_mul_of_nonneg_left hQ_le L.coe_nonneg
+    _ ≤ ((max 1 L : NNReal) : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
+        mul_le_mul_of_nonneg_right hL_le_max (integral_nonneg fun _ => norm_nonneg _)
+
+/-- Conclusion transfer: rewrite the integrated-coupling core's bound and the
+associated integrability from the clamped `X`-form into the conclusion's
+`proj`-form, using the initial-identity of the flows at `t = 0`. -/
+private lemma dobrushinFlow_conclusion_transfer
+    {d : ℕ} [NeZero d] {Ω : Type*} [MeasurableSpace Ω]
+    (T : ℝ) (hT : 0 < T) (clampT : ℝ → ℝ)
+    (hclampT_id : ∀ s ∈ Set.Icc (0 : ℝ) T, clampT s = s)
+    (π₀ : Measure Ω) (L : NNReal)
+    (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (proj_f proj_g : Ω → PhaseSpace d)
+    (hinit_f' : ∀ z : PhaseSpace d, (charX_f 0 z, charV_f 0 z) = z)
+    (hinit_g' : ∀ z : PhaseSpace d, (charX_g 0 z, charV_g 0 z) = z)
+    (X_f X_g : ℝ → Ω → PhaseSpace d)
+    (hX_f : X_f = fun s ω => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω)))
+    (hX_g : X_g = fun s ω => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω)))
+    (hmeas_f : ∀ s, Measurable (X_f s)) (hmeas_g : ∀ s, Measurable (X_g s))
+    (dom : Ω → ℝ) (hdom_int : Integrable dom π₀)
+    (hdom : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω)
+    (hcore : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      (∫ ω, ‖X_f t ω - X_g t ω‖ ∂π₀) ≤
+        (∫ ω, ‖X_f 0 ω - X_g 0 ω‖ ∂π₀) * Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t)) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun ω => ‖((charX_f t (proj_f ω), charV_f t (proj_f ω)) : PhaseSpace d)
+              - (charX_g t (proj_g ω), charV_g t (proj_g ω))‖) π₀ ∧
+      (∫ ω, ‖((charX_f t (proj_f ω), charV_f t (proj_f ω)) : PhaseSpace d)
+              - (charX_g t (proj_g ω), charV_g t (proj_g ω))‖ ∂π₀)
+        ≤ (∫ ω, ‖proj_f ω - proj_g ω‖ ∂π₀)
+            * Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t) := by
+  intro t ht
+  have hbound := hcore t ht
+  have hbase0 : (∫ ω, ‖X_f 0 ω - X_g 0 ω‖ ∂π₀) = ∫ ω, ‖proj_f ω - proj_g ω‖ ∂π₀ := by
+    apply integral_congr_ae
+    filter_upwards with ω
+    have hXf0 : X_f 0 ω = proj_f ω := by
+      simp only [hX_f, hclampT_id 0 ⟨le_refl 0, hT.le⟩]; exact hinit_f' (proj_f ω)
+    have hXg0 : X_g 0 ω = proj_g ω := by
+      simp only [hX_g, hclampT_id 0 ⟨le_refl 0, hT.le⟩]; exact hinit_g' (proj_g ω)
+    rw [hXf0, hXg0]
+  have hlhs : (∫ ω, ‖X_f t ω - X_g t ω‖ ∂π₀)
+      = ∫ ω, ‖((charX_f t (proj_f ω), charV_f t (proj_f ω)) : PhaseSpace d)
+             - (charX_g t (proj_g ω), charV_g t (proj_g ω))‖ ∂π₀ := by
+    apply integral_congr_ae
+    filter_upwards with ω
+    have hXf : X_f t ω = (charX_f t (proj_f ω), charV_f t (proj_f ω)) := by
+      simp only [hX_f, hclampT_id t ht]
+    have hXg : X_g t ω = (charX_g t (proj_g ω), charV_g t (proj_g ω)) := by
+      simp only [hX_g, hclampT_id t ht]
+    rw [hXf, hXg]
+  rw [hlhs, hbase0] at hbound
+  refine ⟨?_, hbound⟩
+  have hXfe : ∀ ω, X_f t ω = (charX_f t (proj_f ω), charV_f t (proj_f ω)) := fun ω => by
+    simp only [hX_f, hclampT_id t ht]
+  have hXge : ∀ ω, X_g t ω = (charX_g t (proj_g ω), charV_g t (proj_g ω)) := fun ω => by
+    simp only [hX_g, hclampT_id t ht]
+  have hint_t : Integrable (fun ω => ‖X_f t ω - X_g t ω‖) π₀ :=
+    Integrable.mono' hdom_int
+      ((hmeas_f t).sub (hmeas_g t)).norm.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hdom t ht ω)
+  simpa only [hXfe, hXge] using hint_t
+
 /-- **Shared integrated-coupling core for the Dobrushin stability bound.**
 
 Generalizes the body of `dobrushin_uniqueness_On` over an arbitrary base
@@ -11667,8 +12010,6 @@ private theorem dobrushin_integrated_flow_bound_On
     fun t ht => (hg_mom t ht).1
   haveI hf0_prob : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
   haveI hg0_prob : IsProbabilityMeasure (g 0) := (hg_mom 0 ⟨le_refl 0, hT.le⟩).1
-  have hL_le_max : (L : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
-    rw [NNReal.coe_max, NNReal.coe_one]; exact le_max_right _ _
   -- Clamp into [0, T].
   set clampT : ℝ → ℝ := (fun s => max 0 (min s T)) with hclampT_def
   have hclampT_mem : ∀ s, clampT s ∈ Set.Icc (0 : ℝ) T := by
@@ -11712,18 +12053,8 @@ private theorem dobrushin_integrated_flow_bound_On
     vlasovVectorField_lipschitzWith gradW L hL
       (fun s => spatialMarginal (g (clampT s))) hgc_int s
   -- On [0, T] the clamped field coincides with the genuine field.
-  have hb_f_id : ∀ s ∈ Set.Icc (0 : ℝ) T,
-      b_f s = vlasovVectorField gradW (fun s => spatialMarginal (f s)) s := by
-    intro s hs
-    have hmeas : spatialMarginal (f (clampT s)) = spatialMarginal (f s) := by
-      rw [hclampT_id s hs]
-    funext z; simp only [hb_f_def, vlasovVectorField, hmeas]
-  have hb_g_id : ∀ s ∈ Set.Icc (0 : ℝ) T,
-      b_g s = vlasovVectorField gradW (fun s => spatialMarginal (g s)) s := by
-    intro s hs
-    have hmeas : spatialMarginal (g (clampT s)) = spatialMarginal (g s) := by
-      rw [hclampT_id s hs]
-    funext z; simp only [hb_g_def, vlasovVectorField, hmeas]
+  have hb_f_id := dobrushinFlow_clamped_field_id gradW T clampT hclampT_id f b_f hb_f_def
+  have hb_g_id := dobrushinFlow_clamped_field_id gradW T clampT hclampT_id g b_g hb_g_def
   -- Open-window flow ODE in z (HasDerivWithinAt on `Ici s`, `s ∈ Ioo 0 T`).
   have hderiv_Ioo_f := dobrushinFlow_deriv_Ioo gradW T clampT hclampT_id f
     charX_f charV_f hflow_f_x hflow_f_v
@@ -11767,7 +12098,6 @@ private theorem dobrushin_integrated_flow_bound_On
   set K : NNReal := max 1 L with hK_def
   have hK_nn : (0 : ℝ) ≤ ((K : NNReal) : ℝ) := K.coe_nonneg
   set EKT : ℝ := Real.exp (((K : NNReal) : ℝ) * T) with hEKT_def
-  have hEKT_pos : 0 < EKT := Real.exp_pos _
   have hlip_f : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ z₁ z₂ : PhaseSpace d,
       dist ((charX_f s z₁, charV_f s z₁) : PhaseSpace d) (charX_f s z₂, charV_f s z₂) ≤
       dist z₁ z₂ * Real.exp (((K : NNReal) : ℝ) * (s - 0)) :=
@@ -11793,64 +12123,28 @@ private theorem dobrushin_integrated_flow_bound_On
     rw [hEKT_def]
     exact dobrushinFlow_flow_norm_bound T K charX_g charV_g K_g hlip_g hK_g
   set dom : Ω → ℝ := fun ω => EKT * ‖proj_f ω‖ + EKT * ‖proj_g ω‖ + (K_f + K_g) with hdom_def
-  have hmom_f : Integrable (fun ω : Ω => ‖proj_f ω‖) π₀ := by
-    have hmap : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map proj_f π₀) := by
-      rw [← hmarg_f]; exact (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
-    exact (integrable_map_measure continuous_norm.aestronglyMeasurable
-      hproj_f.aemeasurable).mp hmap
-  have hmom_g : Integrable (fun ω : Ω => ‖proj_g ω‖) π₀ := by
-    have hmap : Integrable (fun z : PhaseSpace d => ‖z‖) (Measure.map proj_g π₀) := by
-      rw [← hmarg_g]; exact (hg_mom 0 ⟨le_refl 0, hT.le⟩).2
-    exact (integrable_map_measure continuous_norm.aestronglyMeasurable
-      hproj_g.aemeasurable).mp hmap
+  have hmom_f : Integrable (fun ω : Ω => ‖proj_f ω‖) π₀ :=
+    dobrushinFlow_proj_moment π₀ proj_f hproj_f (f 0) hmarg_f
+      (hf_mom 0 ⟨le_refl 0, hT.le⟩).2
+  have hmom_g : Integrable (fun ω : Ω => ‖proj_g ω‖) π₀ :=
+    dobrushinFlow_proj_moment π₀ proj_g hproj_g (g 0) hmarg_g
+      (hg_mom 0 ⟨le_refl 0, hT.le⟩).2
   have hdom_int : Integrable dom π₀ := by
     simp only [hdom_def]
     exact ((hmom_f.const_mul EKT).add (hmom_g.const_mul EKT)).add (integrable_const _)
   have hdom : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ ω, ‖X_f s ω - X_g s ω‖ ≤ dom ω := by
-    intro s hs ω
-    have hclamp_eq : clampT s = s := hclampT_id s hs
-    have hXf : X_f s ω = (charX_f s (proj_f ω), charV_f s (proj_f ω)) := by
-      simp only [hX_f_def, hclamp_eq]
-    have hXg : X_g s ω = (charX_g s (proj_g ω), charV_g s (proj_g ω)) := by
-      simp only [hX_g_def, hclamp_eq]
-    rw [hXf, hXg]
-    calc ‖(charX_f s (proj_f ω), charV_f s (proj_f ω))
-            - (charX_g s (proj_g ω), charV_g s (proj_g ω))‖
-        ≤ ‖(charX_f s (proj_f ω), charV_f s (proj_f ω))‖
-            + ‖(charX_g s (proj_g ω), charV_g s (proj_g ω))‖ := norm_sub_le _ _
-      _ ≤ (EKT * ‖proj_f ω‖ + K_f) + (EKT * ‖proj_g ω‖ + K_g) := by
-          have hf_bd := hfnorm s hs (proj_f ω)
-          have hg_bd := hgnorm s hs (proj_g ω)
-          gcongr
-      _ = dom ω := by simp only [hdom_def]; ring
+    simp only [hdom_def]
+    exact dobrushinFlow_dominator_bound T clampT hclampT_id charX_f charV_f
+      charX_g charV_g proj_f proj_g EKT K_f K_g hfnorm hgnorm X_f X_g hX_f_def hX_g_def
   -- Cross-field bound ε and its self-reference to Q (over the base π₀).
   set Q : ℝ → ℝ := fun s => ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ with hQ_def
   set ε : ℝ → ℝ := fun s => ((max 1 L : NNReal) : ℝ) * Q s with hε_def
-  have hXf_cont_glob : ∀ ω, Continuous (fun s => X_f s ω) := by
-    intro ω
-    have : Continuous (fun s => (charX_f (clampT s) (proj_f ω), charV_f (clampT s) (proj_f ω))) :=
-      (hcontIcc_f (proj_f ω)).comp_continuous hclampT_cont (fun s => hclampT_mem s)
-    simpa only [hX_f_def] using this
-  have hXg_cont_glob : ∀ ω, Continuous (fun s => X_g s ω) := by
-    intro ω
-    have : Continuous (fun s => (charX_g (clampT s) (proj_g ω), charV_g (clampT s) (proj_g ω))) :=
-      (hcontIcc_g (proj_g ω)).comp_continuous hclampT_cont (fun s => hclampT_mem s)
-    simpa only [hX_g_def] using this
   have hQ_cont : ContinuousOn Q (Set.Icc 0 T) := by
     have hQglob : Continuous Q := by
       simp only [hQ_def]
-      refine continuous_of_dominated
-        (fun s => ((hmeas_f s).sub (hmeas_g s)).norm.aestronglyMeasurable)
-        (fun s => Filter.Eventually.of_forall (fun ω => ?_))
-        hdom_int
-        (Filter.Eventually.of_forall (fun ω => ((hXf_cont_glob ω).sub (hXg_cont_glob ω)).norm))
-      rw [Real.norm_of_nonneg (norm_nonneg _)]
-      have hcl : clampT s ∈ Set.Icc (0 : ℝ) T := hclampT_mem s
-      have hXf : X_f s ω = X_f (clampT s) ω := by
-        simp only [hX_f_def]; rw [hclampT_id (clampT s) hcl]
-      have hXg : X_g s ω = X_g (clampT s) ω := by
-        simp only [hX_g_def]; rw [hclampT_id (clampT s) hcl]
-      rw [hXf, hXg]; exact hdom (clampT s) hcl ω
+      exact dobrushinFlow_Q_continuous T clampT hclampT_cont hclampT_mem hclampT_id
+        π₀ charX_f charV_f charX_g charV_g proj_f proj_g hcontIcc_f hcontIcc_g
+        X_f X_g hX_f_def hX_g_def hmeas_f hmeas_g dom hdom_int hdom
     exact hQglob.continuousOn
   have hε_int : IntervalIntegrable ε MeasureTheory.volume 0 T := by
     have hεcont : ContinuousOn ε (Set.Icc 0 T) := by
@@ -11864,10 +12158,6 @@ private theorem dobrushin_integrated_flow_bound_On
   have h_self : ∀ s ∈ Set.Icc (0 : ℝ) T,
       ε s ≤ ((max 1 L : NNReal) : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ := by
     intro s _; exact le_refl _
-  -- Pushforward-convolution identity, generic in the base `ν`.
-  have h_conv_push := dobrushinFlow_conv_pushforward gradW L hL T
-  have h_int_push := dobrushinFlow_gradW_int_pushforward gradW L hL T
-  have h_phase_int := dobrushinFlow_phase_int_pushforward (d := d) T
   have hint : ∀ ω, IntervalIntegrable
       (fun s => b_f s (X_f s ω) - b_g s (X_g s ω)) MeasureTheory.volume 0 T := by
     intro ω
@@ -11890,168 +12180,20 @@ private theorem dobrushin_integrated_flow_bound_On
   -- trajectory distance, integrated against `π₀` through the two marginals.
   have h_diff : ∀ ω, ∀ s ∈ Set.Icc (0 : ℝ) T,
       ‖b_f s (X_g s ω) - b_g s (X_g s ω)‖ ≤ ε s := by
-    intro ω s hs
-    haveI := hf_isProb s hs
-    haveI := hg_isProb s hs
-    set x : PhysSpace d := (X_g s ω).1 with hx_def
-    have hb_f_s := hb_f_id s hs
-    have hb_g_s := hb_g_id s hs
-    have h_form : b_f s (X_g s ω) - b_g s (X_g s ω) =
-        ((0 : PhysSpace d),
-         convolveFunctionMeasure gradW (spatialMarginal (g s)) x
-           - convolveFunctionMeasure gradW (spatialMarginal (f s)) x) := by
-      rw [hb_f_s, hb_g_s]
-      simp only [vlasovVectorField, Prod.mk_sub_mk, sub_self, hx_def]
-      refine Prod.ext rfl ?_
-      change -(convolveFunctionMeasure gradW (spatialMarginal (f s)) (X_g s ω).1)
-            - -(convolveFunctionMeasure gradW (spatialMarginal (g s)) (X_g s ω).1)
-          = convolveFunctionMeasure gradW (spatialMarginal (g s)) (X_g s ω).1
-            - convolveFunctionMeasure gradW (spatialMarginal (f s)) (X_g s ω).1
-      abel
-    rw [h_form, Prod.norm_def]
-    simp only [norm_zero]
-    rw [max_eq_right (norm_nonneg _)]
-    -- Native-base pushforward of both convolutions.
-    rw [h_conv_push charX_g charV_g g (g 0) hpush_g haem_g s hs x,
-        h_conv_push charX_f charV_f f (f 0) hpush_f haem_f s hs x]
-    -- Measurability of the position maps `charX_μ s`.
-    have hmeas_charf_s : Measurable (fun z : PhaseSpace d => charX_f s z) :=
-      measurable_fst.comp (hmeas_charf s hs)
-    have hmeas_charg_s : Measurable (fun z : PhaseSpace d => charX_g s z) :=
-      measurable_fst.comp (hmeas_charg s hs)
-    -- Move both integrals onto the common base `π₀` via the marginal identities.
-    have hmap_g : (∫ ω', gradW (x - charX_g s ω') ∂(g 0))
-        = ∫ ω, gradW (x - charX_g s (proj_g ω)) ∂π₀ := by
-      rw [hmarg_g]
-      exact integral_map hproj_g.aemeasurable
-        (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
-          hmeas_charg_s).aestronglyMeasurable)
-    have hmap_f : (∫ ω', gradW (x - charX_f s ω') ∂(f 0))
-        = ∫ ω, gradW (x - charX_f s (proj_f ω)) ∂π₀ := by
-      rw [hmarg_f]
-      exact integral_map hproj_f.aemeasurable
-        (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
-          hmeas_charf_s).aestronglyMeasurable)
-    rw [hmap_g, hmap_f]
-    -- `π₀`-integrabilities of the two pushed-forward kernels.
-    have hint_g_π : Integrable (fun ω => gradW (x - charX_g s (proj_g ω))) π₀ := by
-      have hbase : Integrable (fun ω' => gradW (x - charX_g s ω')) (g 0) :=
-        h_int_push charX_g charV_g g (g 0) hpush_g haem_g h_int_g s hs x
-      rw [hmarg_g] at hbase
-      exact (integrable_map_measure
-        (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
-          hmeas_charg_s).aestronglyMeasurable) hproj_g.aemeasurable).mp hbase
-    have hint_f_π : Integrable (fun ω => gradW (x - charX_f s (proj_f ω))) π₀ := by
-      have hbase : Integrable (fun ω' => gradW (x - charX_f s ω')) (f 0) :=
-        h_int_push charX_f charV_f f (f 0) hpush_f haem_f h_int_f s hs x
-      rw [hmarg_f] at hbase
-      exact (integrable_map_measure
-        (((hL.continuous.comp (continuous_const.sub continuous_id)).measurable.comp
-          hmeas_charf_s).aestronglyMeasurable) hproj_f.aemeasurable).mp hbase
-    rw [← integral_sub hint_g_π hint_f_π]
-    -- Pointwise gradW-Lipschitz bound under the integral.
-    have h_pt : ∀ ω, ‖gradW (x - charX_g s (proj_g ω)) - gradW (x - charX_f s (proj_f ω))‖
-        ≤ (L : ℝ) * ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ := by
-      intro ω
-      have hd := hL.dist_le_mul (x - charX_g s (proj_g ω)) (x - charX_f s (proj_f ω))
-      rw [dist_eq_norm, dist_eq_norm] at hd
-      have hsub : (x - charX_g s (proj_g ω)) - (x - charX_f s (proj_f ω))
-          = charX_f s (proj_f ω) - charX_g s (proj_g ω) := by abel
-      rw [hsub] at hd; exact hd
-    -- Phase-space integrabilities of the two coupled trajectories over `π₀`.
-    have hf_phase_int : Integrable
-        (fun ω => ((charX_f s (proj_f ω), charV_f s (proj_f ω)) : PhaseSpace d)) π₀ := by
-      have hbase : Integrable (fun ω' : PhaseSpace d => (charX_f s ω', charV_f s ω')) (f 0) :=
-        h_phase_int charX_f charV_f f (f 0) hpush_f haem_f (fun t ht => (hf_mom t ht).2) s hs
-      rw [hmarg_f] at hbase
-      exact (integrable_map_measure (hmeas_charf s hs).aestronglyMeasurable
-        hproj_f.aemeasurable).mp hbase
-    have hg_phase_int : Integrable
-        (fun ω => ((charX_g s (proj_g ω), charV_g s (proj_g ω)) : PhaseSpace d)) π₀ := by
-      have hbase : Integrable (fun ω' : PhaseSpace d => (charX_g s ω', charV_g s ω')) (g 0) :=
-        h_phase_int charX_g charV_g g (g 0) hpush_g haem_g (fun t ht => (hg_mom t ht).2) s hs
-      rw [hmarg_g] at hbase
-      exact (integrable_map_measure (hmeas_charg s hs).aestronglyMeasurable
-        hproj_g.aemeasurable).mp hbase
-    have hnorm_int_le :
-        ‖∫ ω, (gradW (x - charX_g s (proj_g ω)) - gradW (x - charX_f s (proj_f ω))) ∂π₀‖
-          ≤ ∫ ω, (L : ℝ) * ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀ := by
-      refine le_trans (norm_integral_le_integral_norm _) ?_
-      refine integral_mono (hint_g_π.sub hint_f_π).norm ?_ h_pt
-      have hdiff_int : Integrable
-          (fun ω => charX_f s (proj_f ω) - charX_g s (proj_g ω)) π₀ :=
-        (hf_phase_int.fst).sub (hg_phase_int.fst)
-      exact (hdiff_int.norm.const_mul (L : ℝ))
-    refine le_trans hnorm_int_le ?_
-    rw [integral_const_mul]
-    have hpt2 : ∀ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ≤ ‖X_f s ω - X_g s ω‖ := by
-      intro ω
-      have hXf : X_f s ω = (charX_f s (proj_f ω), charV_f s (proj_f ω)) := by
-        simp only [hX_f_def, hclampT_id s hs]
-      have hXg : X_g s ω = (charX_g s (proj_g ω), charV_g s (proj_g ω)) := by
-        simp only [hX_g_def, hclampT_id s hs]
-      rw [hXf, hXg]
-      have hsplit : ((charX_f s (proj_f ω), charV_f s (proj_f ω)) : PhaseSpace d)
-            - (charX_g s (proj_g ω), charV_g s (proj_g ω)) =
-          ((charX_f s (proj_f ω) - charX_g s (proj_g ω)),
-            (charV_f s (proj_f ω) - charV_g s (proj_g ω))) := by
-        rw [Prod.mk_sub_mk]
-      rw [hsplit, Prod.norm_def]; exact le_max_left _ _
-    have hdiff_norm_int : Integrable
-        (fun ω => ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖) π₀ :=
-      ((hf_phase_int.fst).sub (hg_phase_int.fst)).norm
-    have hXdiff_norm_int : Integrable (fun ω => ‖X_f s ω - X_g s ω‖) π₀ :=
-      Integrable.mono' hdom_int
-        ((hmeas_f s).sub (hmeas_g s)).norm.aestronglyMeasurable
-        (Filter.Eventually.of_forall fun ω => by
-          rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hdom s hs ω)
-    have hQ_le : ∫ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀
-        ≤ ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
-      integral_mono hdiff_norm_int hXdiff_norm_int hpt2
-    calc (L : ℝ) * ∫ ω, ‖charX_f s (proj_f ω) - charX_g s (proj_g ω)‖ ∂π₀
-        ≤ (L : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
-          mul_le_mul_of_nonneg_left hQ_le L.coe_nonneg
-      _ ≤ ((max 1 L : NNReal) : ℝ) * ∫ ω, ‖X_f s ω - X_g s ω‖ ∂π₀ :=
-          mul_le_mul_of_nonneg_right hL_le_max (integral_nonneg fun _ => norm_nonneg _)
-      _ = ε s := by simp only [hε_def, hQ_def]
+    simp only [hε_def, hQ_def]
+    exact dobrushinFlow_cross_field_bound gradW L hL T clampT hclampT_id π₀ f g
+      charX_f charV_f charX_g charV_g proj_f proj_g hproj_f hproj_g
+      hpush_f haem_f hpush_g haem_g hf_mom hg_mom hmarg_f hmarg_g
+      h_int_f h_int_g hmeas_charf hmeas_charg X_f X_g hX_f_def hX_g_def
+      b_f b_g hb_f_id hb_g_id hmeas_f hmeas_g dom hdom_int hdom
   -- Apply the integrated collapse core.
   have hcore := integrated_coupling_gronwall_bound π₀ X_f X_g b_f b_g
     (max 1 L) T hT.le hL_f hcont_f hcont_g hderiv_f hderiv_g hint
     hmeas_f hmeas_g dom hdom_int hdom ε hε_int hε_nn h_diff h_self
   refine ⟨hmeas_charf, hmeas_charg, ?_⟩
-  -- Rewrite the bound's two integrals into the conclusion's `proj`-form.
-  intro t ht
-  have hbound := hcore t ht
-  have hbase0 : (∫ ω, ‖X_f 0 ω - X_g 0 ω‖ ∂π₀) = ∫ ω, ‖proj_f ω - proj_g ω‖ ∂π₀ := by
-    apply integral_congr_ae
-    filter_upwards with ω
-    have hXf0 : X_f 0 ω = proj_f ω := by
-      simp only [hX_f_def, hclampT_id 0 ⟨le_refl 0, hT.le⟩]; exact hinit_f' (proj_f ω)
-    have hXg0 : X_g 0 ω = proj_g ω := by
-      simp only [hX_g_def, hclampT_id 0 ⟨le_refl 0, hT.le⟩]; exact hinit_g' (proj_g ω)
-    rw [hXf0, hXg0]
-  have hlhs : (∫ ω, ‖X_f t ω - X_g t ω‖ ∂π₀)
-      = ∫ ω, ‖((charX_f t (proj_f ω), charV_f t (proj_f ω)) : PhaseSpace d)
-             - (charX_g t (proj_g ω), charV_g t (proj_g ω))‖ ∂π₀ := by
-    apply integral_congr_ae
-    filter_upwards with ω
-    have hXf : X_f t ω = (charX_f t (proj_f ω), charV_f t (proj_f ω)) := by
-      simp only [hX_f_def, hclampT_id t ht]
-    have hXg : X_g t ω = (charX_g t (proj_g ω), charV_g t (proj_g ω)) := by
-      simp only [hX_g_def, hclampT_id t ht]
-    rw [hXf, hXg]
-  rw [hlhs, hbase0] at hbound
-  refine ⟨?_, hbound⟩
-  have hXfe : ∀ ω, X_f t ω = (charX_f t (proj_f ω), charV_f t (proj_f ω)) := fun ω => by
-    simp only [hX_f_def, hclampT_id t ht]
-  have hXge : ∀ ω, X_g t ω = (charX_g t (proj_g ω), charV_g t (proj_g ω)) := fun ω => by
-    simp only [hX_g_def, hclampT_id t ht]
-  have hint_t : Integrable (fun ω => ‖X_f t ω - X_g t ω‖) π₀ :=
-    Integrable.mono' hdom_int
-      ((hmeas_f t).sub (hmeas_g t)).norm.aestronglyMeasurable
-      (Filter.Eventually.of_forall fun ω => by
-        rw [Real.norm_of_nonneg (norm_nonneg _)]; exact hdom t ht ω)
-  simpa only [hXfe, hXge] using hint_t
+  exact dobrushinFlow_conclusion_transfer T hT clampT hclampT_id π₀ L
+    charX_f charV_f charX_g charV_g proj_f proj_g hinit_f' hinit_g'
+    X_f X_g hX_f_def hX_g_def hmeas_f hmeas_g dom hdom_int hdom hcore
 
 /-- **Localized Dobrushin uniqueness on `[0, T]`** for two
 `IsLagrangianVlasovSolutionOn` solutions with the same initial data and
