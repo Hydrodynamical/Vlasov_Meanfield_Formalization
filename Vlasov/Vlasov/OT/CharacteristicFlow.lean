@@ -8375,6 +8375,124 @@ end HasDerivAtPunctured
 -- `IsLagrangianVlasovSolutionOn` (any `T_target`) to
 -- `IsLagrangianVlasovSolution` (universal-in-`t`), and uniqueness follows.
 
+/-- The `t = T` seam of the glue: both one-sided derivatives of the spliced
+flow at the junction agree (`g`'s flow starts at the identity on
+`f_prev T`'s data), so `HasDerivWithinAt.union` on `Iic T ∪ Ici T = univ`
+gives the two-sided derivative, restricted back to `Icc 0 (T + T_0)`. -/
+private lemma vlasovWellPosedness_glue_boundary_seam {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    {T T_0 : ℝ} (hT_pos : 0 < T) (hT_0_pos : 0 < T_0)
+    (f_prev g f_next : ℝ → Measure (PhaseSpace d))
+    (charX_prev charV_prev charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
+    (hdef_f : f_next = fun t => if t ≤ T then f_prev t else g (t - T))
+    (h_prev_boundary : ∀ (z : PhaseSpace d) (t : ℝ), t ∈ Set.Icc (0 : ℝ) T →
+        HasDerivWithinAt (fun s => charX_prev s z) (charV_prev t z) (Set.Icc 0 T) t ∧
+        HasDerivWithinAt (fun s => charV_prev s z)
+          (-(convolveFunctionMeasure gradW (spatialMarginal (f_prev t)) (charX_prev t z)))
+          (Set.Icc 0 T) t)
+    (hg_boundary : ∀ (w : PhaseSpace d) (t : ℝ), t ∈ Set.Icc (0 : ℝ) T_0 →
+        HasDerivWithinAt (fun s => charX_g s w) (charV_g t w) (Set.Icc 0 T_0) t ∧
+        HasDerivWithinAt (fun s => charV_g s w)
+          (-(convolveFunctionMeasure gradW (spatialMarginal (g t)) (charX_g t w)))
+          (Set.Icc 0 T_0) t)
+    (hg_init : g 0 = f_prev T)
+    (hg_init_cond : ∀ (w : PhaseSpace d), charX_g 0 w = w.1 ∧ charV_g 0 w = w.2)
+    (z : PhaseSpace d) :
+    HasDerivWithinAt
+      (fun s => if s ≤ T then charX_prev s z
+        else charX_g (s - T) (charX_prev T z, charV_prev T z))
+      (charV_prev T z) (Set.Icc 0 (T + T_0)) T ∧
+    HasDerivWithinAt
+      (fun s => if s ≤ T then charV_prev s z
+        else charV_g (s - T) (charX_prev T z, charV_prev T z))
+      (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
+      (Set.Icc 0 (T + T_0)) T := by
+  have hT_in : T ∈ Set.Icc (0 : ℝ) T := ⟨hT_pos.le, le_refl T⟩
+  have h_bX := (h_prev_boundary z T hT_in).1
+  have h_bV := (h_prev_boundary z T hT_in).2
+  have h0_T0_in : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T_0 := ⟨le_refl 0, hT_0_pos.le⟩
+  have h_g_bX := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).1
+  have h_g_bV := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).2
+  have h_nhd_L : Set.Icc 0 T ∈ nhdsWithin T (Set.Iic T) := Icc_mem_nhdsLE hT_pos
+  have h_nhd_R : Set.Icc 0 T_0 ∈ nhdsWithin (0 : ℝ) (Set.Ici 0) := Icc_mem_nhdsGE hT_0_pos
+  -- charX: left one-sided
+  have hX_Lic := h_bX.mono_of_mem_nhdsWithin h_nhd_L
+  have hX_left : HasDerivWithinAt
+      (fun s => if s ≤ T then charX_prev s z
+        else charX_g (s - T) (charX_prev T z, charV_prev T z))
+      (charV_prev T z) (Set.Iic T) T :=
+    hX_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.self_mem_Iic
+  -- charX: right one-sided via chain rule on g's boundary
+  have hX_Ici0 := h_g_bX.mono_of_mem_nhdsWithin h_nhd_R
+  have h_sub_R : HasDerivWithinAt (· - T) 1 (Set.Ici T) T :=
+    ((hasDerivAt_id' T).sub_const T).hasDerivWithinAt
+  have h_mapR : Set.MapsTo (· - T) (Set.Ici T) (Set.Ici 0) :=
+    fun s hs => Set.mem_Ici.mpr (by linarith [Set.mem_Ici.mp hs])
+  have h_chainX : HasDerivWithinAt
+      (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
+      (charV_g 0 (charX_prev T z, charV_prev T z)) (Set.Ici T) T := by
+    have := HasDerivWithinAt.scomp_of_eq T hX_Ici0 h_sub_R h_mapR (sub_self T).symm
+    simpa [Function.comp, one_smul] using this
+  have hVg0_eq : charV_g 0 (charX_prev T z, charV_prev T z) = charV_prev T z :=
+    (hg_init_cond (charX_prev T z, charV_prev T z)).2
+  rw [hVg0_eq] at h_chainX
+  have hX_right : HasDerivWithinAt
+      (fun s => if s ≤ T then charX_prev s z
+        else charX_g (s - T) (charX_prev T z, charV_prev T z))
+      (charV_prev T z) (Set.Ici T) T :=
+    h_chainX.congr_of_mem
+      (fun s hs => by
+        by_cases hle : s ≤ T
+        · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
+          simp [heq, sub_self,
+            (hg_init_cond (charX_prev T z, charV_prev T z)).1]
+        · simp [hle])
+      Set.self_mem_Ici
+  have hX_union := hX_left.union hX_right
+  rw [Set.Iic_union_Ici] at hX_union
+  -- charV: analogously
+  have hV_Lic := h_bV.mono_of_mem_nhdsWithin h_nhd_L
+  have hV_left : HasDerivWithinAt
+      (fun s => if s ≤ T then charV_prev s z
+        else charV_g (s - T) (charX_prev T z, charV_prev T z))
+      (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
+      (Set.Iic T) T := by
+    simp only [hdef_f, if_pos (le_refl T)]
+    exact hV_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.self_mem_Iic
+  have hV_Ici0 := h_g_bV.mono_of_mem_nhdsWithin h_nhd_R
+  have h_chainV : HasDerivWithinAt
+      (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
+      (-(convolveFunctionMeasure gradW
+        (spatialMarginal (g 0))
+        (charX_g 0 (charX_prev T z, charV_prev T z))))
+      (Set.Ici T) T := by
+    have := HasDerivWithinAt.scomp_of_eq T hV_Ici0 h_sub_R h_mapR (sub_self T).symm
+    simpa [Function.comp, one_smul] using this
+  have hXg0_eq : charX_g 0 (charX_prev T z, charV_prev T z) = charX_prev T z :=
+    (hg_init_cond (charX_prev T z, charV_prev T z)).1
+  have hg0_spat : spatialMarginal (g 0) = spatialMarginal (f_prev T) :=
+    congrArg spatialMarginal hg_init
+  have hfnextT : spatialMarginal (f_next T) = spatialMarginal (f_prev T) :=
+    congrArg spatialMarginal (by rw [hdef_f]; simp only [if_pos (le_refl T)])
+  rw [hXg0_eq, hg0_spat, ← hfnextT] at h_chainV
+  have hV_right : HasDerivWithinAt
+      (fun s => if s ≤ T then charV_prev s z
+        else charV_g (s - T) (charX_prev T z, charV_prev T z))
+      (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
+      (Set.Ici T) T :=
+    h_chainV.congr_of_mem
+      (fun s hs => by
+        by_cases hle : s ≤ T
+        · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
+          simp [heq, sub_self,
+            (hg_init_cond (charX_prev T z, charV_prev T z)).2]
+        · simp [hle])
+      Set.self_mem_Ici
+  have hV_union := hV_left.union hV_right
+  rw [Set.Iic_union_Ici] at hV_union
+  exact ⟨hX_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt,
+    hV_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt⟩
+
 private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
     (gradW : PhysSpace d → PhysSpace d)
     {T T_0 : ℝ} (hT_pos : 0 < T) (hT_0_pos : 0 < T_0)
@@ -8415,92 +8533,11 @@ private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
     have h_bX := (h_prev_boundary z t ht_in).1
     have h_bV := (h_prev_boundary z t ht_in).2
     by_cases ht_eqT : t = T
-    · -- t = T: use HasDerivWithinAt.union from Iic T (left) and Ici T (right)
-      have h0_T0_in : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T_0 := ⟨le_refl 0, hT_0_pos.le⟩
-      have h_g_bX := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).1
-      have h_g_bV := (hg_boundary (charX_prev T z, charV_prev T z) 0 h0_T0_in).2
-      have h_nhd_L : Set.Icc 0 T ∈ nhdsWithin T (Set.Iic T) := Icc_mem_nhdsLE hT_pos
-      have h_nhd_R : Set.Icc 0 T_0 ∈ nhdsWithin (0 : ℝ) (Set.Ici 0) := Icc_mem_nhdsGE hT_0_pos
-      -- Rewrite t to T in h_bX, h_bV
-      rw [ht_eqT] at h_bX h_bV
-      -- charX: left one-sided
-      have hX_Lic := h_bX.mono_of_mem_nhdsWithin h_nhd_L
-      have hX_left : HasDerivWithinAt
-          (fun s => if s ≤ T then charX_prev s z
-            else charX_g (s - T) (charX_prev T z, charV_prev T z))
-          (charV_prev T z) (Set.Iic T) T :=
-        hX_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.self_mem_Iic
-      -- charX: right one-sided via chain rule on g's boundary
-      have hX_Ici0 := h_g_bX.mono_of_mem_nhdsWithin h_nhd_R
-      have h_sub_R : HasDerivWithinAt (· - T) 1 (Set.Ici T) T :=
-        ((hasDerivAt_id' T).sub_const T).hasDerivWithinAt
-      have h_mapR : Set.MapsTo (· - T) (Set.Ici T) (Set.Ici 0) :=
-        fun s hs => Set.mem_Ici.mpr (by linarith [Set.mem_Ici.mp hs])
-      have h_chainX : HasDerivWithinAt
-          (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
-          (charV_g 0 (charX_prev T z, charV_prev T z)) (Set.Ici T) T := by
-        have := HasDerivWithinAt.scomp_of_eq T hX_Ici0 h_sub_R h_mapR (sub_self T).symm
-        simpa [Function.comp, one_smul] using this
-      have hVg0_eq : charV_g 0 (charX_prev T z, charV_prev T z) = charV_prev T z :=
-        (hg_init_cond (charX_prev T z, charV_prev T z)).2
-      rw [hVg0_eq] at h_chainX
-      have hX_right : HasDerivWithinAt
-          (fun s => if s ≤ T then charX_prev s z
-            else charX_g (s - T) (charX_prev T z, charV_prev T z))
-          (charV_prev T z) (Set.Ici T) T :=
-        h_chainX.congr_of_mem
-          (fun s hs => by
-            by_cases hle : s ≤ T
-            · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
-              simp [heq, sub_self,
-                (hg_init_cond (charX_prev T z, charV_prev T z)).1]
-            · simp [hle])
-          Set.self_mem_Ici
-      have hX_union := hX_left.union hX_right
-      rw [Set.Iic_union_Ici] at hX_union
-      -- charV: analogously
-      have hV_Lic := h_bV.mono_of_mem_nhdsWithin h_nhd_L
-      have hV_left : HasDerivWithinAt
-          (fun s => if s ≤ T then charV_prev s z
-            else charV_g (s - T) (charX_prev T z, charV_prev T z))
-          (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
-          (Set.Iic T) T := by
-        simp only [hdef_f, if_pos (le_refl T)]
-        exact hV_Lic.congr_of_mem (fun s hs => by simp [Set.mem_Iic.mp hs]) Set.self_mem_Iic
-      have hV_Ici0 := h_g_bV.mono_of_mem_nhdsWithin h_nhd_R
-      have h_chainV : HasDerivWithinAt
-          (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
-          (-(convolveFunctionMeasure gradW
-            (spatialMarginal (g 0))
-            (charX_g 0 (charX_prev T z, charV_prev T z))))
-          (Set.Ici T) T := by
-        have := HasDerivWithinAt.scomp_of_eq T hV_Ici0 h_sub_R h_mapR (sub_self T).symm
-        simpa [Function.comp, one_smul] using this
-      have hXg0_eq : charX_g 0 (charX_prev T z, charV_prev T z) = charX_prev T z :=
-        (hg_init_cond (charX_prev T z, charV_prev T z)).1
-      have hg0_spat : spatialMarginal (g 0) = spatialMarginal (f_prev T) :=
-        congrArg spatialMarginal hg_init
-      have hfnextT : spatialMarginal (f_next T) = spatialMarginal (f_prev T) :=
-        congrArg spatialMarginal (by rw [hdef_f]; simp only [if_pos (le_refl T)])
-      rw [hXg0_eq, hg0_spat, ← hfnextT] at h_chainV
-      have hV_right : HasDerivWithinAt
-          (fun s => if s ≤ T then charV_prev s z
-            else charV_g (s - T) (charX_prev T z, charV_prev T z))
-          (-(convolveFunctionMeasure gradW (spatialMarginal (f_next T)) (charX_prev T z)))
-          (Set.Ici T) T :=
-        h_chainV.congr_of_mem
-          (fun s hs => by
-            by_cases hle : s ≤ T
-            · have heq : s = T := le_antisymm hle (Set.mem_Ici.mp hs)
-              simp [heq, sub_self,
-                (hg_init_cond (charX_prev T z, charV_prev T z)).2]
-            · simp [hle])
-          Set.self_mem_Ici
-      have hV_union := hV_left.union hV_right
-      rw [Set.Iic_union_Ici] at hV_union
+    · -- t = T: the seam case, extracted as `_glue_boundary_seam`.
       rw [ht_eqT]
-      exact ⟨hX_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt,
-             hV_union.hasDerivAt Filter.univ_mem |>.hasDerivWithinAt⟩
+      exact vlasovWellPosedness_glue_boundary_seam gradW hT_pos hT_0_pos f_prev g f_next
+        charX_prev charV_prev charX_g charV_g hdef_f h_prev_boundary hg_boundary
+        hg_init hg_init_cond z
     · -- t < T: use mono_of_mem_nhdsWithin to extend to Icc 0 (T + T_0)
       have ht_ltT : t < T := lt_of_le_of_ne ht_le ht_eqT
       -- Get Icc 0 T ∈ nhdsWithin t (Icc 0 (T + T_0))
@@ -12799,6 +12836,165 @@ theorem vlasovWellPosedness_universal_existence
 
 /-! ## §10  Marquee theorem (tex: thm:vlasov-wp) -/
 
+/-- The `L = 0` (zero-force) branch of `vlasovWellPosedness`: the explicit
+affine flow `(x, v) ↦ (x + t·v, v)` pushes `f₀` to a per-window Lagrangian
+solution.  Every force-side obligation is trivial since `gradW ≡ 0`; the
+moment/continuity threads come from the affine growth `‖x + t·v‖ ≤ (1+|t|)‖z‖`.
+`f_sol` is threaded by its defining equation (let-bound caller supplies
+`rfl`). -/
+private lemma vlasovWellPosedness_zeroForce_solutionOn {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (hgradW_zero : ∀ x, gradW x = 0)
+    (f₀ : Measure (PhaseSpace d)) (hf₀ : HasFiniteFirstMoment f₀)
+    (f_sol : ℝ → Measure (PhaseSpace d))
+    (hf_sol : f_sol = fun t => Measure.map
+      (fun z : PhaseSpace d => (z.1 + t • z.2, z.2)) f₀)
+    (T : ℝ) (hT : 0 < T) :
+    IsLagrangianVlasovSolutionOn gradW f_sol T := by
+  subst hf_sol
+  haveI := hf₀.1
+  let charX : ℝ → PhaseSpace d → PhysSpace d := fun t z => z.1 + t • z.2
+  let charV : ℝ → PhaseSpace d → PhysSpace d := fun _ z => z.2
+  have hconv_zero : ∀ (ρ : Measure (PhysSpace d)) (x : PhysSpace d),
+      convolveFunctionMeasure gradW ρ x = 0 := by
+    intros ρ x
+    simp only [convolveFunctionMeasure]
+    have : (fun y => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
+      funext y; exact hgradW_zero (x - y)
+    rw [this, integral_zero]
+  have hL_zero : LipschitzWith 0 gradW := by
+    rw [show gradW = fun _ => 0 from funext hgradW_zero]
+    exact LipschitzWith.const' 0
+  have hflow_univ : IsCharacteristicFlow gradW
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+      charX charV := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro z; simp [charX, charV]
+    · intro t z
+      have h1 : HasDerivAt (fun s => z.1 + s • z.2) z.2 t := by
+        have h1' : HasDerivAt (fun _ : ℝ => z.1) 0 t := hasDerivAt_const t z.1
+        have h2' : HasDerivAt (fun s : ℝ => s • z.2) ((1 : ℝ) • z.2) t :=
+          (hasDerivAt_id (𝕜 := ℝ) t).smul_const z.2
+        have := h1'.add h2'; simp only [zero_add, one_smul] at this; exact this
+      exact h1
+    · intro t z
+      simp only [vlasovSolutionViaPushforward, charX, charV]
+      rw [hconv_zero, neg_zero]
+      exact hasDerivAt_const t z.2
+  have hself : IsCharacteristicFlowSelfConsistent charX f₀
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) := by
+    intro t
+    simp only [vlasovSolutionViaPushforward, spatialMarginal, charX, charV]
+    rw [Measure.map_map (by fun_prop) (by fun_prop)]
+    congr 1
+  have h_flow_meas : ∀ s, AEMeasurable
+      (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
+    intro s; fun_prop
+  have hgradW_cont : Continuous gradW := by
+    have hz : gradW = fun _ => 0 := funext hgradW_zero
+    rw [hz]; exact continuous_const
+  have hconv_cont : ∀ s, Continuous (fun x =>
+      convolveFunctionMeasure gradW
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) := by
+    intro s
+    have hz : (fun x => convolveFunctionMeasure gradW
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) =
+        fun _ => 0 := funext (hconv_zero _)
+    rw [hz]; exact continuous_const
+  have h_int_conv : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y))
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s x
+    have h_zero : (fun y : PhysSpace d => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
+      funext y; exact hgradW_zero (x - y)
+    rw [h_zero]; exact integrable_zero _ _ _
+  haveI hspatial_prob : ∀ s, IsProbabilityMeasure
+      (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s
+    unfold spatialMarginal vlasovSolutionViaPushforward
+    have _hpair : AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
+      h_flow_meas s
+    have _h_prob_inner : IsProbabilityMeasure
+        (Measure.map (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :=
+      Measure.isProbabilityMeasure_map _hpair
+    exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
+  have h_init0 : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := by
+    intro z; simp [charX, charV]
+  have hnorm_bound : ∀ (s : ℝ) (z : PhaseSpace d), ‖charX s z‖ ≤ (1 + |s|) * ‖z‖ := by
+    intro s z
+    simp only [charX]
+    have hle2 : ‖z.2‖ ≤ ‖z‖ := norm_snd_le z
+    have htabs : 0 ≤ |s| := abs_nonneg s
+    have hsmul : ‖s • z.2‖ = |s| * ‖z.2‖ := by rw [norm_smul, Real.norm_eq_abs]
+    have htri := norm_add_le z.1 (s • z.2)
+    have hle1 : ‖z.1‖ ≤ ‖z‖ := norm_fst_le z
+    have := mul_le_mul_of_nonneg_left hle2 htabs; rw [hsmul] at htri; nlinarith
+  have hflow_on : IsCharacteristicFlowOn gradW
+      (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
+      charX charV (Set.Ioo 0 T) Set.univ :=
+    ⟨fun z _ => hflow_univ.1 z, fun t _ z _ => hflow_univ.2.1 t z,
+     fun t _ z _ => hflow_univ.2.2 t z⟩
+  have h_cont_Icc : ∀ z : PhaseSpace d,
+      ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T) := by
+    intro z; simp only [charX, charV]; fun_prop
+  have h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
+      HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW
+          (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
+          (charX s z, charV s z))
+        (Set.Ici s) s := by
+    intro z s _
+    have hpair : HasDerivAt (fun s' => (charX s' z, charV s' z))
+        (vlasovVectorField gradW
+          (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
+          (charX s z, charV s z)) s := by
+      simp only [vlasovVectorField]
+      exact (hflow_univ.2.1 s z).prodMk (hflow_univ.2.2 s z)
+    exact hpair.hasDerivWithinAt
+  have hmom_int : ∀ s,
+      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))
+        = ∫ z, ‖charX s z‖ ∂f₀ := by
+    intro s
+    have hs_eq : spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
+        = Measure.map (fun z => charX s z) f₀ := hself s
+    rw [hs_eq]; exact integral_map (by fun_prop) (by fun_prop)
+  have h_y_int : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      Integrable (fun y : PhysSpace d => ‖y‖)
+        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
+    intro s _
+    have hs_eq : spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
+        = Measure.map (fun z => charX s z) f₀ := hself s
+    rw [hs_eq, integrable_map_measure (by fun_prop) (by fun_prop)]
+    apply Integrable.mono' (hf₀.2.const_mul (1 + |s|))
+    · fun_prop
+    · apply Filter.Eventually.of_forall; intro z
+      rw [Function.comp_apply, Real.norm_of_nonneg (norm_nonneg _)]
+      exact hnorm_bound s z
+  have hM_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
+      ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))
+        ≤ (1 + T) * ∫ z, ‖z‖ ∂f₀ := by
+    intro s hs
+    rw [hmom_int s]
+    have hbound_s : ∀ z : PhaseSpace d, ‖charX s z‖ ≤ (1 + T) * ‖z‖ := by
+      intro z
+      have h2 : (1 + |s|) ≤ (1 + T) := by
+        have hss : |s| = s := abs_of_nonneg hs.1
+        rw [hss]; linarith [hs.2]
+      calc ‖charX s z‖ ≤ (1 + |s|) * ‖z‖ := hnorm_bound s z
+        _ ≤ (1 + T) * ‖z‖ := mul_le_mul_of_nonneg_right h2 (norm_nonneg _)
+    calc ∫ z, ‖charX s z‖ ∂f₀
+        ≤ ∫ z, (1 + T) * ‖z‖ ∂f₀ :=
+          integral_mono_of_nonneg (Filter.Eventually.of_forall (fun z => norm_nonneg _))
+            (hf₀.2.const_mul (1 + T)) (Filter.Eventually.of_forall hbound_s)
+      _ = (1 + T) * ∫ z, ‖z‖ ∂f₀ := by rw [integral_const_mul]
+  have hM_ρ_nn : 0 ≤ (1 + T) * ∫ z, ‖z‖ ∂f₀ :=
+    mul_nonneg (by linarith [hT]) (integral_nonneg (fun z => norm_nonneg _))
+  exact vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
+    gradW 0 hL_zero charX charV f₀ hf₀.2 hT
+    hflow_on h_init0 h_cont_Icc h_deriv_Ico
+    ((1 + T) * ∫ z, ‖z‖ ∂f₀) hM_ρ_nn hM_ρ h_y_int h_int_conv
+    hself h_flow_meas hgradW_cont hconv_cont
+
+
 /-- (tex: thm:vlasov-wp)
 Forward-in-time existence for the Vlasov equation.
 
@@ -12867,14 +13063,6 @@ theorem vlasovWellPosedness
         rw [hgradW 0]; exact gradient_zero_of_even W
       calc gradW x = gradW 0 := hconst x 0
         _ = 0 := h0
-    -- Step L0-3: convolveFunctionMeasure gradW ρ x = 0 for any ρ, x.
-    have hconv_zero : ∀ (ρ : Measure (PhysSpace d)) (x : PhysSpace d),
-        convolveFunctionMeasure gradW ρ x = 0 := by
-      intros ρ x
-      simp only [convolveFunctionMeasure]
-      have : (fun y => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
-        funext y; exact hgradW_zero (x - y)
-      rw [this, integral_zero]
     -- Step L0-4: Define the explicit affine solution.
     let charX : ℝ → PhaseSpace d → PhysSpace d := fun t z => z.1 + t • z.2
     let charV : ℝ → PhaseSpace d → PhysSpace d := fun _ z => z.2
@@ -12915,81 +13103,6 @@ theorem vlasovWellPosedness
           have h2 : ‖z.2‖ ≤ (1 + |t|) * ‖z‖ := by nlinarith
           rw [Prod.norm_def]
           exact max_le_iff.mpr ⟨h1, h2⟩
-    have hL_zero : LipschitzWith 0 gradW := by
-      rw [show gradW = fun _ => 0 from funext hgradW_zero]
-      exact LipschitzWith.const' 0
-    -- Step L0-7: per-window `IsLagrangianVlasovSolutionOn` via the **sorry-free**
-    -- `_On` producer.  The previous route went through the GLOBAL producer
-    -- `…isLagrangianVlasovSolution`, whose `IsVlasovSolution` conjunct passes
-    -- through the trajectory Lipschitz bound.  Feeding the affine flow's
-    -- universal facts (restricted to `_On`) into `…isLagrangianVlasovSolutionOn`
-    -- instead orphans that whole chain (it is deleted below).
-    haveI := hf₀.1
-    have hflow_univ : IsCharacteristicFlow gradW
-        (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
-        charX charV := by
-      refine ⟨?_, ?_, ?_⟩
-      · intro z; simp [charX, charV]
-      · intro t z
-        have h1 : HasDerivAt (fun s => z.1 + s • z.2) z.2 t := by
-          have h1' : HasDerivAt (fun _ : ℝ => z.1) 0 t := hasDerivAt_const t z.1
-          have h2' : HasDerivAt (fun s : ℝ => s • z.2) ((1 : ℝ) • z.2) t :=
-            (hasDerivAt_id (𝕜 := ℝ) t).smul_const z.2
-          have := h1'.add h2'; simp only [zero_add, one_smul] at this; exact this
-        exact h1
-      · intro t z
-        simp only [vlasovSolutionViaPushforward, charX, charV]
-        rw [hconv_zero, neg_zero]
-        exact hasDerivAt_const t z.2
-    have hself : IsCharacteristicFlowSelfConsistent charX f₀
-        (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) := by
-      intro t
-      simp only [vlasovSolutionViaPushforward, spatialMarginal, charX, charV]
-      rw [Measure.map_map (by fun_prop) (by fun_prop)]
-      congr 1
-    have h_flow_meas : ∀ s, AEMeasurable
-        (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ := by
-      intro s; fun_prop
-    have hgradW_cont : Continuous gradW := by
-      have hz : gradW = fun _ => 0 := funext hgradW_zero
-      rw [hz]; exact continuous_const
-    have hconv_cont : ∀ s, Continuous (fun x =>
-        convolveFunctionMeasure gradW
-          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) := by
-      intro s
-      have hz : (fun x => convolveFunctionMeasure gradW
-          (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) x) =
-          fun _ => 0 := funext (hconv_zero _)
-      rw [hz]; exact continuous_const
-    have h_int_conv : ∀ s (x : PhysSpace d), Integrable (fun y => gradW (x - y))
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-      intro s x
-      have h_zero : (fun y : PhysSpace d => gradW (x - y)) = fun _ => (0 : PhysSpace d) := by
-        funext y; exact hgradW_zero (x - y)
-      rw [h_zero]; exact integrable_zero _ _ _
-    haveI hspatial_prob : ∀ s, IsProbabilityMeasure
-        (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-      intro s
-      unfold spatialMarginal vlasovSolutionViaPushforward
-      have _hpair : AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) f₀ :=
-        h_flow_meas s
-      have _h_prob_inner : IsProbabilityMeasure
-          (Measure.map (fun z : PhaseSpace d => (charX s z, charV s z)) f₀) :=
-        Measure.isProbabilityMeasure_map _hpair
-      exact Measure.isProbabilityMeasure_map measurable_fst.aemeasurable
-    have h_init0 : ∀ z : PhaseSpace d, (charX 0 z, charV 0 z) = z := by
-      intro z; simp [charX, charV]
-    -- Position first-moment bound (the small `M_ρ` thread, valid since
-    -- `|s| = s ≤ T` on `[0, T]`); the position leg of the joint moment bound above.
-    have hnorm_bound : ∀ (s : ℝ) (z : PhaseSpace d), ‖charX s z‖ ≤ (1 + |s|) * ‖z‖ := by
-      intro s z
-      simp only [charX]
-      have hle2 : ‖z.2‖ ≤ ‖z‖ := norm_snd_le z
-      have htabs : 0 ≤ |s| := abs_nonneg s
-      have hsmul : ‖s • z.2‖ = |s| * ‖z.2‖ := by rw [norm_smul, Real.norm_eq_abs]
-      have htri := norm_add_le z.1 (s • z.2)
-      have hle1 : ‖z.1‖ ≤ ‖z‖ := norm_fst_le z
-      have := mul_le_mul_of_nonneg_left hle2 htabs; rw [hsmul] at htri; nlinarith
     -- Step L0-8: Narrow continuity.
     have hf_cont : ∀ (g : PhaseSpace d → ℝ), Continuous g → Bornology.IsBounded (Set.range g) →
         Continuous (fun t => ∫ z, g z ∂f_sol t) := by
@@ -13013,137 +13126,16 @@ theorem vlasovWellPosedness
       · exact integrable_const C
       · apply Filter.Eventually.of_forall; intro z
         exact hg_cont.comp (by fun_prop)
-    -- Step L0-9: Uniqueness.
-    have hf_uniq : ∀ g : ℝ → Measure (PhaseSpace d),
-        g 0 = f₀ ∧ (∀ t, HasFiniteFirstMoment (g t)) ∧
-        IsLagrangianVlasovSolution gradW g ∧
-        (∀ (h : PhaseSpace d → ℝ), Continuous h → Bornology.IsBounded (Set.range h) →
-          Continuous (fun t => ∫ z, h z ∂g t)) →
-        g = f_sol := by
-      intro g ⟨hg_init, _, hg_lag, _⟩
-      obtain ⟨_, cX, cV, h_flow, h_push, _⟩ := hg_lag
-      -- cV is constant in t: velocity ODE gives d/dt(cV(t,z)) = -conv(0,...) = 0.
-      have hcV_const : ∀ (t : ℝ) (z : PhaseSpace d), cV t z = z.2 := by
-        intro t z
-        have hderiv : ∀ s, HasDerivAt (fun u => cV u z) 0 s := by
-          intro s
-          have := h_flow.2.2 s z
-          rw [hconv_zero] at this
-          simpa using this
-        have hdiff : Differentiable ℝ (fun s => cV s z) :=
-          fun s => (hderiv s).differentiableAt
-        have hfderiv : ∀ s, fderiv ℝ (fun u => cV u z) s = 0 :=
-          fun s => by rw [← toSpanSingleton_deriv, (hderiv s).deriv]; simp
-        have heq := is_const_of_fderiv_eq_zero hdiff hfderiv t 0
-        simp only [heq, h_flow.1 z |>.2]
-      -- cX satisfies d/dt(cX(t,z)) = cV(t,z) = z.2, cX(0,z) = z.1.
-      have hcX_affine : ∀ (t : ℝ) (z : PhaseSpace d), cX t z = z.1 + t • z.2 := by
-        intro t z
-        -- d/dt (cX(t,z) - z.1 - t•z.2) = z.2 - z.2 = 0.
-        have hderiv_cX : ∀ s, HasDerivAt (fun u => cX u z) (z.2) s := by
-          intro s
-          have := h_flow.2.1 s z
-          rw [← hcV_const s z]
-          exact this
-        have hderiv_affine : ∀ s, HasDerivAt (fun u : ℝ => z.1 + u • z.2) z.2 s := by
-          intro s
-          have h1 : HasDerivAt (fun _ : ℝ => z.1) 0 s := hasDerivAt_const s z.1
-          have h2 : HasDerivAt (fun u : ℝ => u • z.2) ((1 : ℝ) • z.2) s :=
-            (hasDerivAt_id (𝕜 := ℝ) s).smul_const z.2
-          have := h1.add h2
-          simp only [zero_add, one_smul] at this; exact this
-        have hderiv_diff : ∀ s, HasDerivAt (fun u => cX u z - (z.1 + u • z.2)) 0 s :=
-          fun s => by
-            have := (hderiv_cX s).sub (hderiv_affine s); simp at this; exact this
-        have hdiff : Differentiable ℝ (fun u => cX u z - (z.1 + u • z.2)) :=
-          fun s => (hderiv_diff s).differentiableAt
-        have hfderiv : ∀ s, fderiv ℝ (fun u => cX u z - (z.1 + u • z.2)) s = 0 :=
-          fun s => by rw [← toSpanSingleton_deriv, (hderiv_diff s).deriv]; simp
-        have heq := is_const_of_fderiv_eq_zero hdiff hfderiv t 0
-        have h0 : cX 0 z - (z.1 + (0 : ℝ) • z.2) = 0 := by
-          simp [h_flow.1 z |>.1]
-        exact sub_eq_zero.mp (heq.trans h0)
-      -- Now g t = Measure.map (cX t, cV t) (g 0) = Measure.map (z.1+t•z.2, z.2) f₀ = f_sol t.
-      funext t
-      have := h_push t
-      rw [hg_init] at this
-      rw [this]
-      congr 1
-      funext z
-      simp only [hcX_affine t z, hcV_const t z, charX, charV]
     -- Assemble ∃ (post-refactor: forward-only existence, no uniqueness clause).
     refine ⟨f_sol, hf_init, ?_, ?_, ?_⟩
     · -- Moment bound on Ici 0 — discard t < 0.
       intro t _
       exact hf_mom t
-    · -- Per-T_target IsLagrangianVlasovSolutionOn via the sorry-free `_On` producer
-      -- (orphans #7: no route through the global `IsVlasovSolution` chain).
+    · -- Per-T_target `IsLagrangianVlasovSolutionOn` — the zero-force branch,
+      -- extracted as `vlasovWellPosedness_zeroForce_solutionOn`.
       intro T hT
-      have hflow_on : IsCharacteristicFlowOn gradW
-          (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t))
-          charX charV (Set.Ioo 0 T) Set.univ :=
-        ⟨fun z _ => hflow_univ.1 z, fun t _ z _ => hflow_univ.2.1 t z,
-         fun t _ z _ => hflow_univ.2.2 t z⟩
-      have h_cont_Icc : ∀ z : PhaseSpace d,
-          ContinuousOn (fun s => (charX s z, charV s z)) (Set.Icc (0 : ℝ) T) := by
-        intro z; simp only [charX, charV]; fun_prop
-      have h_deriv_Ico : ∀ z : PhaseSpace d, ∀ s ∈ Set.Ico (0 : ℝ) T,
-          HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
-            (vlasovVectorField gradW
-              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
-              (charX s z, charV s z))
-            (Set.Ici s) s := by
-        intro z s _
-        have hpair : HasDerivAt (fun s' => (charX s' z, charV s' z))
-            (vlasovVectorField gradW
-              (fun t => spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ t)) s
-              (charX s z, charV s z)) s := by
-          simp only [vlasovVectorField]
-          exact (hflow_univ.2.1 s z).prodMk (hflow_univ.2.2 s z)
-        exact hpair.hasDerivWithinAt
-      have hmom_int : ∀ s,
-          ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))
-            = ∫ z, ‖charX s z‖ ∂f₀ := by
-        intro s
-        have hs_eq : spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
-            = Measure.map (fun z => charX s z) f₀ := hself s
-        rw [hs_eq]; exact integral_map (by fun_prop) (by fun_prop)
-      have h_y_int : ∀ s ∈ Set.Icc (0 : ℝ) T,
-          Integrable (fun y : PhysSpace d => ‖y‖)
-            (spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)) := by
-        intro s _
-        have hs_eq : spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s)
-            = Measure.map (fun z => charX s z) f₀ := hself s
-        rw [hs_eq, integrable_map_measure (by fun_prop) (by fun_prop)]
-        apply Integrable.mono' (hf₀.2.const_mul (1 + |s|))
-        · fun_prop
-        · apply Filter.Eventually.of_forall; intro z
-          rw [Function.comp_apply, Real.norm_of_nonneg (norm_nonneg _)]
-          exact hnorm_bound s z
-      have hM_ρ : ∀ s ∈ Set.Icc (0 : ℝ) T,
-          ∫ y, ‖y‖ ∂(spatialMarginal (vlasovSolutionViaPushforward charX charV f₀ s))
-            ≤ (1 + T) * ∫ z, ‖z‖ ∂f₀ := by
-        intro s hs
-        rw [hmom_int s]
-        have hbound_s : ∀ z : PhaseSpace d, ‖charX s z‖ ≤ (1 + T) * ‖z‖ := by
-          intro z
-          have h2 : (1 + |s|) ≤ (1 + T) := by
-            have hss : |s| = s := abs_of_nonneg hs.1
-            rw [hss]; linarith [hs.2]
-          calc ‖charX s z‖ ≤ (1 + |s|) * ‖z‖ := hnorm_bound s z
-            _ ≤ (1 + T) * ‖z‖ := mul_le_mul_of_nonneg_right h2 (norm_nonneg _)
-        calc ∫ z, ‖charX s z‖ ∂f₀
-            ≤ ∫ z, (1 + T) * ‖z‖ ∂f₀ :=
-              integral_mono_of_nonneg (Filter.Eventually.of_forall (fun z => norm_nonneg _))
-                (hf₀.2.const_mul (1 + T)) (Filter.Eventually.of_forall hbound_s)
-          _ = (1 + T) * ∫ z, ‖z‖ ∂f₀ := by rw [integral_const_mul]
-      have hM_ρ_nn : 0 ≤ (1 + T) * ∫ z, ‖z‖ ∂f₀ :=
-        mul_nonneg (by linarith [hT]) (integral_nonneg (fun z => norm_nonneg _))
-      exact vlasovSolutionViaPushforward_isLagrangianVlasovSolutionOn
-        gradW 0 hL_zero charX charV f₀ hf₀.2 hT
-        hflow_on h_init0 h_cont_Icc h_deriv_Ico
-        ((1 + T) * ∫ z, ‖z‖ ∂f₀) hM_ρ_nn hM_ρ h_y_int h_int_conv
-        hself h_flow_meas hgradW_cont hconv_cont
+      exact vlasovWellPosedness_zeroForce_solutionOn gradW hgradW_zero f₀ hf₀
+        f_sol rfl T hT
     · -- Narrow continuity restricted to Ici 0.
       intro g hg_cont hg_bdd
       exact (hf_cont g hg_cont hg_bdd).continuousOn
