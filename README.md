@@ -23,9 +23,9 @@ AI-assisted, in about a month, framed as a formalization game.
 
 | Paper | Lean declaration | Source |
 |---|---|---|
-| Theorem 1.3 — forward well-posedness | `vlasovWellPosedness` | [CharacteristicFlow.lean:12517](Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12517) |
+| Theorem 1.3 — forward well-posedness | `vlasovWellPosedness` | [WellPosedness.lean](Vlasov/Vlasov/OT/WellPosedness.lean) |
 | Definition 1.4 — $W_1$ by Kantorovich–Rubinstein duality | `wasserstein1` | [Wasserstein.lean:62](Vlasov/Vlasov/OT/Wasserstein.lean#L62) |
-| Theorem 1.5 — Dobrushin stability (1979) | `dobrushin` | [CharacteristicFlow.lean:12907](Vlasov/Vlasov/OT/CharacteristicFlow.lean#L12907) |
+| Theorem 1.5 — Dobrushin stability (1979) | `dobrushin` | [WellPosedness.lean](Vlasov/Vlasov/OT/WellPosedness.lean) |
 | Corollary 1.6 — mean-field limit | `meanFieldLimit` | [Basic.lean:1628](Vlasov/Vlasov/Basic.lean#L1628) |
 | Theorem 1.7 — superposition: weak ⟹ Lagrangian | `weak_isLagrangianVlasovSolutionOn` | [WeakToLagrangian.lean:4541](Vlasov/Vlasov/OT/WeakToLagrangian.lean#L4541) |
 

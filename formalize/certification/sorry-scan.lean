@@ -9,7 +9,7 @@ run_cmd liftCoreM do
   let mods := env.header.moduleNames
   let projTags : List Name :=
     [`Vlasov.Base.Geometry, `Vlasov.OT.Wasserstein, `Vlasov.Basic,
-     `Vlasov.OT.Coupling, `Vlasov.OT.CharacteristicFlow,
+     `Vlasov.OT.Coupling, `Vlasov.OT.CharacteristicFlow, `Vlasov.OT.WellPosedness,
      `Vlasov.OT.WeakToLagrangian, `Vlasov.Mathlib.ODE.PicardLindelof]
   let projIdx := projTags.filterMap (fun m => mods.findIdx? (· == m))
   let mut sorried : Array Name := #[]
