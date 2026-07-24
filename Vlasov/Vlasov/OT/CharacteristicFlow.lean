@@ -2117,6 +2117,423 @@ lemma exists_vlasov_extend_one_window_tight
   · intro s hs
     exact hα_w.2.2 s hs
 
+/-- On the degenerate interval `Icc c c`, every function trivially has every
+within-derivative at `c` (the point is not an accumulation point of the
+singleton).  Serves the `T = 0` branch and the tiling base case of the tight
+flow construction. -/
+private lemma hasDerivWithinAt_Icc_self {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (f : ℝ → E) (v : E) (c : ℝ) :
+    HasDerivWithinAt f v (Set.Icc c c) c := by
+  have h_notAccPt : ¬ AccPt c (Filter.principal (Set.Icc c c)) := by
+    rw [accPt_iff_clusterPt, Filter.inf_principal]
+    simp [ClusterPt, Set.Icc_self]
+  rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
+  exact HasFDerivWithinAt.of_not_accPt h_notAccPt
+
+/-- Adaptive-window force bound for the tight tiling: on any window
+`[c, c + δ] ⊆ [0, T]` whose entry position `p` satisfies the linear drift
+invariant `‖p - z₀.1‖ ≤ a/2 + V_max·c`, the global `hbound` (radius `R` from
+the tight `hR`) restricts to the moving ball `closedBall p (3a/2)`. -/
+private lemma charFlowTight_window_forceBound
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (z₀ : PhaseSpace d) (a M V_max R : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (hV_max_def : V_max = ‖z₀.2‖₊ + a / 2 + M * Real.toNNReal T)
+    (hR : 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2) * T + (M : ℝ) * T ^ 2 ≤ R)
+    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) T,
+              ∀ x ∈ Metric.closedBall z₀.1 (R : ℝ),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M)
+    (c δ : ℝ) (hc_nn : 0 ≤ c) (hc_le_T : c ≤ T) (hcδ_le_T : c + δ ≤ T)
+    (p : PhysSpace d)
+    (hp : ‖p - z₀.1‖ ≤ (a : ℝ) / 2 + (V_max : ℝ) * c) :
+    ∀ t ∈ Set.Icc c (c + δ), ∀ x ∈ Metric.closedBall p (3 * (a : ℝ) / 2),
+      ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M := by
+  intro t ht x hx
+  have h_t_in_global : t ∈ Set.Icc (0 : ℝ) T :=
+    ⟨le_trans hc_nn ht.1, le_trans ht.2 hcδ_le_T⟩
+  have h_x_local : dist x p ≤ 3 * (a : ℝ) / 2 := hx
+  have h_pos_chain : dist x z₀.1
+      ≤ 3 * (a : ℝ) / 2 + ((a : ℝ) / 2 + (V_max : ℝ) * c) := by
+    calc dist x z₀.1
+        ≤ dist x p + dist p z₀.1 := dist_triangle _ _ _
+      _ ≤ 3 * (a : ℝ) / 2 + _ := by
+          rw [dist_eq_norm]
+          exact add_le_add h_x_local hp
+  have h_V_max_coe : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
+    have h_V_def : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T.toNNReal : ℝ) := by
+      simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
+    rw [h_V_def, Real.coe_toNNReal _ hT]
+  have h_V_max_nn : (0 : ℝ) ≤ (V_max : ℝ) := V_max.coe_nonneg
+  have h_R_expand : 2 * (a : ℝ) + (V_max : ℝ) * T ≤ R := by
+    have h_ring : 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T) * T
+        = 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2) * T + (M : ℝ) * T ^ 2 := by ring
+    rw [h_V_max_coe, h_ring]; exact hR
+  have h_x_in_R : dist x z₀.1 ≤ (R : ℝ) := by
+    have h_pos_worst : (V_max : ℝ) * c ≤ (V_max : ℝ) * T :=
+      mul_le_mul_of_nonneg_left hc_le_T h_V_max_nn
+    linarith [h_pos_chain]
+  exact hbound t h_t_in_global x h_x_in_R
+
+/-- Mean-value velocity carry along one window: if `β` solves the velocity ODE
+on `[c, b]` with force bounded by `Mr`, then `‖(β s).2‖` grows at most linearly
+from its entry value.  Shared by the velocity- and position-invariant steps of
+`charFlowTight_window_step`. -/
+private lemma charFlowTight_window_velocity_carry
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (β : ℝ → PhaseSpace d) (c b : ℝ) (hcb : c ≤ b) (Mr : ℝ)
+    (h_vel : ∀ s ∈ Set.Icc c b,
+      HasDerivWithinAt (fun u => (β u).2)
+        (-(convolveFunctionMeasure gradW (ρ s) (β s).1)) (Set.Icc c b) s)
+    (h_force : ∀ s ∈ Set.Icc c b,
+      ‖convolveFunctionMeasure gradW (ρ s) (β s).1‖ ≤ Mr) :
+    ∀ s ∈ Set.Icc c b, ‖(β s).2‖ ≤ ‖(β c).2‖ + Mr * (s - c) := by
+  intro s hs
+  have h_convex : Convex ℝ (Set.Icc c b) := convex_Icc _ _
+  have h_c_in : c ∈ Set.Icc c b := ⟨le_refl _, hcb⟩
+  have h_force_neg : ∀ u ∈ Set.Icc c b,
+      ‖-(convolveFunctionMeasure gradW (ρ u) (β u).1)‖ ≤ Mr := by
+    intro u hu; rw [norm_neg]; exact h_force u hu
+  have h_mv : ‖(β s).2 - (β c).2‖ ≤ Mr * ‖s - c‖ :=
+    h_convex.norm_image_sub_le_of_norm_hasDerivWithin_le h_vel h_force_neg h_c_in hs
+  have h_diff_nn : 0 ≤ s - c := by linarith [hs.1]
+  rw [Real.norm_of_nonneg h_diff_nn] at h_mv
+  have h_triangle : ‖(β s).2‖ ≤ ‖(β s).2 - (β c).2‖ + ‖(β c).2‖ := by
+    have h_decomp : (β s).2 = ((β s).2 - (β c).2) + (β c).2 :=
+      (sub_add_cancel _ _).symm
+    calc ‖(β s).2‖ = ‖((β s).2 - (β c).2) + (β c).2‖ := by rw [← h_decomp]
+      _ ≤ _ := norm_add_le _ _
+  linarith
+
+/-- Gluing step for the tight tiling: the `Set.piecewise (Set.Iic c)` splice of
+a left solution on `[0, c]` and a right solution on `[c, b]` (agreeing at the
+join) solves the characteristic ODE system on all of `[0, b]`, via
+`HasDerivWithinAt.union` on `Icc 0 c ∪ Icc c b = Icc 0 b`. -/
+private lemma charFlowTight_piecewise_ode
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (ρ : ℝ → Measure (PhysSpace d))
+    (γL β : ℝ → PhaseSpace d)
+    (c b : ℝ) (hc_nn : 0 ≤ c) (hcb : c ≤ b)
+    (h_join : β c = γL c)
+    (h_ode_L : ∀ t ∈ Set.Icc (0 : ℝ) c,
+      HasDerivWithinAt (fun s => (γL s).1) (γL t).2 (Set.Icc (0 : ℝ) c) t ∧
+      HasDerivWithinAt (fun s => (γL s).2)
+        (-(convolveFunctionMeasure gradW (ρ t) (γL t).1)) (Set.Icc (0 : ℝ) c) t)
+    (h_ode_R : ∀ t ∈ Set.Icc c b,
+      HasDerivWithinAt (fun s => (β s).1) (β t).2 (Set.Icc c b) t ∧
+      HasDerivWithinAt (fun s => (β s).2)
+        (-(convolveFunctionMeasure gradW (ρ t) (β t).1)) (Set.Icc c b) t) :
+    ∀ t ∈ Set.Icc (0 : ℝ) b,
+      HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).1)
+        (Set.piecewise (Set.Iic c) γL β t).2 (Set.Icc (0 : ℝ) b) t ∧
+      HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).2)
+        (-(convolveFunctionMeasure gradW (ρ t)
+            (Set.piecewise (Set.Iic c) γL β t).1)) (Set.Icc (0 : ℝ) b) t := by
+  classical
+  intro t ht
+  have h_left : ∀ y ≤ c, Set.piecewise (Set.Iic c) γL β y = γL y := fun y hy =>
+    Set.piecewise_eq_of_mem _ _ _ hy
+  have h_right : ∀ y, c < y → Set.piecewise (Set.Iic c) γL β y = β y := fun y hy =>
+    Set.piecewise_eq_of_notMem _ _ _ (not_le.mpr hy)
+  have h_at_join : Set.piecewise (Set.Iic c) γL β c = γL c := h_left _ (le_refl _)
+  have h_on_right_Icc : ∀ y ∈ Set.Icc c b,
+      Set.piecewise (Set.Iic c) γL β y = β y := by
+    intro y hy
+    rcases eq_or_lt_of_le hy.1 with hy_eq | hy_lt
+    · rw [← hy_eq, h_at_join, h_join]
+    · exact h_right y hy_lt
+  have h_set_union : Set.Icc (0 : ℝ) c ∪ Set.Icc c b = Set.Icc (0 : ℝ) b :=
+    Set.Icc_union_Icc_eq_Icc hc_nn hcb
+  have hA_pos : HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).1)
+      (Set.piecewise (Set.Iic c) γL β t).2 (Set.Icc (0 : ℝ) c) t := by
+    by_cases ht_left : t ≤ c
+    · have ht_in : t ∈ Set.Icc (0 : ℝ) c := ⟨ht.1, ht_left⟩
+      have h_γL_pos := (h_ode_L t ht_in).1
+      have h_deriv_eq : (Set.piecewise (Set.Iic c) γL β t).2 = (γL t).2 := by
+        rw [h_left t ht_left]
+      rw [h_deriv_eq]
+      refine h_γL_pos.congr (fun y hy => ?_) ?_
+      · rw [h_left y hy.2]
+      · rw [h_left t ht_left]
+    · rw [not_le] at ht_left
+      rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
+      apply HasFDerivWithinAt.of_notMem_closure
+      rw [closure_Icc, Set.mem_Icc]
+      rintro ⟨_, _⟩; linarith
+  have hB_pos : HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).1)
+      (Set.piecewise (Set.Iic c) γL β t).2 (Set.Icc c b) t := by
+    by_cases ht_right : c ≤ t
+    · have ht_in : t ∈ Set.Icc c b := ⟨ht_right, ht.2⟩
+      have h_β_pos := (h_ode_R t ht_in).1
+      have h_deriv_eq : (Set.piecewise (Set.Iic c) γL β t).2 = (β t).2 := by
+        rw [h_on_right_Icc t ht_in]
+      rw [h_deriv_eq]
+      refine h_β_pos.congr (fun y hy => ?_) ?_
+      · rw [h_on_right_Icc y hy]
+      · rw [h_on_right_Icc t ht_in]
+    · rw [not_le] at ht_right
+      rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
+      apply HasFDerivWithinAt.of_notMem_closure
+      rw [closure_Icc, Set.mem_Icc]
+      rintro ⟨_, _⟩; linarith
+  have hA_vel : HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).2)
+      (-(convolveFunctionMeasure gradW (ρ t)
+          (Set.piecewise (Set.Iic c) γL β t).1)) (Set.Icc (0 : ℝ) c) t := by
+    by_cases ht_left : t ≤ c
+    · have ht_in : t ∈ Set.Icc (0 : ℝ) c := ⟨ht.1, ht_left⟩
+      have h_γL_vel := (h_ode_L t ht_in).2
+      have h_pos_eq : (Set.piecewise (Set.Iic c) γL β t).1 = (γL t).1 := by
+        rw [h_left t ht_left]
+      rw [h_pos_eq]
+      refine h_γL_vel.congr (fun y hy => ?_) ?_
+      · rw [h_left y hy.2]
+      · rw [h_left t ht_left]
+    · rw [not_le] at ht_left
+      rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
+      apply HasFDerivWithinAt.of_notMem_closure
+      rw [closure_Icc, Set.mem_Icc]
+      rintro ⟨_, _⟩; linarith
+  have hB_vel : HasDerivWithinAt (fun s => (Set.piecewise (Set.Iic c) γL β s).2)
+      (-(convolveFunctionMeasure gradW (ρ t)
+          (Set.piecewise (Set.Iic c) γL β t).1)) (Set.Icc c b) t := by
+    by_cases ht_right : c ≤ t
+    · have ht_in : t ∈ Set.Icc c b := ⟨ht_right, ht.2⟩
+      have h_β_vel := (h_ode_R t ht_in).2
+      have h_pos_eq : (Set.piecewise (Set.Iic c) γL β t).1 = (β t).1 := by
+        rw [h_on_right_Icc t ht_in]
+      rw [h_pos_eq]
+      refine h_β_vel.congr (fun y hy => ?_) ?_
+      · rw [h_on_right_Icc y hy]
+      · rw [h_on_right_Icc t ht_in]
+    · rw [not_le] at ht_right
+      rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
+      apply HasFDerivWithinAt.of_notMem_closure
+      rw [closure_Icc, Set.mem_Icc]
+      rintro ⟨_, _⟩; linarith
+  constructor
+  · have h_union_pos := hA_pos.union hB_pos
+    rw [h_set_union] at h_union_pos
+    exact h_union_pos
+  · have h_union_vel := hA_vel.union hB_vel
+    rw [h_set_union] at h_union_vel
+    exact h_union_vel
+
+/-- One tiling step for the tight flow: extend a trajectory satisfying the
+tight invariants on `[0, c]` to `[0, c + δ']` via
+`exists_vlasov_extend_one_window_tight`, splicing with `Set.piecewise`
+(`charFlowTight_piecewise_ode`) and carrying the linear velocity- and
+position-drift invariants (`charFlowTight_window_velocity_carry` +
+`vlasov_window_position_bound`). -/
+private lemma charFlowTight_window_step
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (z₀ : PhaseSpace d) (a : NNReal) (ha : 0 < a)
+    (M V_max R : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (hV_max_def : V_max = ‖z₀.2‖₊ + a / 2 + M * Real.toNNReal T)
+    (hR : 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2) * T + (M : ℝ) * T ^ 2 ≤ R)
+    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) T,
+              ∀ x ∈ Metric.closedBall z₀.1 (R : ℝ),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M)
+    (δ' : ℝ) (hδ'_pos : 0 < δ')
+    (hδ'_le_max : δ' ≤ (a : ℝ) / 2 / (((V_max + a + M : NNReal) : ℝ) + 1))
+    (z : PhaseSpace d) (c : ℝ) (hc_nn : 0 ≤ c) (hcδ_le_T : c + δ' ≤ T)
+    (γ_k : ℝ → PhaseSpace d) (h_γ0 : γ_k 0 = z)
+    (h_ode_k : ∀ t ∈ Set.Icc (0 : ℝ) c,
+      HasDerivWithinAt (fun s => (γ_k s).1) (γ_k t).2 (Set.Icc (0 : ℝ) c) t ∧
+      HasDerivWithinAt (fun s => (γ_k s).2)
+        (-(convolveFunctionMeasure gradW (ρ t) (γ_k t).1)) (Set.Icc (0 : ℝ) c) t)
+    (h_vel_k : ‖(γ_k c).2‖ ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * c)
+    (h_pos_k : ‖(γ_k c).1 - z₀.1‖ ≤ (a : ℝ) / 2 + (V_max : ℝ) * c) :
+    ∃ γ : ℝ → PhaseSpace d, γ 0 = z ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) (c + δ'),
+        HasDerivWithinAt (fun s => (γ s).1) (γ t).2
+          (Set.Icc (0 : ℝ) (c + δ')) t ∧
+        HasDerivWithinAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1))
+          (Set.Icc (0 : ℝ) (c + δ')) t) ∧
+      ‖(γ (c + δ')).2‖ ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (c + δ') ∧
+      ‖(γ (c + δ')).1 - z₀.1‖ ≤ (a : ℝ) / 2 + (V_max : ℝ) * (c + δ') := by
+  classical
+  have hc_lt_b : c < c + δ' := by linarith
+  have hc_le_T : c ≤ T := by linarith
+  have hM_nn : (0 : ℝ) ≤ (M : ℝ) := M.coe_nonneg
+  have h_V_max_coe : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
+    have h_V_def : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T.toNNReal : ℝ) := by
+      simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
+    rw [h_V_def, Real.coe_toNNReal _ hT]
+  have h_vel_Vmax : ‖(γ_k c).2‖ ≤ (V_max : ℝ) := by
+    rw [h_V_max_coe]
+    calc ‖(γ_k c).2‖
+        ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * c := h_vel_k
+      _ ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
+          linarith [mul_le_mul_of_nonneg_left hc_le_T hM_nn]
+  have hbound_local := charFlowTight_window_forceBound gradW ρ z₀ a M V_max R T hT
+    hV_max_def hR hbound c δ' hc_nn hc_le_T hcδ_le_T (γ_k c).1 h_pos_k
+  obtain ⟨β, hβ_init, _hβ_ode_Ioo, hβ_ode_Icc, hβ_confined⟩ :=
+    exists_vlasov_extend_one_window_tight gradW L hL ρ h_int hρ_cont
+      (γ_k c) a ha M V_max h_vel_Vmax c δ' hδ'_pos hδ'_le_max hbound_local
+  have h_β_in_ball : ∀ s ∈ Set.Icc c (c + δ'),
+      (β s).1 ∈ Metric.closedBall (γ_k c).1 (3 * (a : ℝ) / 2) := by
+    intro s hs
+    have h_phase : β s ∈ Metric.closedBall (γ_k c) (a : ℝ) := hβ_confined s hs
+    rw [Metric.mem_closedBall] at h_phase ⊢
+    have h_proj : dist (β s).1 (γ_k c).1 ≤ dist (β s) (γ_k c) := by
+      rw [Prod.dist_eq]; exact le_max_left _ _
+    have h_a_nn : (0 : ℝ) ≤ (a : ℝ) := a.coe_nonneg
+    linarith
+  have h_force_window : ∀ s ∈ Set.Icc c (c + δ'),
+      ‖convolveFunctionMeasure gradW (ρ s) (β s).1‖ ≤ (M : ℝ) := fun s hs =>
+    hbound_local s hs (β s).1 (h_β_in_ball s hs)
+  have h_vel_carry := charFlowTight_window_velocity_carry gradW ρ β c (c + δ')
+    (le_of_lt hc_lt_b) (M : ℝ) (fun s hs => (hβ_ode_Icc s hs).2) h_force_window
+  have h_β_c_vel : (β c).2 = (γ_k c).2 := by rw [hβ_init]
+  have h_ode_pw := charFlowTight_piecewise_ode gradW ρ γ_k β c (c + δ') hc_nn
+    (le_of_lt hc_lt_b) hβ_init h_ode_k hβ_ode_Icc
+  have h_right_end : Set.piecewise (Set.Iic c) γ_k β (c + δ') = β (c + δ') :=
+    Set.piecewise_eq_of_notMem _ _ _ (not_le.mpr hc_lt_b)
+  have h_left0 : Set.piecewise (Set.Iic c) γ_k β 0 = γ_k 0 :=
+    Set.piecewise_eq_of_mem _ _ _ hc_nn
+  refine ⟨Set.piecewise (Set.Iic c) γ_k β, by rw [h_left0, h_γ0], h_ode_pw, ?_, ?_⟩
+  · -- Velocity invariant at the new endpoint, via the mean-value carry.
+    rw [h_right_end]
+    have h_carry_b := h_vel_carry (c + δ') ⟨le_of_lt hc_lt_b, le_refl _⟩
+    rw [h_β_c_vel] at h_carry_b
+    have h_ring : (M : ℝ) * (c + δ' - c) = (M : ℝ) * δ' := by ring
+    rw [h_ring] at h_carry_b
+    calc ‖(β (c + δ')).2‖
+        ≤ ‖(γ_k c).2‖ + (M : ℝ) * δ' := h_carry_b
+      _ ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * c + (M : ℝ) * δ' := by linarith [h_vel_k]
+      _ = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (c + δ') := by ring
+  · -- Position invariant at the new endpoint, via the window position bound.
+    rw [h_right_end]
+    have h_window_vel_Vmax : ∀ s ∈ Set.Icc c (c + δ'),
+        ‖(β s).2‖ ≤ (V_max : ℝ) := by
+      intro s hs
+      have h_carry_s := h_vel_carry s hs
+      rw [h_β_c_vel] at h_carry_s
+      have h_s_le_T : s ≤ T := le_trans hs.2 hcδ_le_T
+      have h_M_split : (M : ℝ) * (s - c) + (M : ℝ) * c = (M : ℝ) * s := by ring
+      have h_M_mono : (M : ℝ) * s ≤ (M : ℝ) * T :=
+        mul_le_mul_of_nonneg_left h_s_le_T hM_nn
+      rw [h_V_max_coe]
+      linarith [h_carry_s, h_vel_k]
+    have h_pos_carry :=
+      vlasov_window_position_bound gradW ρ (γ_k c) c δ' hδ'_pos
+        (V_max : ℝ) z₀.1 ((a : ℝ) / 2 + (V_max : ℝ) * c) h_pos_k β hβ_init
+        (fun t ht => (hβ_ode_Icc t ht).1) h_window_vel_Vmax
+    calc ‖(β (c + δ')).1 - z₀.1‖
+        ≤ (a : ℝ) / 2 + (V_max : ℝ) * c + (V_max : ℝ) * δ' := h_pos_carry
+      _ = (a : ℝ) / 2 + (V_max : ℝ) * (c + δ') := by ring
+
+/-- Per-`z` trajectory for the tight flow: `N`-fold exact tiling of
+`[0, N·δ']` by windows of width `δ'`, by induction via
+`charFlowTight_window_step`, carrying the tight velocity/position invariants
+through the induction and discarding them at the end. -/
+private lemma charFlowTight_perZ_trajectory
+    {d : ℕ} [NeZero d]
+    (gradW : PhysSpace d → PhysSpace d)
+    (L : NNReal) (hL : LipschitzWith L gradW)
+    (ρ : ℝ → Measure (PhysSpace d))
+    [∀ t, IsProbabilityMeasure (ρ t)]
+    (h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
+    (hρ_cont : ∀ x : PhysSpace d,
+      Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
+    (z₀ : PhaseSpace d) (a : NNReal) (ha : 0 < a)
+    (M V_max R : NNReal) (T : ℝ) (hT : 0 ≤ T)
+    (hV_max_def : V_max = ‖z₀.2‖₊ + a / 2 + M * Real.toNNReal T)
+    (hR : 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2) * T + (M : ℝ) * T ^ 2 ≤ R)
+    (hbound : ∀ t ∈ Set.Icc (0 : ℝ) T,
+              ∀ x ∈ Metric.closedBall z₀.1 (R : ℝ),
+              ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M)
+    (N : ℕ) (δ' : ℝ) (hδ'_pos : 0 < δ')
+    (hδ'_le_max : δ' ≤ (a : ℝ) / 2 / (((V_max + a + M : NNReal) : ℝ) + 1))
+    (hNδ'_le_T : (N : ℝ) * δ' ≤ T)
+    (z : PhaseSpace d) (hz : z ∈ Metric.closedBall z₀ ((a : ℝ) / 2)) :
+    ∃ γ : ℝ → PhaseSpace d,
+      γ 0 = z ∧
+      ∀ t ∈ Set.Icc (0 : ℝ) ((N : ℝ) * δ'),
+        HasDerivWithinAt (fun s => (γ s).1) (γ t).2
+          (Set.Icc (0 : ℝ) ((N : ℝ) * δ')) t ∧
+        HasDerivWithinAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1))
+          (Set.Icc (0 : ℝ) ((N : ℝ) * δ')) t := by
+  suffices h_strong : ∀ k : ℕ, k ≤ N → ∃ γ : ℝ → PhaseSpace d,
+      γ 0 = z ∧
+      (∀ t ∈ Set.Icc (0 : ℝ) ((k : ℝ) * δ'),
+        HasDerivWithinAt (fun s => (γ s).1) (γ t).2
+          (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t ∧
+        HasDerivWithinAt (fun s => (γ s).2)
+          (-(convolveFunctionMeasure gradW (ρ t) (γ t).1))
+          (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t) ∧
+      ‖(γ ((k : ℝ) * δ')).2‖ ≤
+        ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ') ∧
+      ‖(γ ((k : ℝ) * δ')).1 - z₀.1‖ ≤
+        (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ') by
+    obtain ⟨γ, hγ0, hode, _, _⟩ := h_strong N (le_refl N)
+    exact ⟨γ, hγ0, hode⟩
+  intro k
+  induction k with
+  | zero =>
+    intro _
+    refine ⟨fun _ => z, rfl, ?_, ?_, ?_⟩
+    · intro t ht
+      have ht_eq : t = 0 := le_antisymm (by simpa using ht.2) ht.1
+      subst ht_eq
+      have h_set_eq : Set.Icc (0 : ℝ) (((0 : ℕ) : ℝ) * δ') = Set.Icc (0 : ℝ) 0 := by
+        norm_num
+      rw [h_set_eq]
+      exact ⟨hasDerivWithinAt_Icc_self _ _ _, hasDerivWithinAt_Icc_self _ _ _⟩
+    · have hdist : ‖z - z₀‖ ≤ (a : ℝ) / 2 := by
+        rw [← dist_eq_norm]; exact hz
+      have h_z2_proj : ‖z.2 - z₀.2‖ ≤ ‖z - z₀‖ := by
+        rw [Prod.norm_def]; exact le_max_right _ _
+      have h_z2_bound : ‖z.2‖ ≤ ‖z₀.2‖ + (a : ℝ) / 2 := by
+        have h1 : ‖z.2‖ = ‖(z.2 - z₀.2) + z₀.2‖ := by rw [sub_add_cancel]
+        have h2 : ‖(z.2 - z₀.2) + z₀.2‖ ≤ ‖z.2 - z₀.2‖ + ‖z₀.2‖ := norm_add_le _ _
+        linarith [h_z2_proj, hdist]
+      change ‖((fun _ => z) (((0 : ℕ) : ℝ) * δ')).2‖ ≤
+        ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (((0 : ℕ) : ℝ) * δ')
+      simp only [Nat.cast_zero, zero_mul, mul_zero, add_zero]
+      linarith
+    · have hdist : ‖z - z₀‖ ≤ (a : ℝ) / 2 := by
+        rw [← dist_eq_norm]; exact hz
+      have h_z1_proj : ‖z.1 - z₀.1‖ ≤ ‖z - z₀‖ := by
+        rw [Prod.norm_def]; exact le_max_left _ _
+      change ‖((fun _ => z) (((0 : ℕ) : ℝ) * δ')).1 - z₀.1‖ ≤
+        (a : ℝ) / 2 + (V_max : ℝ) * (((0 : ℕ) : ℝ) * δ')
+      simp only [Nat.cast_zero, zero_mul, mul_zero, add_zero]
+      linarith
+  | succ k ih =>
+    intro hk_succ_le_N
+    obtain ⟨γ_k, h_γ0, h_ode_k, h_vel_k, h_pos_k⟩ :=
+      ih (Nat.le_of_succ_le hk_succ_le_N)
+    have h_kδ_nn : (0 : ℝ) ≤ (k : ℝ) * δ' := by positivity
+    have h_kδ_succ_eq : (k : ℝ) * δ' + δ' = ((k + 1 : ℕ) : ℝ) * δ' := by
+      push_cast; ring
+    have h_succ_kδ_le_T : ((k + 1 : ℕ) : ℝ) * δ' ≤ T := by
+      calc ((k + 1 : ℕ) : ℝ) * δ'
+          ≤ (N : ℝ) * δ' := by
+            have h_cast : ((k + 1 : ℕ) : ℝ) ≤ (N : ℝ) := by
+              exact_mod_cast hk_succ_le_N
+            exact mul_le_mul_of_nonneg_right h_cast (le_of_lt hδ'_pos)
+        _ ≤ T := hNδ'_le_T
+    obtain ⟨γ, hγ0, h_ode, h_vel, h_pos⟩ :=
+      charFlowTight_window_step gradW L hL ρ h_int hρ_cont z₀ a ha M V_max R T hT
+        hV_max_def hR hbound δ' hδ'_pos hδ'_le_max z ((k : ℝ) * δ') h_kδ_nn
+        (by rw [h_kδ_succ_eq]; exact h_succ_kδ_le_T) γ_k h_γ0 h_ode_k h_vel_k h_pos_k
+    rw [← h_kδ_succ_eq]
+    exact ⟨γ, hγ0, h_ode, h_vel, h_pos⟩
+
 /-- **Tight global per-ball flow: `[0,T]` force-window, `T²` smallness (no `+1`).**
 
 Tight form of `exists_vlasov_characteristicFlow`.  By tiling `[0,T]`
@@ -2181,15 +2598,7 @@ theorem exists_vlasov_characteristicFlow_tight
     · intro z hz t ht
       have ht_eq : t = 0 := le_antisymm ht.2 ht.1
       subst ht_eq
-      have h_notAccPt : ¬ AccPt (0 : ℝ)
-          (Filter.principal (Set.Icc (0 : ℝ) 0)) := by
-        rw [accPt_iff_clusterPt, Filter.inf_principal]
-        simp [ClusterPt, Set.Icc_self]
-      constructor
-      · rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-        exact HasFDerivWithinAt.of_not_accPt (by simpa using h_notAccPt)
-      · rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-        exact HasFDerivWithinAt.of_not_accPt (by simpa using h_notAccPt)
+      exact ⟨hasDerivWithinAt_Icc_self _ _ _, hasDerivWithinAt_Icc_self _ _ _⟩
   · -- T > 0: EXACT tiling.
     -- N := ⌈T/δ_max⌉₊ windows of width δ' = T/N ≤ δ_max, so N·δ' = T.
     set N : ℕ := ⌈T / δ_max⌉₊ with hN_def
@@ -2220,420 +2629,11 @@ theorem exists_vlasov_characteristicFlow_tight
               (Set.Icc (0 : ℝ) ((N : ℝ) * δ')) t ∧
             HasDerivWithinAt (fun s => (γ s).2)
               (-(convolveFunctionMeasure gradW (ρ t) (γ t).1))
-              (Set.Icc (0 : ℝ) ((N : ℝ) * δ')) t := by
-      intro z hz
-      suffices h_strong : ∀ k : ℕ, k ≤ N → ∃ γ : ℝ → PhaseSpace d,
-          γ 0 = z ∧
-          (∀ t ∈ Set.Icc (0 : ℝ) ((k : ℝ) * δ'),
-            HasDerivWithinAt (fun s => (γ s).1) (γ t).2
-              (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t ∧
-            HasDerivWithinAt (fun s => (γ s).2)
-              (-(convolveFunctionMeasure gradW (ρ t) (γ t).1))
-              (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t) ∧
-          ‖(γ ((k : ℝ) * δ')).2‖ ≤
-            ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ') ∧
-          ‖(γ ((k : ℝ) * δ')).1 - z₀.1‖ ≤
-            (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ') by
-        obtain ⟨γ, hγ0, hode, _, _⟩ := h_strong N (le_refl N)
-        exact ⟨γ, hγ0, hode⟩
-      intro k
-      induction k with
-      | zero =>
-        intro _
-        refine ⟨fun _ => z, rfl, ?_, ?_, ?_⟩
-        · intro t ht
-          have ht_eq : t = 0 := le_antisymm (by simpa using ht.2) ht.1
-          subst ht_eq
-          have h_notAccPt : ¬ AccPt (0 : ℝ)
-              (Filter.principal (Set.Icc (0 : ℝ) ((0 : ℕ) * δ'))) := by
-            simp only [Nat.cast_zero, zero_mul, Set.Icc_self]
-            rw [accPt_iff_clusterPt, Filter.inf_principal]
-            simp [ClusterPt]
-          refine ⟨?_, ?_⟩
-          · rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-            exact HasFDerivWithinAt.of_not_accPt h_notAccPt
-          · rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-            exact HasFDerivWithinAt.of_not_accPt h_notAccPt
-        · have hdist : ‖z - z₀‖ ≤ (a : ℝ) / 2 := by
-            rw [← dist_eq_norm]; exact hz
-          have h_z2_proj : ‖z.2 - z₀.2‖ ≤ ‖z - z₀‖ := by
-            rw [Prod.norm_def]; exact le_max_right _ _
-          have h_z2_bound : ‖z.2‖ ≤ ‖z₀.2‖ + (a : ℝ) / 2 := by
-            have h1 : ‖z.2‖ = ‖(z.2 - z₀.2) + z₀.2‖ := by rw [sub_add_cancel]
-            have h2 : ‖(z.2 - z₀.2) + z₀.2‖ ≤ ‖z.2 - z₀.2‖ + ‖z₀.2‖ := norm_add_le _ _
-            linarith [h_z2_proj, hdist]
-          change ‖((fun _ => z) ((0 : ℕ) * δ' : ℝ)).2‖ ≤
-            ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (((0 : ℕ) : ℝ) * δ')
-          simp only [Nat.cast_zero, zero_mul, mul_zero, add_zero]
-          linarith
-        · have hdist : ‖z - z₀‖ ≤ (a : ℝ) / 2 := by
-            rw [← dist_eq_norm]; exact hz
-          have h_z1_proj : ‖z.1 - z₀.1‖ ≤ ‖z - z₀‖ := by
-            rw [Prod.norm_def]; exact le_max_left _ _
-          change ‖((fun _ => z) ((0 : ℕ) * δ' : ℝ)).1 - z₀.1‖ ≤
-            (a : ℝ) / 2 + (V_max : ℝ) * (((0 : ℕ) : ℝ) * δ')
-          simp only [Nat.cast_zero, zero_mul, mul_zero, add_zero]
-          linarith
-      | succ k ih =>
-        intro hk_succ_le_N
-        have hk_le_N : k ≤ N := Nat.le_of_succ_le hk_succ_le_N
-        obtain ⟨γ_k, h_γ0, h_ode_k, h_vel_k, h_pos_k⟩ := ih hk_le_N
-        have hk_lt_N : k < N := hk_succ_le_N
-        have h_kδ_nn : (0 : ℝ) ≤ (k : ℝ) * δ' := by positivity
-        -- TIGHT tiling facts: (k+1)·δ' ≤ N·δ' = T, k·δ' ≤ T.
-        have h_kp1_le_N : ((k + 1 : ℕ) : ℝ) ≤ (N : ℝ) := by exact_mod_cast hk_succ_le_N
-        have h_k_le_N : ((k : ℕ) : ℝ) ≤ (N : ℝ) := by exact_mod_cast hk_le_N
-        have h_succ_kδ_le_T : ((k + 1 : ℕ) : ℝ) * δ' ≤ T := by
-          calc ((k + 1 : ℕ) : ℝ) * δ'
-              ≤ (N : ℝ) * δ' :=
-                mul_le_mul_of_nonneg_right h_kp1_le_N (le_of_lt hδ'_pos)
-            _ = T := hNδ'_eq
-        have h_kδ_le_T : (k : ℝ) * δ' ≤ T := by
-          calc (k : ℝ) * δ'
-              ≤ (N : ℝ) * δ' :=
-                mul_le_mul_of_nonneg_right h_k_le_N (le_of_lt hδ'_pos)
-            _ = T := hNδ'_eq
-        -- V_max bound on the IH velocity, derived from tight IH + k·δ' ≤ T.
-        have h_vel_Vmax : ‖(γ_k ((k : ℝ) * δ')).2‖ ≤ (V_max : ℝ) := by
-          have h_V_coe : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T.toNNReal : ℝ) := by
-            simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
-          have h_toNNReal : (T.toNNReal : ℝ) = T := Real.coe_toNNReal _ hT
-          have hM_nn : (0 : ℝ) ≤ (M : ℝ) := M.coe_nonneg
-          rw [h_V_coe, h_toNNReal]
-          calc ‖(γ_k ((k : ℝ) * δ')).2‖
-              ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ') := h_vel_k
-            _ ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
-                linarith [mul_le_mul_of_nonneg_left h_kδ_le_T hM_nn]
-        -- (s.2) hbound on the ADAPTIVE window Icc (k·δ') ((k+1)·δ'),
-        -- closedBall (γ_k(k·δ')).1 (3a/2).
-        have h_kδ_succ_eq : (k : ℝ) * δ' + δ' = ((k + 1 : ℕ) : ℝ) * δ' := by
-          push_cast; ring
-        have hbound_local : ∀ t ∈ Set.Icc ((k : ℝ) * δ') ((k : ℝ) * δ' + δ'),
-            ∀ x ∈ Metric.closedBall (γ_k ((k : ℝ) * δ')).1 (3 * (a : ℝ) / 2),
-            ‖convolveFunctionMeasure gradW (ρ t) x‖ ≤ M := by
-          intro t ht x hx
-          -- Time check: t ∈ Icc (k·δ') ((k+1)·δ') ⊆ Icc 0 T.
-          have ht_le : t ≤ ((k + 1 : ℕ) : ℝ) * δ' := by rw [← h_kδ_succ_eq]; exact ht.2
-          have h_t_in_global : t ∈ Set.Icc (0 : ℝ) T :=
-            ⟨le_trans h_kδ_nn ht.1, le_trans ht_le h_succ_kδ_le_T⟩
-          -- Position chain: dist x z₀.1 ≤ 3a/2 + (a/2 + V_max·(k·δ')) ≤ R.
-          have h_x_local : dist x (γ_k ((k : ℝ) * δ')).1 ≤ 3 * (a : ℝ) / 2 := hx
-          have h_pos_chain : dist x z₀.1
-              ≤ 3 * (a : ℝ) / 2
-                + ((a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ')) := by
-            calc dist x z₀.1
-                ≤ dist x (γ_k ((k : ℝ) * δ')).1
-                  + dist (γ_k ((k : ℝ) * δ')).1 z₀.1 := dist_triangle _ _ _
-              _ ≤ 3 * (a : ℝ) / 2 + _ := by
-                  rw [dist_eq_norm]
-                  exact add_le_add h_x_local h_pos_k
-          have h_V_max_coe : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
-            have h_V_def : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T.toNNReal : ℝ) := by
-              simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
-            rw [h_V_def, Real.coe_toNNReal _ hT]
-          have h_V_max_nn : (0 : ℝ) ≤ (V_max : ℝ) := V_max.coe_nonneg
-          have h_M_nn : (0 : ℝ) ≤ (M : ℝ) := M.coe_nonneg
-          -- 2a + V_max·T = 2a + (‖z₀.2‖ + a/2)·T + M·T² ≤ R by hR.
-          have h_R_expand : 2 * (a : ℝ) + (V_max : ℝ) * T ≤ R := by
-            have h_ring : 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T) * T
-                = 2 * (a : ℝ) + (‖z₀.2‖ + (a : ℝ) / 2) * T + (M : ℝ) * T ^ 2 := by ring
-            rw [h_V_max_coe, h_ring]; exact hR
-          have h_x_in_R : dist x z₀.1 ≤ (R : ℝ) := by
-            have h_pos_worst : (V_max : ℝ) * ((k : ℝ) * δ') ≤ (V_max : ℝ) * T :=
-              mul_le_mul_of_nonneg_left h_kδ_le_T h_V_max_nn
-            linarith [h_pos_chain]
-          exact hbound t h_t_in_global x h_x_in_R
-        -- (s.3) Apply the TIGHT one-window extender with explicit step δ'.
-        obtain ⟨β, hβ_init, hβ_ode_Ioo, hβ_ode_Icc, hβ_confined⟩ :=
-          exists_vlasov_extend_one_window_tight gradW L hL ρ h_int hρ_cont
-            (γ_k ((k : ℝ) * δ')) a ha M V_max h_vel_Vmax
-            ((k : ℝ) * δ') δ' hδ'_pos hδ'_le_max hbound_local
-        -- (s.4) Define γ_succ via Set.piecewise.
-        let γ_succ : ℝ → PhaseSpace d :=
-          Set.piecewise (Set.Iic ((k : ℝ) * δ')) γ_k β
-        have h_γsucc_0 : γ_succ 0 = z := by
-          have h0_mem : (0 : ℝ) ∈ Set.Iic ((k : ℝ) * δ') := h_kδ_nn
-          simp only [γ_succ, Set.piecewise_eq_of_mem _ _ _ h0_mem]
-          exact h_γ0
-        have h_kδ_le_succ_kδ : (k : ℝ) * δ' ≤ ((k + 1 : ℕ) : ℝ) * δ' := by
-          rw [← h_kδ_succ_eq]; linarith [hδ'_pos]
-        have h_γsucc_left : ∀ y ≤ (k : ℝ) * δ', γ_succ y = γ_k y := fun y hy =>
-          Set.piecewise_eq_of_mem _ _ _ hy
-        have h_γsucc_right : ∀ y, (k : ℝ) * δ' < y → γ_succ y = β y := fun y hy =>
-          Set.piecewise_eq_of_notMem _ _ _ (not_le.mpr hy)
-        have h_γsucc_at_join : γ_succ ((k : ℝ) * δ') = γ_k ((k : ℝ) * δ') :=
-          h_γsucc_left _ (le_refl _)
-        have h_β_at_join : β ((k : ℝ) * δ') = γ_k ((k : ℝ) * δ') := hβ_init
-        have h_γsucc_on_right_Icc : ∀ y ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-            γ_succ y = β y := by
-          intro y hy
-          rcases eq_or_lt_of_le hy.1 with hy_eq | hy_lt
-          · rw [← hy_eq, h_γsucc_at_join, h_β_at_join]
-          · exact h_γsucc_right y hy_lt
-        -- β-confinement to position-ball 3a/2 over the window
-        -- (projection of hβ_confined; the helper's body uses only this).
-        have h_β_in_ball : ∀ s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-            (β s).1 ∈ Metric.closedBall (γ_k ((k : ℝ) * δ')).1 (3 * (a : ℝ) / 2) := by
-          intro s hs
-          have hs' : s ∈ Set.Icc ((k : ℝ) * δ') ((k : ℝ) * δ' + δ') := by
-            rw [h_kδ_succ_eq]; exact hs
-          have h_phase : β s ∈ Metric.closedBall (γ_k ((k : ℝ) * δ')) (a : ℝ) :=
-            hβ_confined s hs'
-          rw [Metric.mem_closedBall] at h_phase ⊢
-          have h_proj : dist (β s).1 (γ_k ((k : ℝ) * δ')).1 ≤ dist (β s) (γ_k ((k : ℝ) * δ')) := by
-            rw [Prod.dist_eq]; exact le_max_left _ _
-          have h_a_nn : (0 : ℝ) ≤ (a : ℝ) := a.coe_nonneg
-          linarith
-        -- Interval form unification: Icc (k·δ') ((k+1)·δ') = Icc (k·δ') (k·δ' + δ').
-        have hβ_ode_Icc_unified : ∀ t ∈ Set.Icc ((k : ℝ) * δ')
-                                        (((k + 1 : ℕ) : ℝ) * δ'),
-            HasDerivWithinAt (fun s => (β s).1) (β t).2
-              (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) t ∧
-            HasDerivWithinAt (fun s => (β s).2)
-              (-(convolveFunctionMeasure gradW (ρ t) (β t).1))
-              (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) t := by
-          rw [← h_kδ_succ_eq]; exact hβ_ode_Icc
-        refine ⟨γ_succ, h_γsucc_0, ?_, ?_, ?_⟩
-        · -- (s.6) Within-derivative on Icc 0 ((k+1)·δ').
-          intro t ht
-          have hA_pos : HasDerivWithinAt (fun s => (γ_succ s).1) (γ_succ t).2
-                          (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t := by
-            by_cases ht_left : t ≤ (k : ℝ) * δ'
-            · have ht_in : t ∈ Set.Icc (0 : ℝ) ((k : ℝ) * δ') := ⟨ht.1, ht_left⟩
-              have h_γk_pos := (h_ode_k t ht_in).1
-              have h_deriv_eq : (γ_succ t).2 = (γ_k t).2 := by
-                rw [h_γsucc_left t ht_left]
-              rw [h_deriv_eq]
-              refine h_γk_pos.congr (fun y hy => ?_) ?_
-              · rw [h_γsucc_left y hy.2]
-              · rw [h_γsucc_left t ht_left]
-            · rw [not_le] at ht_left
-              rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-              apply HasFDerivWithinAt.of_notMem_closure
-              rw [closure_Icc, Set.mem_Icc]
-              rintro ⟨_, _⟩; linarith
-          have hB_pos : HasDerivWithinAt (fun s => (γ_succ s).1) (γ_succ t).2
-                          (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) t := by
-            by_cases ht_right : (k : ℝ) * δ' ≤ t
-            · have ht_in : t ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') :=
-                ⟨ht_right, ht.2⟩
-              have h_β_pos := (hβ_ode_Icc_unified t ht_in).1
-              have h_deriv_eq : (γ_succ t).2 = (β t).2 := by
-                rw [h_γsucc_on_right_Icc t ht_in]
-              rw [h_deriv_eq]
-              refine h_β_pos.congr (fun y hy => ?_) ?_
-              · rw [h_γsucc_on_right_Icc y hy]
-              · rw [h_γsucc_on_right_Icc t ht_in]
-            · rw [not_le] at ht_right
-              rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-              apply HasFDerivWithinAt.of_notMem_closure
-              rw [closure_Icc, Set.mem_Icc]
-              rintro ⟨_, _⟩; linarith
-          have h_union_pos := hA_pos.union hB_pos
-          have h_set_union : Set.Icc (0 : ℝ) ((k : ℝ) * δ') ∪
-                             Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')
-                           = Set.Icc (0 : ℝ) (((k + 1 : ℕ) : ℝ) * δ') := by
-            rw [Set.Icc_union_Icc_eq_Icc h_kδ_nn h_kδ_le_succ_kδ]
-          rw [h_set_union] at h_union_pos
-          refine ⟨h_union_pos, ?_⟩
-          have hA_vel : HasDerivWithinAt (fun s => (γ_succ s).2)
-                          (-(convolveFunctionMeasure gradW (ρ t) (γ_succ t).1))
-                          (Set.Icc (0 : ℝ) ((k : ℝ) * δ')) t := by
-            by_cases ht_left : t ≤ (k : ℝ) * δ'
-            · have ht_in : t ∈ Set.Icc (0 : ℝ) ((k : ℝ) * δ') := ⟨ht.1, ht_left⟩
-              have h_γk_vel := (h_ode_k t ht_in).2
-              have h_pos_eq : (γ_succ t).1 = (γ_k t).1 := by
-                rw [h_γsucc_left t ht_left]
-              rw [h_pos_eq]
-              refine h_γk_vel.congr (fun y hy => ?_) ?_
-              · rw [h_γsucc_left y hy.2]
-              · rw [h_γsucc_left t ht_left]
-            · rw [not_le] at ht_left
-              rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-              apply HasFDerivWithinAt.of_notMem_closure
-              rw [closure_Icc, Set.mem_Icc]
-              rintro ⟨_, _⟩; linarith
-          have hB_vel : HasDerivWithinAt (fun s => (γ_succ s).2)
-                          (-(convolveFunctionMeasure gradW (ρ t) (γ_succ t).1))
-                          (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) t := by
-            by_cases ht_right : (k : ℝ) * δ' ≤ t
-            · have ht_in : t ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') :=
-                ⟨ht_right, ht.2⟩
-              have h_β_vel := (hβ_ode_Icc_unified t ht_in).2
-              have h_pos_eq : (γ_succ t).1 = (β t).1 := by
-                rw [h_γsucc_on_right_Icc t ht_in]
-              rw [h_pos_eq]
-              refine h_β_vel.congr (fun y hy => ?_) ?_
-              · rw [h_γsucc_on_right_Icc y hy]
-              · rw [h_γsucc_on_right_Icc t ht_in]
-            · rw [not_le] at ht_right
-              rw [hasDerivWithinAt_iff_hasFDerivWithinAt]
-              apply HasFDerivWithinAt.of_notMem_closure
-              rw [closure_Icc, Set.mem_Icc]
-              rintro ⟨_, _⟩; linarith
-          have h_union_vel := hA_vel.union hB_vel
-          rw [h_set_union] at h_union_vel
-          exact h_union_vel
-        · -- (s.7) Velocity bound (TIGHT invariant) — inline mean-value on the
-          -- adaptive window (avoids the helper's unit-window hbound).
-          have h_kδ_lt_succ_kδ : (k : ℝ) * δ' < ((k + 1 : ℕ) : ℝ) * δ' := by
-            rw [← h_kδ_succ_eq]; linarith
-          have h_succ_kδ_in : ((k + 1 : ℕ) : ℝ) * δ' ∈
-              Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') :=
-            ⟨le_of_lt h_kδ_lt_succ_kδ, le_refl _⟩
-          have h_kδ_in : (k : ℝ) * δ' ∈
-              Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') :=
-            ⟨le_refl _, le_of_lt h_kδ_lt_succ_kδ⟩
-          have h_convex_window :
-              Convex ℝ (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) :=
-            convex_Icc _ _
-          have h_β_vel_window : ∀ s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-              HasDerivWithinAt (fun u => (β u).2)
-                (-(convolveFunctionMeasure gradW (ρ s) (β s).1))
-                (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) s :=
-            fun s hs => (hβ_ode_Icc_unified s hs).2
-          -- Force bound on the window via hbound_local (ADAPTIVE window).
-          have h_force_window : ∀ s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-              ‖-(convolveFunctionMeasure gradW (ρ s) (β s).1)‖ ≤ (M : ℝ) := by
-            intro s hs
-            rw [norm_neg]
-            have hs_time : s ∈ Set.Icc ((k : ℝ) * δ') ((k : ℝ) * δ' + δ') := by
-              refine ⟨hs.1, ?_⟩
-              calc s ≤ ((k + 1 : ℕ) : ℝ) * δ' := hs.2
-                _ = (k : ℝ) * δ' + δ' := h_kδ_succ_eq.symm
-            exact hbound_local s hs_time (β s).1 (h_β_in_ball s hs)
-          have h_mv : ‖(β (((k + 1 : ℕ) : ℝ) * δ')).2 - (β ((k : ℝ) * δ')).2‖
-                      ≤ (M : ℝ) * ‖((k + 1 : ℕ) : ℝ) * δ' - (k : ℝ) * δ'‖ :=
-            h_convex_window.norm_image_sub_le_of_norm_hasDerivWithin_le
-              h_β_vel_window h_force_window h_kδ_in h_succ_kδ_in
-          have h_diff : ‖((k + 1 : ℕ) : ℝ) * δ' - (k : ℝ) * δ'‖ = δ' := by
-            have h_diff_eq : ((k + 1 : ℕ) : ℝ) * δ' - (k : ℝ) * δ' = δ' := by
-              push_cast; ring
-            rw [h_diff_eq, Real.norm_of_nonneg (le_of_lt hδ'_pos)]
-          rw [h_diff] at h_mv
-          have h_succ_eq_β : γ_succ (((k + 1 : ℕ) : ℝ) * δ')
-                           = β (((k + 1 : ℕ) : ℝ) * δ') :=
-            h_γsucc_right _ h_kδ_lt_succ_kδ
-          have h_β_at_kδ : (β ((k : ℝ) * δ')).2 = (γ_k ((k : ℝ) * δ')).2 := by
-            rw [hβ_init]
-          change ‖(γ_succ (((k + 1 : ℕ) : ℝ) * δ')).2‖
-                ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (((k + 1 : ℕ) : ℝ) * δ')
-          rw [h_succ_eq_β]
-          have h_succ_kδ_expand : ((k + 1 : ℕ) : ℝ) * δ'
-                                = (k : ℝ) * δ' + δ' := h_kδ_succ_eq.symm
-          calc ‖(β (((k + 1 : ℕ) : ℝ) * δ')).2‖
-              ≤ ‖(β (((k + 1 : ℕ) : ℝ) * δ')).2 - (β ((k : ℝ) * δ')).2‖
-                  + ‖(β ((k : ℝ) * δ')).2‖ := by
-                have h_decomp : (β (((k + 1 : ℕ) : ℝ) * δ')).2
-                  = ((β (((k + 1 : ℕ) : ℝ) * δ')).2 - (β ((k : ℝ) * δ')).2)
-                    + (β ((k : ℝ) * δ')).2 := (sub_add_cancel _ _).symm
-                calc ‖(β (((k + 1 : ℕ) : ℝ) * δ')).2‖
-                    = ‖((β (((k + 1 : ℕ) : ℝ) * δ')).2 - (β ((k : ℝ) * δ')).2)
-                          + (β ((k : ℝ) * δ')).2‖ := by rw [← h_decomp]
-                  _ ≤ _ := norm_add_le _ _
-            _ ≤ (M : ℝ) * δ' + ‖(γ_k ((k : ℝ) * δ')).2‖ := by
-                have h_norm_eq : ‖(β ((k : ℝ) * δ')).2‖
-                               = ‖(γ_k ((k : ℝ) * δ')).2‖ := by rw [h_β_at_kδ]
-                linarith [h_mv, h_norm_eq]
-            _ ≤ (M : ℝ) * δ' + (‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ')) := by
-                linarith [h_vel_k]
-            _ = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (((k + 1 : ℕ) : ℝ) * δ') := by
-                rw [h_succ_kδ_expand]; ring
-        · -- (s.7) Position bound (LINEAR invariant) via Helper 3.
-          have h_vel_init_w : ‖(γ_k ((k : ℝ) * δ')).2‖
-                            ≤ ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * ((k : ℝ) * δ') :=
-            h_vel_k
-          -- Inline window-wide velocity bound ≤ V_max (no helper unit-window hbound).
-          have h_kδ_lt_succ_kδ : (k : ℝ) * δ' < ((k + 1 : ℕ) : ℝ) * δ' := by
-            rw [← h_kδ_succ_eq]; linarith
-          have h_convex_window :
-              Convex ℝ (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) :=
-            convex_Icc _ _
-          have h_kδ_in : (k : ℝ) * δ' ∈
-              Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') :=
-            ⟨le_refl _, le_of_lt h_kδ_lt_succ_kδ⟩
-          have h_β_vel_window : ∀ s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-              HasDerivWithinAt (fun u => (β u).2)
-                (-(convolveFunctionMeasure gradW (ρ s) (β s).1))
-                (Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ')) s :=
-            fun s hs => (hβ_ode_Icc_unified s hs).2
-          have h_force_window : ∀ s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ'),
-              ‖-(convolveFunctionMeasure gradW (ρ s) (β s).1)‖ ≤ (M : ℝ) := by
-            intro s hs
-            rw [norm_neg]
-            have hs_time : s ∈ Set.Icc ((k : ℝ) * δ') ((k : ℝ) * δ' + δ') := by
-              refine ⟨hs.1, ?_⟩
-              calc s ≤ ((k + 1 : ℕ) : ℝ) * δ' := hs.2
-                _ = (k : ℝ) * δ' + δ' := h_kδ_succ_eq.symm
-            exact hbound_local s hs_time (β s).1 (h_β_in_ball s hs)
-          -- Window velocity bound: ‖(β s).2‖ ≤ V_max for s in the window.
-          have h_V_max_real : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * T := by
-            have h_V_def : (V_max : ℝ) = ‖z₀.2‖ + (a : ℝ) / 2 + (M : ℝ) * (T.toNNReal : ℝ) := by
-              simp [hV_max_def, NNReal.coe_add, coe_nnnorm, NNReal.coe_mul, NNReal.coe_div]
-            rw [h_V_def, Real.coe_toNNReal _ hT]
-          have h_window_vel_Vmax : ∀ s ∈ Set.Icc ((k : ℝ) * δ')
-                                    (((k + 1 : ℕ) : ℝ) * δ'),
-              ‖(β s).2‖ ≤ (V_max : ℝ) := by
-            intro s hs
-            -- mean-value on β.2 over [k·δ', s]: ‖(β s).2 - (β k·δ').2‖ ≤ M·(s - k·δ').
-            have hs_in : s ∈ Set.Icc ((k : ℝ) * δ') (((k + 1 : ℕ) : ℝ) * δ') := hs
-            have h_mv_s : ‖(β s).2 - (β ((k : ℝ) * δ')).2‖
-                        ≤ (M : ℝ) * ‖s - (k : ℝ) * δ'‖ :=
-              h_convex_window.norm_image_sub_le_of_norm_hasDerivWithin_le
-                h_β_vel_window h_force_window h_kδ_in hs_in
-            have h_diff_nn : 0 ≤ s - (k : ℝ) * δ' := by linarith [hs.1]
-            rw [Real.norm_of_nonneg h_diff_nn] at h_mv_s
-            have h_β_t_start_vel : (β ((k : ℝ) * δ')).2 = (γ_k ((k : ℝ) * δ')).2 := by
-              rw [hβ_init]
-            have h_triangle : ‖(β s).2‖
-                ≤ ‖(β s).2 - (β ((k : ℝ) * δ')).2‖ + ‖(β ((k : ℝ) * δ')).2‖ := by
-              have h_decomp : (β s).2 = ((β s).2 - (β ((k : ℝ) * δ')).2) + (β ((k : ℝ) * δ')).2 :=
-                (sub_add_cancel _ _).symm
-              calc ‖(β s).2‖ = ‖((β s).2 - (β ((k : ℝ) * δ')).2) + (β ((k : ℝ) * δ')).2‖ := by
-                    rw [← h_decomp]
-                _ ≤ _ := norm_add_le _ _
-            rw [h_β_t_start_vel] at h_triangle h_mv_s
-            -- ‖(β s).2‖ ≤ M·(s - k·δ') + (‖z₀.2‖ + a/2 + M·(k·δ')) = ‖z₀.2‖+a/2+M·s ≤ V_max.
-            have h_s_le_T : s ≤ T := by
-              calc s ≤ ((k + 1 : ℕ) : ℝ) * δ' := hs.2
-                _ ≤ T := h_succ_kδ_le_T
-            have h_M_nn : (0 : ℝ) ≤ (M : ℝ) := M.coe_nonneg
-            have h_M_s_le : (M : ℝ) * s ≤ (M : ℝ) * T :=
-              mul_le_mul_of_nonneg_left h_s_le_T h_M_nn
-            have h_sum : (M : ℝ) * (s - (k : ℝ) * δ') + (M : ℝ) * ((k : ℝ) * δ')
-                = (M : ℝ) * s := by ring
-            rw [h_V_max_real]
-            linarith [h_triangle, h_mv_s, h_vel_k, h_M_s_le, h_sum]
-          -- Helper 3 application: position bound at endpoint (uses no hbound).
-          have h_pos_init_at_w : ‖(γ_k ((k : ℝ) * δ')).1 - z₀.1‖
-                              ≤ (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ') := h_pos_k
-          have h_window_vel_Vmax_unif : ∀ s ∈ Set.Icc ((k : ℝ) * δ')
-                                          ((k : ℝ) * δ' + δ'),
-              ‖(β s).2‖ ≤ (V_max : ℝ) := by
-            intro s hs
-            apply h_window_vel_Vmax
-            rw [← h_kδ_succ_eq]; exact hs
-          have h_pos_carry :=
-            vlasov_window_position_bound gradW ρ
-              (γ_k ((k : ℝ) * δ')) ((k : ℝ) * δ') δ' hδ'_pos
-              (V_max : ℝ) z₀.1
-              ((a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ'))
-              h_pos_init_at_w β hβ_init
-              (fun t ht => (hβ_ode_Icc t ht).1)
-              h_window_vel_Vmax_unif
-          have h_γsucc_eq_β : (γ_succ (((k + 1 : ℕ) : ℝ) * δ')).1
-                            = (β ((k : ℝ) * δ' + δ')).1 := by
-            rw [h_γsucc_right _ h_kδ_lt_succ_kδ, h_kδ_succ_eq]
-          change ‖(γ_succ (((k + 1 : ℕ) : ℝ) * δ')).1 - z₀.1‖
-                ≤ (a : ℝ) / 2 + (V_max : ℝ) * (((k + 1 : ℕ) : ℝ) * δ')
-          rw [h_γsucc_eq_β]
-          have h_succ_expand : ((k + 1 : ℕ) : ℝ) * δ'
-                             = (k : ℝ) * δ' + δ' := h_kδ_succ_eq.symm
-          rw [h_succ_expand]
-          calc ‖(β ((k : ℝ) * δ' + δ')).1 - z₀.1‖
-              ≤ (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ') + (V_max : ℝ) * δ' :=
-                h_pos_carry
-            _ = (a : ℝ) / 2 + (V_max : ℝ) * ((k : ℝ) * δ' + δ') := by ring
+              (Set.Icc (0 : ℝ) ((N : ℝ) * δ')) t :=
+      fun z hz =>
+        charFlowTight_perZ_trajectory gradW L hL ρ h_int hρ_cont z₀ a ha M V_max R
+          T hT hV_max_def hR hbound N δ' hδ'_pos
+          (by rw [← hδ_max_def]; exact hδ'_le_max) (le_of_eq hNδ'_eq) z hz
     -- ============================================================
     -- Bundle per-z curves into a joint flow via Classical.choose.
     -- ============================================================
