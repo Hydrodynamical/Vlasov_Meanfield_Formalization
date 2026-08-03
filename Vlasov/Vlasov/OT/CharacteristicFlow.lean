@@ -3,6 +3,9 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
+import Mathlib.Algebra.Order.Field.GeomSum
+import Mathlib.Analysis.Calculus.ParametricIntegral
+import Mathlib.MeasureTheory.Integral.Prod
 import Vlasov.Basic
 import Vlasov.Mathlib.ODE.PicardLindelof
 import Vlasov.OT.Coupling
@@ -231,7 +234,7 @@ theorem flow_distance_growth_bound
       have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
         calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
-              le_mul_of_one_le_left hM_nn (by linarith)
+              le_mul_of_one_le_left hM_nn (by linarith [NNReal.coe_nonneg L])
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ := le_add_of_nonneg_right hε₀_nn
       -- ‖conv‖ ≤ K * ‖f s‖ + ε₀
       have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
@@ -836,7 +839,7 @@ theorem flow_distance_growth_bound_on
       have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
         calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
-              le_mul_of_one_le_left hM_nn (by linarith)
+              le_mul_of_one_le_left hM_nn (by linarith [NNReal.coe_nonneg L])
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ := le_add_of_nonneg_right hε₀_nn
       have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
           K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
@@ -987,7 +990,7 @@ theorem flow_distance_growth_bound_on_timedep
     have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + εt :=
       calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
         _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
-            le_mul_of_one_le_left hM_nn (by linarith)
+            le_mul_of_one_le_left hM_nn (by linarith [NNReal.coe_nonneg L])
         _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + εt := le_add_of_nonneg_right hεt_nn
     have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
         K * max ‖charX s z‖ ‖charV s z‖ + εt :=
@@ -1795,7 +1798,7 @@ lemma vlasov_window_confinement
     (_h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
     (_hρ_cont : ∀ x : PhysSpace d,
       Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
-    (w : PhaseSpace d) (a : NNReal) (ha : 0 < a) (M : NNReal)
+    (w : PhaseSpace d) (a : NNReal) (_ha : 0 < a) (M : NNReal)
     (V_max : NNReal) (_hV : ‖w.2‖ ≤ (V_max : ℝ))
     (t_start δ : ℝ) (_hδ_pos : 0 < δ) (_hδ_le_one : δ ≤ 1)
     (_hδ_contract : δ ≤ (a : ℝ) / 2 / (((V_max + a + M : NNReal) : ℝ) + 1))

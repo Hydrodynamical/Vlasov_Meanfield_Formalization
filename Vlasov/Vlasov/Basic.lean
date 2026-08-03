@@ -3,7 +3,22 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-import Mathlib
+import Mathlib.Analysis.Calculus.ContDiff.Basic
+import Mathlib.Analysis.Calculus.Deriv.Add
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Calculus.Deriv.Comp
+import Mathlib.Analysis.Calculus.Deriv.Mul
+import Mathlib.Analysis.Calculus.Deriv.Prod
+import Mathlib.Analysis.Calculus.Gradient.Basic
+import Mathlib.Analysis.Normed.Lp.MeasurableSpace
+import Mathlib.Analysis.ODE.Gronwall
+import Mathlib.MeasureTheory.Function.L2Space
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+import Mathlib.MeasureTheory.Measure.Dirac
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.MeasureTheory.Measure.Prokhorov
+import Mathlib.MeasureTheory.Measure.Tight
 import Vlasov.Base.Geometry
 import Vlasov.OT.Wasserstein
 
@@ -1423,7 +1438,7 @@ lemma continuousOn_integral_of_isLagrangianVlasovSolution
       have h_v_le : ‖charV s z‖ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=
         calc ‖charV s z‖ ≤ max ‖charX s z‖ ‖charV s z‖ := hGsz
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ :=
-              le_mul_of_one_le_left hM_nn (by linarith)
+              le_mul_of_one_le_left hM_nn (by linarith [NNReal.coe_nonneg L])
           _ ≤ K * max ‖charX s z‖ ‖charV s z‖ + ε₀ := le_add_of_nonneg_right hε₀_nn
       have h_conv_le : ‖convolveFunctionMeasure gradW (ρ s) (charX s z)‖ ≤
           K * max ‖charX s z‖ ‖charV s z‖ + ε₀ :=

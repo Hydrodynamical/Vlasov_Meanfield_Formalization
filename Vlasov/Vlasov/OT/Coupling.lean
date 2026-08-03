@@ -3,6 +3,11 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
+import Mathlib.Analysis.Convex.Cone.InnerDual
+import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+import Mathlib.Probability.Kernel.Composition.MeasureComp
+import Mathlib.Probability.Kernel.Disintegration.StandardBorel
+import Mathlib.Topology.MetricSpace.Sequences
 import Vlasov.OT.Wasserstein
 
 /-!

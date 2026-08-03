@@ -3,7 +3,10 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-import Mathlib
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import Mathlib.MeasureTheory.Measure.HasOuterApproxClosed
+import Mathlib.Topology.ContinuousMap.Bounded.Basic
 
 /-! # Wasserstein-1 distance via Kantorovich–Rubinstein duality (cost-generic)
 
