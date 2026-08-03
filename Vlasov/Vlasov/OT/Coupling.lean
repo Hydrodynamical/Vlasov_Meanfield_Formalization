@@ -3,8 +3,10 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-/-
-Coupling-based Wasserstein-1 distance.
+import Vlasov.OT.Wasserstein
+
+/-!
+# Coupling-based Wasserstein-1 distance
 
 OT infrastructure on pseudometric spaces:
 
@@ -20,8 +22,6 @@ characteristic flows.
 
 See `formalize/DESIGN.md` for the overall design choices.
 -/
-
-import Vlasov.OT.Wasserstein
 
 /-
 The contents of this file — `IsCoupling`, `wasserstein1_coupling`, both
@@ -1179,12 +1179,12 @@ theorem finiteRange_transportation_dual
   have hμmass : (∑ x ∈ hTfin.toFinset, (Measure.map T μ {x})) = 1 := by
     have h1 : (∑ x ∈ hTfin.toFinset, (Measure.map T μ {x}) • Measure.dirac x) Set.univ = 1 := by
       rw [← hμmap]; exact measure_univ
-    simpa only [Measure.coe_finset_sum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
+    simpa only [Measure.coe_finsetSum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
       measure_univ, mul_one] using h1
   have hνmass : (∑ y ∈ hSfin.toFinset, (Measure.map S ν {y})) = 1 := by
     have h1 : (∑ y ∈ hSfin.toFinset, (Measure.map S ν {y}) • Measure.dirac y) Set.univ = 1 := by
       rw [← hνmap]; exact measure_univ
-    simpa only [Measure.coe_finset_sum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
+    simpa only [Measure.coe_finsetSum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
       measure_univ, mul_one] using h1
   have ha_sum : ∑ i, a i = 1 := by
     have hcoe : (∑ i, a i) = ∑ x ∈ hTfin.toFinset, ((Measure.map T μ) {x}).toReal :=
@@ -1245,13 +1245,13 @@ theorem finiteRange_transportation_dual
   · -- the matrix→measure bridge bound
     -- integral identities: ∫ ulift dμ' = ∑ aᵢ uᵢ
     have hint_u : ∫ x, ulift x ∂(Measure.map T μ) = ∑ i, a i * u i := by
-      rw [hulift_eq, integral_finset_sum _
+      rw [hulift_eq, integral_finsetSum _
         (fun i _ => (integrable_const (u i)).indicator (measurableSet_singleton _))]
       refine Finset.sum_congr rfl fun i _ => ?_
       rw [integral_indicator_const _ (measurableSet_singleton _), smul_eq_mul]
       simp only [ha_def, measureReal_def]
     have hint_v : ∫ y, vlift y ∂(Measure.map S ν) = ∑ j, b j * v j := by
-      rw [hvlift_eq, integral_finset_sum _
+      rw [hvlift_eq, integral_finsetSum _
         (fun j _ => (integrable_const (v j)).indicator (measurableSet_singleton _))]
       refine Finset.sum_congr rfl fun j _ => ?_
       rw [integral_indicator_const _ (measurableSet_singleton _), smul_eq_mul]
@@ -1268,7 +1268,7 @@ theorem finiteRange_transportation_dual
       have hfst : Measure.map Prod.fst π = Measure.map T μ := by
         ext E hE
         rw [Measure.map_apply measurable_fst hE, hπ_def, hμmap]
-        simp only [Measure.coe_finset_sum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
+        simp only [Measure.coe_finsetSum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
           Measure.dirac_apply]
         rw [← Finset.sum_coe_sort hTfin.toFinset
           (fun x => Measure.map T μ {x} * Set.indicator E 1 x)]
@@ -1282,7 +1282,7 @@ theorem finiteRange_transportation_dual
       have hsnd : Measure.map Prod.snd π = Measure.map S ν := by
         ext E hE
         rw [Measure.map_apply measurable_snd hE, hπ_def, hνmap]
-        simp only [Measure.coe_finset_sum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
+        simp only [Measure.coe_finsetSum, Finset.sum_apply, Measure.smul_apply, smul_eq_mul,
           Measure.dirac_apply]
         rw [Finset.sum_comm, ← Finset.sum_coe_sort hSfin.toFinset
           (fun y => Measure.map S ν {y} * Set.indicator E 1 y)]
@@ -1296,7 +1296,7 @@ theorem finiteRange_transportation_dual
       have hπ_cost : ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π
           = ENNReal.ofReal (∑ i, ∑ j, Cost i j * P i j) := by
         rw [hπ_def]
-        simp only [lintegral_finset_sum_measure, lintegral_smul_measure, lintegral_dirac,
+        simp only [lintegral_finsetSum_measure, lintegral_smul_measure, lintegral_dirac,
           smul_eq_mul, hCost_def]
         rw [ENNReal.ofReal_sum_of_nonneg (fun i _ => Finset.sum_nonneg fun j _ =>
           mul_nonneg (hc_nonneg _ _) (hPnn i j))]

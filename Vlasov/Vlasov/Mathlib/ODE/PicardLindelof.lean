@@ -11,11 +11,15 @@ import Mathlib.Analysis.ODE.PicardLindelof
 This file is **vendored** from `Mathlib/Analysis/ODE/PicardLindelof.lean`
 (Yury Kudryashov, Winston Yin): it copies two upstream theorems and adds **one**
 conjunct to each public conclusion; the proofs are otherwise the upstream proofs.
-The two upstream sources are
+The two upstream sources were
 `IsPicardLindelof.exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith`
-and `IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`.
-The single difference from each original is marked inline below with a
-`Vendored addition` comment.
+and `IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`
+(present through mathlib v4.29.1; the local-flow refactor later removed these
+public wrappers, keeping the `FunSpace` machinery this file's proofs actually
+use — `exists_isFixedPt_next`, `compProj_*`, `hasDerivWithinAt_picard_Icc`,
+`exists_forall_closedBall_funSpace_dist_le_mul` — so the proofs below still
+elaborate against current mathlib unchanged).  The single difference from each
+original is marked inline below with a `Vendored addition` comment.
 
 The new conjunct exposes `FunSpace.compProj_mem_closedBall`'s guarantee at the
 public theorem level: every flow trajectory `α x t` stays inside

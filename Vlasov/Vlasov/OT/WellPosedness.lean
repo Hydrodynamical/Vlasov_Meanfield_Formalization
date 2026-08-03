@@ -3,8 +3,10 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-/-
-Well-posedness ladder for the Vlasov equation + Dobrushin stability.
+import Vlasov.OT.CharacteristicFlow
+
+/-!
+# Well-posedness ladder for the Vlasov equation + Dobrushin stability
 
 This file builds on the characteristic-flow infrastructure of
 `Vlasov/OT/CharacteristicFlow.lean` and carries the theorem ladder of the
@@ -24,8 +26,6 @@ development:
 
 See `formalize/DESIGN.md` for the overall design.
 -/
-
-import Vlasov.OT.CharacteristicFlow
 
 namespace Vlasov
 
@@ -506,13 +506,13 @@ private lemma picardLimit_fixed_point_eq
     (h_tendsto t ht).comp (Filter.tendsto_add_atTop_nat 1)
   have hB : Filter.Tendsto (fun n => ENNReal.ofReal (Dn n * q)) Filter.atTop (nhds 0) := by
     have := (ENNReal.continuous_ofReal.tendsto 0).comp hDnq_tendsto
-    simpa using this
+    simpa [Function.comp_def] using this
   have h_seq : Filter.Tendsto
       (fun n => wasserstein1 ((x (n+1)).ρ t) (ρl.ρ t) + ENNReal.ofReal (Dn n * q))
       Filter.atTop (nhds 0) := by
     have := hA.add hB
     simpa using this
-  exact le_antisymm (ge_of_tendsto' h_seq h_le_seq) (zero_le _)
+  exact le_antisymm (ge_of_tendsto' h_seq h_le_seq) (zero_le)
 
 /-- Bundle the self-consistent Picard-limit flow, CLAMPED to the window, into the
 seven-conjunct conclusion of `vlasovWellPosedness_local_picard_fixedPointFlow`.
@@ -891,7 +891,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     -- This follows from hf₀_int (Integrable ‖·‖ f₀) and ‖z.1‖ ≤ ‖z‖.
     refine hf₀_int.mono' ?_ (Filter.Eventually.of_forall fun z => ?_)
     · exact (measurable_fst.norm.aestronglyMeasurable)
-    · simp only [Function.comp, Real.norm_of_nonneg (norm_nonneg _)]
+    · simp only [Function.comp_def, Real.norm_of_nonneg (norm_nonneg _)]
       exact (norm_fst_le z)
   -- **F1 (phase-space anchor)**: `M_f₀` is the *phase-space* first moment
   -- `∫z‖z‖∂f₀`, NOT the spatial marginal — matching `phi_moment_envelope_le`'s
@@ -1164,9 +1164,10 @@ theorem vlasovWellPosedness_local_moment
   · -- AEStronglyMeasurable of ‖·‖ ∘ (charX t, charV t).
     -- After integrable_map_measure rewrite, goal is for the composition form.
     convert h_norm_aesm using 1
+    rfl
   · -- Pointwise bound: ‖(charX t z, charV t z)‖ ≤ C_T * (‖z‖ + 1).
     -- The norm in the goal is ‖(‖·‖ ∘ ...)(z)‖ = ‖‖(charX t z, charV t z)‖‖.
-    simp only [Function.comp, Real.norm_of_nonneg (norm_nonneg _)]
+    simp only [Function.comp_def, Real.norm_of_nonneg (norm_nonneg _)]
     exact h_growth t ht z
 
 /-- **Sub-helper for `vlasovWellPosedness_local`** — IsLagrangianVlasovSolutionOn
@@ -1625,7 +1626,7 @@ private lemma vlasovWellPosedness_glue_boundary_seam {d : ℕ} [NeZero d]
       (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
       (charV_g 0 (charX_prev T z, charV_prev T z)) (Set.Ici T) T := by
     have := HasDerivWithinAt.scomp_of_eq T hX_Ici0 h_sub_R h_mapR (sub_self T).symm
-    simpa [Function.comp, one_smul] using this
+    simpa [Function.comp_def, one_smul] using this
   have hVg0_eq : charV_g 0 (charX_prev T z, charV_prev T z) = charV_prev T z :=
     (hg_init_cond (charX_prev T z, charV_prev T z)).2
   rw [hVg0_eq] at h_chainX
@@ -1660,7 +1661,7 @@ private lemma vlasovWellPosedness_glue_boundary_seam {d : ℕ} [NeZero d]
         (charX_g 0 (charX_prev T z, charV_prev T z))))
       (Set.Ici T) T := by
     have := HasDerivWithinAt.scomp_of_eq T hV_Ici0 h_sub_R h_mapR (sub_self T).symm
-    simpa [Function.comp, one_smul] using this
+    simpa [Function.comp_def, one_smul] using this
   have hXg0_eq : charX_g 0 (charX_prev T z, charV_prev T z) = charX_prev T z :=
     (hg_init_cond (charX_prev T z, charV_prev T z)).1
   have hg0_spat : spatialMarginal (g 0) = spatialMarginal (f_prev T) :=
@@ -1773,13 +1774,13 @@ private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
       have h_chainX : HasDerivAt (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
           (charV_g (t - T) (charX_prev T z, charV_prev T z)) t := by
         have := HasDerivAt.scomp_of_eq t hX_da h_sub rfl
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       have h_chainV : HasDerivAt (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
           (-(convolveFunctionMeasure gradW
             (spatialMarginal (g (t - T)))
             (charX_g (t - T) (charX_prev T z, charV_prev T z)))) t := by
         have := HasDerivAt.scomp_of_eq t hV_da h_sub rfl
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       -- f_next t = g (t - T), so marginals match
       have h_fnext_t : f_next t = g (t - T) := by
         rw [hdef_f]; simp only [if_neg (not_le.mpr ht_le)]
@@ -1815,7 +1816,7 @@ private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
           (charV_g T_0 (charX_prev T z, charV_prev T z)) (Set.Iic (T + T_0)) (T + T_0) := by
         have := HasDerivWithinAt.scomp_of_eq (T + T_0) hX_Lic h_sub_LE h_mapLE
           (show T_0 = (T + T_0) - T by ring)
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       have h_chainV : HasDerivWithinAt
           (fun s => charV_g (s - T) (charX_prev T z, charV_prev T z))
           (-(convolveFunctionMeasure gradW
@@ -1824,7 +1825,7 @@ private lemma vlasovWellPosedness_glue_boundary {d : ℕ} [NeZero d]
           (Set.Iic (T + T_0)) (T + T_0) := by
         have := HasDerivWithinAt.scomp_of_eq (T + T_0) hV_Lic h_sub_LE h_mapLE
           (show T_0 = (T + T_0) - T by ring)
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       -- Congr: near T+T_0 within Iic (T+T_0), points > T eventually
       have h_ev_gt2 : ∀ᶠ s in nhdsWithin (T + T_0) (Set.Iic (T + T_0)), T < s :=
         (eventually_gt_nhds (show T < T + T_0 by linarith)).filter_mono nhdsWithin_le_nhds
@@ -3158,7 +3159,7 @@ private lemma vlasovGlue_flowX_hasDerivAt
           (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
           (charV_g 0 (charX_prev T z, charV_prev T z)) (Set.Ici T) T := by
         have := HasDerivWithinAt.scomp_of_eq T hX_Ici0 h_sub_R h_mapR (sub_self T).symm
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       have hVg0_eq : charV_g 0 (charX_prev T z, charV_prev T z) = charV_prev T z :=
         (hg_init_cond (charX_prev T z, charV_prev T z)).2
       rw [hVg0_eq] at h_chainX
@@ -3191,7 +3192,7 @@ private lemma vlasovGlue_flowX_hasDerivAt
     have h_chain : HasDerivAt (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z))
         (charV_g (t - T) (charX_prev T z, charV_prev T z)) t := by
       have := HasDerivAt.scomp_of_eq t h_g_deriv h_sub rfl
-      simpa [Function.comp, one_smul] using this
+      simpa [Function.comp_def, one_smul] using this
     have h_ev : (fun s => if s ≤ T then charX_prev s z
         else charX_g (s - T) (charX_prev T z, charV_prev T z)) =ᶠ[nhds t]
         (fun s => charX_g (s - T) (charX_prev T z, charV_prev T z)) := by
@@ -3286,7 +3287,7 @@ private lemma vlasovGlue_flowV_hasDerivAt
             (charX_g 0 (charX_prev T z, charV_prev T z))))
           (Set.Ici T) T := by
         have := HasDerivWithinAt.scomp_of_eq T hV_Ici0 h_sub_R h_mapR (sub_self T).symm
-        simpa [Function.comp, one_smul] using this
+        simpa [Function.comp_def, one_smul] using this
       have hXg0_eq : charX_g 0 (charX_prev T z, charV_prev T z) = charX_prev T z :=
         (hg_init_cond (charX_prev T z, charV_prev T z)).1
       have hg0_spat : spatialMarginal (g 0) = spatialMarginal (f_prev T) :=
@@ -3325,7 +3326,7 @@ private lemma vlasovGlue_flowV_hasDerivAt
         (-(convolveFunctionMeasure gradW (spatialMarginal (g (t - T)))
             (charX_g (t - T) (charX_prev T z, charV_prev T z)))) t := by
       have := HasDerivAt.scomp_of_eq t h_g_deriv h_sub rfl
-      simpa [Function.comp, one_smul] using this
+      simpa [Function.comp_def, one_smul] using this
     -- f_next t = g (t - T) when t > T
     have h_fnext_t : f_next t = g (t - T) := hf_next_gt t ht_le
     -- Rewrite derivative value: g (t-T) → f_next t
@@ -3394,7 +3395,7 @@ private lemma vlasovGlue_diff_ne
             (convolveFunctionMeasure gradW (spatialMarginal (g (t' - T))) z.1)
             (gradVφ z)) ∂g (t' - T)) t' := by
       have := HasDerivAt.comp_of_eq t' h_g_deriv h_sub rfl
-      simpa [Function.comp, mul_one] using this
+      simpa [Function.comp_def, mul_one] using this
     have h_marg : spatialMarginal (f_next t') = spatialMarginal (g (t' - T)) :=
       congrArg spatialMarginal h_fnext_t'
     rw [add_zero, h_marg, h_fnext_t']
@@ -4058,8 +4059,7 @@ theorem vlasovWellPosedness_glue
           charX_g charV_g hT_pos h_prev_push h_prev_aemeas hg_init hg_aemeas_ex
           f_next (fun s' hs' => if_pos hs') s hs
       · -- Boundary ContinuousOn on Icc 0 (T + T_0): project the boundary bundle.
-        intro z
-        intro s hs
+        intro z s hs
         exact ((vlasovWellPosedness_glue_boundary gradW hT_pos hT_0_pos f_prev g f_next
           charX_prev charV_prev charX_g charV_g charX_next charV_next rfl rfl rfl
           h_prev_boundary hg_boundary hg_init hg_init_cond z s hs).1.continuousWithinAt.prodMk
@@ -5238,10 +5238,12 @@ private theorem dobrushin_integrated_flow_bound_On
   -- composed with the (measurable) projections to land on `Ω`.
   have hmeas_f : ∀ s, Measurable (X_f s) := by
     intro s
-    simpa only [hX_f_def] using (hmeas_charf (clampT s) (hclampT_mem s)).comp hproj_f
+    simpa only [hX_f_def, Function.comp_def] using
+      (hmeas_charf (clampT s) (hclampT_mem s)).comp hproj_f
   have hmeas_g : ∀ s, Measurable (X_g s) := by
     intro s
-    simpa only [hX_g_def] using (hmeas_charg (clampT s) (hclampT_mem s)).comp hproj_g
+    simpa only [hX_g_def, Function.comp_def] using
+      (hmeas_charg (clampT s) (hclampT_mem s)).comp hproj_g
   have hclampT_cont : Continuous clampT :=
     continuous_const.max (continuous_id.min continuous_const)
   -- Per-ω continuity of the clamped trajectories on [0, T].
@@ -6420,7 +6422,7 @@ theorem meanFieldLimit_coupling
           hDobrushin N t ht.1
       _ ≤ ENNReal.ofReal (Real.exp (C * T)) *
             wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
-          apply mul_le_mul_of_nonneg_right _ (zero_le _)
+          apply mul_le_mul_of_nonneg_right _ (zero_le)
           apply ENNReal.ofReal_le_ofReal
           exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left ht.2 (le_of_lt hC))
   have hUpper : Filter.Tendsto
@@ -6431,6 +6433,6 @@ theorem meanFieldLimit_coupling
       hInit (Or.inr ENNReal.ofReal_ne_top)
     simpa [empiricalMeasureCurve, hf_init, mul_zero] using h
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hUpper
-    (fun _ => zero_le _) hsup_bound
+    (fun _ => zero_le) hsup_bound
 
 end Vlasov

@@ -5,11 +5,6 @@ Authors: Joseph K. Miller
 -/
 import Mathlib
 
-open scoped BigOperators
-open MeasureTheory
-
-namespace Vlasov
-
 /-! # Wasserstein-1 distance via Kantorovich–Rubinstein duality (cost-generic)
 
 The optimal-transport core, all generic over the underlying (pseudo)metric space
@@ -18,6 +13,10 @@ The optimal-transport core, all generic over the underlying (pseudo)metric space
 truncated-metric variant `wassersteinBar` (W̄), and their property lemmas
 (symmetry, triangle, non-expansion under 1-Lipschitz pushforward, KR-dual lower
 bound, finiteness under finite first moments). -/
+
+open MeasureTheory
+
+namespace Vlasov
 
 /- Wasserstein-1 distance between two measures on a (pseudo)metric space,
 defined via the Kantorovich–Rubinstein dual formula
@@ -185,7 +184,7 @@ is zero; `wasserstein1_self` is the `c = dist` corollary. -/
 lemma wassersteinCost_self {α : Type*} [MeasurableSpace α]
     (c : α → α → ℝ) (μ : Measure α) : wassersteinCost c μ μ = 0 := by
   unfold wassersteinCost
-  apply le_antisymm _ (zero_le _)
+  apply le_antisymm _ (zero_le)
   refine iSup_le fun _ => iSup_le fun _ => ?_
   simp
 
@@ -397,7 +396,7 @@ lemma wassersteinCost_le_of_lipschitz_map
         (L : ℝ) * (∫ x, h x ∂μ - ∫ x, h x ∂ν) := by
       rw [h_int_factor μ, h_int_factor ν]; ring
     rw [h_diff_factor, ENNReal.ofReal_mul (NNReal.coe_nonneg L), ENNReal.ofReal_coe_nnreal]
-    refine mul_le_mul_of_nonneg_left ?_ (zero_le _)
+    refine mul_le_mul_of_nonneg_left ?_ (zero_le)
     exact le_iSup_of_le h (le_iSup_of_le h_osc le_rfl)
 
 /-- **W₁ non-expansion under Lipschitz pushforward** — the `c = dist` instance of
@@ -662,9 +661,9 @@ lemma wasserstein1_eq_zero_iff_measure_eq
       rw [h_w1_zero] at h_pos h_neg
       -- ENNReal.ofReal ≤ 0 (in ENNReal) iff = 0 iff the real argument is ≤ 0.
       have h_pos_eq : ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) = 0 :=
-        le_antisymm h_pos (zero_le _)
+        le_antisymm h_pos (zero_le)
       have h_neg_eq : ENNReal.ofReal (∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν) = 0 :=
-        le_antisymm h_neg (zero_le _)
+        le_antisymm h_neg (zero_le)
       have h_diff_pos : ∫ x, f x ∂μ - ∫ x, f x ∂ν ≤ 0 :=
         (ENNReal.ofReal_eq_zero).mp h_pos_eq
       have h_diff_neg : ∫ x, (-f) x ∂μ - ∫ x, (-f) x ∂ν ≤ 0 :=
@@ -740,9 +739,9 @@ lemma wasserstein1_le_liminf_of_narrow
     intro k
     have hmin : LipschitzWith 1 (fun x => min (f x) (k : ℝ)) := by
       have h := hf.min (LipschitzWith.const (k : ℝ))
-      rwa [max_eq_left (zero_le _)] at h
+      rwa [max_eq_left (zero_le)] at h
     have h := (LipschitzWith.const (-(k : ℝ))).max hmin
-    rwa [max_eq_right (zero_le _)] at h
+    rwa [max_eq_right (zero_le)] at h
   have hfR_cont : ∀ k, Continuous (fR k) := fun k => (hfR_lip k).continuous
   have hfR_bdd : ∀ (k : ℕ) (x : E), |fR k x| ≤ (k : ℝ) := by
     intro k x

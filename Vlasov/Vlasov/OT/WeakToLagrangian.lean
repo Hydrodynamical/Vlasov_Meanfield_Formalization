@@ -538,7 +538,7 @@ theorem convolveFunctionMeasure_hasFDerivAt
         (ContinuousLinearMap.id ℝ (PhysSpace d)) x₀ :=
       (hasFDerivAt_id x₀).sub_const a
     have hc := h1.comp x₀ h2
-    simpa using hc
+    simpa [Function.comp_def] using hc
 
 /-- **C3 F2 — the Vlasov field is `C¹` in the phase-space variable, with the block Jacobian.**
 At fixed time `t`, `vlasovVectorField gradW ρ t = fun (x,v) ↦ (v, −conv(x))` is
@@ -569,7 +569,7 @@ theorem vlasovVectorField_hasFDerivAt_in_z
         (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))) z :=
     hconv.comp z hfst
   have hprod := h1.prodMk h2.neg
-  simpa only [vlasovVectorField] using hprod
+  exact hprod
 
 omit [NeZero d] in
 /-- **C3 F1c — the convolution derivative is continuous in space.**  `x ↦ ∫ y, fderiv ℝ gradW
@@ -698,7 +698,7 @@ lemma picardSum_continuousOn {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ
     tendstoUniformlyOn_tsum hsum hbd
   refine hunif.continuousOn ?_
   exact (Filter.Eventually.of_forall
-    (fun u => continuousOn_finset_sum u (fun n _ => (hcb n).1))).frequently
+    (fun u => continuousOn_finsetSum u (fun n _ => (hcb n).1))).frequently
 
 /-- **C3 V2-core — the Dyson sum is continuous in a PARAMETER (the V2 ingredient).**  If the
 coefficient family `𝒜 : Z → ℝ → (E →L E)` is jointly continuous in `(z, s)` (globally) and
@@ -754,7 +754,7 @@ lemma picardSum_continuous_param
   rw [← continuousOn_univ]
   refine hunif.continuousOn ?_
   exact (Filter.Eventually.of_forall
-    (fun u => continuousOn_finset_sum u (fun n _ => (hsummands_cont n).continuousOn))).frequently
+    (fun u => continuousOn_finsetSum u (fun n _ => (hsummands_cont n).continuousOn))).frequently
 
 /-- Window version of `picardSum_continuous_param`: only joint continuity ON `[0,T]` is needed.
 The coefficient is clamped into `[0,T]` (`projIcc`, L11) so the global parametric-primitive lemma
@@ -803,7 +803,7 @@ lemma picardSum_continuous_param_Icc
 
 /-- **C3 V1c-rec — finite Picard recurrence.**  The `(N+1)`-th partial Dyson sum equals
 `x₀ + ∫₀ᵗ 𝒜(s)(Sₙ(s)) ds`, where `Sₙ = ∑_{n<N} Iₙ`.  Only finite-sum swaps
-(`integral_finset_sum`, `map_sum`); no infinite interchange.  Passing `N → ∞` against the
+(`integral_finsetSum`, `map_sum`); no infinite interchange.  Passing `N → ∞` against the
 uniform convergence (`picardSum_continuousOn`'s M-test) yields the integral equation for `M`. -/
 lemma picardSum_finset_recurrence
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
@@ -823,7 +823,7 @@ lemma picardSum_finset_recurrence
   simp only [picardIter_succ]
   rw [add_comm]
   congr 1
-  rw [← intervalIntegral.integral_finset_sum (fun i _ => hint i)]
+  rw [← intervalIntegral.integral_finsetSum (fun i _ => hint i)]
   refine intervalIntegral.integral_congr (fun s _ => ?_)
   exact (map_sum (𝒜 s) (fun i => picardIter 𝒜 x₀ i s) (Finset.range N)).symm
 
@@ -870,7 +870,7 @@ lemma picardSum_solves_integralEq
     apply MeasureTheory.tendsto_integral_of_dominated_convergence (bound := fun _ => K * C)
     · intro N
       apply ContinuousOn.aestronglyMeasurable _ measurableSet_Ioc
-      exact (hcont𝒜.clm_apply (continuousOn_finset_sum _ (fun n _ => (hcb n).1))).mono
+      exact (hcont𝒜.clm_apply (continuousOn_finsetSum _ (fun n _ => (hcb n).1))).mono
         (Set.Ioc_subset_Icc_self.trans (Set.Icc_subset_Icc_right htT))
     · exact integrableOn_const (hs := measure_Ioc_lt_top.ne)
     · intro N
@@ -1339,7 +1339,7 @@ lemma picardSum_continuous_param_joint
     tendstoUniformlyOn_tsum hsum hbd
   refine hunif.continuousOn ?_
   exact (Filter.Eventually.of_forall
-    (fun u => continuousOn_finset_sum u (fun n _ => (hiter_cont n).continuousOn))).frequently
+    (fun u => continuousOn_finsetSum u (fun n _ => (hiter_cont n).continuousOn))).frequently
 
 /-- **Step 3 (i) — joint `(z,s)` continuity of the Dyson sum** (window / `ContinuousOn`-hypothesis
 form).  Mirror of `picardSum_continuous_param_Icc`: clamp `s` into `[0,T]` (`projIcc`, L11) so the
@@ -2123,7 +2123,7 @@ theorem hasFDerivAt_of_continuous_partials
       = (f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
         + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2) := by
     rw [show ((s₀, z₀) + p : ℝ × E) = (s₀ + p.1, z₀ + p.2) from rfl]
-    simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smulRight_apply,
+    simp only [add_apply, ContinuousLinearMap.smulRight_apply,
       ContinuousLinearMap.coe_fst', ContinuousLinearMap.comp_apply,
       ContinuousLinearMap.coe_snd']
     abel
@@ -2243,7 +2243,7 @@ theorem hasFDerivAt_of_continuous_partials_open
       = (f (s₀ + p.1, z₀ + p.2) - f (s₀, z₀ + p.2) - p.1 • Ds₀)
         + (f (s₀, z₀ + p.2) - f (s₀, z₀) - Dz₀ p.2) := by
     rw [show ((s₀, z₀) + p : ℝ × E) = (s₀ + p.1, z₀ + p.2) from rfl]
-    simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smulRight_apply,
+    simp only [add_apply, ContinuousLinearMap.smulRight_apply,
       ContinuousLinearMap.coe_fst', ContinuousLinearMap.comp_apply,
       ContinuousLinearMap.coe_snd']
     abel
@@ -2868,8 +2868,7 @@ theorem mollifiedFDeriv_tendstoUniformly
     refine ContinuousLinearMap.ext fun u => ?_
     refine ContinuousLinearMap.ext fun v => ?_
     refine ContinuousLinearMap.ext fun x => ?_
-    simp [ContinuousLinearMap.precompR_apply, ContinuousLinearMap.lsmul_apply,
-      ContinuousLinearMap.smul_apply]
+    simp [ContinuousLinearMap.precompR_apply, ContinuousLinearMap.lsmul_apply]
   have hfd : ∀ n, (fun z => fderiv ℝ
         ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] χ) z)
       = (fun z => ((φ n).normed volume ⋆[ContinuousLinearMap.lsmul ℝ ℝ, volume] fderiv ℝ χ) z) := by
@@ -3569,12 +3568,12 @@ lemma fderiv_apply_eq_inner_gradientSlices (θ : PhaseSpace d → ℝ) (z : Phas
       = @inner ℝ (PhysSpace d) _ p (gradient (fun x => θ (x, z.2)) z.1) := by
     have hstep : (fderiv ℝ θ z) (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) p)
         = fderiv ℝ (fun x => θ (x, z.2)) z.1 p := by rw [hX_fd.fderiv]; rfl
-    rw [hstep, ← inner_gradient_left hX_fd.differentiableAt, real_inner_comm]
+    rw [hstep, ← inner_gradient_left, real_inner_comm]
   have hV_inner : (fderiv ℝ θ z) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) q)
       = @inner ℝ (PhysSpace d) _ q (gradient (fun v => θ (z.1, v)) z.2) := by
     have hstep : (fderiv ℝ θ z) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) q)
         = fderiv ℝ (fun v => θ (z.1, v)) z.2 q := by rw [hV_fd.fderiv]; rfl
-    rw [hstep, ← inner_gradient_left hV_fd.differentiableAt, real_inner_comm]
+    rw [hstep, ← inner_gradient_left, real_inner_comm]
   rw [hdecomp, hX_inner, hV_inner]
 
 /-- FTC bound on the linearization remainder of a real function: if `F` has
@@ -4043,7 +4042,7 @@ theorem transportedIntegral_continuousOn
         (hu_cont.comp continuous_fst).prodMk continuous_snd
       exact hc.tendsto' (0, z₀) (0, z₀) (by simp [hu0])
     have hcomp := (hval ▸ hcwa.tendsto).comp hinner
-    simpa using hcomp
+    simpa [Function.comp_def] using hcomp
   -- (B) Ĝ is globally continuous
   have hĜ_cont : Continuous (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) := by
     rw [continuous_iff_continuousAt]

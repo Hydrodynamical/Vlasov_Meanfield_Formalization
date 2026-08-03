@@ -3,8 +3,12 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-/-
-Characteristic flow for the Vlasov ODE + Lagrangian-Eulerian equivalence.
+import Vlasov.Basic
+import Vlasov.Mathlib.ODE.PicardLindelof
+import Vlasov.OT.Coupling
+
+/-!
+# Characteristic flow for the Vlasov ODE + Lagrangian-Eulerian equivalence
 
 This file builds on `Vlasov/OT/Coupling.lean` and provides the flow-side
 infrastructure of the development:
@@ -36,10 +40,6 @@ differentiation-under-integral check that is not in Mathlib.
 
 See `formalize/DESIGN.md` for the overall design.
 -/
-
-import Vlasov.Basic
-import Vlasov.Mathlib.ODE.PicardLindelof
-import Vlasov.OT.Coupling
 
 namespace Vlasov
 
@@ -1333,8 +1333,7 @@ lemma IsVlasovSolution.toOn {d : ℕ} [NeZero d]
     {gradW : PhysSpace d → PhysSpace d}
     {f : ℝ → Measure (PhaseSpace d)} (h : IsVlasovSolution gradW f) (T : ℝ) :
     IsVlasovSolutionOn gradW f T := by
-  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
-  intro t _ht
+  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t _ht
   exact h φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
 
 /-- A global `IsLagrangianVlasovSolution` restricts to
@@ -1388,11 +1387,11 @@ lemma vlasovVectorField_lipschitzWith
   -- Negate (`Neg.neg` is 1-Lipschitz): `x ↦ -(∇W ∗ ρ_t)(x)` is still `L`-Lipschitz.
   have h_neg_conv : LipschitzWith L
       (fun x : PhysSpace d => -convolveFunctionMeasure gradW (ρ t) x) := by
-    simpa using LipschitzWith.id.neg.comp h_conv
+    simpa [Function.comp_def] using LipschitzWith.id.neg.comp h_conv
   -- Compose with `Prod.fst` (1-Lipschitz): `z ↦ -(∇W ∗ ρ_t)(z.1)` is `L`-Lipschitz.
   have h_force : LipschitzWith L
       (fun z : PhaseSpace d => -convolveFunctionMeasure gradW (ρ t) z.1) := by
-    simpa using h_neg_conv.comp
+    simpa [Function.comp_def] using h_neg_conv.comp
       (LipschitzWith.prod_fst (α := PhysSpace d) (β := PhysSpace d))
   -- Combine velocity-side projection (1-Lipschitz) with force-side (L-Lipschitz).
   exact (LipschitzWith.prod_snd (α := PhysSpace d) (β := PhysSpace d)).prodMk h_force
@@ -1416,8 +1415,9 @@ lemma vlasovVectorField_norm_le
 
 /-- **Local-flow** existence for the Vlasov ODE.
 
-Wraps Mathlib's parametric Picard-Lindelöf
-(`IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`)
+Wraps the vendored parametric Picard-Lindelöf
+(`IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined`,
+`Vlasov.Mathlib.ODE.PicardLindelof`)
 into a `HasDerivAt`-on-`Ioo`-shaped characteristic flow.  The result
 holds for initial conditions inside `closedBall z₀ (a/2)` and for
 times in `Ioo 0 δ` where `δ` is a Picard-derived constant.
@@ -1534,7 +1534,7 @@ theorem exists_vlasov_characteristicFlow_local
           _ = (a : ℝ) / 2 := one_mul _
       linarith [h_step, h_rewrite ▸ h_step, h_bound]
   -- Invoke headline Picard-Lindelöf.
-  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
+  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined
   -- α : PhaseSpace d → ℝ → PhaseSpace d.  Define charX, charV by projection.
   refine ⟨δ, hδ_pos, fun t z => (α z t).1, fun t z => (α z t).2, ?_, ?_, ?_⟩
   · -- Initial condition: α z 0 = z gives both component equalities.
@@ -1555,7 +1555,7 @@ theorem exists_vlasov_characteristicFlow_local
       have : (r_pl : ℝ) = (a : ℝ) / 2 := by simp [hr_pl_def, NNReal.coe_div]
       rw [Metric.mem_closedBall] at hz ⊢; rw [this]; exact hz
     have h_t_Icc : t ∈ Set.Icc (0 : ℝ) δ := ⟨le_of_lt ht.1, le_of_lt ht.2⟩
-    have h_dw := (hα z hz_in_r).2 t h_t_Icc
+    have h_dw := (hα z hz_in_r).2.1 t h_t_Icc
     have h_icc_nhds : Set.Icc (0 : ℝ) δ ∈ nhds t := Icc_mem_nhds ht.1 ht.2
     have h_d : HasDerivAt (α z) (vlasovVectorField gradW ρ t (α z t)) t :=
       h_dw.hasDerivAt h_icc_nhds
@@ -1569,7 +1569,7 @@ theorem exists_vlasov_characteristicFlow_local
       have : (r_pl : ℝ) = (a : ℝ) / 2 := by simp [hr_pl_def, NNReal.coe_div]
       rw [Metric.mem_closedBall] at hz ⊢; rw [this]; exact hz
     have h_t_Icc : t ∈ Set.Icc (0 : ℝ) δ := ⟨le_of_lt ht.1, le_of_lt ht.2⟩
-    have h_dw := (hα z hz_in_r).2 t h_t_Icc
+    have h_dw := (hα z hz_in_r).2.1 t h_t_Icc
     have h_icc_nhds : Set.Icc (0 : ℝ) δ ∈ nhds t := Icc_mem_nhds ht.1 ht.2
     have h_d : HasDerivAt (α z) (vlasovVectorField gradW ρ t (α z t)) t :=
       h_dw.hasDerivAt h_icc_nhds
@@ -2829,7 +2829,7 @@ theorem exists_vlasov_characteristicFlow_twoWindow
           _ = (a : ℝ) / 2 := one_mul _
       linarith [h_step, h_simp ▸ h_step, h_bound]
   -- Invoke headline Picard-Lindelöf on the doubled window.
-  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
+  obtain ⟨α, hα⟩ := hpl.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt_confined
   -- Define charX, charV by projection.
   refine ⟨δ, hδ_pos, fun t z => (α z t).1, fun t z => (α z t).2, ?_, ?_, ?_⟩
   · -- Initial condition.
@@ -2850,7 +2850,7 @@ theorem exists_vlasov_characteristicFlow_twoWindow
       have hreq : (r_pl : ℝ) = (a : ℝ) / 2 := by simp [hr_pl_def, NNReal.coe_div]
       rw [Metric.mem_closedBall] at hz ⊢; rw [hreq]; exact hz
     have h_t_Icc : t ∈ Set.Icc (0 : ℝ) (2 * δ) := ⟨le_of_lt ht.1, le_of_lt ht.2⟩
-    have h_dw := (hα z hz_in_r).2 t h_t_Icc
+    have h_dw := (hα z hz_in_r).2.1 t h_t_Icc
     have h_icc_nhds : Set.Icc (0 : ℝ) (2 * δ) ∈ nhds t := Icc_mem_nhds ht.1 ht.2
     have h_d : HasDerivAt (α z) (vlasovVectorField gradW ρ t (α z t)) t :=
       h_dw.hasDerivAt h_icc_nhds
@@ -2864,7 +2864,7 @@ theorem exists_vlasov_characteristicFlow_twoWindow
       have hreq : (r_pl : ℝ) = (a : ℝ) / 2 := by simp [hr_pl_def, NNReal.coe_div]
       rw [Metric.mem_closedBall] at hz ⊢; rw [hreq]; exact hz
     have h_t_Icc : t ∈ Set.Icc (0 : ℝ) (2 * δ) := ⟨le_of_lt ht.1, le_of_lt ht.2⟩
-    have h_dw := (hα z hz_in_r).2 t h_t_Icc
+    have h_dw := (hα z hz_in_r).2.1 t h_t_Icc
     have h_icc_nhds : Set.Icc (0 : ℝ) (2 * δ) ∈ nhds t := Icc_mem_nhds ht.1 ht.2
     have h_d : HasDerivAt (α z) (vlasovVectorField gradW ρ t (α z t)) t :=
       h_dw.hasDerivAt h_icc_nhds
@@ -3013,12 +3013,12 @@ lemma vlasov_traj_chain_rule
         @inner ℝ (PhysSpace d) _ a (gradXφ z₀) := by
       have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) a) =
           fderiv ℝ (fun x => φ (x, z₀.2)) z₀.1 a := by rw [hfderiv_X]; rfl
-      rw [hstep, ← inner_gradient_left hdiffX, ← hgradXφ z₀, real_inner_comm]
+      rw [hstep, ← inner_gradient_left, ← hgradXφ z₀, real_inner_comm]
     have hV_inner : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
         @inner ℝ (PhysSpace d) _ b (gradVφ z₀) := by
       have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
           fderiv ℝ (fun v => φ (z₀.1, v)) z₀.2 b := by rw [hfderiv_V]; rfl
-      rw [hstep, ← inner_gradient_left hdiffV, ← hgradVφ z₀, real_inner_comm]
+      rw [hstep, ← inner_gradient_left, ← hgradVφ z₀, real_inner_comm]
     rw [hdecomp, hX_inner, hV_inner, show b = -(convolveFunctionMeasure gradW (ρ t) (charX t z))
         from rfl, inner_neg_left]
     ring
@@ -3112,12 +3112,12 @@ lemma vlasov_traj_chain_rule_at
         @inner ℝ (PhysSpace d) _ a (gradXφ z₀) := by
       have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inl ℝ (PhysSpace d) (PhysSpace d) a) =
           fderiv ℝ (fun x => φ (x, z₀.2)) z₀.1 a := by rw [hfderiv_X]; rfl
-      rw [hstep, ← inner_gradient_left hdiffX, ← hgradXφ z₀, real_inner_comm]
+      rw [hstep, ← inner_gradient_left, ← hgradXφ z₀, real_inner_comm]
     have hV_inner : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
         @inner ℝ (PhysSpace d) _ b (gradVφ z₀) := by
       have hstep : (fderiv ℝ φ z₀) (ContinuousLinearMap.inr ℝ (PhysSpace d) (PhysSpace d) b) =
           fderiv ℝ (fun v => φ (z₀.1, v)) z₀.2 b := by rw [hfderiv_V]; rfl
-      rw [hstep, ← inner_gradient_left hdiffV, ← hgradVφ z₀, real_inner_comm]
+      rw [hstep, ← inner_gradient_left, ← hgradVφ z₀, real_inner_comm]
     rw [hdecomp, hX_inner, hV_inner, show b = -(convolveFunctionMeasure gradW (ρ t) (charX t z))
         from rfl, inner_neg_left]
     ring
@@ -5540,8 +5540,7 @@ theorem characteristicFlow_boundary_regularity
     exact Prod.ext hX hV
   · -- h_cont_Icc: from h_boundary's HasDerivWithinAt → ContinuousWithinAt →
     -- ContinuousOn, joined componentwise via Prod.
-    intro z
-    intro s hs
+    intro z s hs
     obtain ⟨h_pos_dw, h_vel_dw⟩ := h_boundary z s hs
     have h_pos_cwn : ContinuousWithinAt (fun s' => charX s' z) (Set.Icc 0 T) s :=
       h_pos_dw.continuousWithinAt
@@ -5585,6 +5584,7 @@ theorem characteristicFlow_boundary_regularity
     change HasDerivWithinAt (fun s' => (charX s' z, charV s' z))
             (vlasovVectorField gradW ρ s (charX s z, charV s z)) (Set.Ici s) s
     convert h_prod using 1
+    rfl
 
 /-- **Single Picard step `VlasovMeasureCurve d T M → VlasovMeasureCurve d T M'`**.
 

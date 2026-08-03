@@ -3,7 +3,11 @@ Copyright (c) 2026 Joseph K. Miller. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Joseph K. Miller
 -/
-/-
+import Mathlib
+import Vlasov.Base.Geometry
+import Vlasov.OT.Wasserstein
+
+/-!
 # Derivation of the Vlasov equation from N-particle Hamiltonian dynamics
 
 Formalization of the companion paper (`vlasov.tex`).  This file develops the
@@ -22,11 +26,6 @@ mean-field theory of the Vlasov equation:
 `(tex: …)` labels cross-reference the companion LaTeX paper.
 -/
 
-import Mathlib
-import Vlasov.Base.Geometry
-import Vlasov.OT.Wasserstein
-
-open scoped BigOperators
 open MeasureTheory
 
 namespace Vlasov
@@ -171,7 +170,7 @@ lemma gradient_zero_of_even (W : PhysSpace d → ℝ) [hW : AssW W] :
   have h_comp_neg : (fderiv ℝ W 0).comp (-ContinuousLinearMap.id ℝ (PhysSpace d))
       = -(fderiv ℝ W 0) := by
     ext v
-    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.neg_apply,
+    simp only [ContinuousLinearMap.comp_apply, neg_apply,
                ContinuousLinearMap.id_apply, ContinuousLinearMap.map_neg]
   rw [h_comp_neg] at h_fderiv
   -- Push `fderiv ℝ W 0 = -fderiv ℝ W 0` through `(toDual).symm`
@@ -210,7 +209,7 @@ lemma empiricalMeasure_isProbabilityMeasure (N : ℕ) [NeZero N]
     (X V : Fin N → PhysSpace d) :
     IsProbabilityMeasure (empiricalMeasure N X V) := by
   refine ⟨?_⟩
-  simp only [empiricalMeasure, Measure.smul_apply, Measure.finset_sum_apply,
+  simp only [empiricalMeasure, Measure.smul_apply, Measure.finsetSum_apply,
              measure_univ, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
              smul_eq_mul, nsmul_eq_mul, mul_one]
   exact ENNReal.div_mul_cancel
@@ -250,7 +249,7 @@ lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
       (1 / (N : ℝ)) * ∑ i : Fin N, φ (X i, V i) := by
   simp only [empiricalMeasure]
   rw [integral_smul_measure]
-  rw [integral_finset_sum_measure (fun i _ => integrable_dirac (by simp))]
+  rw [integral_finsetSum_measure (fun i _ => integrable_dirac (by simp))]
   simp [integral_dirac, ENNReal.toReal_natCast, smul_eq_mul]
 
 omit [NeZero d] in
@@ -302,11 +301,11 @@ lemma hasDerivAt_phi_along_trajectory (N : ℕ)
   -- inner(V, ∇f z.1) = fderiv f z.1 V via inner_gradient_right (real case: conj = id)
   have hgX : @inner ℝ (PhysSpace d) _ (V t i) (gradient (fun x => φ (x, z.2)) z.1) =
       fderiv ℝ (fun x => φ (x, z.2)) z.1 (V t i) := by
-    rw [inner_gradient_right hpX.differentiableAt]
+    rw [inner_gradient_right]
     simp
   have hgV : @inner ℝ (PhysSpace d) _ (a t i) (gradient (fun v => φ (z.1, v)) z.2) =
       fderiv ℝ (fun v => φ (z.1, v)) z.2 (a t i) := by
-    rw [inner_gradient_right hpV.differentiableAt]
+    rw [inner_gradient_right]
     simp
   rw [hgX, hgV, hpX.fderiv, hpV.fderiv]
   simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
@@ -383,7 +382,7 @@ Proof strategy:
      `(1/N : ℝ≥0∞) • Σⱼ Measure.dirac (X t j)`.
   4. `convolveFunctionMeasure` unfolds to `∫ y, gradW(X t i − y) ∂ρ`.
   5. `integral_smul_measure` (Bochner) extracts the `(1/N).toReal = 1/N`
-     scalar; `integral_finset_sum_measure` (`Integral/Bochner/Basic.lean:1018`)
+     scalar; `integral_finsetSum_measure` (`Integral/Bochner/Basic.lean:1018`)
      distributes integration over the finite sum of Diracs;
      `integral_dirac'` (`Integral/Bochner/Basic.lean:1131`) collapses each
      summand to `gradW(X t i − X t j)`. -/
@@ -410,7 +409,7 @@ lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
   -- Pull out the (1 / N : ℝ≥0∞) scalar.
   rw [integral_smul_measure]
   -- Distribute integration over the finite sum of Dirac measures.
-  rw [integral_finset_sum_measure (fun j _ =>
+  rw [integral_finsetSum_measure (fun j _ =>
         integrable_dirac' hsm_z (by simp [enorm_lt_top]))]
   -- Each Dirac integral collapses to the function value at the centre.
   simp only [integral_dirac' _ _ hsm_z]
@@ -1111,7 +1110,7 @@ lemma convolveLipschitz_inner_lipschitz
         sub_sub_sub_cancel_left, norm_sub_rev]
   -- Step 2: gradW ∘ (x - ·) is L-Lipschitz (since L * 1 = L)
   have h_gW : LipschitzWith L (fun y : PhysSpace d => gradW (x - y)) := by
-    simpa using hL.comp h_sub
+    simpa [Function.comp_def] using hL.comp h_sub
   -- Step 3: w ↦ ⟨w, v⟩ is ‖v‖₊-Lipschitz by Cauchy-Schwarz
   have h_inner_v : LipschitzWith ‖v‖₊
       (fun w : PhysSpace d => @inner ℝ (PhysSpace d) _ w v) := by
@@ -1676,7 +1675,7 @@ theorem meanFieldLimit
           hDobrushin N t ht.1
       _ ≤ ENNReal.ofReal (Real.exp (C * T)) *
             wasserstein1 (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
-          apply mul_le_mul_of_nonneg_right _ (zero_le _)
+          apply mul_le_mul_of_nonneg_right _ (zero_le)
           apply ENNReal.ofReal_le_ofReal
           exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left ht.2 (le_of_lt hC))
   -- (2) hUpper: the upper-bound sequence tends to 0.  Apply
@@ -1693,6 +1692,6 @@ theorem meanFieldLimit
     simpa [empiricalMeasureCurve, hf_init, mul_zero] using h
   -- (3) Squeeze: 0 ≤ sup ≤ upper-bound → 0.
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hUpper
-    (fun _ => zero_le _) hsup_bound
+    (fun _ => zero_le) hsup_bound
 
 end Vlasov
