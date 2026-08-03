@@ -56,7 +56,7 @@ def IsCoupling {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
 
 /-- The coupling-based Wasserstein-1 distance: infimum of `∫⁻ edist(x,y) dπ(x,y)`
 over all couplings `π` of `(μ, ν)`.  This is the Monge-Kantorovich definition,
-to be compared with the dual definition `wasserstein1` (in `Vlasov/Basic.lean`)
+to be compared with the dual definition `wasserstein1` (in `Vlasov/OT/Wasserstein.lean`)
 via Kantorovich-Rubinstein duality.
 
 We use the Lebesgue lower integral `∫⁻` of `edist` (extended distance, valued

@@ -14,18 +14,21 @@ conjunct to each public conclusion; the proofs are otherwise the upstream proofs
 The two upstream sources were
 `IsPicardLindelof.exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith`
 and `IsPicardLindelof.exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt`
-(present through mathlib v4.29.1; the local-flow refactor later removed these
-public wrappers, keeping the `FunSpace` machinery this file's proofs actually
-use — `exists_isFixedPt_next`, `compProj_*`, `hasDerivWithinAt_picard_Icc`,
-`exists_forall_closedBall_funSpace_dist_le_mul` — so the proofs below still
-elaborate against current mathlib unchanged).  The single difference from each
+(present in `Mathlib/Analysis/ODE/PicardLindelof.lean` through mathlib
+v4.29.1; the local-flow refactor later moved these public wrappers to
+`Mathlib/Analysis/ODE/ExistUnique.lean`, which this file does not import,
+while keeping the `FunSpace` machinery this file's proofs actually use —
+`exists_isFixedPt_next`, `compProj_*`, `hasDerivWithinAt_picard_Icc`,
+`exists_forall_closedBall_funSpace_dist_le_mul` — in place, so the proofs
+below still elaborate against current mathlib unchanged).  The single difference from each
 original is marked inline below with a `Vendored addition` comment.
 
 The new conjunct exposes `FunSpace.compProj_mem_closedBall`'s guarantee at the
 public theorem level: every flow trajectory `α x t` stays inside
 `closedBall x₀ a` (the outer ball where the field is Lipschitz). The underlying
-property is already proved upstream in Mathlib; in fact, the existing public
+property is already proved upstream in Mathlib; in fact, the upstream public
 proof of `exists_forall_mem_closedBall_eq_hasDerivWithinAt_lipschitzOnWith`
+(now in `Mathlib/Analysis/ODE/ExistUnique.lean`)
 already invokes `compProj_mem_closedBall hf.mul_max_le` internally (to
 constrain the iterate to the Lipschitz region). We are only re-exporting that
 invariant through the public conclusion.

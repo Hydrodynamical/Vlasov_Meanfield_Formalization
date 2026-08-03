@@ -1164,8 +1164,9 @@ theorem phi_moment_envelope_le {d : ℕ} [NeZero d]
 
 /-! ## Characteristic flow existence (Picard-Lindelöf wrapper)
 
-This section wraps Mathlib's parametric Picard-Lindelöf theorem to
-extract a characteristic flow `(charX, charV)` for the Vlasov ODE.
+This section wraps the vendored parametric Picard-Lindelöf theorem
+(`Vlasov.Mathlib.ODE.PicardLindelof`) to extract a characteristic flow
+`(charX, charV)` for the Vlasov ODE.
 The four `IsPicardLindelof` hypotheses (Lipschitz-on-ball,
 continuous-in-time, norm bound, contraction) are derived from
 `convolveFunctionMeasure_lipschitz_in_x`, plus narrow-continuity of the
@@ -1600,7 +1601,7 @@ windows (by combining with the a priori bound
 `‖w_n(z).2‖ ≤ ‖z₀.2‖ + a/2 + M·(T+1)` on a finite `[0, T]`-interval).
 
 Implementation: build an IsPicardLindelof centered at `w` over `[t_start,
-t_start + δ]` with `L_pl := V_max + a + M`.  Invoke Mathlib's headline
+t_start + δ]` with `L_pl := V_max + a + M`.  Invoke the vendored headline
 theorem.  Take the single trajectory `β t := α w t`. -/
 lemma exists_vlasov_extend_one_window
     {d : ℕ} [NeZero d]
@@ -2714,7 +2715,8 @@ the larger `δ := (a/2)/(L_pl + 1)`); here we tighten the contraction
 constraint to `L_pl · (2δ) ≤ a/2`, yielding the smaller
 `δ := (a/2)/(2·(L_pl + 1))` but covering a `2δ`-long interval.
 
-**Implementation note.**  This is a single Mathlib Picard call with
+**Implementation note.**  This is a single Picard call (the vendored
+`_confined` wrapper) with
 `tmax = 2δ`, not a literal "two-window stitch" via uniqueness on
 overlapping windows.  Mathematically the two are equivalent: a
 single Picard with an extended `tmax` and tightened `δ` recovers the

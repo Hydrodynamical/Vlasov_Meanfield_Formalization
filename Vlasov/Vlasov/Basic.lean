@@ -397,9 +397,9 @@ Proof strategy:
      `(1/N : ℝ≥0∞) • Σⱼ Measure.dirac (X t j)`.
   4. `convolveFunctionMeasure` unfolds to `∫ y, gradW(X t i − y) ∂ρ`.
   5. `integral_smul_measure` (Bochner) extracts the `(1/N).toReal = 1/N`
-     scalar; `integral_finsetSum_measure` (`Integral/Bochner/Basic.lean:1018`)
+     scalar; `integral_finsetSum_measure` (`Integral/Bochner/Basic.lean`)
      distributes integration over the finite sum of Diracs;
-     `integral_dirac'` (`Integral/Bochner/Basic.lean:1131`) collapses each
+     `integral_dirac'` (`Integral/Bochner/Basic.lean`) collapses each
      summand to `gradW(X t i − X t j)`. -/
 lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
     (gradW : PhysSpace d → PhysSpace d)

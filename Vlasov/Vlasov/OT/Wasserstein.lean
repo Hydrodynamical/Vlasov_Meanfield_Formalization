@@ -830,9 +830,9 @@ lemma wasserstein1_ofReal_exp_monotone
   apply ENNReal.ofReal_le_ofReal
   exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hst hC.le)
 
--- `dobrushin_ennreal_bound`, `dobrushin_package_exists`, and `dobrushin`
+-- `dobrushin_package_exists` and `dobrushin`
 -- (the .tex thm:dobrushin marquee) live in
--- `Vlasov/OT/CharacteristicFlow.lean` §10, alongside the flow infrastructure
+-- `Vlasov/OT/WellPosedness.lean` §10, alongside the theorem ladder
 -- their proofs compose against (items 5/6 + W1ContOn + Gronwall lift + ennreal
 -- bound).  `meanFieldLimit` consumes the Dobrushin estimate as a hypothesis
 -- (`hDobrushin : ∀ N, DobrushinStabilityEstimate ...`) rather than calling

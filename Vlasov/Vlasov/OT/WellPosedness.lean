@@ -1480,7 +1480,7 @@ theorem vlasovWellPosedness_local
 /-! ## Banked infrastructure: localized `hasDerivAt_of_hasDerivAt_of_ne` -/
 -- Generic real-analysis helper banked for `vlasovWellPosedness_glue` case (a)'s substantive
 -- close.  Mathlib's `hasDerivAt_of_hasDerivAt_of_ne`
--- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean L177) requires a UNIVERSAL
+-- (Mathlib/Analysis/Calculus/FDeriv/Extend.lean) requires a UNIVERSAL
 -- `∀ y ≠ x, HasDerivAt f (g y) y` hypothesis; the `vlasovWellPosedness_glue` setting only
 -- gives HasDerivAt on a bounded interval `Ioo 0 (T + T_0)`.  This helper
 -- localizes the Mathlib pattern to a neighborhood-eventually hypothesis,
@@ -1491,7 +1491,7 @@ open scoped Topology
 open Filter
 
 /-- Local version of `hasDerivAt_of_hasDerivAt_of_ne` (Mathlib/Analysis/Calculus/
-FDeriv/Extend.lean L177): if `f : ℝ → ℝ` has HasDerivAt with derivative `g(y)` at
+FDeriv/Extend.lean): if `f : ℝ → ℝ` has HasDerivAt with derivative `g(y)` at
 every `y ≠ x₀` in some neighborhood of `x₀`, and both `f` and `g` are continuous
 at `x₀`, then `f` has HasDerivAt with derivative `g(x₀)` at `x₀`.
 
