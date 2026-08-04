@@ -1795,7 +1795,6 @@ lemma vlasov_window_confinement
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (_hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d))
-
     (_h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
     (_hρ_cont : ∀ x : PhysSpace d,
       Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
@@ -4033,7 +4032,6 @@ theorem wasserstein1_lagrangian_pushforward_bound
     {d : ℕ}
     (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ g₀ : Measure (PhaseSpace d))
-
     (t : ℝ)
     (h_meas_f : Measurable (fun z : PhaseSpace d => (charX_f t z, charV_f t z)))
     (h_meas_g : Measurable (fun z : PhaseSpace d => (charX_g t z, charV_g t z)))
@@ -5518,7 +5516,6 @@ theorem characteristicFlow_boundary_regularity
     {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d))
-
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (T : ℝ) (_hT : 0 ≤ T)
     (hflow : IsCharacteristicFlowOn gradW ρ charX charV

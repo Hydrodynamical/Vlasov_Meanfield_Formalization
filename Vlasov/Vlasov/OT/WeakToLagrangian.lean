@@ -4047,7 +4047,8 @@ theorem transportedIntegral_continuousOn
     have : 0 ≤ min s t := le_min hs.le ht.1.le
     simp [hu_def, max_eq_right this]
   -- the globally-continuous, uniformly-compactly-supported integrand Ghat
-  set Ghat : ℝ → PhaseSpace d → ℝ := fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hGhat_def
+  set Ghat : ℝ → PhaseSpace d → ℝ :=
+    fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hGhat_def
   -- (A) joint flow tendsto used at the s=0 seam: (p ↦ Φ_{u p.1} p.2) → z₀
   have hΦu_tendsto : ∀ z₀ : PhaseSpace d,
       Tendsto (fun p : ℝ × PhaseSpace d => (charX (u p.1) p.2, charV (u p.1) p.2))
@@ -4083,7 +4084,8 @@ theorem transportedIntegral_continuousOn
       subst hs₀
       rw [ContinuousAt]
       have hval0 : Ghat (0 : ℝ) z₀ = g z₀ := by simp [hGhat_def]
-      change Tendsto (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ghat (0 : ℝ) z₀))
+      change Tendsto (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2)
+        (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ghat (0 : ℝ) z₀))
       rw [hval0, Metric.tendsto_nhds]
       intro ε hε
       obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
