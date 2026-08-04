@@ -13,7 +13,7 @@ import Mathlib.Topology.ContinuousMap.Bounded.Basic
 The optimal-transport core, all generic over the underlying (pseudo)metric space
 — no Vlasov / phase-space dependency.  Contents: the cost-parameterized functional
 `wassersteinCost`, the W₁ distance `wasserstein1` (the `c = dist` case), the
-truncated-metric variant `wassersteinBar` (W̄), and their property lemmas
+truncated-metric variant `wassersteinBar` (Wbar), and their property lemmas
 (symmetry, triangle, non-expansion under 1-Lipschitz pushforward, KR-dual lower
 bound, finiteness under finite first moments). -/
 
@@ -37,7 +37,7 @@ difference. -/
 whose oscillation is controlled by a cost `c`.  Using the explicit oscillation
 bound `|f x − f y| ≤ c x y` (rather than `LipschitzWith 1 f` w.r.t. an ambient
 metric) decouples the definition from the `PseudoMetricSpace` instance, so a
-cost like `min (dist x y) 1` (the truncated-metric "W̄" cost) instantiates with
+cost like `min (dist x y) 1` (the truncated-metric "Wbar" cost) instantiates with
 no new instance.  `wasserstein1` is the `c = dist` case. -/
 noncomputable def wassersteinCost {α : Type*} [MeasurableSpace α]
     (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=
@@ -337,7 +337,7 @@ If `T : α → β` is `L`-Lipschitz **with respect to the costs**
 pushforward by `T` is `L`-non-expansive in `wassersteinCost`:
 `wassersteinCost c_β (T_# μ) (T_# ν) ≤ L · wassersteinCost c_α μ ν`.
 
-`wasserstein1_le_of_lipschitz_map` (`c = dist`, below) and the W̄ analog
+`wasserstein1_le_of_lipschitz_map` (`c = dist`, below) and the Wbar analog
 (`c = fun x y => min (dist x y) 1`) are instances. -/
 lemma wassersteinCost_le_of_lipschitz_map
     {α β : Type*}
@@ -415,7 +415,7 @@ lemma wasserstein1_le_of_lipschitz_map
   wassersteinCost_le_of_lipschitz_map (fun x y => dist x y) (fun x y => dist x y)
     (fun _ _ => le_refl _) T L (fun x y => hT.dist_le_mul x y) hT_meas μ ν
 
-/-- **W̄-additivity sanity check.**  The truncated cost
+/-- **Wbar-additivity sanity check.**  The truncated cost
 `min(dist, 1)` satisfies both hypotheses of `wassersteinCost_le_of_lipschitz_map`
 (`min(dist,1) ≤ dist`; and for 1-Lipschitz `T`,
 `min(dist(Tx,Ty),1) ≤ min(dist x y, 1)`), so the property lemma drops in at
@@ -467,7 +467,7 @@ lemma wasserstein1_dual_lower_bound
   wassersteinCost_dual_lower_bound (fun x y => dist x y) μ ν f
     ((lipschitzWith_one_iff_oscillation f).mp hf)
 
-/-- **W̄-additivity across the property layer.**  The cost-generic
+/-- **Wbar-additivity across the property layer.**  The cost-generic
 `_self`/`_comm`/`_triangle`/`_dual_lower_bound` carry no hypothesis on `c`, so
 each instantiates at the truncated cost `min(dist, 1)` unconditionally — in
 particular `_triangle` needs **no** triangle inequality on `c` (the inequality
@@ -485,15 +485,15 @@ example {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
   ⟨wassersteinCost_self _ μ, wassersteinCost_comm _ μ ν,
    wassersteinCost_triangle _ μ ν τ, wassersteinCost_dual_lower_bound _ μ ν f hf⟩
 
-/-! ### `wassersteinBar` — the truncated (cutoff) Wasserstein-1 distance W̄
+/-! ### `wassersteinBar` — the truncated (cutoff) Wasserstein-1 distance Wbar
 
-`W̄ := wassersteinCost (min(dist, 1))` (Dobrushin 1979 §5).  The bounded cost
-makes the dual test class *bounded* 1-Lipschitz, so W̄ metrizes narrow
+`Wbar := wassersteinCost (min(dist, 1))` (Dobrushin 1979 §5).  The bounded cost
+makes the dual test class *bounded* 1-Lipschitz, so Wbar metrizes narrow
 convergence directly and is always finite (no moment hypotheses).  The property
 layer instantiates verbatim from the cost-generic lemmas: `min(dist, 1)` is a
 continuous pseudometric dominated by `dist`, so every hypothesis is met. -/
 
-/-- The **truncated Wasserstein-1 distance** `W̄` (Dobrushin 1979 §5): the
+/-- The **truncated Wasserstein-1 distance** `Wbar` (Dobrushin 1979 §5): the
 `c = min(dist, 1)` instance of `wassersteinCost`. -/
 noncomputable def wassersteinBar {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) : ENNReal :=
@@ -517,7 +517,7 @@ lemma wassersteinBar_dual_lower_bound {α : Type*} [MeasurableSpace α] [PseudoM
     ENNReal.ofReal (∫ x, f x ∂μ - ∫ x, f x ∂ν) ≤ wassersteinBar μ ν :=
   wassersteinCost_dual_lower_bound _ μ ν f hf
 
-/-- W̄ non-expansion under 1-Lipschitz pushforward: `W̄(T_# μ, T_# ν) ≤ W̄(μ, ν)`.
+/-- Wbar non-expansion under 1-Lipschitz pushforward: `Wbar(T_# μ, T_# ν) ≤ Wbar(μ, ν)`.
 The cost-Lipschitz hypothesis is `min(dist(Tx,Ty),1) ≤ min(dist x y, 1)` (from
 `dist(Tx,Ty) ≤ dist x y`). -/
 lemma wassersteinBar_le_of_lipschitz_map {α β : Type*}

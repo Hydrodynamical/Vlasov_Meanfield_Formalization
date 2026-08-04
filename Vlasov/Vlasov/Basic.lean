@@ -78,16 +78,16 @@ noncomputable def hamiltonianN (N : ℕ) (W : PhysSpace d → ℝ)
 Predicate asserting that a curve (X, V) : ℝ → (Fin N → PhysSpace d)²
 satisfies the N-particle mean-field Newton equations
 
-  ẋ_i = v_i,
-  v̇_i = −(1/N) Σ_{j ≠ i} ∇W(x_i − x_j),   i = 1, …, N.
+  x'_i = v_i,
+  v'_i = −(1/N) Σ_{j ≠ i} ∇W(x_i − x_j),   i = 1, …, N.
 
 `gradW` is the gradient ∇W : ℝ^d → ℝ^d of the pair potential.
 -/
 def IsNewtonSolution (N : ℕ) (gradW : PhysSpace d → PhysSpace d)
     (X V : ℝ → Fin N → PhysSpace d) : Prop :=
-  -- position equations: Ẋ_i(t) = V_i(t)
+  -- position equations: X'_i(t) = V_i(t)
   (∀ t i, HasDerivAt (fun t => X t i) (V t i) t) ∧
-  -- velocity equations: V̇_i(t) = −(1/N) Σ_{j ≠ i} ∇W(X_i(t) − X_j(t))
+  -- velocity equations: V'_i(t) = −(1/N) Σ_{j ≠ i} ∇W(X_i(t) − X_j(t))
   (∀ t i, HasDerivAt (fun t => V t i)
       (-(1 / (N : ℝ)) • ∑ j : Fin N, if j ≠ i then gradW (X t i - X t j) else 0)
       t)
@@ -820,8 +820,8 @@ Predicate asserting that (charX, charV) : ℝ → PhaseSpace d → PhysSpace d �
 is the characteristic flow associated to a given curve of spatial marginal measures
 ρ : ℝ → Measure (PhysSpace d) and pair-potential gradient gradW:
 
-  Ẋ(t, z) = V(t, z),
-  V̇(t, z) = −(∇W * ρ_t)(X(t, z)),
+  X'(t, z) = V(t, z),
+  V'(t, z) = −(∇W * ρ_t)(X(t, z)),
   (X, V)(0, z) = z.
 
 The self-consistent condition (ρ_t is the pushforward of f_0 under X(t, ·)) is
@@ -833,9 +833,9 @@ def IsCharacteristicFlow
     (charX charV : ℝ → PhaseSpace d → PhysSpace d) : Prop :=
   -- initial condition
   (∀ z : PhaseSpace d, charX 0 z = z.1 ∧ charV 0 z = z.2) ∧
-  -- position ODE: Ẋ(t, z) = V(t, z)
+  -- position ODE: X'(t, z) = V(t, z)
   (∀ t z, HasDerivAt (fun s => charX s z) (charV t z) t) ∧
-  -- velocity ODE: V̇(t, z) = −(∇W * ρ_t)(X(t, z))
+  -- velocity ODE: V'(t, z) = −(∇W * ρ_t)(X(t, z))
   (∀ t z, HasDerivAt (fun s => charV s z)
       (-(convolveFunctionMeasure gradW (ρ t) (charX t z))) t)
 

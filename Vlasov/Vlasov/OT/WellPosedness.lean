@@ -813,7 +813,7 @@ predicates:
 These are genuinely independent (neither universally implies the other), so
 each predicate matches its own sub-argument.
 
-Under the W̄ refactor (Dobrushin 1979, §5), both constraints become
+Under the Wbar refactor (Dobrushin 1979, §5), both constraints become
 linear-in-T and align: `LocalSmallnessContraction` reduces to
 `C₂(L)·T < 1`, and the single algebraic constraint then suffices and is
 satisfiable for any `L > 0` by taking `T < 1/C₂(L)`.
@@ -5464,7 +5464,7 @@ coupling* metric.
 
 Concludes `W₁(f t, g t) ≤ exp(2·(max 1 L)·t) · wasserstein1Coupling (f 0, g 0)`
 — the dual `W₁` on the LHS, the *coupling-inf* metric on the RHS (= Dobrushin's
-metric ρ̄).  Proved **without Foundation B**: for *every* coupling `π` of
+metric ρbar).  Proved **without Foundation B**: for *every* coupling `π` of
 `(f 0, g 0)` the shared `dobrushin_integrated_flow_bound_On` core (coupling-
 generic in `(π, proj_f, proj_g)`) gives
   `W₁(f t, g t) ≤ ∫⁻ edist d(pushforward π) ≤ exp(…) · ∫⁻ edist z.1 z.2 ∂π`,

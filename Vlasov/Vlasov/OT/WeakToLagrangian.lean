@@ -59,7 +59,7 @@ Final-step layer (C2, crux-independent):
 
 Crux layer (C3):
 * #3 `charFlow_hasFDerivAt_in_initialPoint` — **the variational equation**: `z ↦ Φ_{s→T}(z)` is C¹
-  (`HasFDerivAt`), derivative solving `Ṁ = (D_z b)·M`.  Sub-steps: 3.1 variational-ODE existence /
+  (`HasFDerivAt`), derivative solving `M' = (D_z b)·M`.  Sub-steps: 3.1 variational-ODE existence /
   uniqueness, 3.2 joint `(t,z)` continuity, 3.3 difference-quotient `o(‖h‖)` via Gronwall (the
   heart), 3.4 assemble `HasFDerivAt` → C¹.  Needs `AssW2.gradContDiff`.
 * #4 `weakSolOn_test_C1c_of_Cinftyc` — extend `IsVlasovSolutionOn`'s test class from `C_c^∞` to
@@ -495,7 +495,7 @@ integral).**  For `gradW ∈ C¹` (and `L`-Lipschitz, a probability measure `ρ`
 integrable), `x ↦ ∫ y, gradW (x − y) ∂ρ` is Fréchet-differentiable with derivative
 `∫ y, fderiv ℝ gradW (x₀ − y) ∂ρ`.  This is the field-regularity foundation of the variational
 equation (#3): it makes `D_z (vlasovVectorField …)` exist and continuous, so the variational ODE
-`Ṁ = (D_z b)·M` has continuous coefficients.
+`M' = (D_z b)·M` has continuous coefficients.
 
 Differentiation under the integral sign (`hasFDerivAt_integral_of_dominated_loc_of_lip`): the
 per-fibre map `x ↦ gradW (x − y)` is `L`-Lipschitz (a uniform, integrable bound against a
@@ -551,7 +551,7 @@ omit [NeZero d] in
 At fixed time `t`, `vlasovVectorField gradW ρ t = fun (x,v) ↦ (v, −conv(x))` is
 Fréchet-differentiable in `z = (x,v)` with derivative the block continuous-linear map
 `δ ↦ (δ.2, −(D_x conv)(δ.1))`, where `D_x conv = ∫ y, fderiv ℝ gradW (z.1 − y) ∂(ρ t)` (F1).
-This is the coefficient `A(t) := D_z b(t, Φ_t z)` of the variational ODE `Ṁ = A(t)·M`. -/
+This is the coefficient `A(t) := D_z b(t, Φ_t z)` of the variational ODE `M' = A(t)·M`. -/
 theorem vlasovVectorField_hasFDerivAt_in_z
     (gradW : PhysSpace d → PhysSpace d) (hgradW_C1 : ContDiff ℝ 1 gradW)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -602,7 +602,7 @@ theorem convolveFunctionMeasure_fderiv_continuous
   · exact Filter.Eventually.of_forall (fun y =>
       hfderiv_cont.comp (continuous_id.sub continuous_const))
 
-/-- Picard iterates for the linear IVP `ẋ = 𝒜(t)x`, `x(0)=x₀` (the V1c engine):
+/-- Picard iterates for the linear IVP `x' = 𝒜(t)x`, `x(0)=x₀` (the V1c engine):
 `I₀ ≡ x₀`, `I_{n+1}(t) = ∫₀ᵗ 𝒜(s)(Iₙ(s)) ds`. -/
 noncomputable def picardIter {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) : ℕ → ℝ → E
@@ -901,7 +901,7 @@ lemma picardSum_solves_integralEq
 (the fundamental solution of the variational equation; a Mathlib gap).
 
 For a continuous family of bounded linear maps `𝒜 : ℝ → (E →L[ℝ] E)` on a Banach space `E`, the
-linear IVP `ẋ = 𝒜(t) x`, `x(0) = x₀` has a solution on `[0,T]`.  Generic and reusable
+linear IVP `x' = 𝒜(t) x`, `x(0) = x₀` has a solution on `[0,T]`.  Generic and reusable
 (promotable to `Mathlib/Analysis/ODE/`); instantiated for the variational equation with
 `E := PhaseSpace d →L[ℝ] PhaseSpace d`, `𝒜(t) := (·).comp-by A(t)` (left composition), `x₀ := id`
 to produce the fundamental matrix `M(t)`, where `A(t) = vlasovVectorField_hasFDerivAt_in_z`'s
@@ -918,7 +918,7 @@ makes the Picard window-condition `K·e^{KT}·T ≤ e^{KT}−1` fail for a singl
 so `𝒯` has a unique fixed point by the iterated-contraction Banach theorem
 (`ContractingWith` + `exists_fixedPoint`, `Mathlib/Topology/MetricSpace/Contracting.lean`).
 Differentiating the fixed-point integral equation (FTC, `HasDerivWithinAt` of `t ↦ ∫_0^t …`)
-recovers `ẋ = 𝒜(t) x`; `x(0) = x₀` from the lower integral limit. -/
+recovers `x' = 𝒜(t) x`; `x(0) = x₀` from the lower integral limit. -/
 theorem exists_linearODE_solution_Icc
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (T : ℝ) (hT : 0 ≤ T)
@@ -951,7 +951,7 @@ theorem exists_linearODE_solution_Icc
 
 /-- **C3 V1c→matrix — the fundamental matrix of a linear ODE.**  Specialising
 `exists_linearODE_solution_Icc` to the operator space `E := F →L[ℝ] F` with `𝒜(s) := A(s) ∘ (·)`
-(left composition) and `x₀ := id` gives the fundamental solution `Ṁ = A(t)∘M`, `M(0) = id`.
+(left composition) and `x₀ := id` gives the fundamental solution `M' = A(t)∘M`, `M(0) = id`.
 This `M(t)` is the candidate `Dflow t z` of the variational equation (#3), once `A` is the Vlasov
 field Jacobian `A(s) = D_z b(s, Φ_s z)` along the flow (F2). -/
 lemma exists_fundamentalMatrix
@@ -1011,7 +1011,7 @@ lemma vlasovVariationalCoeff_continuousOn
 /-- **C3 D1 (Jacobian).**  The phase-space Jacobian `A(s, p) = D_w b(s, p)` of the frozen Vlasov
 field at the base point `p`: the block continuous-linear map `δ ↦ (δ.2, −(D_x conv ρ_s)(p.1)·δ.1)`,
 where `D_x conv ρ_s (p.1) = ∫ y, fderiv ℝ gradW (p.1 − y) ∂ρ_s` (F1).  This is the coefficient of
-the linear variational ODE `Ṁ = A(s, Φ_s z)·M`; `vlasovVectorField_hasFDerivAt_in_z` (F2) says it
+the linear variational ODE `M' = A(s, Φ_s z)·M`; `vlasovVectorField_hasFDerivAt_in_z` (F2) says it
 is the Fréchet derivative of `vlasovVectorField gradW ρ s` at `p.2`. -/
 noncomputable def vlasovFieldJacobian (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d)) (p : ℝ × PhaseSpace d) : PhaseSpace d →L[ℝ] PhaseSpace d :=
@@ -1219,7 +1219,7 @@ lemma continuousOn_prod_of_lipschitz_continuousOn
     _ = ε := by ring
 
 /-- **C3 V2 — the explicit fundamental matrix** (Route A, lesson L14): the canonical Dyson-series
-solution of `Ṁ = A(t)·M`, `M 0 = id`, as a *function* (not a `choose`-d witness), so its
+solution of `M' = A(t)·M`, `M 0 = id`, as a *function* (not a `choose`-d witness), so its
 parameter-regularity is accessible. -/
 noncomputable def fundamentalMatrix {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (A : ℝ → (F →L[ℝ] F)) : ℝ → (F →L[ℝ] F) :=
@@ -1422,7 +1422,7 @@ section CharFlowDeriv
 open Filter Topology
 
 /-- Generic Grönwall difference-quotient bound (open-interval ODE + `s₀→0⁺` limit).  Two curves
-`uh, mh` that approximately solve the same linear ODE `ẇ = vlin·w` on `Ioo 0 T` from the same datum
+`uh, mh` that approximately solve the same linear ODE `w' = vlin·w` on `Ioo 0 T` from the same datum
 (`uh 0 = mh 0`), with `mh` exact and `uh`'s defect uniformly `≤ εf`, satisfy
 `dist (uh t) (mh t) ≤ gronwallBound 0 K εf t`.  `vlin` is abstract (kept opaque to avoid unfolding
 the heavy `vlasovFieldJacobian` integral in the Grönwall application). -/
@@ -1482,7 +1482,7 @@ lemma gronwall_diffQuotient_bound
 omit [NeZero d] in
 /-- **C3 D1 — the difference-quotient heart of the variational equation.**
 
-Given the fundamental matrix `Mz` of the linear variational ODE `Ṁ = A(s, Φ_s z)·M`, `M 0 = id`
+Given the fundamental matrix `Mz` of the linear variational ODE `M' = A(s, Φ_s z)·M`, `M 0 = id`
 (coefficient `A = vlasovFieldJacobian`), the time-`t` flow map `w ↦ (charX t w, charV t w)` is
 Fréchet-differentiable **at the fixed point `z`** with derivative exactly `Mz t`.
 
@@ -1493,7 +1493,7 @@ ODE/continuity data directly.
 **Proof plan (route b — Grönwall on the linearisation remainder).**  Reduce via
 `hasFDerivAt_iff_isLittleO_nhds_zero` + `Asymptotics.isLittleO_iff` to: `∀ c>0, ∀ᶠ h, ‖Φ_t(z+h) −
 Φ_t(z) − Mz t·h‖ ≤ c‖h‖`.  For fixed small `h`, the two curves `u_h(s) := Φ_s(z+h) − Φ_s(z)`
-(approximate) and `m_h(s) := Mz s·h` (exact) both solve `ẇ = A(s, Φ_s z)·w` from the same datum
+(approximate) and `m_h(s) := Mz s·h` (exact) both solve `w' = A(s, Φ_s z)·w` from the same datum
 `h` (`Φ_0 = id`, `Mz 0 = id`):
 * `m_h` is exact — its defect is `0` (its derivative `(A·Mz)(s)·h = A(s)·m_h(s)` by `hMzderiv` +
   `HasDerivWithinAt.clm_apply`).
@@ -1657,7 +1657,7 @@ For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C�
 consumer via `assW2_contDiff_gradW`), the time-`t` characteristic map
 `z ↦ (charX t z, charV t z)` is Fréchet-differentiable in the initial point `z`, with a derivative
 `Dflow t z` that is continuous in `z` (so the flow map is `C¹` in `z`).  The derivative solves the
-linear matrix variational ODE `Ṁ = (D_z b(t, Φ_t z)) · M`, `M_0 = id`.
+linear matrix variational ODE `M' = (D_z b(t, Φ_t z)) · M`, `M_0 = id`.
 
 **This was the load-bearing research gap** — Mathlib has no C¹-dependence-of-an-ODE-flow-on-its-
 initial-condition lemma — now proven (axiom-clean) via route (b)
@@ -4046,8 +4046,8 @@ theorem transportedIntegral_continuousOn
     intro s hs
     have : 0 ≤ min s t := le_min hs.le ht.1.le
     simp [hu_def, max_eq_right this]
-  -- the globally-continuous, uniformly-compactly-supported integrand Ĝ
-  set Ĝ : ℝ → PhaseSpace d → ℝ := fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hĜ_def
+  -- the globally-continuous, uniformly-compactly-supported integrand Ghat
+  set Ghat : ℝ → PhaseSpace d → ℝ := fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hGhat_def
   -- (A) joint flow tendsto used at the s=0 seam: (p ↦ Φ_{u p.1} p.2) → z₀
   have hΦu_tendsto : ∀ z₀ : PhaseSpace d,
       Tendsto (fun p : ℝ × PhaseSpace d => (charX (u p.1) p.2, charV (u p.1) p.2))
@@ -4066,24 +4066,24 @@ theorem transportedIntegral_continuousOn
       exact hc.tendsto' (0, z₀) (0, z₀) (by simp [hu0])
     have hcomp := (hval ▸ hcwa.tendsto).comp hinner
     simpa [Function.comp_def] using hcomp
-  -- (B) Ĝ is globally continuous
-  have hĜ_cont : Continuous (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) := by
+  -- (B) Ghat is globally continuous
+  have hGhat_cont : Continuous (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) := by
     rw [continuous_iff_continuousAt]
     rintro ⟨s₀, z₀⟩
     rcases lt_trichotomy s₀ 0 with hs₀ | hs₀ | hs₀
-    · -- s₀ < 0: locally Ĝ = g ∘ snd
-      have heq : (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+    · -- s₀ < 0: locally Ghat = g ∘ snd
+      have heq : (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
           (fun p => g p.2) := by
         have hmem : {p : ℝ × PhaseSpace d | p.1 < 0} ∈ 𝓝 (s₀, z₀) :=
           (isOpen_lt continuous_fst continuous_const).mem_nhds hs₀
         filter_upwards [hmem] with p hp
-        simp only [hĜ_def, if_pos hp.le]
+        simp only [hGhat_def, if_pos hp.le]
       exact (hg_cont.comp continuous_snd).continuousAt.congr heq.symm
     · -- s₀ = 0: the confinement seam
       subst hs₀
       rw [ContinuousAt]
-      have hval0 : Ĝ (0 : ℝ) z₀ = g z₀ := by simp [hĜ_def]
-      change Tendsto (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ĝ (0 : ℝ) z₀))
+      have hval0 : Ghat (0 : ℝ) z₀ = g z₀ := by simp [hGhat_def]
+      change Tendsto (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ghat (0 : ℝ) z₀))
       rw [hval0, Metric.tendsto_nhds]
       intro ε hε
       obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
@@ -4118,14 +4118,14 @@ theorem transportedIntegral_continuousOn
       filter_upwards [hfact1, hfact2] with p hp1 hp2
       by_cases hps : p.1 ≤ 0
       · -- branch g p.2
-        simp only [hĜ_def, if_pos hps]
+        simp only [hGhat_def, if_pos hps]
         exact hδg (lt_of_lt_of_le hp1 (by linarith))
       · -- branch g (Ψ (min p.1 t) p.2)
         rw [not_le] at hps
         have humin : u p.1 = min p.1 t := hu_pos_of_pos p.1 hps
         have hminIoo : min p.1 t ∈ Set.Ioo (0 : ℝ) T :=
           ⟨lt_min hps ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
-        simp only [hĜ_def, if_neg (not_le.mpr hps)]
+        simp only [hGhat_def, if_neg (not_le.mpr hps)]
         apply hδg
         -- dist (Ψ (min p.1 t) p.2) z₀ < δ
         have hright : (charX (min p.1 t) (Ψ (min p.1 t) p.2),
@@ -4146,13 +4146,13 @@ theorem transportedIntegral_continuousOn
               rw [mul_comm] at hp2
               exact hp2
           _ = δ := by ring
-    · -- s₀ > 0: locally Ĝ = g (Ψ (min · t) ·)
-      have heq : (fun p : ℝ × PhaseSpace d => Ĝ p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+    · -- s₀ > 0: locally Ghat = g (Ψ (min · t) ·)
+      have heq : (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
           (fun p => g (Ψ (min p.1 t) p.2)) := by
         have hmem : {p : ℝ × PhaseSpace d | 0 < p.1} ∈ 𝓝 (s₀, z₀) :=
           (isOpen_lt continuous_const continuous_fst).mem_nhds hs₀
         filter_upwards [hmem] with p hp
-        simp only [hĜ_def, if_neg (not_le.mpr hp)]
+        simp only [hGhat_def, if_neg (not_le.mpr hp)]
       refine ContinuousAt.congr ?_ heq.symm
       -- continuity of g (Ψ (min p.1 t) p.2) at (s₀, z₀), s₀ > 0
       have hmin_s₀ : min s₀ t ∈ Set.Ioo (0 : ℝ) T :=
@@ -4169,7 +4169,7 @@ theorem transportedIntegral_continuousOn
           hcont_on.continuousAt hopen
         exact hca.comp_of_eq hmapcont.continuousAt rfl
       exact hg_cont.continuousAt.comp hΨcont_at
-  -- (C) the fixed compact K_total containing all supports of Ĝ
+  -- (C) the fixed compact K_total containing all supports of Ghat
   set Ktot : Set (PhaseSpace d) :=
     (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S)
     with hKtot_def
@@ -4180,13 +4180,13 @@ theorem transportedIntegral_continuousOn
     intro p hp
     refine ⟨(0, p), ⟨⟨le_refl 0, ht.1.le⟩, hp⟩, ?_⟩
     simp [hinit p]
-  have hĜ_supp : ∀ s, ∀ z ∉ Ktot, Ĝ s z = 0 := by
+  have hGhat_supp : ∀ s, ∀ z ∉ Ktot, Ghat s z = 0 := by
     intro s z hz
-    simp only [hĜ_def]
+    simp only [hGhat_def]
     split_ifs with hs
-    · -- s ≤ 0: Ĝ = g z; z ∉ Ktot ⟹ z ∉ S ⟹ g z = 0
+    · -- s ≤ 0: Ghat = g z; z ∉ Ktot ⟹ z ∉ S ⟹ g z = 0
       exact hg_supp_S z (fun hzS => hz (hS_sub_Ktot hzS))
-    · -- s > 0: Ĝ = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
+    · -- s > 0: Ghat = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
       by_contra hgz
       rw [not_le] at hs
       have hminIoo : min s t ∈ Set.Ioo (0 : ℝ) T :=
@@ -4199,8 +4199,8 @@ theorem transportedIntegral_continuousOn
       exact hz ⟨(min s t, Ψ (min s t) z),
         ⟨⟨(lt_min hs ht.1).le, min_le_right _ _⟩, hΨz_S⟩, hright⟩
   -- (D) apply NC and transfer to I on Icc 0 t
-  have hNC := vlasovSolutionOn_integral_continuousOn f T hf_mom hf_narrow Ĝ
-    hĜ_cont Ktot hKtot_compact hĜ_supp
+  have hNC := vlasovSolutionOn_integral_continuousOn f T hf_mom hf_narrow Ghat
+    hGhat_cont Ktot hKtot_compact hGhat_supp
   refine (hNC.mono (Set.Icc_subset_Icc_right ht.2.le)).congr ?_
   intro s hs
   rcases eq_or_lt_of_le hs.1 with h0 | h0
@@ -4208,11 +4208,11 @@ theorem transportedIntegral_continuousOn
     subst h0
     simp only [if_true]
     refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
-    simp only [hĜ_def, if_pos (le_refl (0 : ℝ)), hg_def]
+    simp only [hGhat_def, if_pos (le_refl (0 : ℝ)), hg_def]
   · -- s > 0
     have hsne : s ≠ 0 := ne_of_gt h0
     have hsle : s ≤ t := hs.2
-    simp only [if_neg hsne, hĜ_def, if_neg (not_le.mpr h0), min_eq_left hsle, hg_def]
+    simp only [if_neg hsne, hGhat_def, if_neg (not_le.mpr h0), min_eq_left hsle, hg_def]
 
 -- dualCore_main: the dual core for 0 < t ≤ T (subsumes the t = T terminal via the same
 -- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +

@@ -54,8 +54,8 @@ open MeasureTheory ENNReal
 `b_t(x, v) := (v, −(∇W ∗ ρ_t)(x))`.
 
 Note that the first component is the identity in `v` (the position
-ODE `ẋ = v`) and the second component is the mean-field force
-`−∇W ∗ ρ_t` evaluated at `x` (the velocity ODE `v̇ = −(∇W ∗ ρ)(x)`).
+ODE `x' = v`) and the second component is the mean-field force
+`−∇W ∗ ρ_t` evaluated at `x` (the velocity ODE `v' = −(∇W ∗ ρ)(x)`).
 -/
 noncomputable def vlasovVectorField
     {d : ℕ}
@@ -725,7 +725,7 @@ final algebra.
 **Metric-dependence note**:
 This bound uses the unbounded position difference `‖X^M(t,z) - X^{M'}(t,z)‖`,
 which forces Gronwall and produces exponential-in-`T` constants
-`C_T ≈ exp((1+L)·T)`.  The `W̄ = W_{min(|x-y|,1)}` analog (Dobrushin 1979, §5)
+`C_T ≈ exp((1+L)·T)`.  The `Wbar = W_{min(|x-y|,1)}` analog (Dobrushin 1979, §5)
 uses the bounded-and-Lipschitz absorption
   `|B_μ(x) - B_{μ'}(x)| ≤ max(2‖B‖_∞, C_B) · min(|x₁-x₂|, 1)`
 and produces *linear-in-`T`* constants (Dobrushin 1979, eq. 5.7), changing this
@@ -1321,8 +1321,8 @@ def IsLagrangianVlasovSolutionOn {d : ℕ}
       AEMeasurable (fun z : PhaseSpace d => (charX s z, charV s z)) (f 0)) ∧
     -- **Boundary regularity**: the flow is continuous up to the *closed*
     -- window `[0, T]`.  This is the weakest-sufficient boundary fact for
-    -- closed-window W₁-continuity soundness — closed-window W₁-continuity ⟸
-    -- closed-window narrow continuity of `f` ⟸ `ContinuousOn` of the flow
+    -- closed-window W₁-continuity soundness — closed-window W₁-continuity <==
+    -- closed-window narrow continuity of `f` <== `ContinuousOn` of the flow
     -- (pushforward + DCT).  Exposed because the `Ioo`-only flow conjunct
     -- above leaves the endpoints `t ∈ {0,T}` unconstrained; producers supply
     -- this from data already in hand.
@@ -1795,7 +1795,7 @@ lemma vlasov_window_confinement
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (_hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d))
-   
+
     (_h_int : ∀ t (x : PhysSpace d), Integrable (fun y => gradW (x - y)) (ρ t))
     (_hρ_cont : ∀ x : PhysSpace d,
       Continuous (fun t => convolveFunctionMeasure gradW (ρ t) x))
@@ -3142,7 +3142,7 @@ Packages the four ancillary hypotheses required by Mathlib's
     on `nhd`.
 
 The dominated-bound clause is the technical heart: deriving it requires
-a uniform-in-`z` bound on the flow speed `(charV s z, V̇(s,z))` on the
+a uniform-in-`z` bound on the flow speed `(charV s z, V'(s,z))` on the
 support of `φ`, which the eventual `vlasovWellPosedness` caller will
 produce from Picard-Lindelof local-flow boundedness + `HasCompactSupport φ`. -/
 def DiffUnderIntegralData
@@ -4033,7 +4033,7 @@ theorem wasserstein1_lagrangian_pushforward_bound
     {d : ℕ}
     (charX_f charV_f charX_g charV_g : ℝ → PhaseSpace d → PhysSpace d)
     (f₀ g₀ : Measure (PhaseSpace d))
-   
+
     (t : ℝ)
     (h_meas_f : Measurable (fun z : PhaseSpace d => (charX_f t z, charV_f t z)))
     (h_meas_g : Measurable (fun z : PhaseSpace d => (charX_g t z, charV_g t z)))
@@ -4166,7 +4166,7 @@ lemma supW1On_iterated_triangle {d : ℕ} (S : Set ℝ)
 -- implied by it.  Carrying them separately keeps each predicate matched to
 -- its own sub-argument rather than fusing two distinct claims.
 --
--- The truncated-distance Wasserstein `W̄ = W_{min(|x-y|,1)}` (Dobrushin 1979,
+-- The truncated-distance Wasserstein `Wbar = W_{min(|x-y|,1)}` (Dobrushin 1979,
 -- §5) is an alternative metric that replaces the `LocalSmallnessContraction`
 -- exponential with a linear-in-T form.
 
@@ -5518,7 +5518,7 @@ theorem characteristicFlow_boundary_regularity
     {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (ρ : ℝ → Measure (PhysSpace d))
-   
+
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (T : ℝ) (_hT : 0 ≤ T)
     (hflow : IsCharacteristicFlowOn gradW ρ charX charV
@@ -6350,7 +6350,7 @@ of the per-ball Picard-Lindelöf flow's quadratic-in-`T` ball-geometry
 constraint `LocalSmallnessPLBuffer L T := L·T² < 1`; the two predicates
 match the two distinct sub-arguments.
 
-Under the `W̄` refactor (Dobrushin 1979, §5), the contraction factor
+Under the `Wbar` refactor (Dobrushin 1979, §5), the contraction factor
 becomes `C₂(L) · T` — *linear in T*, no exponential.
 `LocalSmallnessContraction` would reduce to `C₂(L) · T < 1`;
 `LocalSmallnessPLBuffer` is independent of that change. -/
