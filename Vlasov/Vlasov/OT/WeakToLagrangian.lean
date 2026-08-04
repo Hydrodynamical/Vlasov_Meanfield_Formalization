@@ -4046,9 +4046,8 @@ theorem transportedIntegral_continuousOn
     intro s hs
     have : 0 ≤ min s t := le_min hs.le ht.1.le
     simp [hu_def, max_eq_right this]
-  -- the globally-continuous, uniformly-compactly-supported integrand Ghat
-  set Ghat : ℝ → PhaseSpace d → ℝ :=
-    fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hGhat_def
+  -- the globally-continuous, uniformly-compactly-supported integrand G'
+  set G' : ℝ → PhaseSpace d → ℝ := fun s z => if s ≤ 0 then g z else g (Ψ (min s t) z) with hG'_def
   -- (A) joint flow tendsto used at the s=0 seam: (p ↦ Φ_{u p.1} p.2) → z₀
   have hΦu_tendsto : ∀ z₀ : PhaseSpace d,
       Tendsto (fun p : ℝ × PhaseSpace d => (charX (u p.1) p.2, charV (u p.1) p.2))
@@ -4067,25 +4066,24 @@ theorem transportedIntegral_continuousOn
       exact hc.tendsto' (0, z₀) (0, z₀) (by simp [hu0])
     have hcomp := (hval ▸ hcwa.tendsto).comp hinner
     simpa [Function.comp_def] using hcomp
-  -- (B) Ghat is globally continuous
-  have hGhat_cont : Continuous (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) := by
+  -- (B) G' is globally continuous
+  have hG'_cont : Continuous (fun p : ℝ × PhaseSpace d => G' p.1 p.2) := by
     rw [continuous_iff_continuousAt]
     rintro ⟨s₀, z₀⟩
     rcases lt_trichotomy s₀ 0 with hs₀ | hs₀ | hs₀
-    · -- s₀ < 0: locally Ghat = g ∘ snd
-      have heq : (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+    · -- s₀ < 0: locally G' = g ∘ snd
+      have heq : (fun p : ℝ × PhaseSpace d => G' p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
           (fun p => g p.2) := by
         have hmem : {p : ℝ × PhaseSpace d | p.1 < 0} ∈ 𝓝 (s₀, z₀) :=
           (isOpen_lt continuous_fst continuous_const).mem_nhds hs₀
         filter_upwards [hmem] with p hp
-        simp only [hGhat_def, if_pos hp.le]
+        simp only [hG'_def, if_pos hp.le]
       exact (hg_cont.comp continuous_snd).continuousAt.congr heq.symm
     · -- s₀ = 0: the confinement seam
       subst hs₀
       rw [ContinuousAt]
-      have hval0 : Ghat (0 : ℝ) z₀ = g z₀ := by simp [hGhat_def]
-      change Tendsto (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2)
-        (𝓝 ((0 : ℝ), z₀)) (𝓝 (Ghat (0 : ℝ) z₀))
+      have hval0 : G' (0 : ℝ) z₀ = g z₀ := by simp [hG'_def]
+      change Tendsto (fun p : ℝ × PhaseSpace d => G' p.1 p.2) (𝓝 ((0 : ℝ), z₀)) (𝓝 (G' 0 z₀))
       rw [hval0, Metric.tendsto_nhds]
       intro ε hε
       obtain ⟨δ, hδ, hδg⟩ := Metric.uniformContinuous_iff.mp hg_unif ε hε
@@ -4120,14 +4118,14 @@ theorem transportedIntegral_continuousOn
       filter_upwards [hfact1, hfact2] with p hp1 hp2
       by_cases hps : p.1 ≤ 0
       · -- branch g p.2
-        simp only [hGhat_def, if_pos hps]
+        simp only [hG'_def, if_pos hps]
         exact hδg (lt_of_lt_of_le hp1 (by linarith))
       · -- branch g (Ψ (min p.1 t) p.2)
         rw [not_le] at hps
         have humin : u p.1 = min p.1 t := hu_pos_of_pos p.1 hps
         have hminIoo : min p.1 t ∈ Set.Ioo (0 : ℝ) T :=
           ⟨lt_min hps ht.1, lt_of_le_of_lt (min_le_right _ _) ht.2⟩
-        simp only [hGhat_def, if_neg (not_le.mpr hps)]
+        simp only [hG'_def, if_neg (not_le.mpr hps)]
         apply hδg
         -- dist (Ψ (min p.1 t) p.2) z₀ < δ
         have hright : (charX (min p.1 t) (Ψ (min p.1 t) p.2),
@@ -4148,13 +4146,13 @@ theorem transportedIntegral_continuousOn
               rw [mul_comm] at hp2
               exact hp2
           _ = δ := by ring
-    · -- s₀ > 0: locally Ghat = g (Ψ (min · t) ·)
-      have heq : (fun p : ℝ × PhaseSpace d => Ghat p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
+    · -- s₀ > 0: locally G' = g (Ψ (min · t) ·)
+      have heq : (fun p : ℝ × PhaseSpace d => G' p.1 p.2) =ᶠ[𝓝 (s₀, z₀)]
           (fun p => g (Ψ (min p.1 t) p.2)) := by
         have hmem : {p : ℝ × PhaseSpace d | 0 < p.1} ∈ 𝓝 (s₀, z₀) :=
           (isOpen_lt continuous_const continuous_fst).mem_nhds hs₀
         filter_upwards [hmem] with p hp
-        simp only [hGhat_def, if_neg (not_le.mpr hp)]
+        simp only [hG'_def, if_neg (not_le.mpr hp)]
       refine ContinuousAt.congr ?_ heq.symm
       -- continuity of g (Ψ (min p.1 t) p.2) at (s₀, z₀), s₀ > 0
       have hmin_s₀ : min s₀ t ∈ Set.Ioo (0 : ℝ) T :=
@@ -4171,10 +4169,9 @@ theorem transportedIntegral_continuousOn
           hcont_on.continuousAt hopen
         exact hca.comp_of_eq hmapcont.continuousAt rfl
       exact hg_cont.continuousAt.comp hΨcont_at
-  -- (C) the fixed compact K_total containing all supports of Ghat
+  -- (C) the fixed compact K_total containing all supports of G'
   set Ktot : Set (PhaseSpace d) :=
-    (fun q : ℝ × PhaseSpace d => (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S)
-    with hKtot_def
+    (fun q : ℝ × PhaseSpace d ↦ (charX q.1 q.2, charV q.1 q.2)) '' (Set.Icc 0 t ×ˢ S) with hKtot_def
   have hKtot_compact : IsCompact Ktot :=
     (isCompact_Icc.prod hS_compact).image_of_continuousOn
       (hflowjoint.mono (Set.prod_mono (Set.Icc_subset_Icc_right ht.2.le) (Set.subset_univ S)))
@@ -4182,13 +4179,13 @@ theorem transportedIntegral_continuousOn
     intro p hp
     refine ⟨(0, p), ⟨⟨le_refl 0, ht.1.le⟩, hp⟩, ?_⟩
     simp [hinit p]
-  have hGhat_supp : ∀ s, ∀ z ∉ Ktot, Ghat s z = 0 := by
+  have hG'_supp : ∀ s, ∀ z ∉ Ktot, G' s z = 0 := by
     intro s z hz
-    simp only [hGhat_def]
+    simp only [hG'_def]
     split_ifs with hs
-    · -- s ≤ 0: Ghat = g z; z ∉ Ktot ⟹ z ∉ S ⟹ g z = 0
+    · -- s ≤ 0: G' = g z; z ∉ Ktot ⟹ z ∉ S ⟹ g z = 0
       exact hg_supp_S z (fun hzS => hz (hS_sub_Ktot hzS))
-    · -- s > 0: Ghat = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
+    · -- s > 0: G' = g (Ψ (min s t) z); nonzero ⟹ Ψ(min s t) z ∈ S ⟹ z ∈ Ktot
       by_contra hgz
       rw [not_le] at hs
       have hminIoo : min s t ∈ Set.Ioo (0 : ℝ) T :=
@@ -4201,8 +4198,8 @@ theorem transportedIntegral_continuousOn
       exact hz ⟨(min s t, Ψ (min s t) z),
         ⟨⟨(lt_min hs ht.1).le, min_le_right _ _⟩, hΨz_S⟩, hright⟩
   -- (D) apply NC and transfer to I on Icc 0 t
-  have hNC := vlasovSolutionOn_integral_continuousOn f T hf_mom hf_narrow Ghat
-    hGhat_cont Ktot hKtot_compact hGhat_supp
+  have hNC := vlasovSolutionOn_integral_continuousOn f T hf_mom hf_narrow G'
+    hG'_cont Ktot hKtot_compact hG'_supp
   refine (hNC.mono (Set.Icc_subset_Icc_right ht.2.le)).congr ?_
   intro s hs
   rcases eq_or_lt_of_le hs.1 with h0 | h0
@@ -4210,11 +4207,11 @@ theorem transportedIntegral_continuousOn
     subst h0
     simp only [if_true]
     refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
-    simp only [hGhat_def, if_pos (le_refl (0 : ℝ)), hg_def]
+    simp only [hG'_def, if_pos (le_refl (0 : ℝ)), hg_def]
   · -- s > 0
     have hsne : s ≠ 0 := ne_of_gt h0
     have hsle : s ≤ t := hs.2
-    simp only [if_neg hsne, hGhat_def, if_neg (not_le.mpr h0), min_eq_left hsle, hg_def]
+    simp only [if_neg hsne, hG'_def, if_neg (not_le.mpr h0), min_eq_left hsle, hg_def]
 
 -- dualCore_main: the dual core for 0 < t ≤ T (subsumes the t = T terminal via the same
 -- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +
