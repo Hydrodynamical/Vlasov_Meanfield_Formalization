@@ -2550,7 +2550,7 @@ theorem exists_vlasov_characteristicFlow_tight
     {d : ℕ} [NeZero d]
     (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
-    (hgradW : ∀ x, gradW x = gradient W x)
+    (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d))
     [∀ t, IsProbabilityMeasure (ρ t)]
@@ -2575,10 +2575,6 @@ theorem exists_vlasov_characteristicFlow_tight
             (-(convolveFunctionMeasure gradW (ρ t) (charX t z)))
             (Set.Icc (0 : ℝ) T) t) := by
   classical
-  -- `hgradW` (the `gradW = ∇W` identity) is part of the interface for
-  -- downstream consumers but is not consumed by this construction, which
-  -- works abstractly from `hL`/`h_int`/`hρ_cont`; acknowledge it here.
-  have _hgradW := hgradW
   -- ============================================================
   -- Parameter setup (uniform across all windows and initial z).
   -- TIGHT: V_max uses `T` (not `T+1`); EXACT tiling N·δ' = T.
@@ -5076,24 +5072,6 @@ theorem Phi_hW1Cont {d : ℕ}
   -- DCT gives ∫-tendsto-zero.
   have h_dct := Phi_integral_diff_tendsto_zero charX f₀ h_meas T hT C_T hC_T_nn
     h_growth h_f₀_int s hs (h_charX_cont s hs)
-  -- Build the ‖charX s z - charX t z‖-diff-integrability eventually.
-  have h_diff_int_eventually : ∀ᶠ t in nhdsWithin s (Set.Icc 0 T),
-      Integrable (fun z : PhaseSpace d => ‖charX s z - charX t z‖) f₀ := by
-    refine Filter.eventually_iff_exists_mem.mpr ⟨Set.Icc 0 T, self_mem_nhdsWithin, ?_⟩
-    intro t ht
-    have h_dom_int : Integrable (fun z : PhaseSpace d => 2 * C_T * (‖z‖ + 1)) f₀ :=
-      (h_f₀_int.add (integrable_const _)).const_mul _
-    refine Integrable.mono' h_dom_int
-      (((h_meas s).sub (h_meas t)).norm.aestronglyMeasurable) ?_
-    refine Filter.Eventually.of_forall fun z => ?_
-    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
-    have h_tri := norm_sub_le (charX s z) (charX t z)
-    have h_s := h_growth s hs z
-    have h_t := h_growth t ht z
-    calc ‖charX s z - charX t z‖
-        ≤ ‖charX s z‖ + ‖charX t z‖ := h_tri
-      _ ≤ C_T * (‖z‖ + 1) + C_T * (‖z‖ + 1) := by linarith
-      _ = 2 * C_T * (‖z‖ + 1) := by ring
   -- Combine: W₁ bound ⇒ toReal bound ⇒ tendsto-zero.
   -- Strategy: bound the W₁.toReal by the integral via wasserstein1_Phi_le_integral_diff.
   -- Then use squeeze on Tendsto.
