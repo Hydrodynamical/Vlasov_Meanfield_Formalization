@@ -17,8 +17,8 @@ OT infrastructure on pseudometric spaces:
 
   1. Couplings and the Monge-Kantorovich definition of `W_1`.
   2. The easy direction of Kantorovich-Rubinstein duality,
-     `wasserstein1_dual μ ν ≤ wasserstein1_coupling μ ν`.
-  3. The hard direction `wasserstein1_coupling μ ν ≤ wasserstein1_dual μ ν`
+     `wasserstein1_dual μ ν ≤ wasserstein1Coupling μ ν`.
+  3. The hard direction `wasserstein1Coupling μ ν ≤ wasserstein1_dual μ ν`
      (via finite-range approximation + finite transportation LP duality),
      yielding the full KR equality `wasserstein1_eq_coupling`.
 
@@ -29,7 +29,7 @@ See `formalize/DESIGN.md` for the overall design choices.
 -/
 
 /-
-The contents of this file — `IsCoupling`, `wasserstein1_coupling`, both
+The contents of this file — `IsCoupling`, `wasserstein1Coupling`, both
 directions of KR, `IsCoupling.map`, and `wasserstein1_pushforward_le_iInf` —
 are domain-independent OT on pseudometric spaces (natural Mathlib home:
 `Mathlib/MeasureTheory/Wasserstein/Coupling.lean` under `namespace
@@ -65,7 +65,7 @@ This is the standard OT convention: a coupling π whose cost is non-integrable
 contributes `⊤` to the infimum (rather than the Bochner junk-value 0), so the
 infimum correctly identifies the OT-optimal coupling.  Returns `⊤` if no
 coupling exists. -/
-noncomputable def wasserstein1_coupling
+noncomputable def wasserstein1Coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
     (μ ν : Measure α) : ENNReal :=
   ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
@@ -74,17 +74,17 @@ noncomputable def wasserstein1_coupling
 /-! ## Kantorovich-Rubinstein: easy direction
 
 The dual-formula `wasserstein1` is at most the coupling-formula
-`wasserstein1_coupling`.  The one-line argument in the OT literature:
+`wasserstein1Coupling`.  The one-line argument in the OT literature:
 for any 1-Lipschitz `φ` and any coupling `π`,
 
   ∫φ d(μ - ν) = ∫(φ x - φ y) dπ ≤ ∫ |φ x - φ y| dπ ≤ ∫ dist(x,y) dπ.
 
-The reverse inequality is the hard direction `wassersteinCost_coupling_le_dual`.
+The reverse inequality is the hard direction `wassersteinCostCoupling_le_dual`.
 -/
 
 /-- KR easy direction.  Under finite-moment assumptions on `μ` and `ν`, the
 dual-formula `wasserstein1 μ ν` is bounded above by the coupling-formula
-`wasserstein1_coupling μ ν`.
+`wasserstein1Coupling μ ν`.
 
 By `iSup_le` and `le_iInf`, it suffices to show that for every 1-Lipschitz `φ`
 and every coupling `π` of `(μ, ν)`:
@@ -93,14 +93,14 @@ is `⊤` the bound is trivial; otherwise `edist`-integrability of `π` gives
 `dist`-integrability, change of variables through the marginals rewrites
 `∫φ dμ - ∫φ dν = ∫(φ(z.1) - φ(z.2)) dπ`, and `|φ(z.1) - φ(z.2)| ≤ dist(z.1, z.2)`
 (1-Lipschitz) closes it (integrability via the finite first moments of `μ`, `ν`). -/
-theorem wasserstein1_le_wasserstein1_coupling
+theorem wasserstein1_le_wasserstein1Coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (x₀ : α)
     (hμ_fm : Integrable (fun y => dist y x₀) μ)
     (hν_fm : Integrable (fun y => dist y x₀) ν) :
-    wasserstein1 μ ν ≤ wasserstein1_coupling μ ν := by
+    wasserstein1 μ ν ≤ wasserstein1Coupling μ ν := by
   rw [wasserstein1_eq_iSup_lipschitz]
   refine iSup_le fun φ => iSup_le fun hφ => ?_
   refine le_iInf fun π => le_iInf fun hπ => ?_
@@ -206,7 +206,7 @@ theorem wasserstein1_le_wasserstein1_coupling
 
 /-! ## Hard Kantorovich–Rubinstein duality
 
-This section proves the hard direction `wassersteinCost_coupling_le_dual`
+This section proves the hard direction `wassersteinCostCoupling_le_dual`
 (coupling-inf ≤ dual-sup) and derives the KR equality from it together with the
 easy direction above.  Everything is stated **cost-generically** over a
 continuous pseudometric cost `c`, so an alternative cutoff cost
@@ -214,44 +214,44 @@ continuous pseudometric cost `c`, so an alternative cutoff cost
 -/
 
 /-- Cost-generic coupling cost: the infimum over couplings `π` of `(μ, ν)` of
-`∫⁻ ofReal (c z.1 z.2) ∂π`.  At `c = dist` this is `wasserstein1_coupling`
-(`edist = ofReal ∘ dist`); see `wasserstein1_coupling_eq`. -/
-noncomputable def wassersteinCost_coupling
+`∫⁻ ofReal (c z.1 z.2) ∂π`.  At `c = dist` this is `wasserstein1Coupling`
+(`edist = ofReal ∘ dist`); see `wasserstein1Coupling_eq`. -/
+noncomputable def wassersteinCostCoupling
     {α : Type*} [MeasurableSpace α]
     (c : α → α → ℝ) (μ ν : Measure α) : ENNReal :=
   ⨅ (π : Measure (α × α)) (_ : IsCoupling π μ ν),
     ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π
 
-/-- At `c = dist`, the cost-generic coupling cost reduces to `wasserstein1_coupling`
+/-- At `c = dist`, the cost-generic coupling cost reduces to `wasserstein1Coupling`
 (since `edist x y = ofReal (dist x y)`). -/
-lemma wasserstein1_coupling_eq
+lemma wasserstein1Coupling_eq
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] (μ ν : Measure α) :
-    wasserstein1_coupling μ ν = wassersteinCost_coupling (fun x y => dist x y) μ ν := by
-  unfold wasserstein1_coupling wassersteinCost_coupling
+    wasserstein1Coupling μ ν = wassersteinCostCoupling (fun x y => dist x y) μ ν := by
+  unfold wasserstein1Coupling wassersteinCostCoupling
   refine iInf_congr fun π => iInf_congr fun _ => ?_
   exact lintegral_congr fun z => edist_dist z.1 z.2
 
 /-! ### Kantorovich–Rubinstein duality (hard direction) helpers
 
-The lemmas below decompose `wassersteinCost_coupling_le_dual` via discrete
+The lemmas below decompose `wassersteinCostCoupling_le_dual` via discrete
 approximation + limit.  All are general optimal-transport facts (not
 Vlasov-specific), stated cost-generically over a continuous pseudometric cost.
 -/
 
 /-- **Symmetry of the coupling cost.**
-For a symmetric cost, `wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ`
+For a symmetric cost, `wassersteinCostCoupling c μ ν = wassersteinCostCoupling c ν μ`
 (push a coupling forward under `Prod.swap`). -/
-theorem wassersteinCost_coupling_comm
+theorem wassersteinCostCoupling_comm
     {α : Type*} [MeasurableSpace α]
     (c : α → α → ℝ) (hc_symm : ∀ x y, c x y = c y x)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν : Measure α) :
-    wassersteinCost_coupling c μ ν = wassersteinCost_coupling c ν μ := by
+    wassersteinCostCoupling c μ ν = wassersteinCostCoupling c ν μ := by
   -- One direction; the swap of a coupling of (a,b) is a coupling of (b,a) with equal cost.
   have key : ∀ (a b : Measure α),
-      wassersteinCost_coupling c a b ≤ wassersteinCost_coupling c b a := by
+      wassersteinCostCoupling c a b ≤ wassersteinCostCoupling c b a := by
     intro a b
-    unfold wassersteinCost_coupling
+    unfold wassersteinCostCoupling
     refine le_iInf fun π => le_iInf fun hπ => ?_
     -- π : IsCoupling π b a; `map swap π` couples (a, b).
     have hswap : IsCoupling (Measure.map Prod.swap π) a b := by
@@ -384,37 +384,37 @@ theorem exists_coupling_glue
 /-- **Triangle inequality for the
 coupling cost.**  Gluing of couplings through a common middle measure
 (`exists_coupling_glue`), then the `iInf` arithmetic. -/
-theorem wassersteinCost_coupling_triangle
+theorem wassersteinCostCoupling_triangle
     {α : Type*} [MeasurableSpace α] [StandardBorelSpace α]
     (c : α → α → ℝ)
     (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
     (μ ν ρ : Measure α) [IsProbabilityMeasure μ]
     [IsProbabilityMeasure ρ] :
-    wassersteinCost_coupling c μ ν
-      ≤ wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν := by
+    wassersteinCostCoupling c μ ν
+      ≤ wassersteinCostCoupling c μ ρ + wassersteinCostCoupling c ρ ν := by
   -- ε→0; the ⊤-case is the clean early-out (le_of_forall_pos_le_add supplies RHS < ⊤).
   refine ENNReal.le_of_forall_pos_le_add fun ε hε hAB => ?_
-  have hAfin : wassersteinCost_coupling c μ ρ < ⊤ := (ENNReal.add_lt_top.mp hAB).1
-  have hBfin : wassersteinCost_coupling c ρ ν < ⊤ := (ENNReal.add_lt_top.mp hAB).2
+  have hAfin : wassersteinCostCoupling c μ ρ < ⊤ := (ENNReal.add_lt_top.mp hAB).1
+  have hBfin : wassersteinCostCoupling c ρ ν < ⊤ := (ENNReal.add_lt_top.mp hAB).2
   have hδ : (0 : ℝ≥0∞) < (ε : ℝ≥0∞) / 2 :=
     ENNReal.div_pos (ENNReal.coe_pos.mpr hε).ne' (by norm_num)
   -- ε-optimal couplings (free from the iInf — no attainment needed).
   obtain ⟨π₁, h₁, hc₁⟩ : ∃ π₁, IsCoupling π₁ μ ρ ∧
-      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁) < wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2 := by
-    have hlt : wassersteinCost_coupling c μ ρ < wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2 :=
+      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁) < wassersteinCostCoupling c μ ρ + (ε : ℝ≥0∞) / 2 := by
+    have hlt : wassersteinCostCoupling c μ ρ < wassersteinCostCoupling c μ ρ + (ε : ℝ≥0∞) / 2 :=
       ENNReal.lt_add_right hAfin.ne hδ.ne'
-    unfold wassersteinCost_coupling at hlt
+    unfold wassersteinCostCoupling at hlt
     rw [iInf_lt_iff] at hlt
     obtain ⟨π, hπ⟩ := hlt
     rw [iInf_lt_iff] at hπ
     obtain ⟨h, hcost⟩ := hπ
     exact ⟨π, h, hcost⟩
   obtain ⟨π₂, h₂, hc₂⟩ : ∃ π₂, IsCoupling π₂ ρ ν ∧
-      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) < wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2 := by
-    have hlt : wassersteinCost_coupling c ρ ν < wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2 :=
+      (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) < wassersteinCostCoupling c ρ ν + (ε : ℝ≥0∞) / 2 := by
+    have hlt : wassersteinCostCoupling c ρ ν < wassersteinCostCoupling c ρ ν + (ε : ℝ≥0∞) / 2 :=
       ENNReal.lt_add_right hBfin.ne hδ.ne'
-    unfold wassersteinCost_coupling at hlt
+    unfold wassersteinCostCoupling at hlt
     rw [iInf_lt_iff] at hlt
     obtain ⟨π, hπ⟩ := hlt
     rw [iInf_lt_iff] at hπ
@@ -422,27 +422,27 @@ theorem wassersteinCost_coupling_triangle
     exact ⟨π, h, hcost⟩
   obtain ⟨π₃, h₃, hcost⟩ :=
     exists_coupling_glue c hc_triangle hc_meas μ ν ρ π₁ h₁ π₂ h₂
-  calc wassersteinCost_coupling c μ ν
+  calc wassersteinCostCoupling c μ ν
       ≤ ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₃ :=
         iInf_le_of_le π₃ (iInf_le_of_le h₃ le_rfl)
     _ ≤ (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₁)
           + (∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂π₂) := hcost
-    _ ≤ (wassersteinCost_coupling c μ ρ + (ε : ℝ≥0∞) / 2)
-          + (wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) / 2) := add_le_add hc₁.le hc₂.le
-    _ = wassersteinCost_coupling c μ ρ + wassersteinCost_coupling c ρ ν + (ε : ℝ≥0∞) := by
+    _ ≤ (wassersteinCostCoupling c μ ρ + (ε : ℝ≥0∞) / 2)
+          + (wassersteinCostCoupling c ρ ν + (ε : ℝ≥0∞) / 2) := add_le_add hc₁.le hc₂.le
+    _ = wassersteinCostCoupling c μ ρ + wassersteinCostCoupling c ρ ν + (ε : ℝ≥0∞) := by
         rw [add_add_add_comm, ENNReal.add_halves]
 
 /-- **Graph-coupling bound.**  The
 coupling cost between `μ` and a pushforward `Measure.map T μ` is at most the
 integrated transport cost of `T`, witnessed by the graph coupling
 `(id, T)_# μ`. -/
-theorem wassersteinCost_coupling_map_le
+theorem wassersteinCostCoupling_map_le
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α]
     (c : α → α → ℝ) (hc_cont : Continuous (fun p : α × α => c p.1 p.2))
     (μ : Measure α)
     (T : α → α) (hT : Measurable T) :
-    wassersteinCost_coupling c μ (Measure.map T μ)
+    wassersteinCostCoupling c μ (Measure.map T μ)
       ≤ ∫⁻ x, ENNReal.ofReal (c x (T x)) ∂μ := by
   -- the graph coupling `(id, T)_# μ` couples `μ` and `T_# μ`; its cost is the integral.
   have hg : Measurable (fun x : α => (x, T x)) := measurable_id.prodMk hT
@@ -451,7 +451,7 @@ theorem wassersteinCost_coupling_map_le
     · rw [Measure.map_map measurable_fst hg]
       rw [show (Prod.fst ∘ fun x : α => (x, T x)) = id from rfl, Measure.map_id]
     · rw [Measure.map_map measurable_snd hg]; rfl
-  unfold wassersteinCost_coupling
+  unfold wassersteinCostCoupling
   refine iInf_le_of_le (Measure.map (fun x => (x, T x)) μ) (iInf_le_of_le hγ (le_of_eq ?_))
   calc ∫⁻ z, ENNReal.ofReal (c z.1 z.2) ∂(Measure.map (fun x => (x, T x)) μ)
       = ∫⁻ x, ENNReal.ofReal (c (x, T x).1 (x, T x).2) ∂μ :=
@@ -1139,7 +1139,7 @@ theorem finiteRange_transportation_dual
     (ε : ℝ) (hε : 0 < ε) :
     ∃ u v : α → ℝ, Measurable u ∧ Measurable v ∧
       (∀ a ∈ Set.range T, ∀ b ∈ Set.range S, u a + v b ≤ c a b) ∧
-      wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+      wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
         ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
           + ENNReal.ofReal ε := by
   classical
@@ -1262,7 +1262,7 @@ theorem finiteRange_transportation_dual
       rw [integral_indicator_const _ (measurableSet_singleton _), smul_eq_mul]
       simp only [hb_def, measureReal_def]
     -- optimal coupling realises coupling-inf ≤ ofReal ⟨Cost, P⟩
-    have hcoup : wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+    have hcoup : wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
         ≤ ENNReal.ofReal (∑ i, ∑ j, Cost i j * P i j) := by
       set π : Measure (α × α) := ∑ i, ∑ j,
         ENNReal.ofReal (P i j) • Measure.dirac ((↑i : α), (↑j : α)) with hπ_def
@@ -1309,12 +1309,12 @@ theorem finiteRange_transportation_dual
         rw [ENNReal.ofReal_sum_of_nonneg (fun j _ => mul_nonneg (hc_nonneg _ _) (hPnn i j))]
         refine Finset.sum_congr rfl fun j _ => ?_
         rw [← ENNReal.ofReal_mul (hPnn i j), mul_comm (P i j) (c (↑i) (↑j))]
-      unfold wassersteinCost_coupling
+      unfold wassersteinCostCoupling
       exact le_trans (iInf_le_of_le π (iInf_le _ ⟨hfst, hsnd⟩)) (le_of_eq hπ_cost)
     have hCP : (∑ i, ∑ j, Cost i j * P i j)
         ≤ ((∫ x, ulift x ∂(Measure.map T μ)) + ∫ y, vlift y ∂(Measure.map S ν)) + ε := by
       rw [hint_u, hint_v]; linarith [hval]
-    calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+    calc wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
         ≤ ENNReal.ofReal (∑ i, ∑ j, Cost i j * P i j) := hcoup
       _ ≤ ENNReal.ofReal (((∫ x, ulift x ∂(Measure.map T μ))
             + ∫ y, vlift y ∂(Measure.map S ν)) + ε) := ENNReal.ofReal_le_ofReal hCP
@@ -1331,7 +1331,7 @@ supports and `c` a (pseudo)metric cost, the c-transform
 `hc_triangle`/`hc_symm` are load-bearing** — it converts the Farkas dual *pair* into the
 single 1-Lipschitz potential the Kantorovich dual sup ranges over. -/
 theorem cTransform_dual_witness
-    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+    {α : Type*} [MeasurableSpace α]
     (c : α → α → ℝ) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
     (hc_meas : Measurable (fun p : α × α => c p.1 p.2))
@@ -1433,8 +1433,8 @@ the coupling-infimum is at most the dual-supremum.  Proof = finite transportatio
 duality (Farkas, `finiteRange_transportation_dual`) producing a dual pair, then the
 c-transform (`cTransform_dual_witness`) converting it to a single globally-admissible
 potential, which the dual sup dominates (`le_iSup₂`). -/
-theorem wassersteinCost_coupling_le_dual_of_finiteRange
-    {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α]
+theorem wassersteinCostCoupling_le_dual_of_finiteRange
+    {α : Type*} [MeasurableSpace α]
     [MeasurableSingletonClass α]
     (c : α → α → ℝ) (hc_nonneg : ∀ x y, 0 ≤ c x y) (hc_self : ∀ x, c x x = 0)
     (hc_symm : ∀ x y, c x y = c y x) (hc_triangle : ∀ x y z, c x z ≤ c x y + c y z)
@@ -1442,7 +1442,7 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
     (μ ν : Measure α) [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
     (T S : α → α) (hT : Measurable T) (hS : Measurable S)
     (hTfin : (Set.range T).Finite) (hSfin : (Set.range S).Finite) :
-    wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+    wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c (Measure.map T μ) (Measure.map S ν) := by
   -- ε → 0 at the Kantorovich sup level: the ε-family dual bound has no attainment.
   refine ENNReal.le_of_forall_pos_le_add fun η hη _ => ?_
@@ -1452,7 +1452,7 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
   obtain ⟨g, hg_adm, hg_val⟩ :=
     cTransform_dual_witness c hc_self hc_symm hc_triangle hc_meas μ ν T S hT hS
       hTfin hSfin u v hu hv hdual
-  calc wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+  calc wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
       ≤ ENNReal.ofReal ((∫ x, u x ∂(Measure.map T μ)) + ∫ x, v x ∂(Measure.map S ν))
           + ENNReal.ofReal (η : ℝ) := hval
     _ ≤ ENNReal.ofReal (∫ x, g x ∂(Measure.map T μ) - ∫ x, g x ∂(Measure.map S ν))
@@ -1470,7 +1470,7 @@ theorem wassersteinCost_coupling_le_dual_of_finiteRange
 
 /-- **Single-map dual bound.**  The
 dual cost between a pushforward `Measure.map T μ` and `μ` is at most the integrated
-transport cost of `T`.  Direct dual-side analogue of `wassersteinCost_coupling_map_le`:
+transport cost of `T`.  Direct dual-side analogue of `wassersteinCostCoupling_map_le`:
 for any `c`-admissible test `f` (oscillation `≤ c`, hence continuous), the change of
 variables `∫ f d(T_# μ) = ∫ f∘T dμ` plus `|f(Tx) − f x| ≤ c x (Tx)` gives the bound;
 the finite `c`-moment `hμ_cm` controls test-function integrability. -/
@@ -1604,9 +1604,9 @@ coupling-formula is at most the dual-formula.
 
 For probability measures `μ, ν` with finite first moment on a Polish (here
 second-countable Borel pseudometric, standard Borel) space and a continuous
-pseudometric cost `c`:  `wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν`.
+pseudometric cost `c`:  `wassersteinCostCoupling c μ ν ≤ wassersteinCost c μ ν`.
 The reverse inequality is the easy direction
-`wasserstein1_le_wasserstein1_coupling`; together they give the full KR equality
+`wasserstein1_le_wasserstein1Coupling`; together they give the full KR equality
 `wasserstein1_eq_coupling`.
 
 This is an `inf ≤ sup` statement, so the infimum need not be attained — the bound
@@ -1617,14 +1617,14 @@ is reached ε-optimally.  Stated cost-generically over a continuous pseudometric
 `T, S` with transport cost `≤ ε/4` each (`exists_finiteRange_map_cost_le`).  With
 `μ' = Measure.map T μ`, `ν' = Measure.map S ν`:
 `W_c(μ,ν) ≤ W_c(μ,μ') + W_c(μ',ν') + W_c(ν',ν)`
-(`wassersteinCost_coupling_triangle` ×2, `…_comm`); the outer terms `≤ ε/4`
-(`wassersteinCost_coupling_map_le`); `W_c(μ',ν') ≤ dual(μ',ν')`
-(`wassersteinCost_coupling_le_dual_of_finiteRange`); `dual(μ',ν') ≤ dual(μ,ν) +
+(`wassersteinCostCoupling_triangle` ×2, `…_comm`); the outer terms `≤ ε/4`
+(`wassersteinCostCoupling_map_le`); `W_c(μ',ν') ≤ dual(μ',ν')`
+(`wassersteinCostCoupling_le_dual_of_finiteRange`); `dual(μ',ν') ≤ dual(μ,ν) +
 ε/2` (`wassersteinCost_dual_le_add_map`).  Chain → `W_c(μ,ν) ≤ dual(μ,ν) + ε`;
 `ε → 0` (`ENNReal.le_of_forall_pos_le_add`).  The triangle step needs
 `StandardBorelSpace α` (disintegration); consumers instantiate at the Polish
 `PhaseSpace d`. -/
-theorem wassersteinCost_coupling_le_dual
+theorem wassersteinCostCoupling_le_dual
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α] [StandardBorelSpace α]
     (c : α → α → ℝ)
@@ -1638,7 +1638,7 @@ theorem wassersteinCost_coupling_le_dual
     (x₀ : α)
     (hμ_cm : Integrable (fun y => c y x₀) μ)
     (hν_cm : Integrable (fun y => c y x₀) ν) :
-    wassersteinCost_coupling c μ ν ≤ wassersteinCost c μ ν := by
+    wassersteinCostCoupling c μ ν ≤ wassersteinCost c μ ν := by
   -- ε→0; for each ε pick finite-range approximants T, S with transport cost ≤ ε/4.
   refine ENNReal.le_of_forall_pos_le_add fun ε hε _hb => ?_
   have hε4 : (0 : ℝ) < (ε : ℝ) / 4 := by positivity
@@ -1652,20 +1652,20 @@ theorem wassersteinCost_coupling_le_dual
   haveI : IsProbabilityMeasure (Measure.map S ν) := Measure.isProbabilityMeasure_map hS.aemeasurable
   set q : ℝ≥0∞ := ENNReal.ofReal ((ε : ℝ) / 4) with hq
   -- triangle through the two approximants
-  have htri1 := wassersteinCost_coupling_triangle c hc_triangle hc_cont.measurable
+  have htri1 := wassersteinCostCoupling_triangle c hc_triangle hc_cont.measurable
     μ ν (Measure.map T μ)
-  have htri2 := wassersteinCost_coupling_triangle c hc_triangle hc_cont.measurable
+  have htri2 := wassersteinCostCoupling_triangle c hc_triangle hc_cont.measurable
     (Measure.map T μ) ν (Measure.map S ν)
   -- the two outer transport terms are ≤ q
-  have hμμ' : wassersteinCost_coupling c μ (Measure.map T μ) ≤ q :=
-    (wassersteinCost_coupling_map_le c hc_cont μ T hT).trans hTcost
-  have hν'ν : wassersteinCost_coupling c (Measure.map S ν) ν ≤ q := by
-    rw [wassersteinCost_coupling_comm c hc_symm hc_cont.measurable (Measure.map S ν) ν]
-    exact (wassersteinCost_coupling_map_le c hc_cont ν S hS).trans hScost
+  have hμμ' : wassersteinCostCoupling c μ (Measure.map T μ) ≤ q :=
+    (wassersteinCostCoupling_map_le c hc_cont μ T hT).trans hTcost
+  have hν'ν : wassersteinCostCoupling c (Measure.map S ν) ν ≤ q := by
+    rw [wassersteinCostCoupling_comm c hc_symm hc_cont.measurable (Measure.map S ν) ν]
+    exact (wassersteinCostCoupling_map_le c hc_cont ν S hS).trans hScost
   -- the middle: finite KR duality, then dual stability, then bound the two costs by q
-  have hmid : wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
+  have hmid : wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
       ≤ wassersteinCost c μ ν + q + q :=
-    (wassersteinCost_coupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
+    (wassersteinCostCoupling_le_dual_of_finiteRange c hc_nonneg hc_self hc_symm hc_triangle
         hc_cont.measurable μ ν T S hT hS hTfin hSfin).trans
       ((wassersteinCost_dual_le_add_map c hc_nonneg hc_self hc_symm hc_cont μ ν T S hT hS
           x₀ hμ_cm hν_cm).trans
@@ -1679,18 +1679,18 @@ theorem wassersteinCost_coupling_le_dual
         ← ENNReal.ofReal_add (by positivity) (by positivity)]
     rw [h4, show (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 + (ε : ℝ) / 4 = (ε : ℝ) from by ring,
       ENNReal.ofReal_coe_nnreal]
-  calc wassersteinCost_coupling c μ ν
-      ≤ wassersteinCost_coupling c μ (Measure.map T μ)
-          + wassersteinCost_coupling c (Measure.map T μ) ν := htri1
-    _ ≤ q + (wassersteinCost_coupling c (Measure.map T μ) (Measure.map S ν)
-          + wassersteinCost_coupling c (Measure.map S ν) ν) := add_le_add hμμ' htri2
+  calc wassersteinCostCoupling c μ ν
+      ≤ wassersteinCostCoupling c μ (Measure.map T μ)
+          + wassersteinCostCoupling c (Measure.map T μ) ν := htri1
+    _ ≤ q + (wassersteinCostCoupling c (Measure.map T μ) (Measure.map S ν)
+          + wassersteinCostCoupling c (Measure.map S ν) ν) := add_le_add hμμ' htri2
     _ ≤ q + ((wassersteinCost c μ ν + q + q) + q) := add_le_add le_rfl (add_le_add hmid hν'ν)
     _ = wassersteinCost c μ ν + (q + q + q + q) := by ring
     _ = wassersteinCost c μ ν + (ε : ℝ≥0∞) := by rw [hq4]
 
-/-- KR duality at `c = dist`: `wasserstein1 = wasserstein1_coupling`.  Combines the
-hard-direction inequality `wassersteinCost_coupling_le_dual` with the easy direction
-`wasserstein1_le_wasserstein1_coupling`. -/
+/-- KR duality at `c = dist`: `wasserstein1 = wasserstein1Coupling`.  Combines the
+hard-direction inequality `wassersteinCostCoupling_le_dual` with the easy direction
+`wasserstein1_le_wasserstein1Coupling`. -/
 theorem wasserstein1_eq_coupling
     {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
     [SecondCountableTopology α] [StandardBorelSpace α]
@@ -1698,10 +1698,10 @@ theorem wasserstein1_eq_coupling
     (x₀ : α)
     (hμ_fm : Integrable (fun y => dist y x₀) μ)
     (hν_fm : Integrable (fun y => dist y x₀) ν) :
-    wasserstein1 μ ν = wasserstein1_coupling μ ν := by
-  refine le_antisymm (wasserstein1_le_wasserstein1_coupling μ ν x₀ hμ_fm hν_fm) ?_
-  rw [wasserstein1_coupling_eq]
-  exact wassersteinCost_coupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
+    wasserstein1 μ ν = wasserstein1Coupling μ ν := by
+  refine le_antisymm (wasserstein1_le_wasserstein1Coupling μ ν x₀ hμ_fm hν_fm) ?_
+  rw [wasserstein1Coupling_eq]
+  exact wassersteinCostCoupling_le_dual (fun x y => dist x y) (fun _ _ => dist_nonneg)
     (fun x => dist_self x) (fun x y => dist_comm x y) (fun x y z => dist_triangle x y z)
     (continuous_fst.dist continuous_snd) (fun x y => le_refl (dist x y)) μ ν x₀ hμ_fm hν_fm
 
@@ -1744,7 +1744,7 @@ above by the infimum over couplings of the original measures of the
 pushed-forward cost.  This is the "iInf trick":
 
   wasserstein1 (Φ_# μ) (Ψ_# ν)
-    ≤ wasserstein1_coupling (Φ_# μ) (Ψ_# ν)            (KR easy)
+    ≤ wasserstein1Coupling (Φ_# μ) (Ψ_# ν)            (KR easy)
     = ⨅ π' (coupling of Φ_# μ, Ψ_# ν), ∫⁻ edist dπ'
     ≤ ⨅ π  (coupling of μ, ν), ∫⁻ edist (Φ z.1, Ψ z.2) dπ   (push couplings via IsCoupling.map)
 
@@ -1768,17 +1768,17 @@ lemma wasserstein1_pushforward_le_iInf
   haveI := hΦμ_prob
   haveI := hΨν_prob
   -- Step 1: KR easy applied to (Φ_# μ, Ψ_# ν).
-  have h_kr := wasserstein1_le_wasserstein1_coupling
+  have h_kr := wasserstein1_le_wasserstein1Coupling
     (Measure.map Φ μ) (Measure.map Ψ ν) x₀ hΦμ_fm hΨν_fm
   refine le_trans h_kr ?_
-  -- Step 2: bound wasserstein1_coupling via a specific pushed-forward coupling.
+  -- Step 2: bound wasserstein1Coupling via a specific pushed-forward coupling.
   refine le_iInf fun π => le_iInf fun hπ => ?_
   -- The pushed-forward coupling IS a coupling of (Φ_# μ, Ψ_# ν) by IsCoupling.map.
   have hπ_pushed : IsCoupling (Measure.map (Prod.map Φ Ψ) π)
                               (Measure.map Φ μ) (Measure.map Ψ ν) :=
     hπ.map Φ Ψ hΦ hΨ
-  -- So wasserstein1_coupling ≤ ∫⁻ edist d(pushed-forward π).
-  have h_inf : wasserstein1_coupling (Measure.map Φ μ) (Measure.map Ψ ν) ≤
+  -- So wasserstein1Coupling ≤ ∫⁻ edist d(pushed-forward π).
+  have h_inf : wasserstein1Coupling (Measure.map Φ μ) (Measure.map Ψ ν) ≤
       ∫⁻ z, edist z.1 z.2 ∂(Measure.map (Prod.map Φ Ψ) π) := by
     refine iInf_le_of_le (Measure.map (Prod.map Φ Ψ) π) ?_
     exact iInf_le _ hπ_pushed

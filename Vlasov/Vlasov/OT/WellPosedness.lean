@@ -143,7 +143,7 @@ private lemma envelopeStep_contractionInputs {d : ℕ} [NeZero d]
 shifted force integrable.  The workhorse integrability fact behind every
 `convolveFunctionMeasure` estimate. -/
 lemma integrable_gradW_shift
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (μ : Measure (PhysSpace d)) [MeasureTheory.IsFiniteMeasure μ]
@@ -170,10 +170,10 @@ lemma integrable_gradW_shift
     rw [h_eq]; exact (integrable_const _).add (h_yint.const_mul _)
   exact h_dom_int.mono' h_aesm (Filter.Eventually.of_forall fun y => h_dom y)
 
-/-- `LocalSmallness_contraction L T` IS the Grönwall contraction factor
+/-- `LocalSmallnessContraction L T` IS the Grönwall contraction factor
 `gronwallBound 0 (max 1 L) L T < 1`, after unfolding both definitions. -/
-lemma LocalSmallness_contraction.gronwallBound_lt_one
-    {L : NNReal} {T : ℝ} (hTL_con : LocalSmallness_contraction L T) :
+lemma LocalSmallnessContraction.gronwallBound_lt_one
+    {L : NNReal} {T : ℝ} (hTL_con : LocalSmallnessContraction L T) :
     gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L : ℝ) T < 1 := by
   have hK_pos : (0 : ℝ) < ((max 1 L : NNReal) : ℝ) := by
     have : (1 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := by
@@ -204,7 +204,7 @@ private lemma vlasovWellPosedness_local_picard_sequence
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL_PL : LocalSmallness_PL_buffer L T)
+    (hTL_PL : LocalSmallnessPLBuffer L T)
     (m : ℝ → ℝ) (hm_mono : MonotoneOn m (Set.Icc 0 T))
     (hm_nn : ∀ t ∈ Set.Icc (0 : ℝ) T, 0 ≤ m t)
     (hm_inv : ∀ t ∈ Set.Icc (0 : ℝ) T,
@@ -346,7 +346,7 @@ private lemma vlasovWellPosedness_local_picard_sequence
         calc (wasserstein1 ((x k).ρ s) ((x (k+1)).ρ s)).toReal
             ≤ (ENNReal.ofReal D).toReal := ENNReal.toReal_mono ENNReal.ofReal_ne_top h_le
           _ = D := ENNReal.toReal_ofReal hD_nn
-      have h_contr := @Phi_supW1_contraction d _ gradW L hL ((x k).extend) ((x (k+1)).extend)
+      have h_contr := @Phi_supW1_contraction d gradW L hL ((x k).extend) ((x (k+1)).extend)
         (hPext (x k)) (hPext (x (k+1)))
         (h_int_ext_gen (x k)) (h_int_ext_gen (x (k+1))) T hT.le D hD_nn h_W1_fin h_W1_bound
         (charXs k) (charVs k) (charXs (k+1)) (charVs (k+1)) f₀ _
@@ -431,7 +431,7 @@ private lemma picardLimit_flow_pointwise_contraction
   have hq_scale : gronwallBound 0 ((max 1 L : NNReal) : ℝ) ((L:ℝ) * D) T = D * q := by
     rw [hq_def, gronwallBound_of_K_ne_0 hK_ne, gronwallBound_of_K_ne_0 hK_ne]; ring
   intro t ht
-  have hpt := @Phi_pointwise_contraction d _ gradW L hL (ν.extend) (ρl.extend)
+  have hpt := @Phi_pointwise_contraction d gradW L hL (ν.extend) (ρl.extend)
     (VlasovMeasureCurve.extend_isProb ν) (VlasovMeasureCurve.extend_isProb ρl)
     h_int_ν h_int_l T hT.le D hD_nn h_W1_fin h_W1_bound
     cX cV charX charV f₀ _
@@ -789,7 +789,7 @@ The body carries the substantive Picard analysis:
   `A = gronwallBound 1 (1+L) ‖gradW 0‖ T · (M_f₀ + 1)` and
   `B = L · (exp((1+L)·T) - 1)/(1+L) · (M_f₀ + 1)`.  Requires `B < 1`,
   which is the genuine convergence criterion for the moment iteration
-  (stronger than the contraction predicate `LocalSmallness_contraction
+  (stronger than the contraction predicate `LocalSmallnessContraction
   L T` alone for large `M_f₀` — the contraction predicate gates the q
   factor; the M-fixed-point additionally requires the moment iteration
   to converge).
@@ -805,16 +805,16 @@ The body carries the substantive Picard analysis:
 
 **Metric-dependence note**.  The convergence rests on two independent
 predicates:
-* `LocalSmallness_contraction L T := L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
+* `LocalSmallnessContraction L T := L · (exp((max 1 L)·T) - 1) / (max 1 L) < 1`
   — exponential in T, from `Phi_supW1_contraction`'s W₁-based shape.
-* `LocalSmallness_PL_buffer L T := L · T² < 1` — quadratic, from
+* `LocalSmallnessPLBuffer L T := L · T² < 1` — quadratic, from
   per-ball Picard-Lindelöf's ball geometry.
 
 These are genuinely independent (neither universally implies the other), so
 each predicate matches its own sub-argument.
 
 Under the W̄ refactor (Dobrushin 1979, §5), both constraints become
-linear-in-T and align: `LocalSmallness_contraction` reduces to
+linear-in-T and align: `LocalSmallnessContraction` reduces to
 `C₂(L)·T < 1`, and the single algebraic constraint then suffices and is
 satisfiable for any `L > 0` by taking `T < 1/C₂(L)`.
 
@@ -834,8 +834,8 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL_PL : LocalSmallness_PL_buffer L T)
-    (hTL_con : LocalSmallness_contraction L T)
+    (hTL_PL : LocalSmallnessPLBuffer L T)
+    (hTL_con : LocalSmallnessContraction L T)
     (hB : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T) - 1) < 1) :
     ∃ (charX charV : ℝ → PhaseSpace d → PhysSpace d) (M_ρ : ℝ), 0 ≤ M_ρ ∧
       -- Self-consistent characteristic flow: against the spatial marginal
@@ -935,7 +935,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
   -- q^k · (2M)` is the iterated contraction bound; the contraction factor
   -- `q = gronwallBound 0 (max 1 L) L T = (L/(max 1 L)) · (exp((max 1 L)·T) - 1)`
   -- is separated from the W₁-input bound `D₀ = 2M`.  `hq_lt` closes by direct
-  -- citation of `hTL_con` (LocalSmallness_contraction) after one unfold.
+  -- citation of `hTL_con` (LocalSmallnessContraction) after one unfold.
   let q : ℝ := gronwallBound 0 ((max 1 L : NNReal) : ℝ) (L : ℝ) T
   have hq_nn : 0 ≤ q := by
     have hK_nn : (0 : ℝ) ≤ ((max 1 L : NNReal) : ℝ) := NNReal.coe_nonneg _
@@ -943,7 +943,7 @@ theorem vlasovWellPosedness_local_picard_fixedPointFlow
     have := gronwallBound_mono (δ := (0 : ℝ)) (K := ((max 1 L : NNReal) : ℝ))
       (ε := (L : ℝ)) (le_refl 0) hε_nn hK_nn hT.le
     rw [gronwallBound_x0] at this; exact this
-  -- Direct citation: `LocalSmallness_contraction L T` IS `q < 1` after
+  -- Direct citation: `LocalSmallnessContraction L T` IS `q < 1` after
   -- unfolding both definitions.  No local derivation; the named-lemma
   -- pattern from the soundness-fix mechanism.
   have hq_lt : q < 1 := hTL_con.gronwallBound_lt_one
@@ -1074,16 +1074,16 @@ Given the Picard fixed-point flow's bundle (from
 
 Factored out to keep `vlasovWellPosedness_local`'s body a clean glue. -/
 theorem vlasovWellPosedness_local_moment
-    {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
+    {d : ℕ}
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
     (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL_PL : LocalSmallness_PL_buffer L T)
-    (_hTL_con : LocalSmallness_contraction L T)
+    (_hTL_PL : LocalSmallnessPLBuffer L T)
+    (_hTL_con : LocalSmallnessContraction L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -1198,16 +1198,16 @@ threading through
 
 Factored out to keep `vlasovWellPosedness_local`'s body a clean glue. -/
 theorem vlasovWellPosedness_local_isLagrangian
-    {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
+    {d : ℕ}
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
     (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (hf₀_int : Integrable (fun z : PhaseSpace d => ‖z‖) f₀)
     {T : ℝ} (hT : 0 < T)
-    (_hTL_PL : LocalSmallness_PL_buffer L T)
-    (_hTL_con : LocalSmallness_contraction L T)
+    (_hTL_PL : LocalSmallnessPLBuffer L T)
+    (_hTL_con : LocalSmallnessContraction L T)
     (charX charV : ℝ → PhaseSpace d → PhysSpace d)
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hflow_on : IsCharacteristicFlowOn gradW
@@ -1281,8 +1281,8 @@ theorem vlasovWellPosedness_local_isLagrangian
 
 /-- **Local existence of a Vlasov solution on `[0, T]`.**
 
-Under the joint constraint `LocalSmallness_PL_buffer L T` (`L · T² < 1`) +
-`LocalSmallness_contraction L T`, produces a local-time Vlasov solution
+Under the joint constraint `LocalSmallnessPLBuffer L T` (`L · T² < 1`) +
+`LocalSmallnessContraction L T`, produces a local-time Vlasov solution
 `f : ℝ → Measure (PhaseSpace d)` on `[0, T]` satisfying initial
 condition + local finite first moment + `IsLagrangianVlasovSolutionOn`.
 
@@ -1351,8 +1351,8 @@ theorem vlasovWellPosedness_local
     (f₀ : Measure (PhaseSpace d))
     (hf₀ : HasFiniteFirstMoment f₀)
     {T : ℝ} (hT : 0 < T)
-    (hTL_PL : LocalSmallness_PL_buffer L T)
-    (hTL_con : LocalSmallness_contraction L T)
+    (hTL_PL : LocalSmallnessPLBuffer L T)
+    (hTL_con : LocalSmallnessContraction L T)
     (hB : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T) - 1) < 1) :
     ∃ (f : ℝ → Measure (PhaseSpace d))
       (charX charV : ℝ → PhaseSpace d → PhysSpace d),
@@ -1880,7 +1880,7 @@ domination from the Gronwall growth bound `hC_T` (Piece A) against `f₀`'s fini
 moment.  This is the structural reason `h_cont_g` does NOT need the general narrow→W₁
 kernel — its consumer carries a pushforward representation. -/
 lemma flowConv_continuousWithinAt_Iic_seam
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (charX : ℝ → PhaseSpace d → PhysSpace d)
@@ -1972,7 +1972,7 @@ and the window `[0, T] → [a, b]`.  Used for the RIGHT side of the seam at `T` 
 `charX` is the composed position flow `Z_s z = charX_g (s-T) (charX_prev T z, …)` and
 `μ s = spatialMarginal (g (s-T))` is its pushforward of `f₀`. -/
 lemma flowConv_continuousWithinAt_Ici_seam
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (charX : ℝ → PhaseSpace d → PhysSpace d)
@@ -3767,8 +3767,8 @@ private lemma vlasovGlue_moment_flat
 Given a solution `f_prev : ℝ → Measure (PhaseSpace d)` on `[0, T]`
 satisfying the local-existence conjuncts (initial condition + finite first
 moment + `IsLagrangianVlasovSolutionOn`), and a window length `T_0`
-satisfying the smallness constraints `LocalSmallness_PL_buffer L T_0` +
-`LocalSmallness_contraction L T_0`, produces a glued solution
+satisfying the smallness constraints `LocalSmallnessPLBuffer L T_0` +
+`LocalSmallnessContraction L T_0`, produces a glued solution
 `f_next : ℝ → Measure (PhaseSpace d)` on `[0, T + T_0]` that agrees with
 `f_prev` on `[0, T]`.
 
@@ -3827,8 +3827,8 @@ theorem vlasovWellPosedness_glue
           (Set.Icc 0 T) t)
     (h_prev_ic : ∀ z : PhaseSpace d, charX_prev 0 z = z.1 ∧ charV_prev 0 z = z.2)
     {T_0 : ℝ} (hT_0_pos : 0 < T_0)
-    (hT_0_small_PL : LocalSmallness_PL_buffer L T_0)
-    (hT_0_small_con : LocalSmallness_contraction L T_0)
+    (hT_0_small_PL : LocalSmallnessPLBuffer L T_0)
+    (hT_0_small_con : LocalSmallnessContraction L T_0)
     (hT_0_small_B : (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1) :
     ∃ (f_next : ℝ → Measure (PhaseSpace d))
       (charX_next charV_next : ℝ → PhaseSpace d → PhysSpace d),
@@ -4092,7 +4092,7 @@ three per-window smallness constraints — the PL buffer, the contraction, and t
 envelope closure.  Pure threshold arithmetic: `T_0 := min(1/√L, T_0_con, T_0_env)/2`
 with each threshold positive for every `L > 0` (no `L < 1` restriction). -/
 lemma exists_localSmallness_window (L : NNReal) (hL_pos : (0 : ℝ) < L) :
-    ∃ T_0 : ℝ, 0 < T_0 ∧ LocalSmallness_PL_buffer L T_0 ∧ LocalSmallness_contraction L T_0 ∧
+    ∃ T_0 : ℝ, 0 < T_0 ∧ LocalSmallnessPLBuffer L T_0 ∧ LocalSmallnessContraction L T_0 ∧
       (L : ℝ) / (1 + (L : ℝ)) * (Real.exp ((1 + (L : ℝ)) * T_0) - 1) < 1 := by
   let T_0_PL : ℝ := 1 / Real.sqrt L
   let T_0_con : ℝ := Real.log (max 1 (L : ℝ) / (L : ℝ) + 1) / max 1 (L : ℝ)
@@ -4121,7 +4121,7 @@ lemma exists_localSmallness_window (L : NNReal) (hL_pos : (0 : ℝ) < L) :
     lt_min (lt_min hT_0_PL_pos hT_0_con_pos) hT_0_env_pos
   have hT0_pos : 0 < T_0 := by
     change 0 < min (min T_0_PL T_0_con) T_0_env / 2; linarith
-  have hTL_T0_PL : LocalSmallness_PL_buffer L T_0 := by
+  have hTL_T0_PL : LocalSmallnessPLBuffer L T_0 := by
     change (L : ℝ) * T_0 ^ 2 < 1
     have h_T_0_le : T_0 ≤ 1 / (2 * Real.sqrt (L : ℝ)) := by
       change min (min T_0_PL T_0_con) T_0_env / 2 ≤ 1 / (2 * Real.sqrt (L : ℝ))
@@ -4140,7 +4140,7 @@ lemma exists_localSmallness_window (L : NNReal) (hL_pos : (0 : ℝ) < L) :
     have h_eq : (L : ℝ) * (1 / (2 * Real.sqrt (L : ℝ))) ^ 2 = 1 / 4 := by
       rw [div_pow, one_pow, mul_pow, hs_eq]; field_simp; ring
     rw [h_eq] at h_mul_le; linarith
-  have hTL_T0_con : LocalSmallness_contraction L T_0 := by
+  have hTL_T0_con : LocalSmallnessContraction L T_0 := by
     change (L : ℝ) * (Real.exp ((max 1 (L : ℝ)) * T_0) - 1) / (max 1 (L : ℝ)) < 1
     set K : ℝ := max 1 (L : ℝ) with hK_def
     have h_T_0_lt : T_0 < T_0_con := by
@@ -5462,7 +5462,7 @@ private theorem dobrushin_uniqueness_On
 /-- **Mean-field Dobrushin stability on the window `[0, T]`**, in the *primal
 coupling* metric.
 
-Concludes `W₁(f t, g t) ≤ exp(2·(max 1 L)·t) · wasserstein1_coupling (f 0, g 0)`
+Concludes `W₁(f t, g t) ≤ exp(2·(max 1 L)·t) · wasserstein1Coupling (f 0, g 0)`
 — the dual `W₁` on the LHS, the *coupling-inf* metric on the RHS (= Dobrushin's
 metric ρ̄).  Proved **without Foundation B**: for *every* coupling `π` of
 `(f 0, g 0)` the shared `dobrushin_integrated_flow_bound_On` core (coupling-
@@ -5491,7 +5491,7 @@ private theorem dobrushin_meanfield_On
     ∀ t ∈ Set.Icc (0 : ℝ) T,
       wasserstein1 (f t) (g t)
         ≤ ENNReal.ofReal (Real.exp (2 * ((max 1 L : NNReal) : ℝ) * t))
-            * wasserstein1_coupling (f 0) (g 0) := by
+            * wasserstein1Coupling (f 0) (g 0) := by
   haveI hf0_prob : IsProbabilityMeasure (f 0) := (hf_mom 0 ⟨le_refl 0, hT.le⟩).1
   haveI hg0_prob : IsProbabilityMeasure (g 0) := (hg_mom 0 ⟨le_refl 0, hT.le⟩).1
   obtain ⟨_, charX_f, charV_f, hflow_f, hpush_f, haem_f, hcontIcc_f⟩ := hf
@@ -5594,7 +5594,7 @@ private theorem dobrushin_meanfield_On
           refine lintegral_congr fun z => ?_
           rw [edist_dist, dist_eq_norm]
   -- Take the iInf over couplings of (f 0, g 0).
-  rw [show wasserstein1_coupling (f 0) (g 0)
+  rw [show wasserstein1Coupling (f 0) (g 0)
         = ⨅ (π : Measure (PhaseSpace d × PhaseSpace d)) (_ : IsCoupling π (f 0) (g 0)),
             ∫⁻ z, edist z.1 z.2 ∂π from rfl, mul_comm,
     ← ENNReal.div_le_iff_le_mul (Or.inl hc_ne0) (Or.inl hc_neTop)]
@@ -5615,7 +5615,7 @@ Two `IsLagrangianVlasovSolutionOn`s with the same initial data agree on
    private helper above) to conclude `f t = g t`. -/
 theorem vlasovWellPosedness_uniqueness
     {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
     (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -5648,7 +5648,7 @@ theorem vlasovWellPosedness_uniqueness
 /-- `IsLagrangianVlasovSolutionOn` is antitone in the window length: a Lagrangian
 solution on `[0, T]` restricts to one on any `[0, T'] ⊆ [0, T]`. -/
 lemma IsLagrangianVlasovSolutionOn.mono_window
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     {gradW : PhysSpace d → PhysSpace d} {g : ℝ → Measure (PhaseSpace d)}
     {T T' : ℝ} (h : IsLagrangianVlasovSolutionOn gradW g T) (hTT' : T' ≤ T) :
     IsLagrangianVlasovSolutionOn gradW g T' := by
@@ -5667,7 +5667,7 @@ lemma IsLagrangianVlasovSolutionOn.mono_window
 represented on the window as a flow pushforward: dominated convergence against
 the fixed `f₀`, then transfer along the representation. -/
 lemma integral_continuousWithinAt_of_flow_rep
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (f₀ : Measure (PhaseSpace d)) [IsProbabilityMeasure f₀]
     (fcur : ℝ → Measure (PhaseSpace d))
     (Φ : ℝ → PhaseSpace d → PhaseSpace d)
@@ -6293,7 +6293,7 @@ lemma dobrushin_package_exists
     ∃ C : ℝ, 0 < C ∧
       ∀ t : ℝ, 0 ≤ t →
         wasserstein1 (f t) (g t) ≤
-          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1_coupling (f 0) (g 0) := by
+          ENNReal.ofReal (Real.exp (C * t)) * wasserstein1Coupling (f 0) (g 0) := by
   -- Routed through the integrated-coupling core via `dobrushin_meanfield_On`:
   -- pick C = 2·(max 1 L) and window each `t ≥ 0` at `T = t + 1` (uniform in
   -- `t`, including `t = 0`) via `.toOn`.  This bypasses the Gronwall-coupling
@@ -6338,7 +6338,7 @@ theorem dobrushin
         wasserstein1 (f t) (g t) ≤
           ENNReal.ofReal (Real.exp (C * t)) * wasserstein1 (f 0) (g 0) := by
   -- close via dobrushin_package_exists (B-free coupling core), then convert the
-  -- primal-coupling RHS `wasserstein1_coupling (f 0) (g 0)` to the dual RHS
+  -- primal-coupling RHS `wasserstein1Coupling (f 0) (g 0)` to the dual RHS
   -- `wasserstein1 (f 0) (g 0)` via the KR duality bridge `wasserstein1_eq_coupling`
   -- (the sole Foundation-B use in this corollary).
   obtain ⟨C, hC_pos, hC_bound⟩ :=
@@ -6353,31 +6353,31 @@ theorem dobrushin
   rw [wasserstein1_eq_coupling (f 0) (g 0) 0 hfm0 hgm0]
   exact hC_bound t ht
 
-/-- **Coupling-metric Dobrushin stability estimate** — the `wasserstein1_coupling`
+/-- **Coupling-metric Dobrushin stability estimate** — the `wasserstein1Coupling`
 (primal) analogue of `DobrushinStabilityEstimate` (Basic).  LHS is the genuine
 dual `W₁` metric; the RHS base is the primal coupling-inf metric
-`wasserstein1_coupling`.  This is the form the **B-free** core
+`wasserstein1Coupling`.  This is the form the **B-free** core
 (`dobrushin_package_exists`) produces. -/
-def DobrushinStabilityEstimateCoupling {d : ℕ} [NeZero d]
+def DobrushinStabilityEstimateCoupling {d : ℕ}
     (f g : ℝ → Measure (PhaseSpace d)) (C : ℝ) : Prop :=
   ∀ t : ℝ, 0 ≤ t →
     wasserstein1 (f t) (g t) ≤
-      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1_coupling (f 0) (g 0)
+      ENNReal.ofReal (Real.exp (C * t)) * wasserstein1Coupling (f 0) (g 0)
 
 /-- **Mean-field limit — B-free coupling form.**
 
 The `meanFieldLimit` (Basic) analogue that consumes the **coupling-metric**
 stability estimate (`DobrushinStabilityEstimateCoupling`, produced B-free by
 `dobrushin_package_exists`) and **coupling-metric** initial convergence
-(`wasserstein1_coupling (μ_0^N) f₀ → 0`).  The conclusion is unchanged:
+(`wasserstein1Coupling (μ_0^N) f₀ → 0`).  The conclusion is unchanged:
 convergence of the empirical curves to the Vlasov solution in the genuine dual
 `W₁` metric.  Axiom-clean (`#print axioms`): **B-free**.
 
 **Why coupling-`hInit` — the initial-convergence type the B-free limit requires.**
-The B-free estimate puts `wasserstein1_coupling` on the RHS base, so the squeeze
-needs `wasserstein1_coupling (μ_0^N) f₀ → 0`.  Standard dual-`W₁` initial
-convergence does NOT supply this B-free: `wasserstein1 ≤ wasserstein1_coupling`
-(`wasserstein1_le_wasserstein1_coupling`), so dual-small does not bound the
+The B-free estimate puts `wasserstein1Coupling` on the RHS base, so the squeeze
+needs `wasserstein1Coupling (μ_0^N) f₀ → 0`.  Standard dual-`W₁` initial
+convergence does NOT supply this B-free: `wasserstein1 ≤ wasserstein1Coupling`
+(`wasserstein1_le_wasserstein1Coupling`), so dual-small does not bound the
 coupling — the easy direction runs the wrong way for a *hypothesis*; converting
 dual→coupling is the hard direction (= Foundation B, `wasserstein1_eq_coupling`).
 The two are mathematically equal (KR duality) and coupling-convergence is the
@@ -6386,8 +6386,8 @@ from above), so this is a nominal — not a real — strengthening.  The all-dua
 `meanFieldLimit` (Basic) remains the standard-hypothesis form, routing through
 the all-dual `dobrushin` (the single Foundation-B bridge). -/
 theorem meanFieldLimit_coupling
-    {d : ℕ} [NeZero d]
-    (W : PhysSpace d → ℝ) [AssW W]
+    {d : ℕ}
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
     (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (_hL : LipschitzWith L gradW)
@@ -6399,7 +6399,7 @@ theorem meanFieldLimit_coupling
     (_hSol : ∀ (N : ℕ), IsNewtonSolution N gradW (X N) (V N))
     -- initial empirical measures converge to f₀ in the COUPLING metric
     (hInit : Filter.Tendsto
-      (fun N : ℕ => wasserstein1_coupling (empiricalMeasure N (X N 0) (V N 0)) f₀)
+      (fun N : ℕ => wasserstein1Coupling (empiricalMeasure N (X N 0) (V N 0)) f₀)
       Filter.atTop (nhds 0))
     (C : ℝ) (hC : 0 < C)
     (hDobrushin : ∀ (N : ℕ), DobrushinStabilityEstimateCoupling
@@ -6412,22 +6412,22 @@ theorem meanFieldLimit_coupling
   have hsup_bound : ∀ N : ℕ,
       ⨆ t ∈ Set.Icc 0 T, wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t) ≤
         ENNReal.ofReal (Real.exp (C * T)) *
-          wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
+          wasserstein1Coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
     intro N
     apply iSup_le; intro t
     apply iSup_le; intro ht
     calc wasserstein1 (empiricalMeasureCurve N (X N) (V N) t) (f t)
         ≤ ENNReal.ofReal (Real.exp (C * t)) *
-            wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) :=
+            wasserstein1Coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) :=
           hDobrushin N t ht.1
       _ ≤ ENNReal.ofReal (Real.exp (C * T)) *
-            wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
+            wasserstein1Coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0) := by
           apply mul_le_mul_of_nonneg_right _ (zero_le)
           apply ENNReal.ofReal_le_ofReal
           exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left ht.2 (le_of_lt hC))
   have hUpper : Filter.Tendsto
       (fun N : ℕ => ENNReal.ofReal (Real.exp (C * T)) *
-        wasserstein1_coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0))
+        wasserstein1Coupling (empiricalMeasureCurve N (X N) (V N) 0) (f 0))
       Filter.atTop (nhds 0) := by
     have h := ENNReal.Tendsto.const_mul (a := ENNReal.ofReal (Real.exp (C * T)))
       hInit (Or.inr ENNReal.ofReal_ne_top)

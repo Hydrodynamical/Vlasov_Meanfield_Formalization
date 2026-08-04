@@ -125,6 +125,7 @@ def IsLinearVlasovSolutionOn
       (∀ z, gradVφ z = gradient (fun v => φ (z.1, v)) z.2) →
       LinearWeakEvolutionEqOn gradW ρ μ φ gradXφ gradVφ T
 
+omit [NeZero d] in
 /-- A self-consistent weak solution is a linear solution driven by its **own** spatial marginal.
 The two differ only by `WeakEvolutionEqOn`'s `+ (fun _ => 0) t = + 0` remainder. -/
 lemma IsVlasovSolutionOn.toLinearSelf
@@ -134,6 +135,7 @@ lemma IsVlasovSolutionOn.toLinearSelf
   intro φ hφ hφc gradXφ gradVφ hgradXφ hgradVφ t ht
   simpa using h φ hφ hφc gradXφ gradVφ hgradXφ hgradVφ t ht
 
+omit [NeZero d] in
 /-- **C1 #1 — pushforward solves the frozen linear weak equation.**
 
 For a characteristic flow `(charX, charV)` solving the ODE with an **external** field `ρ` on
@@ -268,11 +270,11 @@ regularity), from probability/moment/integrability/continuity data on the window
 `t ↦ ρ (max 0 (min t T))` into the window (L11), apply the universal producer to the clamped
 curve, and transfer on `[0,T]` where the clamp is the identity. -/
 theorem exists_frozenField_charFlow_On
-    (W : PhysSpace d → ℝ) [AssW W]
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ : ℝ → Measure (PhysSpace d))
-    (T : ℝ) (hT : 0 < T) (hTL_PL : LocalSmallness_PL_buffer L T)
+    (T : ℝ) (hT : 0 < T) (hTL_PL : LocalSmallnessPLBuffer L T)
     (hρ_prob : ∀ t ∈ Set.Icc (0 : ℝ) T, IsProbabilityMeasure (ρ t))
     (h_int : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ (x : PhysSpace d),
       Integrable (fun y => gradW (x - y)) (ρ t))
@@ -544,6 +546,7 @@ theorem convolveFunctionMeasure_hasFDerivAt
     have hc := h1.comp x₀ h2
     simpa [Function.comp_def] using hc
 
+omit [NeZero d] in
 /-- **C3 F2 — the Vlasov field is `C¹` in the phase-space variable, with the block Jacobian.**
 At fixed time `t`, `vlasovVectorField gradW ρ t = fun (x,v) ↦ (v, −conv(x))` is
 Fréchet-differentiable in `z = (x,v)` with derivative the block continuous-linear map
@@ -810,7 +813,7 @@ lemma picardSum_continuous_param_Icc
 (`integral_finsetSum`, `map_sum`); no infinite interchange.  Passing `N → ∞` against the
 uniform convergence (`picardSum_continuousOn`'s M-test) yields the integral equation for `M`. -/
 lemma picardSum_finset_recurrence
-    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (𝒜 : ℝ → (E →L[ℝ] E)) (x₀ : E) (T : ℝ) (hT : 0 ≤ T) (K : ℝ) (hK : 0 ≤ K)
     (hcont𝒜 : ContinuousOn 𝒜 (Set.Icc 0 T)) (hbound𝒜 : ∀ t ∈ Set.Icc 0 T, ‖𝒜 t‖ ≤ K)
     (N : ℕ) (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) T) :
@@ -1016,6 +1019,7 @@ noncomputable def vlasovFieldJacobian (gradW : PhysSpace d → PhysSpace d)
     (-((∫ y, fderiv ℝ gradW (p.2.1 - y) ∂(ρ p.1)).comp
         (ContinuousLinearMap.fst ℝ (PhysSpace d) (PhysSpace d))))
 
+omit [NeZero d] in
 /-- **C3 D1a — the uniform-over-compact first-order Taylor remainder of the Vlasov field.**
 
 For a fixed initial point `z`, the first-order remainder of the frozen field `b(s,·)` at the moving
@@ -1218,7 +1222,7 @@ lemma continuousOn_prod_of_lipschitz_continuousOn
 solution of `Ṁ = A(t)·M`, `M 0 = id`, as a *function* (not a `choose`-d witness), so its
 parameter-regularity is accessible. -/
 noncomputable def fundamentalMatrix {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
-    [CompleteSpace F] (A : ℝ → (F →L[ℝ] F)) : ℝ → (F →L[ℝ] F) :=
+    (A : ℝ → (F →L[ℝ] F)) : ℝ → (F →L[ℝ] F) :=
   fun t => ∑' n, picardIter (fun s => ContinuousLinearMap.compL ℝ F F F (A s))
     (ContinuousLinearMap.id ℝ F) n t
 
@@ -1475,6 +1479,7 @@ lemma gronwall_diffQuotient_bound
     (hgb_cont.tendsto (0, t)).comp (htend_δ.prodMk_nhds htend_x)
   exact ge_of_tendsto htend_gb (eventually_nhdsWithin_of_forall (fun s₀ hs₀ => hbound_s0 s₀ hs₀))
 
+omit [NeZero d] in
 /-- **C3 D1 — the difference-quotient heart of the variational equation.**
 
 Given the fundamental matrix `Mz` of the linear variational ODE `Ṁ = A(s, Φ_s z)·M`, `M 0 = id`
@@ -1645,6 +1650,7 @@ theorem charFlow_hasFDerivAt_of_fundamentalMatrix
 
 end CharFlowDeriv
 
+omit [NeZero d] in
 /-- **C3 #3 — the variational equation (`HasFDerivAt` of the flow in its initial point).**
 
 For the frozen field `b(t,·) = vlasovVectorField gradW ρ t` with `gradW ∈ C¹` (supplied by the
@@ -1765,6 +1771,7 @@ theorem charFlow_hasFDerivAt_in_initialPoint
       hA_contOn hA_bound t (Set.Ioo_subset_Icc_self ht)
 
 open Filter Topology in
+omit [NeZero d] in
 /-- **Step 1 (dual core) — lower Grönwall / anti-Lipschitz bound on the characteristic flow.**
 For `t ∈ (0,T)`, the flow `Φ_t : z ↦ (charX t z, charV t z)` satisfies
 `dist z₁ z₂ ≤ dist (Φ_t z₁) (Φ_t z₂) · exp(K t)` (K = max 1 L), i.e. `Φ_t` is `AntilipschitzWith`.
@@ -1965,6 +1972,7 @@ theorem exists_global_c1_inverse_of_antilipschitz
 
 end Step2Inverse
 
+omit [NeZero d] in
 /-- **Step 2 (dual core) — the characteristic flow `Φ_t` is a `C¹` diffeomorphism on `(0,T)`.**
 Instantiates the generic global-inverse machinery at `Φ_t := (charX t, charV t)`: its derivative
 `e z` (= `#3`'s `Dflow t z`) is invertible, `Φ_t` is bijective, and the inverse `Ψ` is continuous
@@ -2262,6 +2270,7 @@ theorem hasFDerivAt_of_continuous_partials_open
 
 end Step3Joint
 
+omit [NeZero d] in
 /-- **Step 3 — the forward flow `(s,z) ↦ Φ_s z` is jointly continuous** on `Icc 0 T ×ˢ univ`
 (`(s,z)`-order).  Gronwall Lipschitz-in-`z` (uniform over `[0,T]`) + per-`z` continuity-in-`s`, via
 the generic `continuousOn_prod_of_lipschitz_continuousOn`, then a prod-order swap.  Extracted from
@@ -2298,6 +2307,7 @@ lemma charFlow_continuousOn_joint
     fun p hp => ⟨Set.mem_univ _, hp.1⟩
   exact hjoint_zs.comp hswap hmaps
 
+omit [NeZero d] in
 /-- **Step 3 (ii) — the field along the flow `(s,z) ↦ b_s(Φ_s z)` is jointly continuous** on
 `Icc 0 T ×ˢ univ`.  First component `charV` from flow joint continuity; second component
 `-(∇W ∗ ρ_s)(charX s z)` from `(s,x) ↦ (∇W∗ρ_s)(x)` jointly continuous (equi-Lipschitz-in-`x` from
@@ -2342,6 +2352,7 @@ lemma vlasovField_along_flow_continuousOn
   rw [heq]
   exact hcomp1.prodMk hconv_along.neg
 
+omit [NeZero d] in
 /-- **Step 3 (iii) — the forward flow `(s,z) ↦ Φ_s z` is jointly `C¹`** on `U := Ioo 0 T ×ˢ univ`:
 Fréchet-differentiable at every point with a jointly-continuous total derivative `DΦ`.  Built by
 composing the open-set gating theorem (`hasFDerivAt_of_continuous_partials_open`) — fed the
@@ -2470,6 +2481,7 @@ theorem charFlow_hasFDerivAt_joint
         (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) := hM_sz.clm_comp continuousOn_const
     exact hT1.add hT2
 
+omit [NeZero d] in
 /-- **Step 3 (iv-A) — the forward flow `(s,z) ↦ Φ_s z` is `ContDiffAt ℝ 1`** at each point of the
 open window (the chart-IFT input for item (iv)).  Lifts item (iii)'s `HasFDerivAt`-everywhere +
 `ContinuousOn`-derivative to `ContDiffAt` via `contDiffAt_succ_iff_hasFDerivAt`. -/
@@ -2503,6 +2515,7 @@ lemma charFlow_contDiffAt_joint
   simpa using hmain
 
 open Filter Topology in
+omit [NeZero d] in
 /-- **Step 3 (iv) — the per-slice inverse `Ψ_s := Φ_s⁻¹` is jointly `C¹`** on `Ioo 0 T ×ˢ univ`,
 the keystone of the two-time flow `Φ_{s→t} = Φ_t ∘ Φ_s⁻¹`.
 
@@ -2683,6 +2696,7 @@ theorem twoTimeFlow_contDiffOn_joint
       (Set.Ioo (0 : ℝ) T ×ˢ Set.univ) :=
   hΦt_C1.comp_contDiffOn hΨ_C1
 
+omit [NeZero d] in
 /-- **Step 4 (4b) — the transport identity `∂_s ψ_s + Dψ_s · b_s = 0`.**
 
 For the backward-transported test `ψ_s(w) := φ(Φ_t(Ψ_s w)) = φ(Φ_{s→t} w)`, the partial
@@ -3076,6 +3090,7 @@ lemma inner_integrand_sub_norm_le
     simp only [sub_self, norm_zero]
     positivity
 
+omit [NeZero d] in
 /-- On the window, the frozen convolution field over the spatial marginal is
 integrable (in force form), linearly bounded, and continuous — packaged for
 consumers that quantify over the window. -/
@@ -3209,6 +3224,7 @@ lemma integral_tendsto_of_tendstoUniformly
 -- #4 (Step 5 interface): the weak evolution equation extended to C¹_c test functions.
 open Filter Topology Metric in
 open scoped Convolution Pointwise in
+omit [NeZero d] in
 theorem weakEvolution_test_C1c_On
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
@@ -3526,6 +3542,7 @@ theorem vlasovSolutionOn_integral_continuousOn
 
 -- ── Helpers for `transportedIntegral_hasDerivAt_zero`, extracted from its proof body. ──
 
+omit [NeZero d] in
 /-- Per-`z` phase-space ODE of a characteristic flow on the open window, in
 `vlasovVectorField` form. -/
 lemma charFlow_ode_of_isCharacteristicFlowOn
@@ -3676,6 +3693,7 @@ lemma hasDerivAt_integral_sub_of_uniform_linearization
   ring
 
 open Filter Topology Asymptotics in
+omit [NeZero d] in
 /-- **#6a (Step 6, the diagonal chain rule) — `s ↦ ∫ ψ_s d(f s)` has zero `σ`-derivative.**
 
 The analytic heart of the dual core: for the backward-transported test
@@ -3954,6 +3972,7 @@ theorem transportedIntegral_hasDerivAt_zero
 -- #6b: the transported integral (with the s=0 endpoint patched to the RHS value) is
 -- continuous on the closed interval [0,t].
 open Filter Topology in
+omit [NeZero d] in
 theorem transportedIntegral_continuousOn
     (gradW : PhysSpace d → PhysSpace d)
     (f : ℝ → Measure (PhaseSpace d)) (T : ℝ)
@@ -4198,6 +4217,7 @@ theorem transportedIntegral_continuousOn
 -- dualCore_main: the dual core for 0 < t ≤ T (subsumes the t = T terminal via the same
 -- if-patched constancy argument).  Obtains Ψ from item (iv), assembles #6a + #6b +
 -- transportedIntegral_const_On + the endpoint identities.
+omit [NeZero d] in
 theorem dualCore_main
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
@@ -4260,6 +4280,7 @@ theorem dualCore_main
 -- frozenFlow_inverse_On: the item-(iv) discharge — produces the jointly-C¹ inverse Ψ + the
 -- four facts dualCore_main consumes, from the raw dual core hypotheses (L11 clamp for the
 -- universal probability instance, h_int from hL + moments, etc.).
+omit [NeZero d] in
 theorem frozenFlow_inverse_On
     (W : PhysSpace d → ℝ) [AssW2 W]
     (gradW : PhysSpace d → PhysSpace d) (hgradW : ∀ x, gradW x = gradient W x)
@@ -4456,6 +4477,7 @@ theorem dualCore_terminal
     filter_upwards [self_mem_nhdsWithin] with t ht using hIoo t ht
   exact tendsto_nhds_unique (hClaim1.congr' hEqOn) hClaim2
 
+omit [NeZero d] in
 /-- **C3 #8 (dual-transport core) — `∫ φ d(f t) = ∫ φ∘Φ_t d(f 0)` for every `C_c^∞` test.**
 
 The dual transported-test-function argument showing the weak solution `f` transports along its
@@ -4540,6 +4562,7 @@ theorem weak_eq_frozenField_pushforward_dualCore
     · -- t ∈ Ioo 0 T
       exact hIoo t ⟨h0, hlt⟩
 
+omit [NeZero d] in
 /-- **C3 #8 — the weak solution equals its frozen-field pushforward on the window.**
 
 `f t = (Φ_t)_# (f 0)` on `[0,T]`.  Skeleton: `measure_eq_of_forall_Cc_integral_eq` (#9) reduces
@@ -4706,7 +4729,7 @@ theorem weak_isLagrangianVlasovSolutionOn
       (Set.Icc 0 T ×ˢ (Set.univ : Set (PhysSpace d))))
     (M_ρ : ℝ) (hM_ρ_nn : 0 ≤ M_ρ)
     (hM_ρ : ∀ t ∈ Set.Icc (0 : ℝ) T, ∫ y, ‖y‖ ∂(spatialMarginal (f t)) ≤ M_ρ)
-    (hTL_PL : LocalSmallness_PL_buffer L T) :
+    (hTL_PL : LocalSmallnessPLBuffer L T) :
     IsLagrangianVlasovSolutionOn gradW f T := by
   classical
   -- Frozen field `ρ^f := spatialMarginal ∘ f`: discharge the flow-construction hypotheses of #2.

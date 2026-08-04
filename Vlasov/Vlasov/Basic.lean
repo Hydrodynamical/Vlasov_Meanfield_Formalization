@@ -257,7 +257,7 @@ noncomputable def spatialMarginal (μ : Measure (PhaseSpace d)) :
 omit [NeZero d] in
 /-- The integral of a function φ against the empirical measure `empiricalMeasure N X V`
 equals `(1/N) * ∑ i, φ(X i, V i)`, by unfolding the weighted sum of Dirac masses. -/
-lemma empiricalMeasure_integral_eq (N : ℕ) [NeZero N]
+lemma empiricalMeasure_integral_eq (N : ℕ)
     (X V : Fin N → PhysSpace d)
     (φ : PhaseSpace d → ℝ) :
     ∫ z, φ z ∂(empiricalMeasure N X V) =
@@ -334,7 +334,7 @@ expression `(1/N) * Σᵢ [⟨V t i, gradXφ (X t i, V t i)⟩ + ⟨aᵢ, gradV�
 where `aᵢ = -(1/N) Σ_{j≠i} gradW(X t i - X t j)` is the Newton acceleration,
 obtained by combining `empiricalMeasure_integral_eq` and `hasDerivAt_phi_along_trajectory`
 with `HasDerivAt.sum` and `HasDerivAt.const_smul`. -/
-lemma hasDerivAt_empiricalIntegral_sum (N : ℕ) [NeZero N]
+lemma hasDerivAt_empiricalIntegral_sum (N : ℕ)
     (gradW : PhysSpace d → PhysSpace d)
     (X V : ℝ → Fin N → PhysSpace d)
     (hSol : IsNewtonSolution N gradW X V)
@@ -401,7 +401,7 @@ Proof strategy:
      distributes integration over the finite sum of Diracs;
      `integral_dirac'` (`Integral/Bochner/Basic.lean`) collapses each
      summand to `gradW(X t i − X t j)`. -/
-lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ) [NeZero N]
+lemma convolveFunctionMeasure_empiricalSpatial_eq (N : ℕ)
     (gradW : PhysSpace d → PhysSpace d)
     (hgradW_meas : Measurable gradW)
     (X V : ℝ → Fin N → PhysSpace d) (t : ℝ) (i : Fin N) :
@@ -442,7 +442,7 @@ This lemma is pure inner-product algebra atop
 `Finset.sum_ite_ne` or `Finset.sum_compl_add_sum`, distribute the inner
 product with `inner_sub_left`/`inner_smul_left`, recognise the
 `(1/N) • Σⱼ gradW` factor as the convolveFunctionMeasure unfolding. -/
-lemma diagonalCorrection_eq (N : ℕ) [NeZero N]
+lemma diagonalCorrection_eq (N : ℕ)
     (gradW : PhysSpace d → PhysSpace d)
     (hgradW_meas : Measurable gradW)
     (X V : ℝ → Fin N → PhysSpace d)
@@ -902,7 +902,7 @@ Used to lift the Picard iteration's Cauchy sequence (from the
 `Phi_supW1_contraction` contraction estimate) to a W₁-limit in the curve
 space; the limit is a fixed point of the Picard iteration, yielding a
 self-consistent characteristic flow + Vlasov solution on `[0, T₀]`. -/
-theorem exists_wasserstein1_limit_of_cauchy {d : ℕ} [NeZero d]
+theorem exists_wasserstein1_limit_of_cauchy {d : ℕ}
     (ν : ℕ → Measure (PhysSpace d)) [∀ n, IsProbabilityMeasure (ν n)]
     (M : ℝ) (hMom : ∀ n, ∫ y, ‖y‖ ∂(ν n) ≤ M)
     (h_yint : ∀ n, Integrable (fun y : PhysSpace d => ‖y‖) (ν n))
@@ -1112,7 +1112,7 @@ Proof: the map `y ↦ gradW (x - y)` is L-Lipschitz (composition of the L-Lipsch
 with the 1-Lipschitz subtraction `y ↦ x - y`), and `w ↦ ⟨w, v⟩` is `‖v‖₊`-Lipschitz
 (bounded linear map with operator norm `‖v‖`); compose via `LipschitzWith.comp`. -/
 lemma convolveLipschitz_inner_lipschitz
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (x v : PhysSpace d) :
@@ -1169,7 +1169,7 @@ commute the inner product `⟨·, v⟩` (a continuous linear map) through each i
 (from `convolveLipschitz_inner_lipschitz`), so `(1/L) * (that integrand)` is 1-Lipschitz and
 `convolveLipschitz_KR_le` closes the estimate. -/
 lemma convolveLipschitz_inner_bound
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
@@ -1275,7 +1275,7 @@ Proof: in the `z = 0` case, `‖0‖ = 0 ≤ C` (from `C ≥ ⟨0, 0⟩ = 0`); i
 take `v = z / ‖z‖` (which satisfies `‖v‖ = 1`); then
 `‖z‖ = ⟨z, z/‖z‖⟩ = ⟨z, v⟩ ≤ C` by hypothesis via `real_inner_self_eq_norm_mul_norm`. -/
 lemma convolveLipschitz_norm_le_of_inner_forall
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (z : PhysSpace d) (C : ℝ)
     (h : ∀ v : PhysSpace d, ‖v‖ ≤ 1 → @inner ℝ (PhysSpace d) _ z v ≤ C) :
     ‖z‖ ≤ C := by
@@ -1301,7 +1301,7 @@ lemma convolveLipschitz_norm_le_of_inner_forall
 -- Requires Wasserstein-1 Kantorovich–Rubinstein duality, which is not yet
 -- in Mathlib's stable API for general metric spaces.
 theorem norm_convolveFunctionMeasure_sub_le
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (ρ σ : Measure (PhysSpace d))
@@ -1329,7 +1329,7 @@ in `t` then reduces to dominated convergence on the *fixed* measure `f 0`,
 with pointwise continuity from the flow's `HasDerivAt` and an integrable
 dominator from `HasFiniteFirstMoment (f 0)` + a flow-growth bound. -/
 lemma continuousOn_integral_of_isLagrangianVlasovSolution
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (gradW : PhysSpace d → PhysSpace d)
     (L : NNReal) (hL : LipschitzWith L gradW)
     (f : ℝ → Measure (PhaseSpace d))
@@ -1505,7 +1505,7 @@ the Wasserstein-1 distance `wasserstein1 (f t) (g t) = ⨆ φ (_ : LipschitzWith
 is LowerSemicontinuousOn `Set.Icc 0 T` as a double supremum of LSC functions
 via `lowerSemicontinuousOn_iSup` applied twice. -/
 lemma w1_lscNarrow_of_summands
-    {d : ℕ} [NeZero d]
+    {d : ℕ}
     (f g : ℝ → Measure (PhaseSpace d))
     (T : ℝ)
     (h_summands : ∀ (φ : PhaseSpace d → ℝ) (_hφ : LipschitzWith 1 φ),
@@ -1597,6 +1597,7 @@ lemma wassersteinGronwallCoupling_ennreal_mul_comm
       ENNReal.ofReal (Real.exp (C * t)) * ENNReal.ofReal δ := by
   rw [ENNReal.ofReal_mul hδ, mul_comm]
 
+omit [NeZero d] in
 /-- If gradW is L-Lipschitz, then for any x : PhysSpace d and any two measures ρ, σ
 on PhysSpace d, ‖(∇W*ρ)(x) − (∇W*σ)(x)‖ ≤ L · W₁(ρ,σ).toReal.
 This is the key estimate: the convolution ∇W * ρ is Lipschitz in ρ with respect to
@@ -1649,7 +1650,7 @@ The .tex names the initial data `(X_0^N, V_0^N)`; here we identify them with
 that would need a separate hypothesis to link them to the trajectory.
 -/
 theorem meanFieldLimit
-    (W : PhysSpace d → ℝ) [AssW W]
+    (W : PhysSpace d → ℝ)
     (gradW : PhysSpace d → PhysSpace d)
     (_hgradW : ∀ x, gradW x = gradient W x)
     (L : NNReal) (_hL : LipschitzWith L gradW)

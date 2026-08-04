@@ -99,27 +99,27 @@ def generalDecls : List Name :=
     `Vlasov.transportProperCone,
     `Vlasov.wasserstein1,
     `Vlasov.wasserstein1_comm,
-    `Vlasov.wasserstein1_coupling,
-    `Vlasov.wasserstein1_coupling_eq,
+    `Vlasov.wasserstein1Coupling,
+    `Vlasov.wasserstein1Coupling_eq,
     `Vlasov.wasserstein1_dual_lower_bound,
     `Vlasov.wasserstein1_eq_coupling,
     `Vlasov.wasserstein1_eq_iSup_lipschitz,
     `Vlasov.wasserstein1_eq_zero_iff_measure_eq,
     `Vlasov.wasserstein1_le_liminf_of_narrow,
     `Vlasov.wasserstein1_le_moments_sum,
-    `Vlasov.wasserstein1_le_wasserstein1_coupling,
+    `Vlasov.wasserstein1_le_wasserstein1Coupling,
     `Vlasov.wasserstein1_lt_top_of_finite_moment,
     `Vlasov.wasserstein1_ne_top_of_finite_moment,
     `Vlasov.wasserstein1_self,
     `Vlasov.wasserstein1_triangle,
     `Vlasov.wassersteinCost,
     `Vlasov.wassersteinCost_comm,
-    `Vlasov.wassersteinCost_coupling,
-    `Vlasov.wassersteinCost_coupling_comm,
-    `Vlasov.wassersteinCost_coupling_le_dual,
-    `Vlasov.wassersteinCost_coupling_le_dual_of_finiteRange,
-    `Vlasov.wassersteinCost_coupling_map_le,
-    `Vlasov.wassersteinCost_coupling_triangle,
+    `Vlasov.wassersteinCostCoupling,
+    `Vlasov.wassersteinCostCoupling_comm,
+    `Vlasov.wassersteinCostCoupling_le_dual,
+    `Vlasov.wassersteinCostCoupling_le_dual_of_finiteRange,
+    `Vlasov.wassersteinCostCoupling_map_le,
+    `Vlasov.wassersteinCostCoupling_triangle,
     `Vlasov.wassersteinCost_dual_le_add_map,
     `Vlasov.wassersteinCost_dual_lower_bound,
     `Vlasov.wassersteinCost_dual_singleMap_le,
@@ -156,6 +156,14 @@ run_cmd liftCoreM do
       total := total + 1
       if genSet.contains nm then genN := genN + 1
       else specSet := specSet.insert nm
+  -- v4.33 compat: `ConstantInfo.value?` returns none for theorems on this toolchain;
+  -- proof terms must be read off the constructor fields directly, else all three
+  -- dependency analyses below silently degrade to type-only edges.
+  let constVal : ConstantInfo → Option Expr := fun info =>
+    match info with
+    | .thmInfo tv => some tv.value
+    | .defnInfo dv => some dv.value
+    | _ => info.value?
   -- (D) down-closure / S2 back-edges: every PROJECT dependency of a general decl is general
   let mut backEdges := 0
   let mut backList : Array String := #[]
@@ -164,7 +172,7 @@ run_cmd liftCoreM do
       match env.find? nm with
       | none => pure ()
       | some info =>
-        let used := info.type.getUsedConstants ++ (info.value?.map Expr.getUsedConstants).getD #[]
+        let used := info.type.getUsedConstants ++ ((constVal info).map Expr.getUsedConstants).getD #[]
         let bad := used.filter (fun u => specSet.contains u)
         if bad.size > 0 then
           backEdges := backEdges + 1
@@ -193,7 +201,7 @@ run_cmd liftCoreM do
   for nm in specSet.toList do
     match env.find? nm with
     | none => pure () | some info =>
-      let used := info.type.getUsedConstants ++ (info.value?.map Expr.getUsedConstants).getD #[]
+      let used := info.type.getUsedConstants ++ ((constVal info).map Expr.getUsedConstants).getD #[]
       for u in used do if genSet.contains u then iface := iface.insert u
   -- Q4 half A: reachability of each general decl from a target theorem (dead-code check).
   let targets : List Name :=
@@ -207,7 +215,7 @@ run_cmd liftCoreM do
       match env.find? nm with
       | none => pure ()
       | some info =>
-        let used := info.type.getUsedConstants ++ (info.value?.map Expr.getUsedConstants).getD #[]
+        let used := info.type.getUsedConstants ++ ((constVal info).map Expr.getUsedConstants).getD #[]
         for u in used do if allSet.contains u then reach := reach.insert u
     if reach.size == before then break
   let unreached := genSet.toList.filter (fun nm => allSet.contains nm && ¬ reach.contains nm)
