@@ -8,7 +8,10 @@ AI-assisted, in about a month, framed as a formalization game.
 
 - **Paper**: [PAPER.pdf](PAPER.pdf) (source: [PAPER.tex](PAPER.tex))
 - **Lean development**: [`Vlasov/`](Vlasov/) — about 22,000 lines, zero
-  `sorry`, Lean v4.29.1 + Mathlib (both pinned)
+  `sorry`, Lean v4.29.1 + Mathlib (both pinned). **This subdirectory is the
+  Lake package** — `lakefile.toml`, `lean-toolchain`, and `lake-manifest.json`
+  live there, not at the repository root — so run every `lake` command from
+  inside it (see [Build](#build-and-check-the-certificate))
 - **Paper artifact**: the exact tree described in arXiv:2607.08986 is tag
   [`arxiv-2607.08986-v2`](https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization/releases/tag/arxiv-2607.08986-v2);
   `main` continues to evolve past it
@@ -36,14 +39,25 @@ correspondence table is
 
 ## Build and check the certificate
 
+The repository root is not a Lake package (it holds the paper, the build
+record, and the agent tooling), and `lake` looks only in the current
+directory, so build from inside `Vlasov/`:
+
 ```bash
-cd Vlasov
+git clone https://github.com/Hydrodynamical/Vlasov_Meanfield_Formalization.git
+cd Vlasov_Meanfield_Formalization/Vlasov
 lake exe cache get   # pull precompiled Mathlib (skipping this compiles Mathlib from source)
 lake build
 lake env lean ../formalize/certification/footprint-check.lean
 ```
 
-The second command is the certificate. For each of the three headline theorems
+Running `lake` from the repository root instead fails with
+`error: [root]: no configuration file with a supported extension`. The pinned
+toolchain (`Vlasov/lean-toolchain`) is picked up by `elan` automatically once
+you are inside `Vlasov/`, and the manifest is pinned, so no `lake update` is
+needed.
+
+The last command is the certificate. For each of the three headline theorems
 it must print exactly
 
 ```
