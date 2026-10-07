@@ -936,7 +936,7 @@ def transportProperCone (Cost : m → n → ℝ) :
           rw [Finset.mul_sum]
         · change (c : ℝ) * ((∑ i, ∑ j, Cost i j * P i j) + s)
               = (∑ i, ∑ j, Cost i j * ((c : ℝ) * P i j)) + (c : ℝ) * s
-          simp_rw [mul_add, Finset.mul_sum]; ring }
+          simp_rw [mul_add, Finset.mul_sum]; ring_nf }
   isClosed' := isClosed_transport_cone Cost
 
 /-- **Per-ε Farkas separation.**  Given the optimal plan `P` (primal value `V = ⟨Cost,P⟩`),

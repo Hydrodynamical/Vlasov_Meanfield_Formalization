@@ -4058,8 +4058,7 @@ theorem vlasovWellPosedness_glue
           charX_g charV_g hT_pos h_prev_push h_prev_aemeas hg_init hg_aemeas_ex
           f_next (fun s' hs' => if_pos hs') s hs
       · -- Boundary ContinuousOn on Icc 0 (T + T_0): project the boundary bundle.
-        intro z
-        intro s hs
+        intro z s hs
         exact ((vlasovWellPosedness_glue_boundary gradW hT_pos hT_0_pos f_prev g f_next
           charX_prev charV_prev charX_g charV_g charX_next charV_next rfl rfl rfl
           h_prev_boundary hg_boundary hg_init hg_init_cond z s hs).1.continuousWithinAt.prodMk

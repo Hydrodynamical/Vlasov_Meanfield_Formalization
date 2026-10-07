@@ -1333,8 +1333,7 @@ lemma IsVlasovSolution.toOn {d : ℕ} [NeZero d]
     {gradW : PhysSpace d → PhysSpace d}
     {f : ℝ → Measure (PhaseSpace d)} (h : IsVlasovSolution gradW f) (T : ℝ) :
     IsVlasovSolutionOn gradW f T := by
-  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ
-  intro t _ht
+  intro φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t _ht
   exact h φ hφ_smooth hφ_compact gradXφ gradVφ hgradXφ hgradVφ t
 
 /-- A global `IsLagrangianVlasovSolution` restricts to
@@ -5540,8 +5539,7 @@ theorem characteristicFlow_boundary_regularity
     exact Prod.ext hX hV
   · -- h_cont_Icc: from h_boundary's HasDerivWithinAt → ContinuousWithinAt →
     -- ContinuousOn, joined componentwise via Prod.
-    intro z
-    intro s hs
+    intro z s hs
     obtain ⟨h_pos_dw, h_vel_dw⟩ := h_boundary z s hs
     have h_pos_cwn : ContinuousWithinAt (fun s' => charX s' z) (Set.Icc 0 T) s :=
       h_pos_dw.continuousWithinAt
